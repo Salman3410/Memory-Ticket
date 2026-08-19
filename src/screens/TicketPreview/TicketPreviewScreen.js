@@ -1,6 +1,6 @@
-import React from "react";
 import { View, Text, Image, TouchableOpacity, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+
 import { useMemory } from "../../context/MemoryContext";
 
 import styles from "./ticketPreviewStyles";
@@ -16,11 +16,23 @@ function TicketPreviewScreen({ route, navigation }) {
 
     const parsedDate = new Date(date);
 
+    if (isNaN(parsedDate.getTime())) {
+      return "DATE UNKNOWN";
+    }
+
     return parsedDate.toLocaleDateString("en-US", {
       month: "short",
-      day: "numeric",
+      day: "2-digit",
       year: "numeric",
     });
+  };
+
+  const getTicketNumber = () => {
+    if (memory?.id) {
+      return memory.id.slice(-5).toUpperCase();
+    }
+
+    return "00001";
   };
 
   const handleSave = async () => {
@@ -41,14 +53,15 @@ function TicketPreviewScreen({ route, navigation }) {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Header */}
+        {/* HEADER */}
+
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}
             activeOpacity={0.7}
           >
-            <Ionicons name="arrow-back" size={22} color="#242424" />
+            <Ionicons name="arrow-back" size={21} color="#242424" />
           </TouchableOpacity>
 
           <View style={styles.headerTextContainer}>
@@ -60,7 +73,8 @@ function TicketPreviewScreen({ route, navigation }) {
           <View style={styles.headerSpacer} />
         </View>
 
-        {/* Preview Label */}
+        {/* INTRO */}
+
         <View style={styles.previewHeader}>
           <Text style={styles.previewTitle}>Looks good?</Text>
 
@@ -69,89 +83,151 @@ function TicketPreviewScreen({ route, navigation }) {
           </Text>
         </View>
 
-        {/* Ticket */}
-        <View style={styles.ticketContainer}>
-          {/* Ticket Top */}
-          <View style={styles.ticketTop}>
-            <View style={styles.ticketBrand}>
-              <Ionicons name="ticket-outline" size={18} color="#FFFFFF" />
+        {/* ==================================================
+            MEMORY TICKET
+        ================================================== */}
 
-              <Text style={styles.ticketBrandText}>MEMORY TICKET</Text>
+        <View style={styles.ticketShadow}>
+          <View style={styles.ticket}>
+            {/* TOP PERFORATION */}
+
+            <View style={styles.topPerforation}>
+              {Array.from({ length: 15 }).map((_, index) => (
+                <View key={index} style={styles.perforationHole} />
+              ))}
             </View>
 
-            <Text style={styles.ticketNumber}>#00001</Text>
-          </View>
+            {/* TICKET HEADER */}
 
-          {/* Photo */}
-          <View style={styles.ticketImageContainer}>
-            {memory?.image ? (
-              <Image
-                source={{ uri: memory.image }}
-                style={styles.ticketImage}
-              />
-            ) : (
-              <View style={styles.noImage}>
-                <Ionicons name="image-outline" size={40} color="#707080" />
-              </View>
-            )}
-          </View>
+            <View style={styles.ticketHeader}>
+              <View>
+                <Text style={styles.ticketBrand}>MEMORY TICKET</Text>
 
-          {/* Ticket Information */}
-          <View style={styles.ticketInfo}>
-            <Text style={styles.ticketEventLabel}>MEMORY</Text>
-
-            <Text style={styles.ticketTitle}>
-              {memory?.title || "Untitled Memory"}
-            </Text>
-
-            <View style={styles.ticketDivider} />
-
-            {/* Date */}
-            <View style={styles.infoRow}>
-              <View style={styles.infoItem}>
-                <Text style={styles.infoLabel}>DATE</Text>
-
-                <Text style={styles.infoValue}>{formatDate(memory?.date)}</Text>
-              </View>
-
-              {/* Location */}
-              <View style={styles.infoItem}>
-                <Text style={styles.infoLabel}>LOCATION</Text>
-
-                <Text style={styles.infoValue} numberOfLines={1}>
-                  {memory?.location || "Unknown"}
+                <Text style={styles.ticketSubBrand}>
+                  THE POWER OF THE MOMENT
                 </Text>
               </View>
+
+              <Text style={styles.ticketNumber}>#{getTicketNumber()}</Text>
             </View>
 
-            {/* Description */}
-            {memory?.description ? (
-              <View style={styles.quoteContainer}>
-                <Text style={styles.quoteMark}>“</Text>
+            {/* PHOTO */}
 
-                <Text style={styles.description}>{memory.description}</Text>
+            <View style={styles.ticketImageContainer}>
+              {memory?.image ? (
+                <Image
+                  source={{ uri: memory.image }}
+                  style={styles.ticketImage}
+                />
+              ) : (
+                <View style={styles.noImage}>
+                  <Ionicons name="image-outline" size={42} color="#D94D28" />
+
+                  <Text style={styles.noImageText}>NO IMAGE</Text>
+                </View>
+              )}
+
+              {/* PHOTO OVERLAY */}
+
+              <View style={styles.imageOverlay} />
+            </View>
+
+            {/* TICKET INFORMATION */}
+
+            <View style={styles.ticketInfo}>
+              <Text style={styles.memoryLabel}>MEMORY</Text>
+
+              <Text style={styles.ticketTitle} numberOfLines={2}>
+                {memory?.title || "UNTITLED MEMORY"}
+              </Text>
+
+              <View style={styles.ticketDivider} />
+
+              {/* DATE */}
+
+              <View style={styles.infoRow}>
+                <View style={styles.infoItem}>
+                  <Text style={styles.infoLabel}>DATE</Text>
+
+                  <Text style={styles.infoValue}>
+                    {formatDate(memory?.date)}
+                  </Text>
+                </View>
+
+                {/* LOCATION */}
+
+                <View style={styles.infoItem}>
+                  <Text style={styles.infoLabel}>LOCATION</Text>
+
+                  <Text style={styles.infoValue} numberOfLines={2}>
+                    {memory?.location || "UNKNOWN"}
+                  </Text>
+                </View>
               </View>
-            ) : null}
-          </View>
 
-          {/* Perforated Divider */}
-          <View style={styles.perforationContainer}>
-            <View style={styles.perforationCircleLeft} />
+              {/* DESCRIPTION */}
 
-            <View style={styles.dashedLine} />
+              {memory?.description ? (
+                <View style={styles.descriptionContainer}>
+                  <Text style={styles.description}>{memory.description}</Text>
+                </View>
+              ) : null}
+            </View>
 
-            <View style={styles.perforationCircleRight} />
-          </View>
+            {/* MIDDLE PERFORATION */}
 
-          {/* Ticket Bottom */}
-          <View style={styles.ticketBottom}>
-            <Text style={styles.admitText}>ADMIT ONE MEMORY</Text>
+            <View style={styles.middlePerforation}>
+              <View style={styles.sideCutoutLeft} />
 
-            <Text style={styles.ticketSerial}>MT • 00001</Text>
+              <View style={styles.middleDashedLine} />
+
+              <View style={styles.sideCutoutRight} />
+            </View>
+
+            {/* TICKET FOOTER */}
+
+            <View style={styles.ticketFooter}>
+              <View>
+                <Text style={styles.admitText}>ADMISSION X1</Text>
+
+                <Text style={styles.footerSmallText}>MEMORY ARCHIVE</Text>
+              </View>
+
+              {/* BARCODE */}
+
+              <View style={styles.barcode}>
+                {Array.from({ length: 28 }).map((_, index) => (
+                  <View
+                    key={index}
+                    style={[
+                      styles.bar,
+                      index % 5 === 0
+                        ? styles.barWide
+                        : index % 3 === 0
+                          ? styles.barMedium
+                          : styles.barSmall,
+                    ]}
+                  />
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.serialContainer}>
+              <Text style={styles.serialText}>MT • {getTicketNumber()}</Text>
+            </View>
+
+            {/* BOTTOM PERFORATION */}
+
+            <View style={styles.bottomPerforation}>
+              {Array.from({ length: 15 }).map((_, index) => (
+                <View key={index} style={styles.perforationHole} />
+              ))}
+            </View>
           </View>
         </View>
 
-        {/* Action Buttons */}
+        {/* ACTIONS */}
+
         <View style={styles.actionsContainer}>
           <TouchableOpacity
             style={styles.saveButton}

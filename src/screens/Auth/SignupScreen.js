@@ -7,12 +7,16 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 import styles from "./authStyles";
+import { useAuth } from "../../hooks/useAuth";
 
 function SignupScreen({ navigation }) {
+  const { signup } = useAuth();
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -21,13 +25,71 @@ function SignupScreen({ navigation }) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const handleSignup = () => {
-    console.log("Signup:", {
-      name,
-      email,
-      password,
-      confirmPassword,
-    });
+  const handleSignup = async () => {
+    // Name validation
+    if (!name.trim()) {
+      Alert.alert("Name Required", "Please enter your name.");
+
+      return;
+    }
+
+    // Email validation
+    if (!email.trim()) {
+      Alert.alert("Email Required", "Please enter your email address.");
+
+      return;
+    }
+
+    // Basic email validation
+    if (!email.includes("@") || !email.includes(".")) {
+      Alert.alert("Invalid Email", "Please enter a valid email address.");
+
+      return;
+    }
+
+    // Password validation
+    if (!password) {
+      Alert.alert("Password Required", "Please create a password.");
+
+      return;
+    }
+
+    if (password.length < 6) {
+      Alert.alert("Weak Password", "Password must be at least 6 characters.");
+
+      return;
+    }
+
+    // Confirm password
+    if (!confirmPassword) {
+      Alert.alert("Confirm Password", "Please confirm your password.");
+
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      Alert.alert(
+        "Passwords Don't Match",
+        "Please make sure both passwords are the same.",
+      );
+
+      return;
+    }
+
+    // Create account
+    const result = await signup(name, email, password);
+
+    if (!result.success) {
+      Alert.alert("Signup Failed", result.message);
+
+      return;
+    }
+
+    // DO NOT navigate manually.
+    //
+    // signup() updates the user inside AuthContext.
+    // RootNavigator sees isAuthenticated === true
+    // and switches from AuthNavigator to AppNavigator.
   };
 
   return (

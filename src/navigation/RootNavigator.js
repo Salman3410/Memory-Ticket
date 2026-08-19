@@ -1,12 +1,17 @@
 import React from "react";
+import { useAuth } from "../hooks/useAuth";
 
 import AuthNavigator from "./AuthNavigator";
 import AppNavigator from "./AppNavigator";
 
 function RootNavigator() {
-  const isAuthenticated = true;
+  const { user, loading } = useAuth();
 
-  return <>{isAuthenticated ? <AppNavigator /> : <AuthNavigator />}</>;
+  if (loading) {
+    return null;
+  }
+
+  return user ? <AppNavigator /> : <AuthNavigator />;
 }
 
 export default RootNavigator;

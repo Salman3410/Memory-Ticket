@@ -1,17 +1,22 @@
 import React from "react";
-import { View, Text, ScrollView, TouchableOpacity, Image } from "react-native";
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+  Image,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+
 import { useMemory } from "../../context/MemoryContext";
+import { useAuth } from "../../hooks/useAuth";
 
 import styles from "./profileStyles";
 
 function ProfileScreen({ navigation }) {
   const { memories } = useMemory();
-
-  const user = {
-    name: "Memory Keeper",
-    email: "you@example.com",
-  };
+  const { user, logout } = useAuth();
 
   const stats = {
     memories: memories.length,
@@ -20,19 +25,29 @@ function ProfileScreen({ navigation }) {
   };
 
   const handleEditProfile = () => {
-    console.log("Edit profile");
+    navigation.getParent()?.navigate("EditProfile");
   };
 
   const handleSettings = () => {
-    console.log("Settings");
+    navigation.navigate("Settings");
   };
 
   const handleAbout = () => {
-    console.log("About Memory Ticket");
+    navigation.navigate("About");
   };
 
   const handleLogout = () => {
-    console.log("Logout");
+    Alert.alert("Log Out", "Are you sure you want to log out?", [
+      {
+        text: "Cancel",
+        style: "cancel",
+      },
+      {
+        text: "Log Out",
+        style: "destructive",
+        onPress: logout,
+      },
+    ]);
   };
 
   return (
@@ -42,6 +57,7 @@ function ProfileScreen({ navigation }) {
         contentContainerStyle={styles.scrollContent}
       >
         {/* Header */}
+
         <View style={styles.header}>
           <View>
             <Text style={styles.headerEyebrow}>YOUR SPACE</Text>
@@ -59,11 +75,23 @@ function ProfileScreen({ navigation }) {
         </View>
 
         {/* Profile Card */}
+
         <View style={styles.profileCard}>
           <View style={styles.avatarContainer}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{user.name.charAt(0)}</Text>
-            </View>
+            {user?.profileImage ? (
+              <Image
+                source={{
+                  uri: user.profileImage,
+                }}
+                style={styles.avatar}
+              />
+            ) : (
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>
+                  {user?.name?.charAt(0)?.toUpperCase() || "M"}
+                </Text>
+              </View>
+            )}
 
             <TouchableOpacity
               style={styles.cameraButton}
@@ -74,9 +102,9 @@ function ProfileScreen({ navigation }) {
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.userName}>{user.name}</Text>
+          <Text style={styles.userName}>{user?.name || "Memory Keeper"}</Text>
 
-          <Text style={styles.userEmail}>{user.email}</Text>
+          <Text style={styles.userEmail}>{user?.email || ""}</Text>
 
           <View style={styles.memberBadge}>
             <Ionicons name="ticket-outline" size={13} color="#E76F51" />
@@ -86,6 +114,7 @@ function ProfileScreen({ navigation }) {
         </View>
 
         {/* Stats */}
+
         <View style={styles.statsContainer}>
           <View style={styles.stat}>
             <Text style={styles.statNumber}>{stats.memories}</Text>
@@ -110,10 +139,13 @@ function ProfileScreen({ navigation }) {
           </View>
         </View>
 
-        {/* Account Section */}
+        {/* Account */}
+
         <Text style={styles.sectionTitle}>ACCOUNT</Text>
 
         <View style={styles.menuContainer}>
+          {/* Edit Profile */}
+
           <TouchableOpacity
             style={styles.menuItem}
             onPress={handleEditProfile}
@@ -136,6 +168,8 @@ function ProfileScreen({ navigation }) {
 
           <View style={styles.menuDivider} />
 
+          {/* Settings */}
+
           <TouchableOpacity
             style={styles.menuItem}
             onPress={handleSettings}
@@ -157,6 +191,8 @@ function ProfileScreen({ navigation }) {
           </TouchableOpacity>
 
           <View style={styles.menuDivider} />
+
+          {/* About */}
 
           <TouchableOpacity
             style={styles.menuItem}
@@ -181,11 +217,20 @@ function ProfileScreen({ navigation }) {
           </TouchableOpacity>
         </View>
 
-        {/* App Section */}
+        {/* App */}
+
         <Text style={styles.sectionTitle}>APP</Text>
 
         <View style={styles.menuContainer}>
-          <TouchableOpacity style={styles.menuItem} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() =>
+              navigation.navigate("Memories", {
+                filter: "favorites",
+              })
+            }
+            activeOpacity={0.7}
+          >
             <View style={styles.menuIcon}>
               <Ionicons name="heart-outline" size={19} color="#34345C" />
             </View>
@@ -203,6 +248,7 @@ function ProfileScreen({ navigation }) {
         </View>
 
         {/* Logout */}
+
         <TouchableOpacity
           style={styles.logoutButton}
           onPress={handleLogout}
@@ -214,6 +260,7 @@ function ProfileScreen({ navigation }) {
         </TouchableOpacity>
 
         {/* Version */}
+
         <Text style={styles.versionText}>MEMORY TICKET • VERSION 1.0.0</Text>
       </ScrollView>
     </View>

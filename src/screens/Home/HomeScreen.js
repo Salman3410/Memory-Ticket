@@ -1,138 +1,273 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { View, Text, TouchableOpacity, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+
 import { useMemory } from "../../context/MemoryContext";
+import MemoryTicket from "../../components/MemoryTicket/MemoryTicket";
 
 import styles from "./homeStyles";
 
 function HomeScreen({ navigation }) {
-  const { memories } = useMemory();
+  const { memories, loading } = useMemory();
 
-  const recentMemories = memories.slice(0, 3);
-  const memoryCount = memories.length;
+  // --------------------------------------------------
+  // RECENT MEMORIES
+  // --------------------------------------------------
+
+  const recentMemories = useMemo(() => {
+    return [...memories]
+      .sort((a, b) => {
+        const dateA = new Date(a.createdAt || a.date).getTime();
+        const dateB = new Date(b.createdAt || b.date).getTime();
+
+        return dateB - dateA;
+      })
+      .slice(0, 3);
+  }, [memories]);
+
+  // --------------------------------------------------
+  // FAVORITE MEMORIES
+  // --------------------------------------------------
+
+  const favoriteMemories = useMemo(() => {
+    return memories.filter((memory) => memory.favorite === true);
+  }, [memories]);
+
+  // --------------------------------------------------
+  // LATEST MEMORY
+  // --------------------------------------------------
+
+  const latestMemory = recentMemories[0];
+
   return (
     <View style={styles.container}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Header */}
+        {/* ==================================================
+            HEADER
+        ================================================== */}
+
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>WELCOME BACK</Text>
+            <Text style={styles.eyebrow}>YOUR MEMORY JOURNAL</Text>
 
-            <Text style={styles.userName}>Your memories await.</Text>
+            <Text style={styles.title}>Keep the moment.</Text>
+
+            <Text style={styles.subtitle}>Keep the story.</Text>
           </View>
 
           <TouchableOpacity
-            style={styles.settingsButton}
-            activeOpacity={0.7}
-            onPress={() => console.log("Settings")}
-          >
-            <Ionicons name="settings-outline" size={21} color="#34345C" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Hero / Capture Memory */}
-        <View style={styles.heroCard}>
-          <View style={styles.heroDecorationOne} />
-          <View style={styles.heroDecorationTwo} />
-
-          <View style={styles.heroIcon}>
-            <Ionicons name="camera-outline" size={30} color="#FFFFFF" />
-          </View>
-
-          <Text style={styles.heroTitle}>Capture a Moment</Text>
-
-          <Text style={styles.heroDescription}>
-            Turn your favorite moments into something worth keeping.
-          </Text>
-
-          <TouchableOpacity
-            style={styles.captureButton}
-            activeOpacity={0.85}
-            onPress={() => navigation.navigate("Create")}
-          >
-            <Ionicons name="add" size={21} color="#34345C" />
-
-            <Text style={styles.captureButtonText}>CREATE MEMORY</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Section Header */}
-        <View style={styles.sectionHeader}>
-          <View>
-            <Text style={styles.sectionTitle}>Recent Memories</Text>
-
-            <Text style={styles.sectionSubtitle}>Your latest moments</Text>
-          </View>
-
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={() => navigation.navigate("Memories")}
-          >
-            <Text style={styles.seeAllText}>See all</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Empty State */}
-        <View style={styles.emptyState}>
-          <View style={styles.emptyIcon}>
-            <Ionicons name="images-outline" size={32} color="#707080" />
-          </View>
-
-          <Text style={styles.emptyTitle}>No memories yet</Text>
-
-          <Text style={styles.emptyDescription}>
-            Your first memory is waiting to become a ticket.
-          </Text>
-
-          <TouchableOpacity
-            style={styles.emptyButton}
+            style={styles.profileButton}
+            onPress={() => navigation.navigate("Profile")}
             activeOpacity={0.8}
-            onPress={() => navigation.navigate("Create")}
           >
-            <Text style={styles.emptyButtonText}>CREATE YOUR FIRST MEMORY</Text>
+            <Ionicons name="person-outline" size={21} color="#34345C" />
           </TouchableOpacity>
         </View>
 
-        {/* Memory Statistics */}
-        <View style={styles.statsCard}>
-          <View style={styles.statItem}>
-            <Text style={styles.statNumber}>{memories.length}</Text>
+        {/* ==================================================
+            MAIN CTA
+        ================================================== */}
 
-            <Text style={styles.statLabel}>MEMORIES</Text>
+        <View style={styles.heroCard}>
+          <View style={styles.heroContent}>
+            <View style={styles.heroIcon}>
+              <Ionicons name="camera-outline" size={25} color="#FFFFFF" />
+            </View>
+
+            <Text style={styles.heroTitle}>Capture a new memory</Text>
+
+            <Text style={styles.heroDescription}>
+              Turn a moment from your life into a ticket you'll want to keep.
+            </Text>
+
+            <TouchableOpacity
+              style={styles.heroButton}
+              onPress={() => navigation.navigate("Create")}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.heroButtonText}>CREATE MEMORY</Text>
+
+              <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+            </TouchableOpacity>
           </View>
 
-          <View style={styles.statDivider} />
-
-          <View style={styles.statItem}>
-            <Text style={styles.statNumber}>{memories.length}</Text>
-
-            <Text style={styles.statLabel}>TICKETS</Text>
-          </View>
-
-          <View style={styles.statDivider} />
-
-          <View style={styles.statItem}>
-            <Text style={styles.statNumber}>0</Text>
-
-            <Text style={styles.statLabel}>THIS MONTH</Text>
+          <View style={styles.heroDecoration}>
+            <View style={styles.heroCircleLarge} />
+            <View style={styles.heroCircleSmall} />
           </View>
         </View>
 
-        {/* Bottom Space */}
-        <View style={styles.bottomSpace} />
-      </ScrollView>
+        {/* ==================================================
+            STATS
+        ================================================== */}
 
-      {/* Floating Create Button */}
-      <TouchableOpacity
-        style={styles.floatingButton}
-        activeOpacity={0.85}
-        onPress={() => navigation.navigate("Create")}
-      >
-        <Ionicons name="add" size={30} color="#FFFFFF" />
-      </TouchableOpacity>
+        <View style={styles.statsRow}>
+          <View style={styles.statCard}>
+            <View>
+              <Text style={styles.statNumber}>{memories.length}</Text>
+
+              <Text style={styles.statLabel}>MEMORIES</Text>
+            </View>
+
+            <View style={styles.statIcon}>
+              <Ionicons name="ticket-outline" size={19} color="#34345C" />
+            </View>
+          </View>
+
+          <View style={styles.statCard}>
+            <View>
+              <Text style={styles.statNumber}>{favoriteMemories.length}</Text>
+
+              <Text style={styles.statLabel}>FAVORITES</Text>
+            </View>
+
+            <View style={styles.favoriteStatIcon}>
+              <Ionicons name="heart-outline" size={19} color="#E76F51" />
+            </View>
+          </View>
+        </View>
+
+        {/* ==================================================
+            LATEST MEMORY
+        ================================================== */}
+
+        {latestMemory && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <View>
+                <Text style={styles.sectionEyebrow}>JUST CAPTURED</Text>
+
+                <Text style={styles.sectionTitle}>Your latest memory</Text>
+              </View>
+
+              <TouchableOpacity
+                onPress={() => navigation.navigate("Memories")}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.viewAllText}>VIEW ALL</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* REUSABLE MEMORY TICKET */}
+
+            <MemoryTicket
+              memory={latestMemory}
+              onPress={() =>
+                navigation.navigate("MemoryDetails", {
+                  memoryId: latestMemory.id,
+                })
+              }
+            />
+          </View>
+        )}
+
+        {/* ==================================================
+            RECENT MEMORIES
+        ================================================== */}
+
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <View>
+              <Text style={styles.sectionEyebrow}>YOUR COLLECTION</Text>
+
+              <Text style={styles.sectionTitle}>Recent memories</Text>
+            </View>
+
+            <TouchableOpacity
+              onPress={() => navigation.navigate("Memories")}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.viewAllText}>VIEW ALL</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* LOADING */}
+
+          {loading ? (
+            <View style={styles.loadingCard}>
+              <Text style={styles.loadingText}>Loading memories...</Text>
+            </View>
+          ) : recentMemories.length === 0 ? (
+            /* EMPTY STATE */
+
+            <View style={styles.emptyCard}>
+              <View style={styles.emptyIcon}>
+                <Ionicons name="images-outline" size={25} color="#34345C" />
+              </View>
+
+              <Text style={styles.emptyTitle}>Nothing here yet</Text>
+
+              <Text style={styles.emptyDescription}>
+                Your captured memories will appear here.
+              </Text>
+
+              <TouchableOpacity
+                style={styles.emptyButton}
+                onPress={() => navigation.navigate("Create")}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.emptyButtonText}>CREATE ONE</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            /* RECENT MEMORY LIST */
+
+            <View style={styles.recentList}>
+              {recentMemories.map((memory) => (
+                <MemoryTicket
+                  key={memory.id}
+                  memory={memory}
+                  compact
+                  onPress={() =>
+                    navigation.navigate("MemoryDetails", {
+                      memoryId: memory.id,
+                    })
+                  }
+                />
+              ))}
+            </View>
+          )}
+        </View>
+
+        {/* ==================================================
+            FAVORITE SHORTCUT
+        ================================================== */}
+
+        {favoriteMemories.length > 0 && (
+          <TouchableOpacity
+            style={styles.favoriteBanner}
+            onPress={() => navigation.navigate("Memories")}
+            activeOpacity={0.85}
+          >
+            <View style={styles.favoriteBannerIcon}>
+              <Ionicons name="heart" size={20} color="#E76F51" />
+            </View>
+
+            <View style={styles.favoriteBannerContent}>
+              <Text style={styles.favoriteBannerTitle}>
+                Your favorite moments
+              </Text>
+
+              <Text style={styles.favoriteBannerDescription}>
+                {favoriteMemories.length}{" "}
+                {favoriteMemories.length === 1 ? "memory" : "memories"} you've
+                chosen to keep close.
+              </Text>
+            </View>
+
+            <Ionicons name="arrow-forward" size={18} color="#34345C" />
+          </TouchableOpacity>
+        )}
+
+        {/* ==================================================
+            FOOTER
+        ================================================== */}
+
+        <Text style={styles.footerText}>KEEP THE MOMENT. KEEP THE STORY.</Text>
+      </ScrollView>
     </View>
   );
 }

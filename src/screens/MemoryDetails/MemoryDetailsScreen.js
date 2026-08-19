@@ -1,22 +1,43 @@
 import React from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  ScrollView,
-  Image,
-  Alert,
-} from "react-native";
+import { View, Text, TouchableOpacity, ScrollView, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 import { useMemory } from "../../context/MemoryContext";
+import MemoryTicket from "../../components/MemoryTicket/MemoryTicket";
 
 import styles from "./memoryDetailsStyles";
 
 function MemoryDetailsScreen({ navigation, route }) {
   const { getMemoryById, deleteMemory, updateMemory } = useMemory();
 
-  const { memoryId } = route.params;
+  // Get the memory ID passed from MemoriesScreen
+  const memoryId = route?.params?.memoryId;
+
+  // --------------------------------------------------
+  // INVALID PARAMETER
+  // --------------------------------------------------
+
+  if (!memoryId) {
+    return (
+      <View style={styles.notFoundContainer}>
+        <Ionicons name="sad-outline" size={45} color="#34345C" />
+
+        <Text style={styles.notFoundTitle}>Memory not found</Text>
+
+        <TouchableOpacity
+          style={styles.backToMemoriesButton}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.backToMemoriesText}>GO BACK</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  // --------------------------------------------------
+  // GET MEMORY
+  // --------------------------------------------------
 
   const memory = getMemoryById(memoryId);
 
@@ -30,12 +51,17 @@ function MemoryDetailsScreen({ navigation, route }) {
         <TouchableOpacity
           style={styles.backToMemoriesButton}
           onPress={() => navigation.goBack()}
+          activeOpacity={0.8}
         >
           <Text style={styles.backToMemoriesText}>GO BACK</Text>
         </TouchableOpacity>
       </View>
     );
   }
+
+  // --------------------------------------------------
+  // FAVORITE
+  // --------------------------------------------------
 
   const handleFavorite = async () => {
     try {
@@ -46,6 +72,10 @@ function MemoryDetailsScreen({ navigation, route }) {
       console.log("Favorite update error:", error);
     }
   };
+
+  // --------------------------------------------------
+  // DELETE
+  // --------------------------------------------------
 
   const handleDelete = () => {
     Alert.alert(
@@ -59,6 +89,7 @@ function MemoryDetailsScreen({ navigation, route }) {
         {
           text: "DELETE",
           style: "destructive",
+
           onPress: async () => {
             try {
               await deleteMemory(memory.id);
@@ -75,11 +106,9 @@ function MemoryDetailsScreen({ navigation, route }) {
     );
   };
 
-  const formattedDate = new Date(memory.date).toLocaleDateString("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
+  // --------------------------------------------------
+  // RENDER
+  // --------------------------------------------------
 
   return (
     <View style={styles.container}>
@@ -87,8 +116,11 @@ function MemoryDetailsScreen({ navigation, route }) {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Header */}
+        {/* HEADER */}
+
         <View style={styles.header}>
+          {/* BACK */}
+
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}
@@ -97,7 +129,11 @@ function MemoryDetailsScreen({ navigation, route }) {
             <Ionicons name="arrow-back" size={22} color="#242424" />
           </TouchableOpacity>
 
+          {/* TITLE */}
+
           <Text style={styles.headerTitle}>Memory</Text>
+
+          {/* FAVORITE */}
 
           <TouchableOpacity
             style={[
@@ -115,80 +151,30 @@ function MemoryDetailsScreen({ navigation, route }) {
           </TouchableOpacity>
         </View>
 
-        {/* Photo */}
-        <View style={styles.photoContainer}>
-          <Image
-            source={{ uri: memory.image }}
-            style={styles.memoryImage}
-            resizeMode="cover"
-          />
+        {/* ==================================================
+            REUSABLE MEMORY TICKET
+        ================================================== */}
 
-          <View style={styles.photoBadge}>
-            <Ionicons name="ticket-outline" size={14} color="#FFFFFF" />
+        <MemoryTicket memory={memory} />
 
-            <Text style={styles.photoBadgeText}>MEMORY TICKET</Text>
-          </View>
-        </View>
+        {/* EDIT MEMORY */}
 
-        {/* Ticket Information */}
-        <View style={styles.ticketCard}>
-          <Text style={styles.eyebrow}>YOUR MEMORY</Text>
+        <TouchableOpacity
+          style={styles.editButton}
+          onPress={() =>
+            navigation.navigate("EditMemory", {
+              memoryId: memory.id,
+            })
+          }
+          activeOpacity={0.8}
+        >
+          <Ionicons name="create-outline" size={18} color="#34345C" />
 
-          <Text style={styles.title}>{memory.title}</Text>
+          <Text style={styles.editText}>EDIT MEMORY</Text>
+        </TouchableOpacity>
 
-          <View style={styles.ticketDivider}>
-            <View style={styles.cutoutLeft} />
-            <View style={styles.dashedLine} />
-            <View style={styles.cutoutRight} />
-          </View>
+        {/* DELETE MEMORY */}
 
-          {/* Date */}
-          <View style={styles.infoRow}>
-            <View style={styles.infoIcon}>
-              <Ionicons name="calendar-outline" size={18} color="#34345C" />
-            </View>
-
-            <View style={styles.infoContent}>
-              <Text style={styles.infoLabel}>DATE</Text>
-
-              <Text style={styles.infoValue}>{formattedDate}</Text>
-            </View>
-          </View>
-
-          {/* Location */}
-          {memory.location ? (
-            <View style={styles.infoRow}>
-              <View style={styles.infoIcon}>
-                <Ionicons name="location-outline" size={18} color="#34345C" />
-              </View>
-
-              <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>LOCATION</Text>
-
-                <Text style={styles.infoValue}>{memory.location}</Text>
-              </View>
-            </View>
-          ) : null}
-
-          {/* Description */}
-          {memory.description ? (
-            <View style={styles.descriptionContainer}>
-              <Text style={styles.infoLabel}>THE STORY</Text>
-
-              <Text style={styles.description}>{memory.description}</Text>
-            </View>
-          ) : null}
-
-          <View style={styles.ticketFooter}>
-            <Text style={styles.ticketNumber}>
-              #{memory.id.slice(-6).toUpperCase()}
-            </Text>
-
-            <Ionicons name="heart" size={14} color="#E76F51" />
-          </View>
-        </View>
-
-        {/* Delete */}
         <TouchableOpacity
           style={styles.deleteButton}
           onPress={handleDelete}
@@ -198,6 +184,8 @@ function MemoryDetailsScreen({ navigation, route }) {
 
           <Text style={styles.deleteText}>DELETE MEMORY</Text>
         </TouchableOpacity>
+
+        {/* FOOTER */}
 
         <Text style={styles.footerText}>KEEP THE MOMENT. KEEP THE STORY.</Text>
       </ScrollView>

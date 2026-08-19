@@ -7,21 +7,41 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 import styles from "./authStyles";
+import { useAuth } from "../../hooks/useAuth";
 
 function LoginScreen({ navigation }) {
+  const { login } = useAuth();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleLogin = () => {
-    console.log("Login:", {
-      email,
-      password,
-    });
+  const handleLogin = async () => {
+    if (!email.trim() || !password) {
+      Alert.alert(
+        "Missing Information",
+        "Please enter your email and password.",
+      );
+
+      return;
+    }
+
+    const result = await login(email, password);
+
+    if (!result.success) {
+      Alert.alert("Login Failed", result.message);
+
+      return;
+    }
+
+    // Do NOT navigate manually.
+    // AuthContext updates isAuthenticated,
+    // then RootNavigator switches to AppNavigator.
   };
 
   return (
@@ -42,6 +62,7 @@ function LoginScreen({ navigation }) {
             </View>
 
             <Text style={styles.brandText}>MEMORY</Text>
+
             <Text style={styles.brandSubText}>TICKET</Text>
           </View>
 
