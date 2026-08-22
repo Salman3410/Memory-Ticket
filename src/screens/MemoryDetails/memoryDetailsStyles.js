@@ -56,7 +56,7 @@ const styles = StyleSheet.create({
   },
 
   // ==================================================
-  // HORIZONTAL TICKET
+  // HORIZONTAL TICKET CAROUSEL
   // ==================================================
 
   ticketSlide: {
@@ -66,13 +66,17 @@ const styles = StyleSheet.create({
 
   ticketShadow: {
     shadowColor: "#242424",
+
     shadowOffset: {
       width: 0,
       height: 10,
     },
+
     shadowOpacity: 0.22,
     shadowRadius: 16,
+
     elevation: 8,
+
     marginBottom: 4,
   },
 
@@ -111,6 +115,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 18,
     paddingBottom: 14,
+
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
@@ -145,11 +150,11 @@ const styles = StyleSheet.create({
   // ==================================================
 
   ticketImageContainer: {
-    height: 240,
     width: "100%",
-    backgroundColor: "#FFFFFF",
+    height: 240,
     overflow: "hidden",
     position: "relative",
+    backgroundColor: "#FFFFFF",
   },
 
   ticketImage: {
@@ -163,7 +168,8 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(255, 176, 0, 0.18)",
+
+    // backgroundColor: "rgba(255, 176, 0, 0.18)",
   },
 
   noImage: {
@@ -182,7 +188,7 @@ const styles = StyleSheet.create({
   },
 
   // ==================================================
-  // INFORMATION
+  // TICKET INFORMATION
   // ==================================================
 
   ticketInfo: {
@@ -303,6 +309,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 12,
     paddingBottom: 10,
+
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-end",
@@ -330,9 +337,11 @@ const styles = StyleSheet.create({
   barcode: {
     height: 42,
     width: 125,
+
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+
     overflow: "hidden",
   },
 
@@ -376,9 +385,11 @@ const styles = StyleSheet.create({
 
   bottomPerforation: {
     height: 17,
+
     flexDirection: "row",
     justifyContent: "space-around",
     alignItems: "flex-end",
+
     backgroundColor: "#F9B900",
     overflow: "hidden",
   },
@@ -391,9 +402,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
+
     marginTop: 13,
-    marginBottom: 4,
+    gap: 7,
   },
 
   swipeHintText: {
@@ -401,13 +412,11 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     letterSpacing: 0.8,
     color: "#707080",
-    textTransform: "uppercase",
   },
 
   swipeCountText: {
     fontSize: 9,
     fontWeight: "900",
-    letterSpacing: 0.8,
     color: "#34345C",
     marginLeft: 3,
   },
@@ -419,13 +428,18 @@ const styles = StyleSheet.create({
   editButton: {
     height: 52,
     borderRadius: 14,
+
     backgroundColor: "#FFFFFF",
+
     borderWidth: 1,
     borderColor: "#D9D8E2",
+
     marginTop: 22,
+
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+
     gap: 8,
   },
 
@@ -443,13 +457,18 @@ const styles = StyleSheet.create({
   deleteButton: {
     height: 52,
     borderRadius: 14,
+
     backgroundColor: "#FFF7F6",
+
     borderWidth: 1,
     borderColor: "#F3D3CF",
+
     marginTop: 8,
+
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+
     gap: 8,
   },
 
@@ -461,15 +480,18 @@ const styles = StyleSheet.create({
   },
 
   // ==================================================
-  // FOOTER
+  // FOOTER TEXT
   // ==================================================
 
   footerText: {
     textAlign: "center",
+
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 1,
+
     color: "#9A99A5",
+
     marginTop: 18,
   },
 
@@ -479,25 +501,34 @@ const styles = StyleSheet.create({
 
   notFoundContainer: {
     flex: 1,
+
     backgroundColor: "#F1F0F6",
+
     alignItems: "center",
     justifyContent: "center",
+
     paddingHorizontal: 30,
   },
 
   notFoundTitle: {
     fontSize: 20,
     fontWeight: "900",
+
     color: "#242424",
+
     marginTop: 15,
     marginBottom: 18,
   },
 
   backToMemoriesButton: {
     height: 48,
+
     paddingHorizontal: 22,
+
     borderRadius: 13,
+
     backgroundColor: "#34345C",
+
     alignItems: "center",
     justifyContent: "center",
   },
@@ -506,6 +537,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "900",
     letterSpacing: 1,
+
     color: "#FFFFFF",
   },
 });

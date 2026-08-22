@@ -11,7 +11,7 @@ import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { File } from "expo-file-system";
 
-import { useMemory } from "../../context/MemoryContext";
+import { useMemory } from "../../hooks/useMemory";
 import { useAuth } from "../../hooks/useAuth";
 
 import styles from "./settingsStyles";

@@ -26,6 +26,15 @@ function MemoryDetailsScreen({ navigation, route }) {
   const [activeImage, setActiveImage] = useState(0);
 
   // --------------------------------------------------
+  // CAROUSEL SETTINGS
+  // --------------------------------------------------
+
+  const SCREEN_PADDING = 22;
+  const TICKET_WIDTH = screenWidth - SCREEN_PADDING * 2;
+  const TICKET_GAP = 8;
+  const SNAP_SIZE = TICKET_WIDTH + TICKET_GAP;
+
+  // --------------------------------------------------
   // NO MEMORY ID
   // --------------------------------------------------
 
@@ -47,11 +56,11 @@ function MemoryDetailsScreen({ navigation, route }) {
     );
   }
 
-  const memory = getMemoryById(memoryId);
+  // --------------------------------------------------
+  // GET MEMORY
+  // --------------------------------------------------
 
-  // --------------------------------------------------
-  // MEMORY NOT FOUND
-  // --------------------------------------------------
+  const memory = getMemoryById(memoryId);
 
   if (!memory) {
     return (
@@ -164,7 +173,7 @@ function MemoryDetailsScreen({ navigation, route }) {
   };
 
   // --------------------------------------------------
-  // SINGLE COMPLETE TICKET
+  // RENDER COMPLETE TICKET
   // --------------------------------------------------
 
   const renderTicket = (image, index) => {
@@ -174,7 +183,8 @@ function MemoryDetailsScreen({ navigation, route }) {
         style={[
           styles.ticketSlide,
           {
-            width: screenWidth - 44,
+            width: TICKET_WIDTH,
+            marginRight: index === images.length - 1 ? 0 : TICKET_GAP,
           },
         ]}
       >
@@ -224,7 +234,7 @@ function MemoryDetailsScreen({ navigation, route }) {
               )}
             </View>
 
-            {/* INFORMATION */}
+            {/* TICKET INFORMATION */}
 
             <View style={styles.ticketInfo}>
               <Text style={styles.memoryLabel}>MEMORY</Text>
@@ -321,11 +331,16 @@ function MemoryDetailsScreen({ navigation, route }) {
     );
   };
 
+  // --------------------------------------------------
+  // SCREEN
+  // --------------------------------------------------
+
   return (
     <View style={styles.container}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        nestedScrollEnabled
       >
         {/* HEADER */}
 
@@ -357,23 +372,51 @@ function MemoryDetailsScreen({ navigation, route }) {
         </View>
 
         {/* ==================================================
-            WHOLE TICKET HORIZONTAL CAROUSEL
+            HORIZONTAL TICKET CAROUSEL
         ================================================== */}
 
         <ScrollView
           horizontal
-          pagingEnabled
           showsHorizontalScrollIndicator={false}
           nestedScrollEnabled
-          decelerationRate="fast"
-          snapToInterval={screenWidth - 44}
-          snapToAlignment="start"
-          onMomentumScrollEnd={(event) => {
-            const index = Math.round(
-              event.nativeEvent.contentOffset.x / (screenWidth - 44),
-            );
+          /*
+           * IMPORTANT:
+           * We intentionally do NOT use pagingEnabled here.
+           *
+           * Because we have an 8px gap, normal paging
+           * does not know about that gap.
+           */
 
-            setActiveImage(index);
+          decelerationRate="fast"
+          /*
+           * One ticket = one snap position.
+           * Ticket width + 8px gap.
+           */
+
+          snapToInterval={SNAP_SIZE}
+          snapToAlignment="start"
+          /*
+           * THIS IS THE IMPORTANT PART.
+           *
+           * Prevents a fast swipe from jumping:
+           * 1 -> 3
+           * 1 -> 4
+           *
+           * Instead:
+           * 1 -> 2
+           * 2 -> 3
+           * 3 -> 4
+           */
+
+          disableIntervalMomentum
+          onMomentumScrollEnd={(event) => {
+            const offsetX = event.nativeEvent.contentOffset.x;
+
+            const index = Math.round(offsetX / SNAP_SIZE);
+
+            const safeIndex = Math.max(0, Math.min(index, images.length - 1));
+
+            setActiveImage(safeIndex);
           }}
         >
           {images.length > 0
@@ -381,9 +424,7 @@ function MemoryDetailsScreen({ navigation, route }) {
             : renderTicket(null, 0)}
         </ScrollView>
 
-        {/* ==================================================
-            SWIPE HINT
-        ================================================== */}
+        {/* SWIPE INDICATOR */}
 
         {images.length > 1 && (
           <View style={styles.swipeHint}>

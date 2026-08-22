@@ -1,5 +1,4 @@
 import { createContext, useEffect, useState } from "react";
-
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export const MemoryContext = createContext(null);
@@ -67,7 +66,7 @@ export function MemoryProvider({ children }) {
     const newMemory = {
       ...memory,
 
-      // Keep first image for backwards compatibility
+      // Backwards compatibility
       image: images[0] || null,
 
       // Store all images
@@ -115,21 +114,46 @@ export function MemoryProvider({ children }) {
         return memory;
       }
 
+      // ------------------------------------------
+      // NORMALIZE IMAGES
+      // ------------------------------------------
+
+      const updatedImages = Array.isArray(updatedData?.images)
+        ? updatedData.images
+        : updatedData?.image
+          ? [updatedData.image]
+          : Array.isArray(memory.images)
+            ? memory.images
+            : memory.image
+              ? [memory.image]
+              : [];
+
+      // ------------------------------------------
+      // CREATE UPDATED MEMORY
+      // ------------------------------------------
+
       updatedMemory = {
         ...memory,
         ...updatedData,
 
+        // Always keep images as an array
         images: updatedImages,
 
+        // Keep description
         description:
           updatedData?.description !== undefined
             ? updatedData.description
             : memory.description || "",
 
+        // Update timestamp
         updatedAt: new Date().toISOString(),
       };
 
-      updatedMemory.image = updatedMemory.images?.[0] || null;
+      // ------------------------------------------
+      // KEEP FIRST IMAGE FOR OLD COMPONENTS
+      // ------------------------------------------
+
+      updatedMemory.image = updatedImages[0] || null;
 
       return updatedMemory;
     });
@@ -156,7 +180,6 @@ export function MemoryProvider({ children }) {
   const clearMemories = async () => {
     try {
       await AsyncStorage.removeItem(STORAGE_KEY);
-
       setMemories([]);
     } catch (error) {
       console.log("Error clearing memories:", error);

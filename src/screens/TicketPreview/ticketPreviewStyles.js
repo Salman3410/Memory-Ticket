@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(255, 176, 0, 0.18)",
+    // backgroundColor: "rgba(255, 176, 0, 0.18)",
   },
 
   noImage: {

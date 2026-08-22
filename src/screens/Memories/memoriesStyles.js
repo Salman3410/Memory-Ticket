@@ -8,7 +8,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 22,
     paddingTop: 55,
-    paddingBottom: 60,
+    paddingBottom: 100,
   },
   header: {
     flexDirection: "row",
@@ -623,7 +623,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#F1F0F6",
 
     alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "center",   
 
     zIndex: 10,
   },

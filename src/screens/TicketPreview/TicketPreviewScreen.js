@@ -7,6 +7,7 @@ import {
   ScrollView,
   Image,
   useWindowDimensions,
+  Alert,
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
@@ -16,6 +17,7 @@ import { useMemory } from "../../hooks/useMemory";
 import styles from "./ticketPreviewStyles";
 
 function TicketPreviewScreen({ route, navigation }) {
+  
   const { addMemory } = useMemory();
 
   const { memory } = route.params || {};
@@ -25,12 +27,72 @@ function TicketPreviewScreen({ route, navigation }) {
   const [activeImage, setActiveImage] = useState(0);
 
   // --------------------------------------------------
+  // NO MEMORY DATA
+  // --------------------------------------------------
+
+  if (!memory) {
+    return (
+      <View style={styles.container}>
+        <View
+          style={{
+            flex: 1,
+            alignItems: "center",
+            justifyContent: "center",
+            paddingHorizontal: 30,
+          }}
+        >
+          <Ionicons name="alert-circle-outline" size={45} color="#34345C" />
+
+          <Text
+            style={{
+              fontSize: 20,
+              fontWeight: "900",
+              color: "#242424",
+              marginTop: 15,
+              marginBottom: 18,
+            }}
+          >
+            Memory data not found
+          </Text>
+
+          <TouchableOpacity
+            style={{
+              height: 48,
+              paddingHorizontal: 22,
+              borderRadius: 13,
+              backgroundColor: "#34345C",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            onPress={() =>
+              navigation.navigate("MainTabs", {
+                screen: "Create",
+              })
+            }
+          >
+            <Text
+              style={{
+                fontSize: 10,
+                fontWeight: "900",
+                letterSpacing: 1,
+                color: "#FFFFFF",
+              }}
+            >
+              CREATE MEMORY
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  // --------------------------------------------------
   // GET ALL IMAGES
   // --------------------------------------------------
 
-  const images = Array.isArray(memory?.images)
+  const images = Array.isArray(memory.images)
     ? memory.images
-    : memory?.image
+    : memory.image
       ? [memory.image]
       : [];
 
@@ -69,18 +131,47 @@ function TicketPreviewScreen({ route, navigation }) {
   };
 
   // --------------------------------------------------
-  // SAVE
+  // SAVE MEMORY
   // --------------------------------------------------
 
   const handleSave = async () => {
     try {
-      await addMemory(memory);
+      if (!images.length) {
+        Alert.alert("No Photos", "This memory doesn't contain any photos.");
+        return;
+      }
+
+      // ------------------------------------------
+      // ACTUALLY SAVE TO MEMORY CONTEXT
+      // ------------------------------------------
+
+      const savedMemory = await addMemory({
+        title: memory.title || "",
+        location: memory.location || "",
+        description: memory.description || "",
+
+        image: images[0],
+
+        images: [...images],
+
+        date: memory.date || new Date().toISOString(),
+      });
+
+      if (!savedMemory) {
+        throw new Error("Memory was not created.");
+      }
+
+      // ------------------------------------------
+      // GO TO MEMORIES
+      // ------------------------------------------
 
       navigation.navigate("MainTabs", {
         screen: "Memories",
       });
     } catch (error) {
       console.log("Error saving memory:", error);
+
+      Alert.alert("Error", "Unable to save memory.");
     }
   };
 
@@ -177,7 +268,7 @@ function TicketPreviewScreen({ route, navigation }) {
               <Text style={styles.memoryLabel}>MEMORY</Text>
 
               <Text style={styles.ticketTitle} numberOfLines={2}>
-                {memory?.title || "UNTITLED MEMORY"}
+                {memory.title || "UNTITLED MEMORY"}
               </Text>
 
               <View style={styles.ticketDivider} />
@@ -189,7 +280,7 @@ function TicketPreviewScreen({ route, navigation }) {
                   <Text style={styles.infoLabel}>DATE</Text>
 
                   <Text style={styles.infoValue}>
-                    {formatDate(memory?.date)}
+                    {formatDate(memory.date)}
                   </Text>
                 </View>
 
@@ -197,14 +288,14 @@ function TicketPreviewScreen({ route, navigation }) {
                   <Text style={styles.infoLabel}>LOCATION</Text>
 
                   <Text style={styles.infoValue} numberOfLines={2}>
-                    {memory?.location || "UNKNOWN"}
+                    {memory.location || "UNKNOWN"}
                   </Text>
                 </View>
               </View>
 
               {/* DESCRIPTION */}
 
-              {memory?.description ? (
+              {memory.description ? (
                 <View style={styles.descriptionContainer}>
                   <Text style={styles.description}>{memory.description}</Text>
                 </View>
@@ -284,7 +375,11 @@ function TicketPreviewScreen({ route, navigation }) {
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => navigation.goBack()}
+            onPress={() =>
+              navigation.navigate("MainTabs", {
+                screen: "Create",
+              })
+            }
             activeOpacity={0.7}
           >
             <Ionicons name="arrow-back" size={21} color="#242424" />
@@ -309,9 +404,7 @@ function TicketPreviewScreen({ route, navigation }) {
           </Text>
         </View>
 
-        {/* ==================================================
-            WHOLE TICKET HORIZONTAL CAROUSEL
-        ================================================== */}
+        {/* WHOLE TICKET HORIZONTAL CAROUSEL */}
 
         <ScrollView
           horizontal
@@ -321,6 +414,7 @@ function TicketPreviewScreen({ route, navigation }) {
           decelerationRate="fast"
           snapToInterval={screenWidth - 44}
           snapToAlignment="start"
+          disableIntervalMomentum={true}
           onMomentumScrollEnd={(event) => {
             const index = Math.round(
               event.nativeEvent.contentOffset.x / (screenWidth - 44),

@@ -5,16 +5,23 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#F1F0F6",
   },
+
   scrollContent: {
     paddingHorizontal: 22,
     paddingTop: 55,
     paddingBottom: 110,
   },
+
+  // --------------------------------
+  // HEADER
+  // --------------------------------
+
   header: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 30,
   },
+
   backButton: {
     width: 44,
     height: 44,
@@ -24,9 +31,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginRight: 14,
   },
+
   headerTitleContainer: {
     flex: 1,
   },
+
   headerEyebrow: {
     fontSize: 9,
     fontWeight: "900",
@@ -34,34 +43,49 @@ const styles = StyleSheet.create({
     color: "#E76F51",
     marginBottom: 3,
   },
+
   headerTitle: {
     fontSize: 23,
     fontWeight: "800",
     color: "#242424",
   },
+
   headerSpacer: {
     width: 44,
   },
+
+  // --------------------------------
+  // SECTION
+  // --------------------------------
+
   section: {
     marginBottom: 30,
   },
+
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     marginBottom: 14,
   },
+
   sectionTitle: {
     fontSize: 18,
     fontWeight: "800",
     color: "#242424",
   },
+
   stepText: {
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 1,
     color: "#707080",
   },
+
+  // --------------------------------
+  // EMPTY PHOTO PLACEHOLDER
+  // --------------------------------
+
   photoPlaceholder: {
     backgroundColor: "#FFFFFF",
     borderWidth: 1.5,
@@ -72,6 +96,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 22,
     paddingVertical: 32,
   },
+
   photoIcon: {
     width: 64,
     height: 64,
@@ -81,12 +106,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 15,
   },
+
   photoTitle: {
     fontSize: 18,
     fontWeight: "800",
     color: "#242424",
     marginBottom: 7,
   },
+
   photoDescription: {
     fontSize: 13,
     lineHeight: 20,
@@ -95,10 +122,12 @@ const styles = StyleSheet.create({
     maxWidth: 290,
     marginBottom: 22,
   },
+
   photoButtons: {
     flexDirection: "row",
     gap: 10,
   },
+
   galleryButton: {
     height: 46,
     paddingHorizontal: 15,
@@ -109,12 +138,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 7,
   },
+
   galleryButtonText: {
     fontSize: 10,
     fontWeight: "900",
     letterSpacing: 1,
     color: "#34345C",
   },
+
   cameraButton: {
     height: 46,
     paddingHorizontal: 15,
@@ -124,162 +155,69 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 7,
   },
+
   cameraButtonText: {
     fontSize: 10,
     fontWeight: "900",
     letterSpacing: 1,
     color: "#FFFFFF",
   },
+
+  // --------------------------------
+  // IMAGE PREVIEW
+  // --------------------------------
+
   imageContainer: {
     width: "100%",
     height: 260,
     borderRadius: 22,
     overflow: "hidden",
     backgroundColor: "#D9D8E2",
-    position: "relative",
   },
+
+  imagePage: {
+    width: 312,
+    height: 260,
+    position: "relative",
+    backgroundColor: "#D9D8E2",
+  },
+
   selectedImage: {
     width: "100%",
     height: "100%",
   },
-  changeImageButton: {
-    position: "absolute",
-    right: 12,
-    bottom: 12,
-    height: 38,
-    paddingHorizontal: 13,
-    borderRadius: 10,
-    backgroundColor: "#34345C",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  changeImageText: {
-    fontSize: 9,
-    fontWeight: "900",
-    letterSpacing: 1,
-    color: "#FFFFFF",
-  },
-  inputGroup: {
-    marginBottom: 18,
-  },
-  label: {
-    fontSize: 10,
-    fontWeight: "900",
-    letterSpacing: 1.4,
-    color: "#242424",
-    marginBottom: 8,
-  },
-  input: {
-    height: 54,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: "#D9D8E2",
-    backgroundColor: "#FFFFFF",
-    paddingHorizontal: 16,
-    fontSize: 14,
-    color: "#242424",
-  },
-  inputWithIcon: {
-    height: 54,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: "#D9D8E2",
-    backgroundColor: "#FFFFFF",
-    paddingHorizontal: 15,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 9,
-  },
-  iconInput: {
+
+  imageError: {
     flex: 1,
-    height: "100%",
-    fontSize: 14,
-    color: "#242424",
-  },
-  descriptionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  characterCount: {
-    fontSize: 10,
-    color: "#9A99A5",
-    marginBottom: 8,
-  },
-  descriptionInput: {
-    minHeight: 120,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: "#D9D8E2",
-    backgroundColor: "#FFFFFF",
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 14,
-    lineHeight: 21,
-    color: "#242424",
-  },
-  continueButton: {
-    height: 58,
-    borderRadius: 15,
-    backgroundColor: "#34345C",
-    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 9,
-    shadowColor: "#34345C",
-    shadowOffset: {
-      width: 0,
-      height: 5,
-    },
-    shadowOpacity: 0.18,
-    shadowRadius: 8,
-    elevation: 5,
   },
-  continueButtonText: {
+
+  imageErrorText: {
+    marginTop: 8,
     fontSize: 12,
-    fontWeight: "900",
-    letterSpacing: 1.5,
-    color: "#FFFFFF",
-  },
-  footerText: {
-    textAlign: "center",
-    fontSize: 10,
-    color: "#9A99A5",
-    marginTop: 16,
-  },
-  photoCountText: {
-    fontSize: 10,
-    fontWeight: "700",
     color: "#707080",
-    marginTop: 4,
   },
 
-  imageContainer: {
-    width: "100%",
-    height: 260,
-    borderRadius: 22,
-    overflow: "hidden",
-    backgroundColor: "#D9D8E2",
-    position: "relative",
-  },
-
-  selectedImage: {
-    width: "100%",
-    height: "100%",
-  },
+  // --------------------------------
+  // REMOVE IMAGE
+  // --------------------------------
 
   removeImageButton: {
     position: "absolute",
     top: 12,
     right: 12,
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: "rgba(36, 36, 36, 0.75)",
     alignItems: "center",
     justifyContent: "center",
   },
+
+  // --------------------------------
+  // IMAGE NUMBER
+  // --------------------------------
 
   imageNumber: {
     position: "absolute",
@@ -298,6 +236,10 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: "#FFFFFF",
   },
+
+  // --------------------------------
+  // ADD MORE
+  // --------------------------------
 
   addMoreRow: {
     flexDirection: "row",
@@ -342,6 +284,10 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
   },
 
+  // --------------------------------
+  // SWIPE
+  // --------------------------------
+
   swipeHint: {
     flexDirection: "row",
     alignItems: "center",
@@ -353,6 +299,129 @@ const styles = StyleSheet.create({
   swipeHintText: {
     fontSize: 10,
     color: "#707080",
+  },
+
+  swipeCountText: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: "#707080",
+    marginLeft: 4,
+  },
+
+  // --------------------------------
+  // INPUTS
+  // --------------------------------
+
+  inputGroup: {
+    marginBottom: 18,
+  },
+
+  label: {
+    fontSize: 10,
+    fontWeight: "900",
+    letterSpacing: 1.4,
+    color: "#242424",
+    marginBottom: 8,
+  },
+
+  input: {
+    height: 54,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#D9D8E2",
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 16,
+    fontSize: 14,
+    color: "#242424",
+  },
+
+  inputWithIcon: {
+    height: 54,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#D9D8E2",
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 15,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 9,
+  },
+
+  iconInput: {
+    flex: 1,
+    height: "100%",
+    fontSize: 14,
+    color: "#242424",
+  },
+
+  // --------------------------------
+  // DESCRIPTION
+  // --------------------------------
+
+  descriptionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+
+  characterCount: {
+    fontSize: 10,
+    color: "#9A99A5",
+    marginBottom: 8,
+  },
+
+  descriptionInput: {
+    minHeight: 120,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#D9D8E2",
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 14,
+    lineHeight: 21,
+    color: "#242424",
+  },
+
+  // --------------------------------
+  // CREATE BUTTON
+  // --------------------------------
+
+  continueButton: {
+    height: 58,
+    borderRadius: 15,
+    backgroundColor: "#34345C",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 9,
+
+    shadowColor: "#34345C",
+    shadowOffset: {
+      width: 0,
+      height: 5,
+    },
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+
+  continueButtonText: {
+    fontSize: 12,
+    fontWeight: "900",
+    letterSpacing: 1.5,
+    color: "#FFFFFF",
+  },
+
+  // --------------------------------
+  // FOOTER
+  // --------------------------------
+
+  footerText: {
+    textAlign: "center",
+    fontSize: 10,
+    color: "#9A99A5",
+    marginTop: 16,
   },
 });
 
