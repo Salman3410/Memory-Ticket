@@ -1,20 +1,32 @@
-import React from "react";
-import { View, Text, TouchableOpacity, ScrollView, Alert } from "react-native";
+import React, { useState } from "react";
+
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  Image,
+  useWindowDimensions,
+  Alert,
+} from "react-native";
+
 import { Ionicons } from "@expo/vector-icons";
 
 import { useMemory } from "../../hooks/useMemory";
-import MemoryTicket from "../../components/MemoryTicket/MemoryTicket";
 
 import styles from "./memoryDetailsStyles";
 
 function MemoryDetailsScreen({ navigation, route }) {
   const { getMemoryById, deleteMemory, updateMemory } = useMemory();
 
-  // Get the memory ID passed from MemoriesScreen
+  const { width: screenWidth } = useWindowDimensions();
+
   const memoryId = route?.params?.memoryId;
 
+  const [activeImage, setActiveImage] = useState(0);
+
   // --------------------------------------------------
-  // INVALID PARAMETER
+  // NO MEMORY ID
   // --------------------------------------------------
 
   if (!memoryId) {
@@ -35,11 +47,11 @@ function MemoryDetailsScreen({ navigation, route }) {
     );
   }
 
-  // --------------------------------------------------
-  // GET MEMORY
-  // --------------------------------------------------
-
   const memory = getMemoryById(memoryId);
+
+  // --------------------------------------------------
+  // MEMORY NOT FOUND
+  // --------------------------------------------------
 
   if (!memory) {
     return (
@@ -58,6 +70,50 @@ function MemoryDetailsScreen({ navigation, route }) {
       </View>
     );
   }
+
+  // --------------------------------------------------
+  // GET ALL IMAGES
+  // --------------------------------------------------
+
+  const images = Array.isArray(memory?.images)
+    ? memory.images
+    : memory?.image
+      ? [memory.image]
+      : [];
+
+  // --------------------------------------------------
+  // DATE
+  // --------------------------------------------------
+
+  const formatDate = (date) => {
+    if (!date) {
+      return "DATE UNKNOWN";
+    }
+
+    const parsedDate = new Date(date);
+
+    if (isNaN(parsedDate.getTime())) {
+      return "DATE UNKNOWN";
+    }
+
+    return parsedDate.toLocaleDateString("en-US", {
+      month: "short",
+      day: "2-digit",
+      year: "numeric",
+    });
+  };
+
+  // --------------------------------------------------
+  // TICKET NUMBER
+  // --------------------------------------------------
+
+  const getTicketNumber = () => {
+    if (memory?.id) {
+      return memory.id.slice(-5).toUpperCase();
+    }
+
+    return "00001";
+  };
 
   // --------------------------------------------------
   // FAVORITE
@@ -86,6 +142,7 @@ function MemoryDetailsScreen({ navigation, route }) {
           text: "CANCEL",
           style: "cancel",
         },
+
         {
           text: "DELETE",
           style: "destructive",
@@ -107,8 +164,162 @@ function MemoryDetailsScreen({ navigation, route }) {
   };
 
   // --------------------------------------------------
-  // RENDER
+  // SINGLE COMPLETE TICKET
   // --------------------------------------------------
+
+  const renderTicket = (image, index) => {
+    return (
+      <View
+        key={`${image}-${index}`}
+        style={[
+          styles.ticketSlide,
+          {
+            width: screenWidth - 44,
+          },
+        ]}
+      >
+        <View style={styles.ticketShadow}>
+          <View style={styles.ticket}>
+            {/* TOP PERFORATION */}
+
+            <View style={styles.topPerforation}>
+              {Array.from({ length: 15 }).map((_, holeIndex) => (
+                <View key={holeIndex} style={styles.perforationHole} />
+              ))}
+            </View>
+
+            {/* TICKET HEADER */}
+
+            <View style={styles.ticketHeader}>
+              <View>
+                <Text style={styles.ticketBrand}>MEMORY TICKET</Text>
+
+                <Text style={styles.ticketSubBrand}>
+                  THE POWER OF THE MOMENT
+                </Text>
+              </View>
+
+              <Text style={styles.ticketNumber}>#{getTicketNumber()}</Text>
+            </View>
+
+            {/* IMAGE */}
+
+            <View style={styles.ticketImageContainer}>
+              {image ? (
+                <>
+                  <Image
+                    source={{ uri: image }}
+                    style={styles.ticketImage}
+                    resizeMode="cover"
+                  />
+
+                  <View style={styles.imageOverlay} />
+                </>
+              ) : (
+                <View style={styles.noImage}>
+                  <Ionicons name="image-outline" size={42} color="#D94D28" />
+
+                  <Text style={styles.noImageText}>NO IMAGE</Text>
+                </View>
+              )}
+            </View>
+
+            {/* INFORMATION */}
+
+            <View style={styles.ticketInfo}>
+              <Text style={styles.memoryLabel}>MEMORY</Text>
+
+              <Text style={styles.ticketTitle} numberOfLines={2}>
+                {memory?.title || "UNTITLED MEMORY"}
+              </Text>
+
+              <View style={styles.ticketDivider} />
+
+              {/* DATE + LOCATION */}
+
+              <View style={styles.infoRow}>
+                <View style={styles.infoItem}>
+                  <Text style={styles.infoLabel}>DATE</Text>
+
+                  <Text style={styles.infoValue}>
+                    {formatDate(memory?.date)}
+                  </Text>
+                </View>
+
+                <View style={styles.infoItem}>
+                  <Text style={styles.infoLabel}>LOCATION</Text>
+
+                  <Text style={styles.infoValue} numberOfLines={2}>
+                    {memory?.location || "UNKNOWN"}
+                  </Text>
+                </View>
+              </View>
+
+              {/* DESCRIPTION */}
+
+              {memory?.description ? (
+                <View style={styles.descriptionContainer}>
+                  <Text style={styles.description}>{memory.description}</Text>
+                </View>
+              ) : null}
+            </View>
+
+            {/* MIDDLE PERFORATION */}
+
+            <View style={styles.middlePerforation}>
+              <View style={styles.sideCutoutLeft} />
+
+              <View style={styles.middleDashedLine} />
+
+              <View style={styles.sideCutoutRight} />
+            </View>
+
+            {/* FOOTER */}
+
+            <View style={styles.ticketFooter}>
+              <View>
+                <Text style={styles.admitText}>ADMISSION X1</Text>
+
+                <Text style={styles.footerSmallText}>MEMORY ARCHIVE</Text>
+              </View>
+
+              {/* BARCODE */}
+
+              <View style={styles.barcode}>
+                {Array.from({ length: 28 }).map((_, barIndex) => (
+                  <View
+                    key={barIndex}
+                    style={[
+                      styles.bar,
+                      barIndex % 5 === 0
+                        ? styles.barWide
+                        : barIndex % 3 === 0
+                          ? styles.barMedium
+                          : styles.barSmall,
+                    ]}
+                  />
+                ))}
+              </View>
+            </View>
+
+            {/* SERIAL */}
+
+            <View style={styles.serialContainer}>
+              <Text style={styles.serialText}>MT • {getTicketNumber()}</Text>
+            </View>
+
+            {/* BOTTOM PERFORATION */}
+
+            <View style={styles.bottomPerforation}>
+              {Array.from({ length: 15 }).map((_, holeIndex) => (
+                <View key={holeIndex} style={styles.perforationHole} />
+              ))}
+            </View>
+          </View>
+        </View>
+      </View>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -119,8 +330,6 @@ function MemoryDetailsScreen({ navigation, route }) {
         {/* HEADER */}
 
         <View style={styles.header}>
-          {/* BACK */}
-
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}
@@ -129,11 +338,7 @@ function MemoryDetailsScreen({ navigation, route }) {
             <Ionicons name="arrow-back" size={22} color="#242424" />
           </TouchableOpacity>
 
-          {/* TITLE */}
-
           <Text style={styles.headerTitle}>Memory</Text>
-
-          {/* FAVORITE */}
 
           <TouchableOpacity
             style={[
@@ -152,12 +357,51 @@ function MemoryDetailsScreen({ navigation, route }) {
         </View>
 
         {/* ==================================================
-            REUSABLE MEMORY TICKET
+            WHOLE TICKET HORIZONTAL CAROUSEL
         ================================================== */}
 
-        <MemoryTicket memory={memory} />
+        <ScrollView
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          nestedScrollEnabled
+          decelerationRate="fast"
+          snapToInterval={screenWidth - 44}
+          snapToAlignment="start"
+          onMomentumScrollEnd={(event) => {
+            const index = Math.round(
+              event.nativeEvent.contentOffset.x / (screenWidth - 44),
+            );
 
-        {/* EDIT MEMORY */}
+            setActiveImage(index);
+          }}
+        >
+          {images.length > 0
+            ? images.map((image, index) => renderTicket(image, index))
+            : renderTicket(null, 0)}
+        </ScrollView>
+
+        {/* ==================================================
+            SWIPE HINT
+        ================================================== */}
+
+        {images.length > 1 && (
+          <View style={styles.swipeHint}>
+            <Ionicons
+              name="swap-horizontal-outline"
+              size={15}
+              color="#707080"
+            />
+
+            <Text style={styles.swipeHintText}>Swipe to view photos</Text>
+
+            <Text style={styles.swipeCountText}>
+              {activeImage + 1}/{images.length}
+            </Text>
+          </View>
+        )}
+
+        {/* EDIT */}
 
         <TouchableOpacity
           style={styles.editButton}
@@ -173,7 +417,7 @@ function MemoryDetailsScreen({ navigation, route }) {
           <Text style={styles.editText}>EDIT MEMORY</Text>
         </TouchableOpacity>
 
-        {/* DELETE MEMORY */}
+        {/* DELETE */}
 
         <TouchableOpacity
           style={styles.deleteButton}
