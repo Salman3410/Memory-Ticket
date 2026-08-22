@@ -1,4 +1,4 @@
-import React, { createContext, useEffect, useState } from "react";
+import { createContext, useEffect, useState } from "react";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -119,14 +119,7 @@ export function MemoryProvider({ children }) {
         ...memory,
         ...updatedData,
 
-        // Keep multi-image structure consistent
-        images: Array.isArray(updatedData?.images)
-          ? updatedData.images
-          : Array.isArray(memory.images)
-            ? memory.images
-            : memory.image
-              ? [memory.image]
-              : [],
+        images: updatedImages,
 
         description:
           updatedData?.description !== undefined
@@ -136,7 +129,6 @@ export function MemoryProvider({ children }) {
         updatedAt: new Date().toISOString(),
       };
 
-      // Keep old `image` field synchronized
       updatedMemory.image = updatedMemory.images?.[0] || null;
 
       return updatedMemory;

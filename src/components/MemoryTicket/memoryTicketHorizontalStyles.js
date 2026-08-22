@@ -7,27 +7,24 @@ const styles = StyleSheet.create({
 
   ticket: {
     width: "100%",
-    minHeight: 145,
+    height: 175,
 
     flexDirection: "row",
 
     backgroundColor: "#F7B900",
 
-    borderRadius: 4,
-
+    borderRadius: 5,
     overflow: "hidden",
-
     position: "relative",
 
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
-      height: 6,
+      height: 5,
     },
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-
-    elevation: 5,
+    shadowOpacity: 0.14,
+    shadowRadius: 8,
+    elevation: 4,
   },
 
   // --------------------------------------------------
@@ -36,9 +33,9 @@ const styles = StyleSheet.create({
 
   imageSection: {
     width: 125,
+    height: "100%",
 
     position: "relative",
-
     overflow: "hidden",
 
     backgroundColor: "#EAAE00",
@@ -61,18 +58,46 @@ const styles = StyleSheet.create({
   imageBadge: {
     position: "absolute",
 
-    left: 9,
-    top: 9,
+    left: 8,
+    top: 8,
 
-    width: 26,
-    height: 26,
+    width: 25,
+    height: 25,
 
-    borderRadius: 8,
+    borderRadius: 7,
 
     backgroundColor: "#34345C",
 
     alignItems: "center",
     justifyContent: "center",
+  },
+
+  photoCountBadge: {
+    position: "absolute",
+
+    right: 7,
+    bottom: 7,
+
+    height: 22,
+    minWidth: 27,
+
+    paddingHorizontal: 6,
+
+    borderRadius: 6,
+
+    backgroundColor: "#34345C",
+
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+
+    gap: 3,
+  },
+
+  photoCountText: {
+    fontSize: 8,
+    fontWeight: "900",
+    color: "#FFFFFF",
   },
 
   // --------------------------------------------------
@@ -82,8 +107,10 @@ const styles = StyleSheet.create({
   ticketContent: {
     flex: 1,
 
+    height: "100%",
+
     paddingHorizontal: 13,
-    paddingVertical: 11,
+    paddingVertical: 10,
 
     justifyContent: "space-between",
   },
@@ -93,13 +120,11 @@ const styles = StyleSheet.create({
   // --------------------------------------------------
 
   header: {
+    height: 16,
+
     flexDirection: "row",
-
     alignItems: "center",
-
     justifyContent: "space-between",
-
-    marginBottom: 5,
   },
 
   brandText: {
@@ -107,7 +132,7 @@ const styles = StyleSheet.create({
 
     fontWeight: "900",
 
-    letterSpacing: 1.5,
+    letterSpacing: 1.4,
 
     color: "#F0442C",
   },
@@ -129,7 +154,8 @@ const styles = StyleSheet.create({
 
     letterSpacing: -0.3,
 
-    marginBottom: 6,
+    marginTop: 2,
+    marginBottom: 3,
   },
 
   // --------------------------------------------------
@@ -137,19 +163,22 @@ const styles = StyleSheet.create({
   // --------------------------------------------------
 
   infoRow: {
-    flexDirection: "row",
+    height: 16,
 
+    flexDirection: "row",
     alignItems: "center",
 
     gap: 5,
 
-    marginBottom: 4,
+    marginBottom: 1,
   },
 
   infoText: {
     flex: 1,
 
     fontSize: 9,
+
+    lineHeight: 11,
 
     fontWeight: "800",
 
@@ -163,20 +192,17 @@ const styles = StyleSheet.create({
   // --------------------------------------------------
 
   footer: {
+    minHeight: 35,
+
     flexDirection: "row",
-
     alignItems: "flex-end",
-
     justifyContent: "space-between",
 
-    marginTop: 5,
-
-    paddingTop: 7,
+    marginTop: 4,
+    paddingTop: 6,
 
     borderTopWidth: 1,
-
     borderStyle: "dotted",
-
     borderColor: "#F0442C",
   },
 
@@ -208,13 +234,10 @@ const styles = StyleSheet.create({
 
   barcode: {
     height: 24,
-
-    width: 70,
+    width: 65,
 
     flexDirection: "row",
-
     alignItems: "stretch",
-
     justifyContent: "flex-end",
 
     gap: 1,
@@ -224,7 +247,6 @@ const styles = StyleSheet.create({
 
   bar: {
     height: "100%",
-
     backgroundColor: "#F0442C",
   },
 
@@ -248,7 +270,6 @@ const styles = StyleSheet.create({
     position: "absolute",
 
     left: 117,
-
     top: -8,
 
     width: 16,
@@ -263,7 +284,6 @@ const styles = StyleSheet.create({
     position: "absolute",
 
     left: 117,
-
     bottom: -8,
 
     width: 16,

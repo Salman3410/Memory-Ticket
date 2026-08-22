@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+
 import {
   View,
   Text,
@@ -7,8 +8,11 @@ import {
   ScrollView,
   Image,
   Alert,
+  FlatList,
 } from "react-native";
+
 import * as ImagePicker from "expo-image-picker";
+
 import { Ionicons } from "@expo/vector-icons";
 
 import { useMemory } from "../../hooks/useMemory";
@@ -22,7 +26,13 @@ function EditMemoryScreen({ navigation, route }) {
 
   const memory = getMemoryById(memoryId);
 
-  const [image, setImage] = useState(memory?.image || null);
+  const [images, setImages] = useState(
+    Array.isArray(memory?.images)
+      ? memory.images
+      : memory?.image
+        ? [memory.image]
+        : [],
+  );
 
   const [title, setTitle] = useState(memory?.title || "");
 
@@ -47,45 +57,128 @@ function EditMemoryScreen({ navigation, route }) {
     );
   }
 
+  // ------------------------------------------
+  // ADD IMAGES
+  // ------------------------------------------
+
+  const addImages = (newImages) => {
+    setImages((currentImages) => {
+      const availableSlots = 5 - currentImages.length;
+
+      const imagesToAdd = newImages
+        .slice(0, availableSlots)
+        .map((item) => item.uri);
+
+      return [...currentImages, ...imagesToAdd];
+    });
+  };
+
+  // ------------------------------------------
+  // PICK IMAGES
+  // ------------------------------------------
+
   const pickImage = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (!permission.granted) {
       Alert.alert(
         "Permission Required",
-        "Please allow photo library access to choose a photo.",
+        "Please allow photo library access to choose photos.",
       );
+
       return;
     }
 
+    if (images.length >= 5) {
+      Alert.alert("Maximum Photos", "You can have up to 5 photos.");
+
+      return;
+    }
+
+    const remainingSlots = 5 - images.length;
+
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 0.9,
+      mediaTypes: ["images"],
+      allowsMultipleSelection: true,
+      selectionLimit: remainingSlots,
+      quality: 0.6,
     });
 
     if (!result.canceled && result.assets?.length > 0) {
-      setImage(result.assets[0].uri);
+      addImages(result.assets);
     }
   };
+
+  // ------------------------------------------
+  // CAMERA
+  // ------------------------------------------
+
+  const takePhoto = async () => {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+
+    if (!permission.granted) {
+      Alert.alert(
+        "Permission Required",
+        "Please allow camera access to capture a photo.",
+      );
+
+      return;
+    }
+
+    if (images.length >= 5) {
+      Alert.alert("Maximum Photos", "You can have up to 5 photos.");
+
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.6,
+    });
+
+    if (!result.canceled && result.assets?.length > 0) {
+      addImages(result.assets);
+    }
+  };
+
+  // ------------------------------------------
+  // REMOVE IMAGE
+  // ------------------------------------------
+
+  const removeImage = (indexToRemove) => {
+    setImages((currentImages) =>
+      currentImages.filter((_, index) => index !== indexToRemove),
+    );
+  };
+
+  // ------------------------------------------
+  // SAVE
+  // ------------------------------------------
 
   const handleSave = async () => {
     if (!title.trim()) {
       Alert.alert("Title Required", "Give your memory a title.");
+
       return;
     }
 
-    if (!image) {
-      Alert.alert("Photo Required", "Your memory needs a photo.");
+    if (images.length === 0) {
+      Alert.alert("Photo Required", "Your memory needs at least one photo.");
+
       return;
     }
 
     try {
       await updateMemory(memory.id, {
-        image,
+        images,
+        image: images[0],
+
         title: title.trim(),
+
         location: location.trim(),
+
         description: description.trim(),
       });
 
@@ -104,7 +197,7 @@ function EditMemoryScreen({ navigation, route }) {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Header */}
+        {/* HEADER */}
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.headerButton}
@@ -123,34 +216,101 @@ function EditMemoryScreen({ navigation, route }) {
           <View style={styles.headerSpacer} />
         </View>
 
-        {/* Photo */}
+        {/* PHOTO SECTION */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Your photo</Text>
+            <View>
+              <Text style={styles.sectionTitle}>Your photos</Text>
 
-            <Text style={styles.stepText}>PHOTO</Text>
+              <Text style={styles.photoCountText}>
+                {images.length}/5 photos
+              </Text>
+            </View>
+
+            <Text style={styles.stepText}>PHOTOS</Text>
           </View>
 
-          <View style={styles.imageContainer}>
-            <Image
-              source={{ uri: image }}
-              style={styles.selectedImage}
-              resizeMode="cover"
+          {/* IMAGE CAROUSEL */}
+          {images.length > 0 ? (
+            <FlatList
+              data={images}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              keyExtractor={(item, index) => `${item}-${index}`}
+              renderItem={({ item, index }) => (
+                <View style={styles.imageContainer}>
+                  <Image
+                    source={{ uri: item }}
+                    style={styles.selectedImage}
+                    resizeMode="cover"
+                  />
+
+                  {/* REMOVE */}
+                  <TouchableOpacity
+                    style={styles.removeImageButton}
+                    onPress={() => removeImage(index)}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="close" size={18} color="#FFFFFF" />
+                  </TouchableOpacity>
+
+                  {/* NUMBER */}
+                  <View style={styles.imageNumber}>
+                    <Text style={styles.imageNumberText}>
+                      {index + 1}/{images.length}
+                    </Text>
+                  </View>
+                </View>
+              )}
             />
+          ) : (
+            <View style={styles.emptyImageContainer}>
+              <Ionicons name="images-outline" size={35} color="#34345C" />
 
-            <TouchableOpacity
-              style={styles.changeImageButton}
-              onPress={pickImage}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="images-outline" size={16} color="#FFFFFF" />
+              <Text style={styles.emptyImageText}>No photos</Text>
+            </View>
+          )}
 
-              <Text style={styles.changeImageText}>CHANGE PHOTO</Text>
-            </TouchableOpacity>
-          </View>
+          {/* ADD MORE */}
+          {images.length < 5 && (
+            <View style={styles.addMoreRow}>
+              <TouchableOpacity
+                style={styles.addMoreButton}
+                onPress={pickImage}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="images-outline" size={17} color="#34345C" />
+
+                <Text style={styles.addMoreText}>ADD PHOTOS</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.addCameraButton}
+                onPress={takePhoto}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="camera-outline" size={17} color="#FFFFFF" />
+
+                <Text style={styles.addCameraText}>CAMERA</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {images.length > 1 && (
+            <View style={styles.swipeHint}>
+              <Ionicons
+                name="swap-horizontal-outline"
+                size={15}
+                color="#707080"
+              />
+
+              <Text style={styles.swipeHintText}>Swipe to view photos</Text>
+            </View>
+          )}
         </View>
 
-        {/* Details */}
+        {/* DETAILS */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Edit the story</Text>
@@ -158,7 +318,7 @@ function EditMemoryScreen({ navigation, route }) {
             <Text style={styles.stepText}>DETAILS</Text>
           </View>
 
-          {/* Title */}
+          {/* TITLE */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>MEMORY TITLE</Text>
 
@@ -172,7 +332,7 @@ function EditMemoryScreen({ navigation, route }) {
             />
           </View>
 
-          {/* Location */}
+          {/* LOCATION */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>LOCATION</Text>
 
@@ -190,7 +350,7 @@ function EditMemoryScreen({ navigation, route }) {
             </View>
           </View>
 
-          {/* Description */}
+          {/* DESCRIPTION */}
           <View style={styles.inputGroup}>
             <View style={styles.descriptionHeader}>
               <Text style={styles.label}>DESCRIPTION</Text>
@@ -213,7 +373,7 @@ function EditMemoryScreen({ navigation, route }) {
           </View>
         </View>
 
-        {/* Save */}
+        {/* SAVE */}
         <TouchableOpacity
           style={styles.saveButton}
           onPress={handleSave}
@@ -224,6 +384,7 @@ function EditMemoryScreen({ navigation, route }) {
           <Text style={styles.saveButtonText}>SAVE CHANGES</Text>
         </TouchableOpacity>
 
+        {/* CANCEL */}
         <TouchableOpacity
           style={styles.cancelButton}
           onPress={() => navigation.goBack()}

@@ -1,4 +1,7 @@
-import { View, Text, Image, TouchableOpacity, ScrollView } from "react-native";
+import React, { useState } from "react";
+
+import { View, Text, TouchableOpacity, ScrollView, Image } from "react-native";
+
 import { Ionicons } from "@expo/vector-icons";
 
 import { useMemory } from "../../hooks/useMemory";
@@ -7,7 +10,21 @@ import styles from "./ticketPreviewStyles";
 
 function TicketPreviewScreen({ route, navigation }) {
   const { addMemory } = useMemory();
+
   const { memory } = route.params || {};
+
+  const [imageWidth, setImageWidth] = useState(0);
+  const [activeImage, setActiveImage] = useState(0);
+
+  // ------------------------------------------
+  // GET ALL IMAGES
+  // ------------------------------------------
+
+  const images = Array.isArray(memory?.images)
+    ? memory.images
+    : memory?.image
+      ? [memory.image]
+      : [];
 
   const formatDate = (date) => {
     if (!date) {
@@ -54,7 +71,6 @@ function TicketPreviewScreen({ route, navigation }) {
         contentContainerStyle={styles.scrollContent}
       >
         {/* HEADER */}
-
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
@@ -74,7 +90,6 @@ function TicketPreviewScreen({ route, navigation }) {
         </View>
 
         {/* INTRO */}
-
         <View style={styles.previewHeader}>
           <Text style={styles.previewTitle}>Looks good?</Text>
 
@@ -83,14 +98,10 @@ function TicketPreviewScreen({ route, navigation }) {
           </Text>
         </View>
 
-        {/* ==================================================
-            MEMORY TICKET
-        ================================================== */}
-
+        {/* TICKET */}
         <View style={styles.ticketShadow}>
           <View style={styles.ticket}>
             {/* TOP PERFORATION */}
-
             <View style={styles.topPerforation}>
               {Array.from({ length: 15 }).map((_, index) => (
                 <View key={index} style={styles.perforationHole} />
@@ -98,7 +109,6 @@ function TicketPreviewScreen({ route, navigation }) {
             </View>
 
             {/* TICKET HEADER */}
-
             <View style={styles.ticketHeader}>
               <View>
                 <Text style={styles.ticketBrand}>MEMORY TICKET</Text>
@@ -111,14 +121,49 @@ function TicketPreviewScreen({ route, navigation }) {
               <Text style={styles.ticketNumber}>#{getTicketNumber()}</Text>
             </View>
 
-            {/* PHOTO */}
+            {/* IMAGE CAROUSEL */}
+            <View
+              style={styles.ticketImageContainer}
+              onLayout={(event) => {
+                const width = event.nativeEvent.layout.width;
 
-            <View style={styles.ticketImageContainer}>
-              {memory?.image ? (
-                <Image
-                  source={{ uri: memory.image }}
-                  style={styles.ticketImage}
-                />
+                setImageWidth(width);
+              }}
+            >
+              {images.length > 0 ? (
+                <ScrollView
+                  horizontal
+                  pagingEnabled
+                  showsHorizontalScrollIndicator={false}
+                  nestedScrollEnabled
+                  onMomentumScrollEnd={(event) => {
+                    if (!imageWidth) return;
+
+                    const index = Math.round(
+                      event.nativeEvent.contentOffset.x / imageWidth,
+                    );
+
+                    setActiveImage(index);
+                  }}
+                >
+                  {images.map((image, index) => (
+                    <View
+                      key={`${image}-${index}`}
+                      style={[
+                        styles.ticketImageSlide,
+                        imageWidth ? { width: imageWidth } : null,
+                      ]}
+                    >
+                      <Image
+                        source={{ uri: image }}
+                        style={styles.ticketImage}
+                        resizeMode="cover"
+                      />
+
+                      <View style={styles.imageOverlay} />
+                    </View>
+                  ))}
+                </ScrollView>
               ) : (
                 <View style={styles.noImage}>
                   <Ionicons name="image-outline" size={42} color="#D94D28" />
@@ -127,13 +172,32 @@ function TicketPreviewScreen({ route, navigation }) {
                 </View>
               )}
 
-              {/* PHOTO OVERLAY */}
+              {/* IMAGE COUNTER */}
+              {images.length > 1 && (
+                <View style={styles.imageCounter}>
+                  <Text style={styles.imageCounterText}>
+                    {activeImage + 1}/{images.length}
+                  </Text>
+                </View>
+              )}
 
-              <View style={styles.imageOverlay} />
+              {/* DOTS */}
+              {images.length > 1 && (
+                <View style={styles.imageDots}>
+                  {images.map((_, index) => (
+                    <View
+                      key={index}
+                      style={[
+                        styles.imageDot,
+                        index === activeImage && styles.imageDotActive,
+                      ]}
+                    />
+                  ))}
+                </View>
+              )}
             </View>
 
             {/* TICKET INFORMATION */}
-
             <View style={styles.ticketInfo}>
               <Text style={styles.memoryLabel}>MEMORY</Text>
 
@@ -143,8 +207,7 @@ function TicketPreviewScreen({ route, navigation }) {
 
               <View style={styles.ticketDivider} />
 
-              {/* DATE */}
-
+              {/* DATE + LOCATION */}
               <View style={styles.infoRow}>
                 <View style={styles.infoItem}>
                   <Text style={styles.infoLabel}>DATE</Text>
@@ -153,8 +216,6 @@ function TicketPreviewScreen({ route, navigation }) {
                     {formatDate(memory?.date)}
                   </Text>
                 </View>
-
-                {/* LOCATION */}
 
                 <View style={styles.infoItem}>
                   <Text style={styles.infoLabel}>LOCATION</Text>
@@ -166,7 +227,6 @@ function TicketPreviewScreen({ route, navigation }) {
               </View>
 
               {/* DESCRIPTION */}
-
               {memory?.description ? (
                 <View style={styles.descriptionContainer}>
                   <Text style={styles.description}>{memory.description}</Text>
@@ -175,7 +235,6 @@ function TicketPreviewScreen({ route, navigation }) {
             </View>
 
             {/* MIDDLE PERFORATION */}
-
             <View style={styles.middlePerforation}>
               <View style={styles.sideCutoutLeft} />
 
@@ -184,8 +243,7 @@ function TicketPreviewScreen({ route, navigation }) {
               <View style={styles.sideCutoutRight} />
             </View>
 
-            {/* TICKET FOOTER */}
-
+            {/* FOOTER */}
             <View style={styles.ticketFooter}>
               <View>
                 <Text style={styles.admitText}>ADMISSION X1</Text>
@@ -194,7 +252,6 @@ function TicketPreviewScreen({ route, navigation }) {
               </View>
 
               {/* BARCODE */}
-
               <View style={styles.barcode}>
                 {Array.from({ length: 28 }).map((_, index) => (
                   <View
@@ -217,7 +274,6 @@ function TicketPreviewScreen({ route, navigation }) {
             </View>
 
             {/* BOTTOM PERFORATION */}
-
             <View style={styles.bottomPerforation}>
               {Array.from({ length: 15 }).map((_, index) => (
                 <View key={index} style={styles.perforationHole} />
@@ -227,7 +283,6 @@ function TicketPreviewScreen({ route, navigation }) {
         </View>
 
         {/* ACTIONS */}
-
         <View style={styles.actionsContainer}>
           <TouchableOpacity
             style={styles.saveButton}

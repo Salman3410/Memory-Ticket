@@ -98,7 +98,7 @@ const styles = StyleSheet.create({
 
   ticketImage: {
     width: "100%",
-    height: 190,
+    height: "100%",
 
     marginBottom: 14,
 
@@ -362,6 +362,62 @@ const styles = StyleSheet.create({
     fontWeight: "600",
 
     color: "#F0442C",
+  },
+  ticketImageContainer: {
+    width: "100%",
+    height: 220,
+    overflow: "hidden",
+    position: "relative",
+  },
+
+  ticketImageSlide: {
+    height: "100%",
+  },
+
+  ticketImage: {
+    width: "100%",
+    height: "100%",
+  },
+
+  imageCounter: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    backgroundColor: "rgba(0, 0, 0, 0.65)",
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 12,
+  },
+
+  imageCounterText: {
+    color: "#FFFFFF",
+    fontSize: 11,
+    fontWeight: "700",
+  },
+
+  imageDots: {
+    position: "absolute",
+    bottom: 10,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 5,
+  },
+
+  imageDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "rgba(255, 255, 255, 0.55)",
+  },
+
+  imageDotActive: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#FFFFFF",
   },
 });
 

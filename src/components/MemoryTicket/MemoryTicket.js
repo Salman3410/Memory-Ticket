@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 
-import { View, Text, Image, TouchableOpacity } from "react-native";
+import { View, Text, Image, TouchableOpacity, ScrollView } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
 
@@ -11,14 +11,15 @@ import styles from "./memoryTicketStyles";
 function MemoryTicket({ memory, onPress, compact = false }) {
   const { getMemoryById } = useMemory();
 
+  const [imageWidth, setImageWidth] = useState(0);
+  const [activeImage, setActiveImage] = useState(0);
+
   if (!memory) {
     return null;
   }
 
-  // Example:
-  // If memory only contains an ID, retrieve the
-  // complete memory from MemoryContext.
-
+  // If only an ID is passed, get the complete memory
+  // from MemoryContext.
   const contextMemory = memory.id ? getMemoryById(memory.id) : memory;
 
   const currentMemory = contextMemory || memory;
@@ -58,18 +59,19 @@ function MemoryTicket({ memory, onPress, compact = false }) {
     currentMemory.id?.toString().slice(-6) ||
     "000000";
 
+  // ------------------------------------------
+  // GET ALL IMAGES
+  // ------------------------------------------
+
   const images = Array.isArray(currentMemory.images)
     ? currentMemory.images
     : currentMemory.image
       ? [currentMemory.image]
       : [];
 
-  const firstImage = images[0];
-
   const ticketContent = (
     <View style={[styles.ticket, compact && styles.ticketCompact]}>
       {/* TOP PERFORATION */}
-
       <View style={styles.topPerforation}>
         {Array.from({ length: 12 }).map((_, index) => (
           <View key={index} style={styles.perforationDot} />
@@ -77,28 +79,87 @@ function MemoryTicket({ memory, onPress, compact = false }) {
       </View>
 
       {/* MAIN TICKET */}
-
       <View style={styles.ticketBody}>
         {/* HEADER */}
-
         <View style={styles.header}>
           <Text style={styles.brandText}>MEMORY TICKET</Text>
 
           <Ionicons name="ticket-outline" size={18} color="#F0442C" />
         </View>
 
-        {/* IMAGE */}
+        {/* IMAGE CAROUSEL */}
+        <View
+          style={styles.ticketImageContainer}
+          onLayout={(event) => {
+            const width = event.nativeEvent.layout.width;
 
-        {firstImage ? (
-          <Image source={{ uri: firstImage }} style={styles.ticketImage} />
-        ) : (
-          <View style={styles.noImage}>
-            <Ionicons name="image-outline" size={40} color="#707080" />
-          </View>
-        )}
+            setImageWidth(width);
+          }}
+        >
+          {images.length > 0 ? (
+            <ScrollView
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              nestedScrollEnabled
+              onMomentumScrollEnd={(event) => {
+                if (!imageWidth) return;
+
+                const index = Math.round(
+                  event.nativeEvent.contentOffset.x / imageWidth,
+                );
+
+                setActiveImage(index);
+              }}
+            >
+              {images.map((image, index) => (
+                <View
+                  key={`${image}-${index}`}
+                  style={[
+                    styles.ticketImageSlide,
+                    imageWidth ? { width: imageWidth } : null,
+                  ]}
+                >
+                  <Image
+                    source={{ uri: image }}
+                    style={styles.ticketImage}
+                    resizeMode="cover"
+                  />
+                </View>
+              ))}
+            </ScrollView>
+          ) : (
+            <View style={styles.noImage}>
+              <Ionicons name="image-outline" size={40} color="#707080" />
+            </View>
+          )}
+
+          {/* IMAGE COUNTER */}
+          {images.length > 1 && (
+            <View style={styles.imageCounter}>
+              <Text style={styles.imageCounterText}>
+                {activeImage + 1}/{images.length}
+              </Text>
+            </View>
+          )}
+
+          {/* DOT INDICATORS */}
+          {images.length > 1 && (
+            <View style={styles.imageDots}>
+              {images.map((_, index) => (
+                <View
+                  key={index}
+                  style={[
+                    styles.imageDot,
+                    index === activeImage && styles.imageDotActive,
+                  ]}
+                />
+              ))}
+            </View>
+          )}
+        </View>
 
         {/* TITLE */}
-
         <View style={styles.titleContainer}>
           <Text style={styles.ticketTitle} numberOfLines={2}>
             {title}
@@ -106,7 +167,6 @@ function MemoryTicket({ memory, onPress, compact = false }) {
         </View>
 
         {/* DESCRIPTION */}
-
         {description ? (
           <View style={styles.descriptionContainer}>
             <Text style={styles.descriptionLabel}>THE STORY</Text>
@@ -118,7 +178,6 @@ function MemoryTicket({ memory, onPress, compact = false }) {
         ) : null}
 
         {/* EVENT INFO */}
-
         <View style={styles.infoSection}>
           <View style={styles.infoRow}>
             <View style={styles.infoBlock}>
@@ -148,7 +207,6 @@ function MemoryTicket({ memory, onPress, compact = false }) {
         </View>
 
         {/* ADMISSION */}
-
         <View style={styles.admissionSection}>
           <Text style={styles.admissionLabel}>ADMISSION</Text>
 
@@ -158,7 +216,6 @@ function MemoryTicket({ memory, onPress, compact = false }) {
         </View>
 
         {/* DIVIDER */}
-
         <View style={styles.divider}>
           <View style={styles.dividerLine} />
           <View style={styles.dividerNotchLeft} />
@@ -166,7 +223,6 @@ function MemoryTicket({ memory, onPress, compact = false }) {
         </View>
 
         {/* FOOTER */}
-
         <View style={styles.ticketFooter}>
           <View style={styles.ticketNumberContainer}>
             <Text style={styles.ticketNumberLabel}>TICKET NO.</Text>
@@ -193,7 +249,6 @@ function MemoryTicket({ memory, onPress, compact = false }) {
       </View>
 
       {/* BOTTOM PERFORATION */}
-
       <View style={styles.bottomPerforation}>
         {Array.from({ length: 12 }).map((_, index) => (
           <View key={index} style={styles.perforationDot} />
