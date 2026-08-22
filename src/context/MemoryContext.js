@@ -1,6 +1,8 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useEffect, useState } from "react";
+
 import AsyncStorage from "@react-native-async-storage/async-storage";
-const MemoryContext = createContext();
+
+export const MemoryContext = createContext(null);
 
 const STORAGE_KEY = "@memory_ticket_memories";
 
@@ -8,26 +10,41 @@ export function MemoryProvider({ children }) {
   const [memories, setMemories] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // --------------------------------------------------
+  // LOAD MEMORIES
+  // --------------------------------------------------
+
   useEffect(() => {
     loadMemories();
   }, []);
 
-  // Load saved memories when app starts
   const loadMemories = async () => {
     try {
       const storedMemories = await AsyncStorage.getItem(STORAGE_KEY);
 
       if (storedMemories) {
-        setMemories(JSON.parse(storedMemories));
+        const parsedMemories = JSON.parse(storedMemories);
+
+        if (Array.isArray(parsedMemories)) {
+          setMemories(parsedMemories);
+        } else {
+          setMemories([]);
+        }
+      } else {
+        setMemories([]);
       }
     } catch (error) {
       console.log("Error loading memories:", error);
+      setMemories([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // Save current memories to AsyncStorage
+  // --------------------------------------------------
+  // SAVE MEMORIES
+  // --------------------------------------------------
+
   const persistMemories = async (updatedMemories) => {
     try {
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedMemories));
@@ -36,12 +53,33 @@ export function MemoryProvider({ children }) {
     }
   };
 
-  // Add a new memory
+  // --------------------------------------------------
+  // ADD MEMORY
+  // --------------------------------------------------
+
   const addMemory = async (memory) => {
+    const images = Array.isArray(memory?.images)
+      ? memory.images
+      : memory?.image
+        ? [memory.image]
+        : [];
+
     const newMemory = {
       ...memory,
+
+      // Keep first image for backwards compatibility
+      image: images[0] || null,
+
+      // Store all images
+      images,
+
+      description: memory?.description || "",
+
       id: Date.now().toString() + Math.random().toString(36).substring(2, 8),
+
       createdAt: new Date().toISOString(),
+
+      favorite: memory?.favorite || false,
     };
 
     const updatedMemories = [newMemory, ...memories];
@@ -53,7 +91,10 @@ export function MemoryProvider({ children }) {
     return newMemory;
   };
 
-  // Delete a memory
+  // --------------------------------------------------
+  // DELETE MEMORY
+  // --------------------------------------------------
+
   const deleteMemory = async (memoryId) => {
     const updatedMemories = memories.filter((memory) => memory.id !== memoryId);
 
@@ -62,37 +103,77 @@ export function MemoryProvider({ children }) {
     await persistMemories(updatedMemories);
   };
 
-  // Update a memory
+  // --------------------------------------------------
+  // UPDATE MEMORY
+  // --------------------------------------------------
+
   const updateMemory = async (memoryId, updatedData) => {
-    const updatedMemories = memories.map((memory) =>
-      memory.id === memoryId
-        ? {
-            ...memory,
-            ...updatedData,
-            updatedAt: new Date().toISOString(),
-          }
-        : memory,
-    );
+    let updatedMemory = null;
+
+    const updatedMemories = memories.map((memory) => {
+      if (memory.id !== memoryId) {
+        return memory;
+      }
+
+      updatedMemory = {
+        ...memory,
+        ...updatedData,
+
+        // Keep multi-image structure consistent
+        images: Array.isArray(updatedData?.images)
+          ? updatedData.images
+          : Array.isArray(memory.images)
+            ? memory.images
+            : memory.image
+              ? [memory.image]
+              : [],
+
+        description:
+          updatedData?.description !== undefined
+            ? updatedData.description
+            : memory.description || "",
+
+        updatedAt: new Date().toISOString(),
+      };
+
+      // Keep old `image` field synchronized
+      updatedMemory.image = updatedMemory.images?.[0] || null;
+
+      return updatedMemory;
+    });
 
     setMemories(updatedMemories);
 
     await persistMemories(updatedMemories);
+
+    return updatedMemory;
   };
 
-  // Find one memory
+  // --------------------------------------------------
+  // FIND MEMORY
+  // --------------------------------------------------
+
   const getMemoryById = (memoryId) => {
     return memories.find((memory) => memory.id === memoryId);
   };
 
-  // Delete everything
+  // --------------------------------------------------
+  // CLEAR ALL MEMORIES
+  // --------------------------------------------------
+
   const clearMemories = async () => {
     try {
       await AsyncStorage.removeItem(STORAGE_KEY);
+
       setMemories([]);
     } catch (error) {
       console.log("Error clearing memories:", error);
     }
   };
+
+  // --------------------------------------------------
+  // PROVIDER
+  // --------------------------------------------------
 
   return (
     <MemoryContext.Provider
@@ -109,14 +190,4 @@ export function MemoryProvider({ children }) {
       {children}
     </MemoryContext.Provider>
   );
-}
-
-export function useMemory() {
-  const context = useContext(MemoryContext);
-
-  if (!context) {
-    throw new Error("useMemory must be used inside MemoryProvider");
-  }
-
-  return context;
 }

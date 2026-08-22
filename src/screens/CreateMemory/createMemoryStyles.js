@@ -248,6 +248,112 @@ const styles = StyleSheet.create({
     color: "#9A99A5",
     marginTop: 16,
   },
+  photoCountText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#707080",
+    marginTop: 4,
+  },
+
+  imageContainer: {
+    width: "100%",
+    height: 260,
+    borderRadius: 22,
+    overflow: "hidden",
+    backgroundColor: "#D9D8E2",
+    position: "relative",
+  },
+
+  selectedImage: {
+    width: "100%",
+    height: "100%",
+  },
+
+  removeImageButton: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "rgba(36, 36, 36, 0.75)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  imageNumber: {
+    position: "absolute",
+    bottom: 12,
+    left: 12,
+    paddingHorizontal: 10,
+    height: 28,
+    borderRadius: 9,
+    backgroundColor: "rgba(36, 36, 36, 0.75)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  imageNumberText: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: "#FFFFFF",
+  },
+
+  addMoreRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 12,
+  },
+
+  addMoreButton: {
+    flex: 1,
+    height: 44,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: "#34345C",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+  },
+
+  addMoreText: {
+    fontSize: 9,
+    fontWeight: "900",
+    letterSpacing: 1,
+    color: "#34345C",
+  },
+
+  addCameraButton: {
+    flex: 1,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: "#E76F51",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+  },
+
+  addCameraText: {
+    fontSize: 9,
+    fontWeight: "900",
+    letterSpacing: 1,
+    color: "#FFFFFF",
+  },
+
+  swipeHint: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 5,
+    marginTop: 10,
+  },
+
+  swipeHintText: {
+    fontSize: 10,
+    color: "#707080",
+  },
 });
 
 export default styles;

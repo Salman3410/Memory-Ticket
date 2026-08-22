@@ -2,7 +2,8 @@ import React, { useMemo } from "react";
 import { View, Text, TouchableOpacity, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-import { useMemory } from "../../context/MemoryContext";
+
+import { useMemory } from "../../hooks/useMemory";
 
 import MemoryTicket from "../../components/MemoryTicket/MemoryTicket";
 import MemoryTicketHorizontal from "../../components/MemoryTicket/MemoryTicketHorizontal";

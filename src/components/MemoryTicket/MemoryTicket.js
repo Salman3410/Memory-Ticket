@@ -1,13 +1,27 @@
 import React from "react";
+
 import { View, Text, Image, TouchableOpacity } from "react-native";
+
 import { Ionicons } from "@expo/vector-icons";
+
+import { useMemory } from "../../hooks/useMemory";
 
 import styles from "./memoryTicketStyles";
 
 function MemoryTicket({ memory, onPress, compact = false }) {
+  const { getMemoryById } = useMemory();
+
   if (!memory) {
     return null;
   }
+
+  // Example:
+  // If memory only contains an ID, retrieve the
+  // complete memory from MemoryContext.
+
+  const contextMemory = memory.id ? getMemoryById(memory.id) : memory;
+
+  const currentMemory = contextMemory || memory;
 
   const formatDate = (value) => {
     if (!value) {
@@ -27,20 +41,30 @@ function MemoryTicket({ memory, onPress, compact = false }) {
     });
   };
 
-  const title = memory.title || "UNTITLED MEMORY";
+  const title = currentMemory.title || "UNTITLED MEMORY";
 
-  const location = memory.location || "MEMORY TICKET";
+  const location = currentMemory.location || "MEMORY TICKET";
 
-  const date = formatDate(memory.createdAt || memory.date);
+  const date = formatDate(currentMemory.createdAt || currentMemory.date);
 
-  const time = memory.time || "";
+  const time = currentMemory.time || "";
 
-  const description = memory.description?.trim() || "";
+  const description = currentMemory.description?.trim() || "";
 
-  const admission = memory.admission || "X1";
+  const admission = currentMemory.admission || "X1";
 
   const ticketNumber =
-    memory.ticketNumber || memory.id?.toString().slice(-6) || "000000";
+    currentMemory.ticketNumber ||
+    currentMemory.id?.toString().slice(-6) ||
+    "000000";
+
+  const images = Array.isArray(currentMemory.images)
+    ? currentMemory.images
+    : currentMemory.image
+      ? [currentMemory.image]
+      : [];
+
+  const firstImage = images[0];
 
   const ticketContent = (
     <View style={[styles.ticket, compact && styles.ticketCompact]}>
@@ -65,8 +89,8 @@ function MemoryTicket({ memory, onPress, compact = false }) {
 
         {/* IMAGE */}
 
-        {memory.image ? (
-          <Image source={{ uri: memory.image }} style={styles.ticketImage} />
+        {firstImage ? (
+          <Image source={{ uri: firstImage }} style={styles.ticketImage} />
         ) : (
           <View style={styles.noImage}>
             <Ionicons name="image-outline" size={40} color="#707080" />
@@ -133,13 +157,11 @@ function MemoryTicket({ memory, onPress, compact = false }) {
           </Text>
         </View>
 
-        {/* PERFORATED DIVIDER */}
+        {/* DIVIDER */}
 
         <View style={styles.divider}>
           <View style={styles.dividerLine} />
-
           <View style={styles.dividerNotchLeft} />
-
           <View style={styles.dividerNotchRight} />
         </View>
 
@@ -158,7 +180,6 @@ function MemoryTicket({ memory, onPress, compact = false }) {
                 key={index}
                 style={[
                   styles.bar,
-
                   index % 4 === 0
                     ? styles.barWide
                     : index % 3 === 0
