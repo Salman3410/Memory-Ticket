@@ -28,10 +28,17 @@ function MemoryTicket({ memory, onPress, compact = false }) {
   };
 
   const title = memory.title || "UNTITLED MEMORY";
+
   const location = memory.location || "MEMORY TICKET";
+
   const date = formatDate(memory.createdAt || memory.date);
+
   const time = memory.time || "";
+
+  const description = memory.description?.trim() || "";
+
   const admission = memory.admission || "X1";
+
   const ticketNumber =
     memory.ticketNumber || memory.id?.toString().slice(-6) || "000000";
 
@@ -58,7 +65,7 @@ function MemoryTicket({ memory, onPress, compact = false }) {
 
         {/* IMAGE */}
 
-        {memory?.image ? (
+        {memory.image ? (
           <Image source={{ uri: memory.image }} style={styles.ticketImage} />
         ) : (
           <View style={styles.noImage}>
@@ -73,6 +80,18 @@ function MemoryTicket({ memory, onPress, compact = false }) {
             {title}
           </Text>
         </View>
+
+        {/* DESCRIPTION */}
+
+        {description ? (
+          <View style={styles.descriptionContainer}>
+            <Text style={styles.descriptionLabel}>THE STORY</Text>
+
+            <Text style={styles.descriptionText} numberOfLines={4}>
+              {description}
+            </Text>
+          </View>
+        ) : null}
 
         {/* EVENT INFO */}
 
@@ -120,6 +139,7 @@ function MemoryTicket({ memory, onPress, compact = false }) {
           <View style={styles.dividerLine} />
 
           <View style={styles.dividerNotchLeft} />
+
           <View style={styles.dividerNotchRight} />
         </View>
 
@@ -138,6 +158,7 @@ function MemoryTicket({ memory, onPress, compact = false }) {
                 key={index}
                 style={[
                   styles.bar,
+
                   index % 4 === 0
                     ? styles.barWide
                     : index % 3 === 0

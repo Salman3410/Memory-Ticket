@@ -340,6 +340,29 @@ const styles = StyleSheet.create({
   barWide: {
     width: 5,
   },
+  descriptionContainer: {
+    marginBottom: 13,
+  },
+
+  descriptionLabel: {
+    fontSize: 7,
+    fontWeight: "900",
+
+    letterSpacing: 1,
+
+    color: "#F0442C",
+
+    marginBottom: 4,
+  },
+
+  descriptionText: {
+    fontSize: 11,
+    lineHeight: 16,
+
+    fontWeight: "600",
+
+    color: "#F0442C",
+  },
 });
 
 export default styles;

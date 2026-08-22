@@ -3,17 +3,16 @@ import { View, Text, TouchableOpacity, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 import { useMemory } from "../../context/MemoryContext";
+
 import MemoryTicket from "../../components/MemoryTicket/MemoryTicket";
+import MemoryTicketHorizontal from "../../components/MemoryTicket/MemoryTicketHorizontal";
 
 import styles from "./homeStyles";
 
 function HomeScreen({ navigation }) {
   const { memories, loading } = useMemory();
 
-  // --------------------------------------------------
   // RECENT MEMORIES
-  // --------------------------------------------------
-
   const recentMemories = useMemo(() => {
     return [...memories]
       .sort((a, b) => {
@@ -25,18 +24,12 @@ function HomeScreen({ navigation }) {
       .slice(0, 3);
   }, [memories]);
 
-  // --------------------------------------------------
   // FAVORITE MEMORIES
-  // --------------------------------------------------
-
   const favoriteMemories = useMemo(() => {
     return memories.filter((memory) => memory.favorite === true);
   }, [memories]);
 
-  // --------------------------------------------------
   // LATEST MEMORY
-  // --------------------------------------------------
-
   const latestMemory = recentMemories[0];
 
   return (
@@ -151,7 +144,7 @@ function HomeScreen({ navigation }) {
               </TouchableOpacity>
             </View>
 
-            {/* REUSABLE MEMORY TICKET */}
+            {/* VERTICAL MEMORY TICKET */}
 
             <MemoryTicket
               memory={latestMemory}
@@ -213,14 +206,13 @@ function HomeScreen({ navigation }) {
               </TouchableOpacity>
             </View>
           ) : (
-            /* RECENT MEMORY LIST */
+            /* HORIZONTAL MEMORY TICKETS */
 
             <View style={styles.recentList}>
               {recentMemories.map((memory) => (
-                <MemoryTicket
+                <MemoryTicketHorizontal
                   key={memory.id}
                   memory={memory}
-                  compact
                   onPress={() =>
                     navigation.navigate("MemoryDetails", {
                       memoryId: memory.id,
