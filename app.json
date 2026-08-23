@@ -4,33 +4,26 @@
     "slug": "MemoryTicket",
     "version": "1.0.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/splash-image.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.salera.memoryticket"
+      "package": "com.salera.Memory_Ticket"
     },
-
     "android": {
-      "package": "com.salera.memoryticket",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.salera.Memory_Ticket"
     },
-
-    "web": {
-      "favicon": "./assets/favicon.png"
-    },
-
     "plugins": [
       "expo-secure-store",
       [
@@ -40,17 +33,14 @@
         }
       ]
     ],
-
     "extra": {
       "eas": {
         "projectId": "39c9d6d9-62d6-40d1-96f5-746f16355596"
       }
     },
-
     "runtimeVersion": {
       "policy": "appVersion"
     },
-
     "updates": {
       "url": "https://u.expo.dev/39c9d6d9-62d6-40d1-96f5-746f16355596"
     }
