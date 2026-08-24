@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "splash": {
       "image": "./assets/splash-image.png",
       "resizeMode": "contain",
@@ -14,7 +14,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "package": "com.salera.Memory_Ticket"
+      "bundleIdentifier": "com.salera.Memory_Ticket"
     },
     "android": {
       "adaptiveIcon": {
@@ -31,7 +31,8 @@
         {
           "photosPermission": "Allow MemoryTicket to access your photos so you can create memories."
         }
-      ]
+      ],
+      "expo-build-properties"
     ],
     "extra": {
       "eas": {
