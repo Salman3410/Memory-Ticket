@@ -14,7 +14,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.salera.Memory_Ticket"
+      "bundleIdentifier": "com.salera.memoryticket"
     },
     "android": {
       "adaptiveIcon": {
@@ -22,7 +22,7 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.salera.Memory_Ticket"
+      "package": "com.salera.memoryticket"
     },
     "plugins": [
       "expo-secure-store",
