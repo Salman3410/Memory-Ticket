@@ -17,6 +17,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { captureRef } from "react-native-view-shot";
 import * as Sharing from "expo-sharing";
 import * as Print from "expo-print";
+import * as FileSystem from "expo-file-system/legacy";
 
 import { useMemory } from "../../hooks/useMemory";
 import styles from "./memoryDetailsStyles";
@@ -55,6 +56,23 @@ function MemoryDetailsScreen({ navigation, route }) {
   // ==========================================================
 
   const shareTicketRef = useRef(null);
+
+  // ==========================================================
+  // PDF TICKET REFS
+  //
+  // Each ref points to the ACTUAL ticket displayed on screen.
+  //
+  // Example:
+  //
+  // ticketRefs.current[0] = ticket for image 1
+  // ticketRefs.current[1] = ticket for image 2
+  // ticketRefs.current[2] = ticket for image 3
+  //
+  // This is what makes the PDF visually identical to the
+  // ticket on MemoryDetailsScreen.
+  // ==========================================================
+
+  const ticketRefs = useRef([]);
 
   // ==========================================================
   // NO MEMORY ID
@@ -260,10 +278,6 @@ function MemoryDetailsScreen({ navigation, route }) {
 
       setSharing(true);
 
-      // ------------------------------------------------------
-      // CHECK NATIVE SHARING
-      // ------------------------------------------------------
-
       const isAvailable = await Sharing.isAvailableAsync();
 
       if (!isAvailable) {
@@ -275,19 +289,11 @@ function MemoryDetailsScreen({ navigation, route }) {
         return;
       }
 
-      // ------------------------------------------------------
-      // CAPTURE YELLOW TICKET
-      // ------------------------------------------------------
-
       const imageUri = await captureRef(shareTicketRef.current, {
         format: "png",
         quality: 1,
         result: "tmpfile",
       });
-
-      // ------------------------------------------------------
-      // OPEN NATIVE SHARE SHEET
-      // ------------------------------------------------------
 
       await Sharing.shareAsync(imageUri, {
         mimeType: "image/png",
@@ -307,7 +313,23 @@ function MemoryDetailsScreen({ navigation, route }) {
   };
 
   // ==========================================================
-  // PDF HELPERS
+  // PDF HELPER
+  //
+  // Converts the captured ticket image into base64 so the
+  // generated PDF does not depend on the temporary local
+  // image URI remaining accessible to the print engine.
+  // ==========================================================
+
+  const imageToBase64 = async (uri) => {
+    const base64 = await FileSystem.readAsStringAsync(uri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+
+    return `data:image/png;base64,${base64}`;
+  };
+
+  // ==========================================================
+  // ESCAPE HTML
   // ==========================================================
 
   const escapeHtml = (text) => {
@@ -324,10 +346,19 @@ function MemoryDetailsScreen({ navigation, route }) {
   };
 
   // ==========================================================
-  // GENERATE PDF
+  // EXPORT PDF
   //
-  // One memory image = one PDF page
-  // Three memory images = three PDF pages
+  // IMPORTANT:
+  //
+  // We DO NOT recreate the ticket with HTML.
+  //
+  // We capture the ACTUAL React Native ticket from the screen.
+  //
+  // 1 image = 1 captured ticket = 1 A4 PDF page
+  //
+  // 2 images = 2 captured tickets = 2 A4 PDF pages
+  //
+  // 5 images = 5 captured tickets = 5 A4 PDF pages
   // ==========================================================
 
   const handleExportPdf = async () => {
@@ -337,6 +368,10 @@ function MemoryDetailsScreen({ navigation, route }) {
       }
 
       setGeneratingPdf(true);
+
+      // ------------------------------------------------------
+      // CHECK IMAGES
+      // ------------------------------------------------------
 
       if (!images.length) {
         Alert.alert(
@@ -348,193 +383,87 @@ function MemoryDetailsScreen({ navigation, route }) {
       }
 
       // ------------------------------------------------------
-      // CREATE ONE HTML PAGE FOR EACH IMAGE
+      // CHECK TICKET REFS
       // ------------------------------------------------------
 
-      const pages = images
-        .map((image, index) => {
-          const safeTitle = escapeHtml(memory?.title || "UNTITLED MEMORY");
+      const validRefs = images
+        .map((_, index) => ticketRefs.current[index])
+        .filter(Boolean);
 
-          const safeLocation = escapeHtml(memory?.location || "UNKNOWN");
+      if (validRefs.length !== images.length) {
+        Alert.alert(
+          "PDF Export Failed",
+          "The ticket is still rendering. Please wait a moment and try again.",
+        );
 
-          const safeDescription = escapeHtml(memory?.description || "");
+        return;
+      }
 
-          const dateText = memory?.date
-            ? new Date(memory.date).toLocaleDateString("en-US", {
-                month: "short",
-                day: "2-digit",
-                year: "numeric",
-              })
-            : "DATE UNKNOWN";
+      // ------------------------------------------------------
+      // CAPTURE EVERY ACTUAL TICKET
+      // ------------------------------------------------------
 
-          return `
+      const capturedTickets = [];
+
+      for (let index = 0; index < images.length; index++) {
+        const ticketRef = ticketRefs.current[index];
+
+        if (!ticketRef) {
+          throw new Error(`Ticket reference ${index} is unavailable.`);
+        }
+
+        // ----------------------------------------------
+        // CAPTURE THE REAL REACT NATIVE TICKET
+        // ----------------------------------------------
+
+        const ticketUri = await captureRef(ticketRef, {
+          format: "png",
+          quality: 1,
+          result: "tmpfile",
+        });
+
+        // ----------------------------------------------
+        // CONVERT CAPTURE TO EMBEDDED PNG
+        // ----------------------------------------------
+
+        const base64Image = await imageToBase64(ticketUri);
+
+        capturedTickets.push(base64Image);
+      }
+
+      // ------------------------------------------------------
+      // CREATE ONE A4 PAGE PER CAPTURED TICKET
+      //
+      // The ticket image itself is untouched.
+      //
+      // Only its placement on the A4 paper is controlled here.
+      // ------------------------------------------------------
+
+      const pages = capturedTickets
+        .map(
+          (ticketImage, index) => `
             <section class="page">
 
-              <div class="ticket">
-
-                <div class="top-line"></div>
-
-                <div class="header">
-
-                  <div>
-                    <div class="brand">
-                      MEMORY TICKET
-                    </div>
-
-                    <div class="tagline">
-                      THE POWER OF THE MOMENT
-                    </div>
-                  </div>
-
-                  <div class="ticket-number">
-                    #${escapeHtml(getTicketNumber())}
-                  </div>
-
-                </div>
-
-
-                <div class="photo-container">
-
-                  <img
-                    src="${image}"
-                    class="photo"
-                  />
-
-                </div>
-
-
-                <div class="content">
-
-                  <div class="label">
-                    MEMORY
-                  </div>
-
-                  <div class="title">
-                    ${safeTitle}
-                  </div>
-
-                  <div class="divider"></div>
-
-
-                  <div class="info-row">
-
-                    <div class="info-item">
-
-                      <div class="info-label">
-                        DATE
-                      </div>
-
-                      <div class="info-value">
-                        ${dateText}
-                      </div>
-
-                    </div>
-
-
-                    <div class="info-item">
-
-                      <div class="info-label">
-                        LOCATION
-                      </div>
-
-                      <div class="info-value">
-                        ${safeLocation}
-                      </div>
-
-                    </div>
-
-                  </div>
-
-
-                  ${
-                    safeDescription
-                      ? `
-                        <div class="description">
-                          ${safeDescription}
-                        </div>
-                      `
-                      : ""
-                  }
-
-                </div>
-
-
-                <div class="perforation">
-
-                  <span></span>
-                  <span></span>
-                  <span></span>
-                  <span></span>
-                  <span></span>
-                  <span></span>
-                  <span></span>
-                  <span></span>
-                  <span></span>
-                  <span></span>
-                  <span></span>
-                  <span></span>
-
-                </div>
-
-
-                <div class="footer">
-
-                  <div>
-
-                    <div class="admit">
-                      ADMISSION X1
-                    </div>
-
-                    <div class="footer-small">
-                      MEMORY ARCHIVE
-                    </div>
-
-                  </div>
-
-
-                  <div class="barcode">
-
-                    ${Array.from({ length: 28 })
-                      .map((_, barIndex) => {
-                        let width = 2;
-
-                        if (barIndex % 5 === 0) {
-                          width = 5;
-                        } else if (barIndex % 3 === 0) {
-                          width = 3;
-                        }
-
-                        return `
-                          <span
-                            style="
-                              width:${width}px;
-                            "
-                          ></span>
-                        `;
-                      })
-                      .join("")}
-
-                  </div>
-
-                </div>
-
-
-                <div class="serial">
-                  MT • ${escapeHtml(getTicketNumber())}
-                </div>
-
-
-                <div class="bottom-line"></div>
-
-              </div>
+              <img
+                class="ticket"
+                src="${ticketImage}"
+                alt="Memory Ticket ${index + 1}"
+              />
 
             </section>
-          `;
-        })
+          `,
+        )
         .join("");
 
       // ------------------------------------------------------
-      // COMPLETE PDF HTML
+      // A4 PDF HTML
+      //
+      // The page is pure white.
+      //
+      // The captured ticket is centered horizontally and
+      // vertically.
+      //
+      // Its aspect ratio is preserved.
       // ------------------------------------------------------
 
       const html = `
@@ -551,6 +480,11 @@ function MemoryDetailsScreen({ navigation, route }) {
 
           <style>
 
+            @page {
+              size: A4 portrait;
+              margin: 0;
+            }
+
             * {
               box-sizing: border-box;
             }
@@ -559,294 +493,63 @@ function MemoryDetailsScreen({ navigation, route }) {
             body {
               margin: 0;
               padding: 0;
-              background: #f4f1e8;
+
+              width: 210mm;
+              height: 297mm;
+
+              background: #FFFFFF;
+            }
+
+            body {
               font-family: Arial, Helvetica, sans-serif;
             }
 
             .page {
-              width: 100%;
-              min-height: 100vh;
+              width: 210mm;
+              height: 297mm;
 
               display: flex;
+
               align-items: center;
               justify-content: center;
 
-              padding: 24px;
-
               page-break-after: always;
+
+              overflow: hidden;
+
+              background: #FFFFFF;
             }
 
             .page:last-child {
               page-break-after: auto;
             }
 
+            /*
+             * THIS IS THE ONLY SCALING HAPPENING.
+             *
+             * The ticket itself is the exact PNG captured
+             * from MemoryDetailsScreen.
+             *
+             * Width is intentionally limited so the ticket
+             * remains thin/long and sits cleanly in the
+             * middle of the A4 page.
+             */
+
             .ticket {
-              width: 100%;
-              max-width: 700px;
-
-              background: #f8f5ed;
-
-              border: 2px solid #34345c;
-
-              border-radius: 8px;
-
-              overflow: hidden;
-
-              position: relative;
-
-              padding: 22px;
-            }
-
-            .top-line,
-            .bottom-line {
-              height: 8px;
-
-              border-top: 2px dashed #34345c;
-              border-bottom: 2px dashed #34345c;
-
-              margin-bottom: 20px;
-            }
-
-            .bottom-line {
-              margin-top: 20px;
-              margin-bottom: 0;
-            }
-
-            .header {
-              display: flex;
-
-              justify-content: space-between;
-              align-items: flex-start;
-
-              margin-bottom: 18px;
-            }
-
-            .brand {
-              font-size: 28px;
-
-              font-weight: 900;
-
-              letter-spacing: 2px;
-
-              color: #242424;
-            }
-
-            .tagline {
-              margin-top: 5px;
-
-              font-size: 11px;
-
-              font-weight: 700;
-
-              letter-spacing: 2px;
-
-              color: #6a6a6a;
-            }
-
-            .ticket-number {
-              font-size: 14px;
-
-              font-weight: 900;
-
-              color: #34345c;
-            }
-
-            .photo-container {
-              width: 100%;
-
-              height: 430px;
-
-              overflow: hidden;
-
-              border-radius: 6px;
-
-              border: 2px solid #34345c;
-
-              background: #dedbd1;
-            }
-
-            .photo {
-              width: 100%;
-              height: 100%;
-
-              object-fit: cover;
-            }
-
-            .content {
-              padding-top: 20px;
-            }
-
-            .label {
-              font-size: 10px;
-
-              font-weight: 900;
-
-              letter-spacing: 2px;
-
-              color: #777;
-            }
-
-            .title {
-              margin-top: 6px;
-
-              font-size: 25px;
-
-              line-height: 31px;
-
-              font-weight: 900;
-
-              color: #242424;
-            }
-
-            .divider {
-              margin-top: 18px;
-              margin-bottom: 18px;
-
-              border-top: 2px solid #34345c;
-            }
-
-            .info-row {
-              display: flex;
-
-              justify-content: space-between;
-              gap: 30px;
-            }
-
-            .info-item {
-              flex: 1;
-            }
-
-            .info-label {
-              font-size: 9px;
-
-              font-weight: 900;
-
-              letter-spacing: 1.5px;
-
-              color: #777;
-            }
-
-            .info-value {
-              margin-top: 5px;
-
-              font-size: 14px;
-
-              font-weight: 800;
-
-              color: #242424;
-            }
-
-            .description {
-              margin-top: 18px;
-
-              font-size: 12px;
-
-              line-height: 18px;
-
-              color: #444;
-            }
-
-            .perforation {
-              margin-top: 22px;
-
-              display: flex;
-
-              justify-content: space-between;
-
-              align-items: center;
-
-              border-top: 2px dashed #34345c;
-
-              padding-top: 10px;
-            }
-
-            .perforation span {
-              width: 8px;
-              height: 8px;
-
-              background: #34345c;
-
-              border-radius: 50%;
-            }
-
-            .footer {
-              margin-top: 20px;
-
-              display: flex;
-
-              justify-content: space-between;
-
-              align-items: center;
-            }
-
-            .admit {
-              font-size: 12px;
-
-              font-weight: 900;
-
-              letter-spacing: 1px;
-
-              color: #242424;
-            }
-
-            .footer-small {
-              margin-top: 4px;
-
-              font-size: 9px;
-
-              font-weight: 700;
-
-              letter-spacing: 1.5px;
-
-              color: #777;
-            }
-
-            .barcode {
-              height: 50px;
-
-              display: flex;
-
-              align-items: center;
-
-              overflow: hidden;
-            }
-
-            .barcode span {
-              height: 46px;
-
               display: block;
 
-              background: #242424;
+              width: 115mm;
+              height: auto;
 
-              margin-right: 2px;
-            }
+              max-width: 115mm;
+              max-height: 270mm;
 
-            .serial {
-              margin-top: 15px;
+              object-fit: contain;
 
-              font-size: 9px;
+              margin: 0;
+              padding: 0;
 
-              font-weight: 900;
-
-              letter-spacing: 2px;
-
-              color: #34345c;
-            }
-
-            @media print {
-
-              .page {
-                min-height: auto;
-
-                height: 100vh;
-
-                padding: 25px;
-              }
-
-              .ticket {
-                max-width: none;
-              }
-
+              border: 0;
             }
 
           </style>
@@ -894,7 +597,8 @@ function MemoryDetailsScreen({ navigation, route }) {
 
       Alert.alert(
         "PDF Export Failed",
-        "Something went wrong while creating your Memory Ticket PDF.",
+        error?.message ||
+          "Something went wrong while creating your Memory Ticket PDF.",
       );
     } finally {
       setGeneratingPdf(false);
@@ -903,6 +607,12 @@ function MemoryDetailsScreen({ navigation, route }) {
 
   // ==========================================================
   // NORMAL MEMORY DETAILS TICKET
+  //
+  // IMPORTANT:
+  // The ref is attached to ticketShadow.
+  //
+  // Therefore captureRef captures the actual ticket that the
+  // user sees, including its existing rendered styling.
   // ==========================================================
 
   const renderTicket = (image, index) => {
@@ -916,7 +626,13 @@ function MemoryDetailsScreen({ navigation, route }) {
           },
         ]}
       >
-        <View style={styles.ticketShadow}>
+        <View
+          ref={(ref) => {
+            ticketRefs.current[index] = ref;
+          }}
+          collapsable={false}
+          style={styles.ticketShadow}
+        >
           <View style={styles.ticket}>
             {/* TOP PERFORATION */}
 
@@ -964,6 +680,32 @@ function MemoryDetailsScreen({ navigation, route }) {
                   <Text style={styles.noImageText}>NO IMAGE</Text>
                 </View>
               )}
+
+              {/* COUNTER */}
+
+              {images.length > 1 && (
+                <View style={styles.imageCounter}>
+                  <Text style={styles.imageCounterText}>
+                    {index + 1}/{images.length}
+                  </Text>
+                </View>
+              )}
+
+              {/* DOTS */}
+
+              {images.length > 1 && (
+                <View style={styles.imageDots}>
+                  {images.map((_, dotIndex) => (
+                    <View
+                      key={dotIndex}
+                      style={[
+                        styles.imageDot,
+                        dotIndex === activeImage && styles.imageDotActive,
+                      ]}
+                    />
+                  ))}
+                </View>
+              )}
             </View>
 
             {/* INFORMATION */}
@@ -995,11 +737,11 @@ function MemoryDetailsScreen({ navigation, route }) {
                 </View>
 
                 <View style={styles.infoItem}>
-                  <Text style={styles.infoLabel}>LOCATION</Text>
-
                   <Text style={styles.infoValue} numberOfLines={2}>
                     {memory?.location || "UNKNOWN"}
                   </Text>
+
+                  <Text style={styles.infoLabel}>LOCATION</Text>
                 </View>
               </View>
 
@@ -1127,8 +869,6 @@ function MemoryDetailsScreen({ navigation, route }) {
           {/* MEMORY + BARCODE */}
 
           <View style={shareStyles.bottomSection}>
-            {/* MEMORY */}
-
             <View style={shareStyles.memorySection}>
               <Text style={shareStyles.memoryLabel}>MEMORY</Text>
 
@@ -1136,8 +876,6 @@ function MemoryDetailsScreen({ navigation, route }) {
                 {memory?.title || "UNTITLED MEMORY"}
               </Text>
             </View>
-
-            {/* BARCODE */}
 
             <View style={shareStyles.barcodeSection}>
               <View style={shareStyles.barcode}>
@@ -1240,9 +978,7 @@ function MemoryDetailsScreen({ navigation, route }) {
           </View>
         )}
 
-        {/* ==================================================
-            ACTION BUTTONS
-        ================================================== */}
+        {/* ACTION BUTTONS */}
 
         <View style={shareStyles.actionButtons}>
           {/* SHARE MEMORY */}
@@ -1317,9 +1053,7 @@ function MemoryDetailsScreen({ navigation, route }) {
         <Text style={styles.footerText}>KEEP THE MOMENT. KEEP THE STORY.</Text>
       </ScrollView>
 
-      {/* ======================================================
-          SHARE MODAL
-      ====================================================== */}
+      {/* SHARE MODAL */}
 
       <Modal
         visible={shareVisible}
@@ -1683,10 +1417,6 @@ const shareStyles = StyleSheet.create({
 
     minHeight: 82,
   },
-
-  // ==========================================================
-  // MEMORY
-  // ==========================================================
 
   memorySection: {
     flex: 1,
