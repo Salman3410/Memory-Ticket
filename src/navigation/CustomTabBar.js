@@ -1,4 +1,3 @@
-import React from "react";
 import { View, TouchableOpacity, Text,StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -228,12 +227,12 @@ const styles = StyleSheet.create({
 
     borderRadius: 13,
 
-    backgroundColor: "#E76F51",
+    backgroundColor: "#34345C",
 
     alignItems: "center",
     justifyContent: "center",
 
-    shadowColor: "#E76F51",
+    shadowColor: "#34345C",
     shadowOffset: {
       width: 0,
       height: 3,
@@ -249,7 +248,7 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     letterSpacing: 0.8,
 
-    color: "#E76F51",
+    color: "#34345C",
 
     marginTop: 3,
   },

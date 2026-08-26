@@ -554,13 +554,13 @@ function MemoryDetailsScreen({ navigation, route }) {
 
               {/* COUNTER */}
 
-              {images.length > 1 && (
+              {/* {images.length > 1 && (
                 <View style={styles.imageCounter}>
                   <Text style={styles.imageCounterText}>
                     {index + 1}/{images.length}
                   </Text>
                 </View>
-              )}
+              )} */}
 
               {/* DOTS */}
 

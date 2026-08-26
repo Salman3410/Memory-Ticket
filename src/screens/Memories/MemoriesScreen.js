@@ -1,5 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { View, Text, TouchableOpacity, ScrollView } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  TextInput,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 import { useMemory } from "../../hooks/useMemory";
@@ -13,6 +19,12 @@ function MemoriesScreen({ navigation, route }) {
   const [filter, setFilter] = useState("all");
   const [sortOrder, setSortOrder] = useState("newest");
   const [showSortMenu, setShowSortMenu] = useState(false);
+
+  // --------------------------------------------------
+  // SEARCH
+  // --------------------------------------------------
+
+  const [searchQuery, setSearchQuery] = useState("");
 
   // --------------------------------------------------
   // HANDLE NAVIGATION FILTER
@@ -47,6 +59,26 @@ function MemoriesScreen({ navigation, route }) {
   const displayedMemories = useMemo(() => {
     let filtered = [...memories];
 
+    // SEARCH
+    const query = searchQuery.trim().toLowerCase();
+
+    if (query) {
+      filtered = filtered.filter((memory) => {
+        const searchableText = [
+          memory.title,
+          memory.description,
+          memory.location,
+          memory.category,
+          memory.date,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+
+        return searchableText.includes(query);
+      });
+    }
+
     // FILTER
 
     if (filter === "favorites") {
@@ -79,7 +111,7 @@ function MemoriesScreen({ navigation, route }) {
     });
 
     return filtered;
-  }, [memories, filter, sortOrder]);
+  }, [memories, filter, sortOrder, searchQuery]);
 
   // --------------------------------------------------
   // FAVORITE COUNT
@@ -146,6 +178,32 @@ function MemoriesScreen({ navigation, route }) {
           >
             <Ionicons name="add" size={24} color="#FFFFFF" />
           </TouchableOpacity>
+        </View>
+
+        {/* SEARCH BAR */}
+
+        <View style={styles.searchContainer}>
+          <Ionicons name="search-outline" size={20} color="#707080" />
+
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search memories..."
+            placeholderTextColor="#9999A8"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            autoCapitalize="none"
+            autoCorrect={false}
+            returnKeyType="search"
+          />
+
+          {searchQuery.length > 0 && (
+            <TouchableOpacity
+              onPress={() => setSearchQuery("")}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="close-circle" size={20} color="#707080" />
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* COLLECTION STATS */}
@@ -332,22 +390,26 @@ function MemoriesScreen({ navigation, route }) {
             </View>
 
             <Text style={styles.emptyTitle}>
-              {filter === "favorites"
-                ? "No favorite memories"
-                : filter === "recent"
-                  ? "No recent memories"
-                  : "Your collection is empty"}
+              {searchQuery.trim()
+                ? "No memories found"
+                : filter === "favorites"
+                  ? "No favorite memories"
+                  : filter === "recent"
+                    ? "No recent memories"
+                    : "Your collection is empty"}
             </Text>
 
             <Text style={styles.emptyDescription}>
-              {filter === "favorites"
-                ? "Tap the heart on a memory to add it to your favorites."
-                : filter === "recent"
-                  ? "Memories created within the last 30 days will appear here."
-                  : "Every great collection starts with one memory. Capture yours and turn it into a ticket."}
+              {searchQuery.trim()
+                ? `No memories match "${searchQuery.trim()}".`
+                : filter === "favorites"
+                  ? "Tap the heart on a memory to add it to your favorites."
+                  : filter === "recent"
+                    ? "Memories created within the last 30 days will appear here."
+                    : "Every great collection starts with one memory. Capture yours and turn it into a ticket."}
             </Text>
 
-            {filter === "all" && (
+            {filter === "all" && !searchQuery.trim() && (
               <TouchableOpacity
                 style={styles.createButton}
                 onPress={() => navigation.navigate("Create")}
