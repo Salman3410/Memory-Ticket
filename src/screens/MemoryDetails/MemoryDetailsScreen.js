@@ -22,22 +22,18 @@ import * as FileSystem from "expo-file-system/legacy";
 import { useMemory } from "../../hooks/useMemory";
 import styles from "./memoryDetailsStyles";
 
-// ============================================================
-// MEMORY DETAILS SCREEN
-// ============================================================
-
 function MemoryDetailsScreen({ navigation, route }) {
   const { getMemoryById, deleteMemory, updateMemory } = useMemory();
 
-  const { width: screenWidth } = useWindowDimensions();
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
 
   const memoryId = route?.params?.memoryId;
 
   const [activeImage, setActiveImage] = useState(0);
 
-  // ==========================================================
-  // SHARE STATES
-  // ==========================================================
+  // FULL IMAGE VIEWER
+  const [imageViewerVisible, setImageViewerVisible] = useState(false);
+  const [viewerImage, setViewerImage] = useState(0);
 
   const [shareVisible, setShareVisible] = useState(false);
   const [sharing, setSharing] = useState(false);
@@ -45,38 +41,11 @@ function MemoryDetailsScreen({ navigation, route }) {
   const [shareTicketNumber, setShareTicketNumber] = useState("");
   const [shareBarcode, setShareBarcode] = useState([]);
 
-  // ==========================================================
-  // PDF STATE
-  // ==========================================================
-
   const [generatingPdf, setGeneratingPdf] = useState(false);
-
-  // ==========================================================
-  // SHARE TICKET REF
-  // ==========================================================
 
   const shareTicketRef = useRef(null);
 
-  // ==========================================================
-  // PDF TICKET REFS
-  //
-  // Each ref points to the ACTUAL ticket displayed on screen.
-  //
-  // Example:
-  //
-  // ticketRefs.current[0] = ticket for image 1
-  // ticketRefs.current[1] = ticket for image 2
-  // ticketRefs.current[2] = ticket for image 3
-  //
-  // This is what makes the PDF visually identical to the
-  // ticket on MemoryDetailsScreen.
-  // ==========================================================
-
   const ticketRefs = useRef([]);
-
-  // ==========================================================
-  // NO MEMORY ID
-  // ==========================================================
 
   if (!memoryId) {
     return (
@@ -96,15 +65,7 @@ function MemoryDetailsScreen({ navigation, route }) {
     );
   }
 
-  // ==========================================================
-  // GET MEMORY
-  // ==========================================================
-
   const memory = getMemoryById(memoryId);
-
-  // ==========================================================
-  // MEMORY NOT FOUND
-  // ==========================================================
 
   if (!memory) {
     return (
@@ -124,10 +85,6 @@ function MemoryDetailsScreen({ navigation, route }) {
     );
   }
 
-  // ==========================================================
-  // GET ALL IMAGES
-  // ==========================================================
-
   const images = Array.isArray(memory?.images)
     ? memory.images
     : memory?.image
@@ -135,8 +92,30 @@ function MemoryDetailsScreen({ navigation, route }) {
       : [];
 
   // ==========================================================
-  // TICKET NUMBER
+  // FULL IMAGE VIEWER
   // ==========================================================
+
+  const openImageViewer = (index) => {
+    if (!images[index]) {
+      return;
+    }
+
+    setViewerImage(index);
+    setImageViewerVisible(true);
+  };
+
+  const closeImageViewer = () => {
+    setImageViewerVisible(false);
+  };
+
+  const handleViewerScroll = (event) => {
+    const index = Math.round(
+      event.nativeEvent.contentOffset.x / screenWidth,
+    );
+
+    setViewerImage(index);
+    setActiveImage(index);
+  };
 
   const getTicketNumber = () => {
     if (memory?.id) {
@@ -145,10 +124,6 @@ function MemoryDetailsScreen({ navigation, route }) {
 
     return "00001";
   };
-
-  // ==========================================================
-  // FAVORITE
-  // ==========================================================
 
   const handleFavorite = async () => {
     try {
@@ -159,10 +134,6 @@ function MemoryDetailsScreen({ navigation, route }) {
       console.log("Favorite update error:", error);
     }
   };
-
-  // ==========================================================
-  // DELETE
-  // ==========================================================
 
   const handleDelete = () => {
     Alert.alert(
@@ -193,10 +164,6 @@ function MemoryDetailsScreen({ navigation, route }) {
     );
   };
 
-  // ==========================================================
-  // GENERATE RANDOM SHARE TICKET NUMBER
-  // ==========================================================
-
   const generateShareTicketNumber = () => {
     const characters = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
@@ -210,10 +177,6 @@ function MemoryDetailsScreen({ navigation, route }) {
 
     return result;
   };
-
-  // ==========================================================
-  // GENERATE RANDOM BARCODE
-  // ==========================================================
 
   const generateRandomBarcode = () => {
     const bars = [];
@@ -239,10 +202,6 @@ function MemoryDetailsScreen({ navigation, route }) {
     return bars;
   };
 
-  // ==========================================================
-  // OPEN SHARE PREVIEW
-  // ==========================================================
-
   const openSharePreview = () => {
     const ticketNumber = generateShareTicketNumber();
 
@@ -254,10 +213,6 @@ function MemoryDetailsScreen({ navigation, route }) {
     setShareVisible(true);
   };
 
-  // ==========================================================
-  // CLOSE SHARE PREVIEW
-  // ==========================================================
-
   const closeSharePreview = () => {
     if (sharing) {
       return;
@@ -265,10 +220,6 @@ function MemoryDetailsScreen({ navigation, route }) {
 
     setShareVisible(false);
   };
-
-  // ==========================================================
-  // SHARE YELLOW MEMORY TICKET
-  // ==========================================================
 
   const handleShareTicket = async () => {
     try {
@@ -312,14 +263,6 @@ function MemoryDetailsScreen({ navigation, route }) {
     }
   };
 
-  // ==========================================================
-  // PDF HELPER
-  //
-  // Converts the captured ticket image into base64 so the
-  // generated PDF does not depend on the temporary local
-  // image URI remaining accessible to the print engine.
-  // ==========================================================
-
   const imageToBase64 = async (uri) => {
     const base64 = await FileSystem.readAsStringAsync(uri, {
       encoding: FileSystem.EncodingType.Base64,
@@ -327,10 +270,6 @@ function MemoryDetailsScreen({ navigation, route }) {
 
     return `data:image/png;base64,${base64}`;
   };
-
-  // ==========================================================
-  // ESCAPE HTML
-  // ==========================================================
 
   const escapeHtml = (text) => {
     if (!text) {
@@ -345,22 +284,6 @@ function MemoryDetailsScreen({ navigation, route }) {
       .replace(/'/g, "&#039;");
   };
 
-  // ==========================================================
-  // EXPORT PDF
-  //
-  // IMPORTANT:
-  //
-  // We DO NOT recreate the ticket with HTML.
-  //
-  // We capture the ACTUAL React Native ticket from the screen.
-  //
-  // 1 image = 1 captured ticket = 1 A4 PDF page
-  //
-  // 2 images = 2 captured tickets = 2 A4 PDF pages
-  //
-  // 5 images = 5 captured tickets = 5 A4 PDF pages
-  // ==========================================================
-
   const handleExportPdf = async () => {
     try {
       if (generatingPdf) {
@@ -368,10 +291,6 @@ function MemoryDetailsScreen({ navigation, route }) {
       }
 
       setGeneratingPdf(true);
-
-      // ------------------------------------------------------
-      // CHECK IMAGES
-      // ------------------------------------------------------
 
       if (!images.length) {
         Alert.alert(
@@ -381,10 +300,6 @@ function MemoryDetailsScreen({ navigation, route }) {
 
         return;
       }
-
-      // ------------------------------------------------------
-      // CHECK TICKET REFS
-      // ------------------------------------------------------
 
       const validRefs = images
         .map((_, index) => ticketRefs.current[index])
@@ -399,10 +314,6 @@ function MemoryDetailsScreen({ navigation, route }) {
         return;
       }
 
-      // ------------------------------------------------------
-      // CAPTURE EVERY ACTUAL TICKET
-      // ------------------------------------------------------
-
       const capturedTickets = [];
 
       for (let index = 0; index < images.length; index++) {
@@ -412,32 +323,16 @@ function MemoryDetailsScreen({ navigation, route }) {
           throw new Error(`Ticket reference ${index} is unavailable.`);
         }
 
-        // ----------------------------------------------
-        // CAPTURE THE REAL REACT NATIVE TICKET
-        // ----------------------------------------------
-
         const ticketUri = await captureRef(ticketRef, {
           format: "png",
           quality: 1,
           result: "tmpfile",
         });
 
-        // ----------------------------------------------
-        // CONVERT CAPTURE TO EMBEDDED PNG
-        // ----------------------------------------------
-
         const base64Image = await imageToBase64(ticketUri);
 
         capturedTickets.push(base64Image);
       }
-
-      // ------------------------------------------------------
-      // CREATE ONE A4 PAGE PER CAPTURED TICKET
-      //
-      // The ticket image itself is untouched.
-      //
-      // Only its placement on the A4 paper is controlled here.
-      // ------------------------------------------------------
 
       const pages = capturedTickets
         .map(
@@ -454,17 +349,6 @@ function MemoryDetailsScreen({ navigation, route }) {
           `,
         )
         .join("");
-
-      // ------------------------------------------------------
-      // A4 PDF HTML
-      //
-      // The page is pure white.
-      //
-      // The captured ticket is centered horizontally and
-      // vertically.
-      //
-      // Its aspect ratio is preserved.
-      // ------------------------------------------------------
 
       const html = `
         <!DOCTYPE html>
@@ -565,18 +449,10 @@ function MemoryDetailsScreen({ navigation, route }) {
         </html>
       `;
 
-      // ------------------------------------------------------
-      // CREATE PDF
-      // ------------------------------------------------------
-
       const { uri } = await Print.printToFileAsync({
         html,
         base64: false,
       });
-
-      // ------------------------------------------------------
-      // SHARE / SAVE PDF
-      // ------------------------------------------------------
 
       const isAvailable = await Sharing.isAvailableAsync();
 
@@ -604,16 +480,6 @@ function MemoryDetailsScreen({ navigation, route }) {
       setGeneratingPdf(false);
     }
   };
-
-  // ==========================================================
-  // NORMAL MEMORY DETAILS TICKET
-  //
-  // IMPORTANT:
-  // The ref is attached to ticketShadow.
-  //
-  // Therefore captureRef captures the actual ticket that the
-  // user sees, including its existing rendered styling.
-  // ==========================================================
 
   const renderTicket = (image, index) => {
     return (
@@ -663,7 +529,11 @@ function MemoryDetailsScreen({ navigation, route }) {
 
             <View style={styles.ticketImageContainer}>
               {image ? (
-                <>
+                <TouchableOpacity
+                  activeOpacity={0.95}
+                  onPress={() => openImageViewer(index)}
+                  style={{ flex: 1 }}
+                >
                   <Image
                     source={{
                       uri: image,
@@ -673,7 +543,7 @@ function MemoryDetailsScreen({ navigation, route }) {
                   />
 
                   <View style={styles.imageOverlay} />
-                </>
+                </TouchableOpacity>
               ) : (
                 <View style={styles.noImage}>
                   <Ionicons name="image-outline" size={42} color="#D94D28" />
@@ -817,10 +687,6 @@ function MemoryDetailsScreen({ navigation, route }) {
     );
   };
 
-  // ==========================================================
-  // SHAREABLE YELLOW TICKET
-  // ==========================================================
-
   const renderShareTicket = () => {
     const image = images[activeImage] || images[0] || null;
 
@@ -899,10 +765,6 @@ function MemoryDetailsScreen({ navigation, route }) {
     );
   };
 
-  // ==========================================================
-  // SCREEN
-  // ==========================================================
-
   return (
     <View style={styles.container}>
       <ScrollView
@@ -949,7 +811,8 @@ function MemoryDetailsScreen({ navigation, route }) {
           snapToAlignment="start"
           onMomentumScrollEnd={(event) => {
             const index = Math.round(
-              event.nativeEvent.contentOffset.x / (screenWidth - 44 + 12),
+              event.nativeEvent.contentOffset.x /
+                (screenWidth - 44 + 12),
             );
 
             setActiveImage(index);
@@ -1053,6 +916,96 @@ function MemoryDetailsScreen({ navigation, route }) {
         <Text style={styles.footerText}>KEEP THE MOMENT. KEEP THE STORY.</Text>
       </ScrollView>
 
+      {/* ====================================================== */}
+      {/* FULL IMAGE VIEWER */}
+      {/* ====================================================== */}
+
+      <Modal
+        visible={imageViewerVisible}
+        transparent={false}
+        animationType="fade"
+        onRequestClose={closeImageViewer}
+      >
+        <View style={imageViewerStyles.container}>
+          {/* TOP BAR */}
+
+          <View style={imageViewerStyles.topBar}>
+            <TouchableOpacity
+              style={imageViewerStyles.closeButton}
+              onPress={closeImageViewer}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="close" size={25} color="#FFFFFF" />
+            </TouchableOpacity>
+
+            {images.length > 0 && (
+              <Text style={imageViewerStyles.counter}>
+                {viewerImage + 1}/{images.length}
+              </Text>
+            )}
+
+            <View style={imageViewerStyles.topBarSpacer} />
+          </View>
+
+          {/* FULL SCREEN IMAGE CAROUSEL */}
+
+          <ScrollView
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            decelerationRate="fast"
+            onMomentumScrollEnd={handleViewerScroll}
+            contentOffset={{
+              x: viewerImage * screenWidth,
+              y: 0,
+            }}
+          >
+            {images.map((image, index) => (
+              <View
+                key={`${image}-viewer-${index}`}
+                style={[
+                  imageViewerStyles.imagePage,
+                  {
+                    width: screenWidth,
+                    height: screenHeight,
+                  },
+                ]}
+              >
+                <Image
+                  source={{
+                    uri: image,
+                  }}
+                  style={[
+                    imageViewerStyles.fullImage,
+                    {
+                      width: screenWidth,
+                      height: screenHeight,
+                    },
+                  ]}
+                  resizeMode="contain"
+                />
+              </View>
+            ))}
+          </ScrollView>
+
+          {/* BOTTOM HINT */}
+
+          {images.length > 1 && (
+            <View style={imageViewerStyles.bottomHint}>
+              <Ionicons
+                name="swap-horizontal-outline"
+                size={16}
+                color="#BDBDBD"
+              />
+
+              <Text style={imageViewerStyles.bottomHintText}>
+                Swipe to view photos
+              </Text>
+            </View>
+          )}
+        </View>
+      </Modal>
+
       {/* SHARE MODAL */}
 
       <Modal
@@ -1118,15 +1071,89 @@ function MemoryDetailsScreen({ navigation, route }) {
   );
 }
 
-// ============================================================
-// SHARE TICKET STYLES
-// ============================================================
+const imageViewerStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#000000",
+  },
+
+  topBar: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+
+    zIndex: 10,
+
+    paddingTop: 50,
+    paddingHorizontal: 18,
+
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+
+  closeButton: {
+    width: 42,
+    height: 42,
+
+    borderRadius: 21,
+
+    backgroundColor: "rgba(255, 255, 255, 0.16)",
+
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  counter: {
+    color: "#FFFFFF",
+
+    fontSize: 12,
+    fontWeight: "900",
+
+    letterSpacing: 1,
+  },
+
+  topBarSpacer: {
+    width: 42,
+    height: 42,
+  },
+
+  imagePage: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  fullImage: {
+    alignSelf: "center",
+  },
+
+  bottomHint: {
+    position: "absolute",
+
+    bottom: 35,
+    left: 0,
+    right: 0,
+
+    flexDirection: "row",
+
+    alignItems: "center",
+    justifyContent: "center",
+
+    gap: 7,
+  },
+
+  bottomHintText: {
+    color: "#BDBDBD",
+
+    fontSize: 10,
+    fontWeight: "800",
+
+    letterSpacing: 0.8,
+  },
+});
 
 const shareStyles = StyleSheet.create({
-  // ==========================================================
-  // ACTION BUTTONS
-  // ==========================================================
-
   actionButtons: {
     marginHorizontal: 22,
     marginTop: 20,

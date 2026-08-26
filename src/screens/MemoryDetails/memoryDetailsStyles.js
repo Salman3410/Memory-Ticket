@@ -187,6 +187,63 @@ const styles = StyleSheet.create({
     marginTop: 7,
   },
 
+  // ==========================================================
+  // FULL IMAGE VIEWER
+  // ==========================================================
+
+  imageViewerOverlay: {
+    flex: 1,
+
+    backgroundColor: "#000000",
+
+    justifyContent: "center",
+  },
+
+  imageViewerClose: {
+    position: "absolute",
+
+    top: 50,
+    right: 20,
+
+    zIndex: 10,
+
+    width: 42,
+    height: 42,
+
+    borderRadius: 21,
+
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  imageViewerCounter: {
+    position: "absolute",
+
+    top: 56,
+    left: 20,
+
+    zIndex: 10,
+
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+
+    borderRadius: 14,
+
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+  },
+
+  imageViewerCounterText: {
+    color: "#FFFFFF",
+
+    fontSize: 11,
+
+    fontWeight: "800",
+
+    letterSpacing: 1,
+  },
+
   // ==================================================
   // TICKET INFORMATION
   // ==================================================
@@ -541,5 +598,6 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
   },
 });
+
 
 export default styles;
