@@ -623,6 +623,7 @@ function MemoryDetailsScreen({ navigation, route }) {
           styles.ticketSlide,
           {
             width: screenWidth - 44,
+            marginRight: 12,
           },
         ]}
       >
@@ -941,15 +942,14 @@ function MemoryDetailsScreen({ navigation, route }) {
 
         <ScrollView
           horizontal
-          pagingEnabled
           showsHorizontalScrollIndicator={false}
           nestedScrollEnabled
           decelerationRate="fast"
-          snapToInterval={screenWidth - 44}
+          snapToInterval={screenWidth - 44 + 12}
           snapToAlignment="start"
           onMomentumScrollEnd={(event) => {
             const index = Math.round(
-              event.nativeEvent.contentOffset.x / (screenWidth - 44),
+              event.nativeEvent.contentOffset.x / (screenWidth - 44 + 12),
             );
 
             setActiveImage(index);
