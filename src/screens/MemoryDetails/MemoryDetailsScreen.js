@@ -9,73 +9,56 @@ import {
   useWindowDimensions,
   Alert,
   Modal,
+  StyleSheet,
   ActivityIndicator,
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
-
-import * as Print from "expo-print";
-import * as Sharing from "expo-sharing";
-import { File } from "expo-file-system";
 import { captureRef } from "react-native-view-shot";
+import * as Sharing from "expo-sharing";
+import * as Print from "expo-print";
 
 import { useMemory } from "../../hooks/useMemory";
-
 import styles from "./memoryDetailsStyles";
+
+// ============================================================
+// MEMORY DETAILS SCREEN
+// ============================================================
 
 function MemoryDetailsScreen({ navigation, route }) {
   const { getMemoryById, deleteMemory, updateMemory } = useMemory();
 
-  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const { width: screenWidth } = useWindowDimensions();
 
   const memoryId = route?.params?.memoryId;
 
   const [activeImage, setActiveImage] = useState(0);
 
-  // --------------------------------------------------
-  // FULL-SCREEN IMAGE VIEWER
-  // --------------------------------------------------
+  // ==========================================================
+  // SHARE STATES
+  // ==========================================================
 
-  const [viewerVisible, setViewerVisible] = useState(false);
-  const [viewerImage, setViewerImage] = useState(0);
+  const [shareVisible, setShareVisible] = useState(false);
+  const [sharing, setSharing] = useState(false);
 
-  const openImageViewer = (index) => {
-    setViewerImage(index);
-    setViewerVisible(true);
-  };
+  const [shareTicketNumber, setShareTicketNumber] = useState("");
+  const [shareBarcode, setShareBarcode] = useState([]);
 
-  const closeImageViewer = () => {
-    setViewerVisible(false);
-  };
+  // ==========================================================
+  // PDF STATE
+  // ==========================================================
 
-  // --------------------------------------------------
-  // PDF EXPORT
-  // --------------------------------------------------
+  const [generatingPdf, setGeneratingPdf] = useState(false);
 
-  const [isExportingPDF, setIsExportingPDF] = useState(false);
+  // ==========================================================
+  // SHARE TICKET REF
+  // ==========================================================
 
-  // --------------------------------------------------
-  // SHARE MEMORY
-  // --------------------------------------------------
+  const shareTicketRef = useRef(null);
 
-  const [isSharingMemory, setIsSharingMemory] = useState(false);
-
-  // Holds references to the rendered ticket views.
-  // One ref for each image/ticket in the carousel.
-  const ticketRefs = useRef({});
-
-  // --------------------------------------------------
-  // CAROUSEL SETTINGS
-  // --------------------------------------------------
-
-  const SCREEN_PADDING = 22;
-  const TICKET_WIDTH = screenWidth - SCREEN_PADDING * 2;
-  const TICKET_GAP = 8;
-  const SNAP_SIZE = TICKET_WIDTH + TICKET_GAP;
-
-  // --------------------------------------------------
+  // ==========================================================
   // NO MEMORY ID
-  // --------------------------------------------------
+  // ==========================================================
 
   if (!memoryId) {
     return (
@@ -86,15 +69,7 @@ function MemoryDetailsScreen({ navigation, route }) {
 
         <TouchableOpacity
           style={styles.backToMemoriesButton}
-          onPress={() => {
-            if (navigation.canGoBack()) {
-              navigation.goBack();
-            } else {
-              navigation.navigate("MainTabs", {
-                screen: "Memories",
-              });
-            }
-          }}
+          onPress={() => navigation.goBack()}
           activeOpacity={0.8}
         >
           <Text style={styles.backToMemoriesText}>GO BACK</Text>
@@ -103,11 +78,15 @@ function MemoryDetailsScreen({ navigation, route }) {
     );
   }
 
-  // --------------------------------------------------
+  // ==========================================================
   // GET MEMORY
-  // --------------------------------------------------
+  // ==========================================================
 
   const memory = getMemoryById(memoryId);
+
+  // ==========================================================
+  // MEMORY NOT FOUND
+  // ==========================================================
 
   if (!memory) {
     return (
@@ -118,15 +97,7 @@ function MemoryDetailsScreen({ navigation, route }) {
 
         <TouchableOpacity
           style={styles.backToMemoriesButton}
-          onPress={() => {
-            if (navigation.canGoBack()) {
-              navigation.goBack();
-            } else {
-              navigation.navigate("MainTabs", {
-                screen: "Memories",
-              });
-            }
-          }}
+          onPress={() => navigation.goBack()}
           activeOpacity={0.8}
         >
           <Text style={styles.backToMemoriesText}>GO BACK</Text>
@@ -135,9 +106,9 @@ function MemoryDetailsScreen({ navigation, route }) {
     );
   }
 
-  // --------------------------------------------------
+  // ==========================================================
   // GET ALL IMAGES
-  // --------------------------------------------------
+  // ==========================================================
 
   const images = Array.isArray(memory?.images)
     ? memory.images
@@ -145,48 +116,9 @@ function MemoryDetailsScreen({ navigation, route }) {
       ? [memory.image]
       : [];
 
-  // --------------------------------------------------
-  // DATE
-  // --------------------------------------------------
-
-  const formatDate = (date) => {
-    if (!date) {
-      return "DATE UNKNOWN";
-    }
-
-    const parsedDate = new Date(date);
-
-    if (isNaN(parsedDate.getTime())) {
-      return "DATE UNKNOWN";
-    }
-
-    return parsedDate.toLocaleDateString("en-US", {
-      month: "short",
-      day: "2-digit",
-      year: "numeric",
-    });
-  };
-
-  // --------------------------------------------------
-  // ESCAPE HTML
-  // --------------------------------------------------
-
-  const escapeHtml = (value) => {
-    if (value === null || value === undefined) {
-      return "";
-    }
-
-    return String(value)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
-  };
-
-  // --------------------------------------------------
+  // ==========================================================
   // TICKET NUMBER
-  // --------------------------------------------------
+  // ==========================================================
 
   const getTicketNumber = () => {
     if (memory?.id) {
@@ -196,813 +128,9 @@ function MemoryDetailsScreen({ navigation, route }) {
     return "00001";
   };
 
-  // --------------------------------------------------
-  // GET IMAGE BASE64
-  // --------------------------------------------------
-
-  const getImageAsBase64 = async (imageUri) => {
-    if (!imageUri) {
-      return null;
-    }
-
-    try {
-      if (imageUri.startsWith("data:image/")) {
-        return imageUri;
-      }
-
-      const file = new File(imageUri);
-
-      const base64 = file.base64Sync();
-
-      if (!base64) {
-        return null;
-      }
-
-      const lowerUri = imageUri.toLowerCase();
-
-      let mimeType = "image/jpeg";
-
-      if (lowerUri.includes(".png")) {
-        mimeType = "image/png";
-      } else if (lowerUri.includes(".webp")) {
-        mimeType = "image/webp";
-      } else if (lowerUri.includes(".heic") || lowerUri.includes(".heif")) {
-        mimeType = "image/jpeg";
-      }
-
-      return `data:${mimeType};base64,${base64}`;
-    } catch (error) {
-      console.log("Image Base64 conversion error:", error);
-
-      return null;
-    }
-  };
-
-  // --------------------------------------------------
-  // BUILD PDF TICKET
-  // --------------------------------------------------
-
-  const buildPDFTicket = (imageData) => {
-    const title = escapeHtml(memory?.title || "UNTITLED MEMORY");
-
-    const date = escapeHtml(formatDate(memory?.date));
-
-    const location = escapeHtml(memory?.location || "UNKNOWN");
-
-    const description = escapeHtml(memory?.description || "");
-
-    const ticketNumber = escapeHtml(getTicketNumber());
-
-    return `
-      <!DOCTYPE html>
-
-      <html>
-
-        <head>
-
-          <meta
-            name="viewport"
-            content="width=device-width, initial-scale=1.0"
-          />
-
-          <style>
-
-            @page {
-              size: 420px 650px;
-              margin: 0;
-            }
-
-            * {
-              box-sizing: border-box;
-            }
-
-            html,
-            body {
-              margin: 0;
-              padding: 0;
-              width: 420px;
-              height: 650px;
-              background: #ffffff;
-            }
-
-            body {
-              font-family: Arial, Helvetica, sans-serif;
-            }
-
-            .page {
-              width: 420px;
-              height: 650px;
-              padding: 0;
-              margin: 0;
-              background: #ffffff;
-              page-break-after: always;
-            }
-
-            .ticket {
-              width: 420px;
-              height: 650px;
-              background: #F9B900;
-              overflow: hidden;
-              position: relative;
-            }
-
-            .top-perforation {
-              width: 100%;
-              height: 17px;
-              display: flex;
-              justify-content: space-around;
-              align-items: flex-start;
-              overflow: hidden;
-            }
-
-            .hole {
-              width: 17px;
-              height: 17px;
-              border-radius: 50%;
-              background: #ffffff;
-              margin-top: -8px;
-            }
-
-            .header {
-              height: 67px;
-              padding: 18px 20px 14px 20px;
-              display: flex;
-              justify-content: space-between;
-              align-items: flex-start;
-            }
-
-            .brand {
-              font-size: 25px;
-              line-height: 27px;
-              font-weight: 900;
-              letter-spacing: -1px;
-              color: #D92F16;
-            }
-
-            .sub-brand {
-              font-size: 10px;
-              line-height: 12px;
-              font-weight: 900;
-              letter-spacing: 0.2px;
-              color: #D92F16;
-            }
-
-            .number {
-              font-size: 10px;
-              font-weight: 900;
-              letter-spacing: 1px;
-              color: #D92F16;
-              margin-top: 3px;
-            }
-
-            .image-container {
-              width: 420px;
-              height: 240px;
-              overflow: hidden;
-              background: #ffffff;
-              position: relative;
-            }
-
-            .ticket-image {
-              width: 420px;
-              height: 240px;
-              display: block;
-              object-fit: cover;
-              object-position: center center;
-            }
-
-            .image-overlay {
-              position: absolute;
-              left: 0;
-              right: 0;
-              top: 0;
-              bottom: 0;
-            }
-
-            .no-image {
-              width: 420px;
-              height: 240px;
-              background: #E88925;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              flex-direction: column;
-              color: #D94D28;
-            }
-
-            .no-image-text {
-              margin-top: 7px;
-              font-size: 9px;
-              font-weight: 900;
-              letter-spacing: 1px;
-            }
-
-            .info {
-              padding: 19px 20px 10px 20px;
-            }
-
-            .memory-label {
-              font-size: 9px;
-              line-height: 11px;
-              font-weight: 900;
-              letter-spacing: 1.8px;
-              color: #D92F16;
-              margin-bottom: 6px;
-            }
-
-            .title {
-              font-size: 27px;
-              line-height: 29px;
-              font-weight: 900;
-              letter-spacing: -0.8px;
-              color: #D92F16;
-              text-transform: uppercase;
-              max-height: 58px;
-              overflow: hidden;
-            }
-
-            .divider {
-              width: 100%;
-              height: 1px;
-              background: rgba(217, 47, 22, 0.35);
-              margin-top: 17px;
-              margin-bottom: 17px;
-            }
-
-            .info-row {
-              width: 100%;
-              display: flex;
-              flex-direction: row;
-            }
-
-            .info-item {
-              width: 50%;
-              padding-right: 10px;
-            }
-
-            .info-label {
-              font-size: 8px;
-              line-height: 10px;
-              font-weight: 900;
-              letter-spacing: 1.2px;
-              color: #D92F16;
-              margin-bottom: 4px;
-            }
-
-            .info-value {
-              font-size: 12px;
-              line-height: 16px;
-              font-weight: 800;
-              color: #D92F16;
-              text-transform: uppercase;
-            }
-
-            .description-container {
-              margin-top: 14px;
-              padding-top: 10px;
-              border-top: 1px solid rgba(217, 47, 22, 0.25);
-            }
-
-            .description {
-              font-size: 11px;
-              line-height: 15px;
-              font-weight: 700;
-              font-style: italic;
-              color: #D92F16;
-              max-height: 30px;
-              overflow: hidden;
-            }
-
-            .middle-perforation {
-              width: 100%;
-              height: 18px;
-              position: relative;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-            }
-
-            .dashed-line {
-              width: 82%;
-              border-top: 1px dashed #D92F16;
-              opacity: 0.7;
-            }
-
-            .cutout-left {
-              position: absolute;
-              left: -11px;
-              width: 22px;
-              height: 22px;
-              border-radius: 50%;
-              background: #ffffff;
-            }
-
-            .cutout-right {
-              position: absolute;
-              right: -11px;
-              width: 22px;
-              height: 22px;
-              border-radius: 50%;
-              background: #ffffff;
-            }
-
-            .footer {
-              height: 70px;
-              padding: 12px 20px 10px 20px;
-              display: flex;
-              justify-content: space-between;
-              align-items: flex-end;
-            }
-
-            .admit {
-              font-size: 10px;
-              font-weight: 900;
-              letter-spacing: 1px;
-              color: #D92F16;
-            }
-
-            .footer-small {
-              font-size: 7px;
-              font-weight: 900;
-              letter-spacing: 1px;
-              color: #D92F16;
-              margin-top: 4px;
-            }
-
-            .barcode {
-              width: 125px;
-              height: 42px;
-              display: flex;
-              align-items: center;
-              justify-content: space-between;
-              overflow: hidden;
-            }
-
-            .bar {
-              height: 34px;
-              background: #D92F16;
-            }
-
-            .bar-small {
-              width: 2px;
-            }
-
-            .bar-medium {
-              width: 3px;
-            }
-
-            .bar-wide {
-              width: 5px;
-            }
-
-            .serial {
-              height: 22px;
-              padding-right: 20px;
-              display: flex;
-              align-items: flex-start;
-              justify-content: flex-end;
-            }
-
-            .serial-text {
-              font-size: 8px;
-              font-weight: 900;
-              letter-spacing: 1.3px;
-              color: #D92F16;
-            }
-
-            .bottom-perforation {
-              width: 100%;
-              height: 17px;
-              display: flex;
-              justify-content: space-around;
-              align-items: flex-end;
-              overflow: hidden;
-            }
-
-          </style>
-
-        </head>
-
-        <body>
-
-          <div class="page">
-
-            <div class="ticket">
-
-              <div class="top-perforation">
-                ${Array.from(
-                  { length: 15 },
-                  () => `<div class="hole"></div>`,
-                ).join("")}
-              </div>
-
-              <div class="header">
-
-                <div>
-
-                  <div class="brand">
-                    MEMORY TICKET
-                  </div>
-
-                  <div class="sub-brand">
-                    THE POWER OF THE MOMENT
-                  </div>
-
-                </div>
-
-                <div class="number">
-                  #${ticketNumber}
-                </div>
-
-              </div>
-
-              <div class="image-container">
-
-                ${
-                  imageData
-                    ? `
-                      <img
-                        class="ticket-image"
-                        src="${imageData}"
-                      />
-
-                      <div class="image-overlay"></div>
-                    `
-                    : `
-                      <div class="no-image">
-
-                        <div class="no-image-text">
-                          NO IMAGE
-                        </div>
-
-                      </div>
-                    `
-                }
-
-              </div>
-
-              <div class="info">
-
-                <div class="memory-label">
-                  MEMORY
-                </div>
-
-                <div class="title">
-                  ${title}
-                </div>
-
-                <div class="divider"></div>
-
-                <div class="info-row">
-
-                  <div class="info-item">
-
-                    <div class="info-label">
-                      DATE
-                    </div>
-
-                    <div class="info-value">
-                      ${date}
-                    </div>
-
-                  </div>
-
-                  <div class="info-item">
-
-                    <div class="info-label">
-                      LOCATION
-                    </div>
-
-                    <div class="info-value">
-                      ${location}
-                    </div>
-
-                  </div>
-
-                </div>
-
-                ${
-                  description
-                    ? `
-                      <div class="description-container">
-
-                        <div class="description">
-                          ${description}
-                        </div>
-
-                      </div>
-                    `
-                    : ""
-                }
-
-              </div>
-
-              <div class="middle-perforation">
-
-                <div class="cutout-left"></div>
-
-                <div class="dashed-line"></div>
-
-                <div class="cutout-right"></div>
-
-              </div>
-
-              <div class="footer">
-
-                <div>
-
-                  <div class="admit">
-                    ADMISSION X1
-                  </div>
-
-                  <div class="footer-small">
-                    MEMORY ARCHIVE
-                  </div>
-
-                </div>
-
-                <div class="barcode">
-
-                  ${Array.from({ length: 28 })
-                    .map((_, index) => {
-                      let className = "bar-small";
-
-                      if (index % 5 === 0) {
-                        className = "bar-wide";
-                      } else if (index % 3 === 0) {
-                        className = "bar-medium";
-                      }
-
-                      return `
-                        <div
-                          class="bar ${className}"
-                        ></div>
-                      `;
-                    })
-                    .join("")}
-
-                </div>
-
-              </div>
-
-              <div class="serial">
-
-                <div class="serial-text">
-                  MT • ${ticketNumber}
-                </div>
-
-              </div>
-
-              <div class="bottom-perforation">
-
-                ${Array.from(
-                  { length: 15 },
-                  () => `<div class="hole"></div>`,
-                ).join("")}
-
-              </div>
-
-            </div>
-
-          </div>
-
-        </body>
-
-      </html>
-    `;
-  };
-
-  // --------------------------------------------------
-  // EXPORT PDF
-  // --------------------------------------------------
-
-  const handleExportPDF = async () => {
-    if (isExportingPDF) {
-      return;
-    }
-
-    try {
-      setIsExportingPDF(true);
-
-      const pdfImages = images.length > 0 ? images : [null];
-
-      const pageHtml = [];
-
-      for (let index = 0; index < pdfImages.length; index++) {
-        const image = pdfImages[index];
-
-        let imageData = null;
-
-        if (image) {
-          imageData = await getImageAsBase64(image);
-        }
-
-        const singlePage = buildPDFTicket(imageData);
-
-        const bodyStart = singlePage.indexOf("<body>");
-
-        const bodyEnd = singlePage.indexOf("</body>");
-
-        if (bodyStart !== -1 && bodyEnd !== -1) {
-          pageHtml.push(singlePage.substring(bodyStart + 6, bodyEnd));
-        }
-      }
-
-      const html = `
-        <!DOCTYPE html>
-
-        <html>
-
-          <head>
-
-            <meta
-              name="viewport"
-              content="width=device-width, initial-scale=1.0"
-            />
-
-            <style>
-
-              @page {
-                size: 420px 650px;
-                margin: 0;
-              }
-
-              html,
-              body {
-                margin: 0;
-                padding: 0;
-                width: 420px;
-                background: #ffffff;
-              }
-
-              * {
-                box-sizing: border-box;
-              }
-
-              body {
-                font-family: Arial, Helvetica, sans-serif;
-              }
-
-              .page {
-                width: 420px;
-                height: 650px;
-                margin: 0;
-                padding: 0;
-                page-break-after: always;
-              }
-
-              .page:last-child {
-                page-break-after: auto;
-              }
-
-            </style>
-
-          </head>
-
-          <body>
-
-            ${pageHtml.join("")}
-
-          </body>
-
-        </html>
-      `;
-
-      const { uri, numberOfPages } = await Print.printToFileAsync({
-        html,
-
-        width: 420,
-        height: 650,
-
-        margins: {
-          top: 0,
-          bottom: 0,
-          left: 0,
-          right: 0,
-        },
-
-        base64: false,
-      });
-
-      console.log("PDF created:", uri);
-      console.log("PDF pages:", numberOfPages);
-
-      const canShare = await Sharing.isAvailableAsync();
-
-      if (canShare) {
-        await Sharing.shareAsync(uri, {
-          mimeType: "application/pdf",
-          dialogTitle: "Export Memory Ticket",
-          UTI: "com.adobe.pdf",
-        });
-      } else {
-        Alert.alert(
-          "PDF Created",
-          `Your Memory Ticket PDF was created successfully with ${
-            numberOfPages || pdfImages.length
-          } page(s).`,
-        );
-      }
-    } catch (error) {
-      console.log("PDF export error:", error);
-
-      Alert.alert(
-        "PDF Export Failed",
-        "Something went wrong while creating the PDF. Please try again.",
-      );
-    } finally {
-      setIsExportingPDF(false);
-    }
-  };
-
-  // --------------------------------------------------
-  // SHARE MEMORY AS IMAGE
-  // --------------------------------------------------
-
-  const handleShareMemory = async () => {
-    if (isSharingMemory) {
-      return;
-    }
-
-    try {
-      setIsSharingMemory(true);
-
-      /*
-       * Get the currently visible ticket.
-       *
-       * activeImage tells us which ticket the user
-       * is currently looking at.
-       */
-
-      const ticketRef = ticketRefs.current[activeImage];
-
-      if (!ticketRef) {
-        throw new Error("Ticket reference not available.");
-      }
-
-      /*
-       * Give React Native a moment to finish rendering.
-       *
-       * This is especially useful immediately after
-       * swiping between tickets.
-       */
-
-      await new Promise((resolve) => setTimeout(resolve, 150));
-
-      /*
-       * Capture the actual rendered React Native ticket.
-       *
-       * This means the shared image uses the same
-       * ticket design the user sees in the app.
-       */
-
-      const imageUri = await captureRef(ticketRef, {
-        format: "png",
-        quality: 1,
-        result: "tmpfile",
-      });
-
-      console.log("Memory Ticket image created:", imageUri);
-
-      /*
-       * Check whether native sharing is available.
-       */
-
-      const canShare = await Sharing.isAvailableAsync();
-
-      if (!canShare) {
-        Alert.alert(
-          "Sharing Unavailable",
-          "Sharing is not available on this device.",
-        );
-
-        return;
-      }
-
-      /*
-       * Open the native Android/iOS share sheet.
-       */
-
-      await Sharing.shareAsync(imageUri, {
-        mimeType: "image/png",
-        dialogTitle: "Share Memory Ticket",
-        UTI: "public.png",
-      });
-    } catch (error) {
-      console.log("Share memory error:", error);
-
-      Alert.alert(
-        "Share Failed",
-        "Something went wrong while preparing your Memory Ticket for sharing. Please try again.",
-      );
-    } finally {
-      setIsSharingMemory(false);
-    }
-  };
-
-  // --------------------------------------------------
+  // ==========================================================
   // FAVORITE
-  // --------------------------------------------------
+  // ==========================================================
 
   const handleFavorite = async () => {
     try {
@@ -1014,9 +142,9 @@ function MemoryDetailsScreen({ navigation, route }) {
     }
   };
 
-  // --------------------------------------------------
+  // ==========================================================
   // DELETE
-  // --------------------------------------------------
+  // ==========================================================
 
   const handleDelete = () => {
     Alert.alert(
@@ -1027,7 +155,6 @@ function MemoryDetailsScreen({ navigation, route }) {
           text: "CANCEL",
           style: "cancel",
         },
-
         {
           text: "DELETE",
           style: "destructive",
@@ -1048,9 +175,735 @@ function MemoryDetailsScreen({ navigation, route }) {
     );
   };
 
-  // --------------------------------------------------
-  // RENDER COMPLETE TICKET
-  // --------------------------------------------------
+  // ==========================================================
+  // GENERATE RANDOM SHARE TICKET NUMBER
+  // ==========================================================
+
+  const generateShareTicketNumber = () => {
+    const characters = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+    let result = "";
+
+    for (let i = 0; i < 5; i++) {
+      const randomIndex = Math.floor(Math.random() * characters.length);
+
+      result += characters[randomIndex];
+    }
+
+    return result;
+  };
+
+  // ==========================================================
+  // GENERATE RANDOM BARCODE
+  // ==========================================================
+
+  const generateRandomBarcode = () => {
+    const bars = [];
+
+    for (let i = 0; i < 42; i++) {
+      const random = Math.random();
+
+      let width;
+
+      if (random < 0.55) {
+        width = 2;
+      } else if (random < 0.85) {
+        width = 3;
+      } else {
+        width = 4;
+      }
+
+      bars.push({
+        width,
+      });
+    }
+
+    return bars;
+  };
+
+  // ==========================================================
+  // OPEN SHARE PREVIEW
+  // ==========================================================
+
+  const openSharePreview = () => {
+    const ticketNumber = generateShareTicketNumber();
+
+    const barcode = generateRandomBarcode();
+
+    setShareTicketNumber(ticketNumber);
+    setShareBarcode(barcode);
+
+    setShareVisible(true);
+  };
+
+  // ==========================================================
+  // CLOSE SHARE PREVIEW
+  // ==========================================================
+
+  const closeSharePreview = () => {
+    if (sharing) {
+      return;
+    }
+
+    setShareVisible(false);
+  };
+
+  // ==========================================================
+  // SHARE YELLOW MEMORY TICKET
+  // ==========================================================
+
+  const handleShareTicket = async () => {
+    try {
+      if (!shareTicketRef.current) {
+        return;
+      }
+
+      setSharing(true);
+
+      // ------------------------------------------------------
+      // CHECK NATIVE SHARING
+      // ------------------------------------------------------
+
+      const isAvailable = await Sharing.isAvailableAsync();
+
+      if (!isAvailable) {
+        Alert.alert(
+          "Sharing unavailable",
+          "Sharing is not available on this device.",
+        );
+
+        return;
+      }
+
+      // ------------------------------------------------------
+      // CAPTURE YELLOW TICKET
+      // ------------------------------------------------------
+
+      const imageUri = await captureRef(shareTicketRef.current, {
+        format: "png",
+        quality: 1,
+        result: "tmpfile",
+      });
+
+      // ------------------------------------------------------
+      // OPEN NATIVE SHARE SHEET
+      // ------------------------------------------------------
+
+      await Sharing.shareAsync(imageUri, {
+        mimeType: "image/png",
+        dialogTitle: "Share Memory Ticket",
+        UTI: "public.png",
+      });
+    } catch (error) {
+      console.log("Share ticket error:", error);
+
+      Alert.alert(
+        "Share Failed",
+        "Something went wrong while creating your Memory Ticket.",
+      );
+    } finally {
+      setSharing(false);
+    }
+  };
+
+  // ==========================================================
+  // PDF HELPERS
+  // ==========================================================
+
+  const escapeHtml = (text) => {
+    if (!text) {
+      return "";
+    }
+
+    return String(text)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  };
+
+  // ==========================================================
+  // GENERATE PDF
+  //
+  // One memory image = one PDF page
+  // Three memory images = three PDF pages
+  // ==========================================================
+
+  const handleExportPdf = async () => {
+    try {
+      if (generatingPdf) {
+        return;
+      }
+
+      setGeneratingPdf(true);
+
+      if (!images.length) {
+        Alert.alert(
+          "No Images",
+          "This memory does not contain any images to export.",
+        );
+
+        return;
+      }
+
+      // ------------------------------------------------------
+      // CREATE ONE HTML PAGE FOR EACH IMAGE
+      // ------------------------------------------------------
+
+      const pages = images
+        .map((image, index) => {
+          const safeTitle = escapeHtml(memory?.title || "UNTITLED MEMORY");
+
+          const safeLocation = escapeHtml(memory?.location || "UNKNOWN");
+
+          const safeDescription = escapeHtml(memory?.description || "");
+
+          const dateText = memory?.date
+            ? new Date(memory.date).toLocaleDateString("en-US", {
+                month: "short",
+                day: "2-digit",
+                year: "numeric",
+              })
+            : "DATE UNKNOWN";
+
+          return `
+            <section class="page">
+
+              <div class="ticket">
+
+                <div class="top-line"></div>
+
+                <div class="header">
+
+                  <div>
+                    <div class="brand">
+                      MEMORY TICKET
+                    </div>
+
+                    <div class="tagline">
+                      THE POWER OF THE MOMENT
+                    </div>
+                  </div>
+
+                  <div class="ticket-number">
+                    #${escapeHtml(getTicketNumber())}
+                  </div>
+
+                </div>
+
+
+                <div class="photo-container">
+
+                  <img
+                    src="${image}"
+                    class="photo"
+                  />
+
+                </div>
+
+
+                <div class="content">
+
+                  <div class="label">
+                    MEMORY
+                  </div>
+
+                  <div class="title">
+                    ${safeTitle}
+                  </div>
+
+                  <div class="divider"></div>
+
+
+                  <div class="info-row">
+
+                    <div class="info-item">
+
+                      <div class="info-label">
+                        DATE
+                      </div>
+
+                      <div class="info-value">
+                        ${dateText}
+                      </div>
+
+                    </div>
+
+
+                    <div class="info-item">
+
+                      <div class="info-label">
+                        LOCATION
+                      </div>
+
+                      <div class="info-value">
+                        ${safeLocation}
+                      </div>
+
+                    </div>
+
+                  </div>
+
+
+                  ${
+                    safeDescription
+                      ? `
+                        <div class="description">
+                          ${safeDescription}
+                        </div>
+                      `
+                      : ""
+                  }
+
+                </div>
+
+
+                <div class="perforation">
+
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                  <span></span>
+
+                </div>
+
+
+                <div class="footer">
+
+                  <div>
+
+                    <div class="admit">
+                      ADMISSION X1
+                    </div>
+
+                    <div class="footer-small">
+                      MEMORY ARCHIVE
+                    </div>
+
+                  </div>
+
+
+                  <div class="barcode">
+
+                    ${Array.from({ length: 28 })
+                      .map((_, barIndex) => {
+                        let width = 2;
+
+                        if (barIndex % 5 === 0) {
+                          width = 5;
+                        } else if (barIndex % 3 === 0) {
+                          width = 3;
+                        }
+
+                        return `
+                          <span
+                            style="
+                              width:${width}px;
+                            "
+                          ></span>
+                        `;
+                      })
+                      .join("")}
+
+                  </div>
+
+                </div>
+
+
+                <div class="serial">
+                  MT • ${escapeHtml(getTicketNumber())}
+                </div>
+
+
+                <div class="bottom-line"></div>
+
+              </div>
+
+            </section>
+          `;
+        })
+        .join("");
+
+      // ------------------------------------------------------
+      // COMPLETE PDF HTML
+      // ------------------------------------------------------
+
+      const html = `
+        <!DOCTYPE html>
+
+        <html>
+
+        <head>
+
+          <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0"
+          />
+
+          <style>
+
+            * {
+              box-sizing: border-box;
+            }
+
+            html,
+            body {
+              margin: 0;
+              padding: 0;
+              background: #f4f1e8;
+              font-family: Arial, Helvetica, sans-serif;
+            }
+
+            .page {
+              width: 100%;
+              min-height: 100vh;
+
+              display: flex;
+              align-items: center;
+              justify-content: center;
+
+              padding: 24px;
+
+              page-break-after: always;
+            }
+
+            .page:last-child {
+              page-break-after: auto;
+            }
+
+            .ticket {
+              width: 100%;
+              max-width: 700px;
+
+              background: #f8f5ed;
+
+              border: 2px solid #34345c;
+
+              border-radius: 8px;
+
+              overflow: hidden;
+
+              position: relative;
+
+              padding: 22px;
+            }
+
+            .top-line,
+            .bottom-line {
+              height: 8px;
+
+              border-top: 2px dashed #34345c;
+              border-bottom: 2px dashed #34345c;
+
+              margin-bottom: 20px;
+            }
+
+            .bottom-line {
+              margin-top: 20px;
+              margin-bottom: 0;
+            }
+
+            .header {
+              display: flex;
+
+              justify-content: space-between;
+              align-items: flex-start;
+
+              margin-bottom: 18px;
+            }
+
+            .brand {
+              font-size: 28px;
+
+              font-weight: 900;
+
+              letter-spacing: 2px;
+
+              color: #242424;
+            }
+
+            .tagline {
+              margin-top: 5px;
+
+              font-size: 11px;
+
+              font-weight: 700;
+
+              letter-spacing: 2px;
+
+              color: #6a6a6a;
+            }
+
+            .ticket-number {
+              font-size: 14px;
+
+              font-weight: 900;
+
+              color: #34345c;
+            }
+
+            .photo-container {
+              width: 100%;
+
+              height: 430px;
+
+              overflow: hidden;
+
+              border-radius: 6px;
+
+              border: 2px solid #34345c;
+
+              background: #dedbd1;
+            }
+
+            .photo {
+              width: 100%;
+              height: 100%;
+
+              object-fit: cover;
+            }
+
+            .content {
+              padding-top: 20px;
+            }
+
+            .label {
+              font-size: 10px;
+
+              font-weight: 900;
+
+              letter-spacing: 2px;
+
+              color: #777;
+            }
+
+            .title {
+              margin-top: 6px;
+
+              font-size: 25px;
+
+              line-height: 31px;
+
+              font-weight: 900;
+
+              color: #242424;
+            }
+
+            .divider {
+              margin-top: 18px;
+              margin-bottom: 18px;
+
+              border-top: 2px solid #34345c;
+            }
+
+            .info-row {
+              display: flex;
+
+              justify-content: space-between;
+              gap: 30px;
+            }
+
+            .info-item {
+              flex: 1;
+            }
+
+            .info-label {
+              font-size: 9px;
+
+              font-weight: 900;
+
+              letter-spacing: 1.5px;
+
+              color: #777;
+            }
+
+            .info-value {
+              margin-top: 5px;
+
+              font-size: 14px;
+
+              font-weight: 800;
+
+              color: #242424;
+            }
+
+            .description {
+              margin-top: 18px;
+
+              font-size: 12px;
+
+              line-height: 18px;
+
+              color: #444;
+            }
+
+            .perforation {
+              margin-top: 22px;
+
+              display: flex;
+
+              justify-content: space-between;
+
+              align-items: center;
+
+              border-top: 2px dashed #34345c;
+
+              padding-top: 10px;
+            }
+
+            .perforation span {
+              width: 8px;
+              height: 8px;
+
+              background: #34345c;
+
+              border-radius: 50%;
+            }
+
+            .footer {
+              margin-top: 20px;
+
+              display: flex;
+
+              justify-content: space-between;
+
+              align-items: center;
+            }
+
+            .admit {
+              font-size: 12px;
+
+              font-weight: 900;
+
+              letter-spacing: 1px;
+
+              color: #242424;
+            }
+
+            .footer-small {
+              margin-top: 4px;
+
+              font-size: 9px;
+
+              font-weight: 700;
+
+              letter-spacing: 1.5px;
+
+              color: #777;
+            }
+
+            .barcode {
+              height: 50px;
+
+              display: flex;
+
+              align-items: center;
+
+              overflow: hidden;
+            }
+
+            .barcode span {
+              height: 46px;
+
+              display: block;
+
+              background: #242424;
+
+              margin-right: 2px;
+            }
+
+            .serial {
+              margin-top: 15px;
+
+              font-size: 9px;
+
+              font-weight: 900;
+
+              letter-spacing: 2px;
+
+              color: #34345c;
+            }
+
+            @media print {
+
+              .page {
+                min-height: auto;
+
+                height: 100vh;
+
+                padding: 25px;
+              }
+
+              .ticket {
+                max-width: none;
+              }
+
+            }
+
+          </style>
+
+        </head>
+
+        <body>
+
+          ${pages}
+
+        </body>
+
+        </html>
+      `;
+
+      // ------------------------------------------------------
+      // CREATE PDF
+      // ------------------------------------------------------
+
+      const { uri } = await Print.printToFileAsync({
+        html,
+        base64: false,
+      });
+
+      // ------------------------------------------------------
+      // SHARE / SAVE PDF
+      // ------------------------------------------------------
+
+      const isAvailable = await Sharing.isAvailableAsync();
+
+      if (isAvailable) {
+        await Sharing.shareAsync(uri, {
+          mimeType: "application/pdf",
+          dialogTitle: "Export Memory Ticket",
+          UTI: "com.adobe.pdf",
+        });
+      } else {
+        Alert.alert(
+          "PDF Created",
+          "Your Memory Ticket PDF was created successfully.",
+        );
+      }
+    } catch (error) {
+      console.log("PDF export error:", error);
+
+      Alert.alert(
+        "PDF Export Failed",
+        "Something went wrong while creating your Memory Ticket PDF.",
+      );
+    } finally {
+      setGeneratingPdf(false);
+    }
+  };
+
+  // ==========================================================
+  // NORMAL MEMORY DETAILS TICKET
+  // ==========================================================
 
   const renderTicket = (image, index) => {
     return (
@@ -1059,26 +912,11 @@ function MemoryDetailsScreen({ navigation, route }) {
         style={[
           styles.ticketSlide,
           {
-            width: TICKET_WIDTH,
-            marginRight: index === images.length - 1 ? 0 : TICKET_GAP,
+            width: screenWidth - 44,
           },
         ]}
       >
-        {/*
-         * IMPORTANT:
-         *
-         * This View is what gets captured when
-         * the user presses SHARE MEMORY.
-         */}
-        <View
-          ref={(ref) => {
-            if (ref) {
-              ticketRefs.current[index] = ref;
-            }
-          }}
-          collapsable={false}
-          style={styles.ticketShadow}
-        >
+        <View style={styles.ticketShadow}>
           <View style={styles.ticket}>
             {/* TOP PERFORATION */}
 
@@ -1090,7 +928,7 @@ function MemoryDetailsScreen({ navigation, route }) {
               ))}
             </View>
 
-            {/* TICKET HEADER */}
+            {/* HEADER */}
 
             <View style={styles.ticketHeader}>
               <View>
@@ -1106,11 +944,7 @@ function MemoryDetailsScreen({ navigation, route }) {
 
             {/* IMAGE */}
 
-            <TouchableOpacity
-              style={styles.ticketImageContainer}
-              onPress={() => image && openImageViewer(index)}
-              activeOpacity={0.95}
-            >
+            <View style={styles.ticketImageContainer}>
               {image ? (
                 <>
                   <Image
@@ -1122,24 +956,6 @@ function MemoryDetailsScreen({ navigation, route }) {
                   />
 
                   <View style={styles.imageOverlay} />
-
-                  {/* FULL SCREEN ICON */}
-
-                  <View
-                    style={{
-                      position: "absolute",
-                      right: 12,
-                      bottom: 12,
-                      width: 36,
-                      height: 36,
-                      borderRadius: 18,
-                      backgroundColor: "rgba(0,0,0,0.55)",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <Ionicons name="expand-outline" size={19} color="#FFFFFF" />
-                  </View>
                 </>
               ) : (
                 <View style={styles.noImage}>
@@ -1148,9 +964,9 @@ function MemoryDetailsScreen({ navigation, route }) {
                   <Text style={styles.noImageText}>NO IMAGE</Text>
                 </View>
               )}
-            </TouchableOpacity>
+            </View>
 
-            {/* TICKET INFORMATION */}
+            {/* INFORMATION */}
 
             <View style={styles.ticketInfo}>
               <Text style={styles.memoryLabel}>MEMORY</Text>
@@ -1168,7 +984,13 @@ function MemoryDetailsScreen({ navigation, route }) {
                   <Text style={styles.infoLabel}>DATE</Text>
 
                   <Text style={styles.infoValue}>
-                    {formatDate(memory?.date)}
+                    {memory?.date
+                      ? new Date(memory.date).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "2-digit",
+                          year: "numeric",
+                        })
+                      : "DATE UNKNOWN"}
                   </Text>
                 </View>
 
@@ -1219,6 +1041,7 @@ function MemoryDetailsScreen({ navigation, route }) {
                     key={barIndex}
                     style={[
                       styles.bar,
+
                       barIndex % 5 === 0
                         ? styles.barWide
                         : barIndex % 3 === 0
@@ -1251,31 +1074,108 @@ function MemoryDetailsScreen({ navigation, route }) {
     );
   };
 
-  // --------------------------------------------------
+  // ==========================================================
+  // SHAREABLE YELLOW TICKET
+  // ==========================================================
+
+  const renderShareTicket = () => {
+    const image = images[activeImage] || images[0] || null;
+
+    return (
+      <View
+        ref={shareTicketRef}
+        collapsable={false}
+        style={shareStyles.captureContainer}
+      >
+        <View style={shareStyles.ticket}>
+          {/* HEADER */}
+
+          <View style={shareStyles.header}>
+            <View>
+              <Text style={shareStyles.brand}>MEMORY TICKET</Text>
+
+              <Text style={shareStyles.tagline}>KEEP THE MOMENT</Text>
+            </View>
+
+            <View style={shareStyles.numberContainer}>
+              <Text style={shareStyles.numberLabel}>NO.</Text>
+
+              <Text style={shareStyles.number}>{shareTicketNumber}</Text>
+            </View>
+          </View>
+
+          {/* MEMORY PHOTO */}
+
+          <View style={shareStyles.imageContainer}>
+            {image ? (
+              <Image
+                source={{
+                  uri: image,
+                }}
+                style={shareStyles.image}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={shareStyles.noImage}>
+                <Ionicons name="image-outline" size={48} color="#1D2528" />
+
+                <Text style={shareStyles.noImageText}>NO IMAGE</Text>
+              </View>
+            )}
+          </View>
+
+          {/* MEMORY + BARCODE */}
+
+          <View style={shareStyles.bottomSection}>
+            {/* MEMORY */}
+
+            <View style={shareStyles.memorySection}>
+              <Text style={shareStyles.memoryLabel}>MEMORY</Text>
+
+              <Text style={shareStyles.memoryName} numberOfLines={3}>
+                {memory?.title || "UNTITLED MEMORY"}
+              </Text>
+            </View>
+
+            {/* BARCODE */}
+
+            <View style={shareStyles.barcodeSection}>
+              <View style={shareStyles.barcode}>
+                {shareBarcode.map((bar, index) => (
+                  <View
+                    key={index}
+                    style={[
+                      shareStyles.bar,
+                      {
+                        width: bar.width,
+                      },
+                    ]}
+                  />
+                ))}
+              </View>
+            </View>
+          </View>
+        </View>
+      </View>
+    );
+  };
+
+  // ==========================================================
   // SCREEN
-  // --------------------------------------------------
+  // ==========================================================
 
   return (
     <View style={styles.container}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
-        nestedScrollEnabled
       >
         {/* HEADER */}
 
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => {
-              if (navigation.canGoBack()) {
-                navigation.goBack();
-              } else {
-                navigation.navigate("MainTabs", {
-                  screen: "Memories",
-                });
-              }
-            }}
+            onPress={() => navigation.goBack()}
             activeOpacity={0.7}
           >
             <Ionicons name="arrow-back" size={22} color="#242424" />
@@ -1299,26 +1199,22 @@ function MemoryDetailsScreen({ navigation, route }) {
           </TouchableOpacity>
         </View>
 
-        {/* ==================================================
-            HORIZONTAL TICKET CAROUSEL
-        ================================================== */}
+        {/* TICKET CAROUSEL */}
 
         <ScrollView
           horizontal
+          pagingEnabled
           showsHorizontalScrollIndicator={false}
           nestedScrollEnabled
           decelerationRate="fast"
-          snapToInterval={SNAP_SIZE}
+          snapToInterval={screenWidth - 44}
           snapToAlignment="start"
-          disableIntervalMomentum
           onMomentumScrollEnd={(event) => {
-            const offsetX = event.nativeEvent.contentOffset.x;
+            const index = Math.round(
+              event.nativeEvent.contentOffset.x / (screenWidth - 44),
+            );
 
-            const index = Math.round(offsetX / SNAP_SIZE);
-
-            const safeIndex = Math.max(0, Math.min(index, images.length - 1));
-
-            setActiveImage(safeIndex);
+            setActiveImage(index);
           }}
         >
           {images.length > 0
@@ -1326,7 +1222,7 @@ function MemoryDetailsScreen({ navigation, route }) {
             : renderTicket(null, 0)}
         </ScrollView>
 
-        {/* SWIPE INDICATOR */}
+        {/* SWIPE HINT */}
 
         {images.length > 1 && (
           <View style={styles.swipeHint}>
@@ -1345,68 +1241,53 @@ function MemoryDetailsScreen({ navigation, route }) {
         )}
 
         {/* ==================================================
-            SHARE MEMORY
+            ACTION BUTTONS
         ================================================== */}
 
-        <TouchableOpacity
-          style={[
-            styles.editButton,
-            {
-              marginTop: images.length > 1 ? 18 : 22,
-              opacity: isSharingMemory ? 0.65 : 1,
-            },
-          ]}
-          onPress={handleShareMemory}
-          activeOpacity={0.8}
-          disabled={isSharingMemory}
-        >
-          {isSharingMemory ? (
-            <ActivityIndicator size="small" color="#34345C" />
-          ) : (
-            <Ionicons name="share-outline" size={18} color="#34345C" />
-          )}
+        <View style={shareStyles.actionButtons}>
+          {/* SHARE MEMORY */}
 
-          <Text style={styles.editText}>
-            {isSharingMemory ? "PREPARING SHARE..." : "SHARE MEMORY"}
-          </Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={shareStyles.shareButton}
+            onPress={openSharePreview}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="share-social-outline" size={19} color="#FFFFFF" />
 
-        {/* ==================================================
-            PDF EXPORT
-        ================================================== */}
+            <Text style={shareStyles.shareButtonText}>SHARE MEMORY</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[
-            styles.editButton,
-            {
-              marginTop: 8,
-              opacity: isExportingPDF ? 0.65 : 1,
-            },
-          ]}
-          onPress={handleExportPDF}
-          activeOpacity={0.8}
-          disabled={isExportingPDF}
-        >
-          {isExportingPDF ? (
-            <ActivityIndicator size="small" color="#34345C" />
-          ) : (
-            <Ionicons name="document-text-outline" size={18} color="#34345C" />
-          )}
+          {/* EXPORT PDF */}
 
-          <Text style={styles.editText}>
-            {isExportingPDF ? "CREATING PDF..." : "EXPORT PDF"}
-          </Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              shareStyles.pdfButton,
+              generatingPdf && shareStyles.pdfButtonDisabled,
+            ]}
+            onPress={handleExportPdf}
+            disabled={generatingPdf}
+            activeOpacity={0.85}
+          >
+            {generatingPdf ? (
+              <ActivityIndicator size="small" color="#34345C" />
+            ) : (
+              <Ionicons
+                name="document-text-outline"
+                size={19}
+                color="#34345C"
+              />
+            )}
+
+            <Text style={shareStyles.pdfButtonText}>
+              {generatingPdf ? "CREATING PDF..." : "EXPORT PDF"}
+            </Text>
+          </TouchableOpacity>
+        </View>
 
         {/* EDIT */}
 
         <TouchableOpacity
-          style={[
-            styles.editButton,
-            {
-              marginTop: 8,
-            },
-          ]}
+          style={styles.editButton}
           onPress={() =>
             navigation.navigate("EditMemory", {
               memoryId: memory.id,
@@ -1422,12 +1303,7 @@ function MemoryDetailsScreen({ navigation, route }) {
         {/* DELETE */}
 
         <TouchableOpacity
-          style={[
-            styles.deleteButton,
-            {
-              marginTop: 8,
-            },
-          ]}
+          style={styles.deleteButton}
           onPress={handleDelete}
           activeOpacity={0.8}
         >
@@ -1441,147 +1317,476 @@ function MemoryDetailsScreen({ navigation, route }) {
         <Text style={styles.footerText}>KEEP THE MOMENT. KEEP THE STORY.</Text>
       </ScrollView>
 
-      {/* ==================================================
-          FULL-SCREEN IMAGE VIEWER
-      ================================================== */}
+      {/* ======================================================
+          SHARE MODAL
+      ====================================================== */}
 
       <Modal
-        visible={viewerVisible}
-        transparent={false}
+        visible={shareVisible}
+        transparent
         animationType="fade"
-        onRequestClose={closeImageViewer}
+        onRequestClose={closeSharePreview}
       >
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: "#000000",
-          }}
-        >
-          {/* CLOSE BUTTON */}
+        <View style={shareStyles.modalOverlay}>
+          <View style={shareStyles.modal}>
+            {/* MODAL HEADER */}
 
-          <TouchableOpacity
-            onPress={closeImageViewer}
-            activeOpacity={0.8}
-            style={{
-              position: "absolute",
-              top: 50,
-              right: 20,
-              zIndex: 10,
-              width: 42,
-              height: 42,
-              borderRadius: 21,
-              backgroundColor: "rgba(255,255,255,0.15)",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Ionicons name="close" size={27} color="#FFFFFF" />
-          </TouchableOpacity>
+            <View style={shareStyles.modalHeader}>
+              <View>
+                <Text style={shareStyles.modalEyebrow}>SHARE MEMORY</Text>
 
-          {/* IMAGE COUNTER */}
-
-          {images.length > 1 && (
-            <View
-              style={{
-                position: "absolute",
-                top: 57,
-                left: 20,
-                zIndex: 10,
-                paddingHorizontal: 12,
-                paddingVertical: 6,
-                borderRadius: 15,
-                backgroundColor: "rgba(255,255,255,0.15)",
-              }}
-            >
-              <Text
-                style={{
-                  color: "#FFFFFF",
-                  fontSize: 12,
-                  fontWeight: "700",
-                }}
-              >
-                {viewerImage + 1}/{images.length}
-              </Text>
-            </View>
-          )}
-
-          {/* IMAGE CAROUSEL */}
-
-          <ScrollView
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            contentOffset={{
-              x: viewerImage * screenWidth,
-              y: 0,
-            }}
-            onMomentumScrollEnd={(event) => {
-              const offsetX = event.nativeEvent.contentOffset.x;
-
-              const index = Math.round(offsetX / screenWidth);
-
-              const safeIndex = Math.max(0, Math.min(index, images.length - 1));
-
-              setViewerImage(safeIndex);
-            }}
-            style={{
-              flex: 1,
-            }}
-          >
-            {images.map((image, index) => (
-              <View
-                key={`${image}-viewer-${index}`}
-                style={{
-                  width: screenWidth,
-                  height: screenHeight,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Image
-                  source={{
-                    uri: image,
-                  }}
-                  style={{
-                    width: screenWidth,
-                    height: screenHeight,
-                  }}
-                  resizeMode="contain"
-                />
+                <Text style={shareStyles.modalTitle}>Your Memory Ticket</Text>
               </View>
-            ))}
-          </ScrollView>
 
-          {/* SWIPE HINT */}
-
-          {images.length > 1 && (
-            <View
-              style={{
-                position: "absolute",
-                bottom: 35,
-                alignSelf: "center",
-                paddingHorizontal: 14,
-                paddingVertical: 7,
-                borderRadius: 18,
-                backgroundColor: "rgba(255,255,255,0.12)",
-              }}
-            >
-              <Text
-                style={{
-                  color: "#FFFFFF",
-                  fontSize: 11,
-                  fontWeight: "600",
-                  letterSpacing: 0.5,
-                }}
+              <TouchableOpacity
+                style={shareStyles.closeButton}
+                onPress={closeSharePreview}
+                disabled={sharing}
               >
-                SWIPE TO VIEW PHOTOS
-              </Text>
+                <Ionicons name="close" size={22} color="#242424" />
+              </TouchableOpacity>
             </View>
-          )}
+
+            {/* SHAREABLE TICKET */}
+
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={shareStyles.previewContainer}
+            >
+              {renderShareTicket()}
+            </ScrollView>
+
+            {/* SHARE BUTTON */}
+
+            <TouchableOpacity
+              style={[
+                shareStyles.confirmButton,
+                sharing && shareStyles.confirmButtonDisabled,
+              ]}
+              onPress={handleShareTicket}
+              disabled={sharing}
+              activeOpacity={0.85}
+            >
+              {sharing ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Ionicons name="share-social" size={20} color="#FFFFFF" />
+              )}
+
+              <Text style={shareStyles.confirmButtonText}>
+                {sharing ? "CREATING TICKET..." : "SHARE TICKET"}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </Modal>
     </View>
   );
 }
+
+// ============================================================
+// SHARE TICKET STYLES
+// ============================================================
+
+const shareStyles = StyleSheet.create({
+  // ==========================================================
+  // ACTION BUTTONS
+  // ==========================================================
+
+  actionButtons: {
+    marginHorizontal: 22,
+    marginTop: 20,
+    gap: 10,
+  },
+
+  shareButton: {
+    height: 50,
+    borderRadius: 14,
+
+    backgroundColor: "#34345C",
+
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+
+    gap: 9,
+  },
+
+  shareButtonText: {
+    color: "#FFFFFF",
+
+    fontSize: 11,
+    fontWeight: "900",
+
+    letterSpacing: 1,
+  },
+
+  pdfButton: {
+    height: 50,
+    borderRadius: 14,
+
+    backgroundColor: "#F4F1E8",
+
+    borderWidth: 1.5,
+    borderColor: "#34345C",
+
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+
+    gap: 9,
+  },
+
+  pdfButtonDisabled: {
+    opacity: 0.65,
+  },
+
+  pdfButtonText: {
+    color: "#34345C",
+
+    fontSize: 11,
+    fontWeight: "900",
+
+    letterSpacing: 1,
+  },
+
+  // ==========================================================
+  // MODAL
+  // ==========================================================
+
+  modalOverlay: {
+    flex: 1,
+
+    backgroundColor: "rgba(20, 20, 20, 0.72)",
+
+    justifyContent: "center",
+
+    paddingHorizontal: 18,
+    paddingVertical: 28,
+  },
+
+  modal: {
+    width: "100%",
+
+    maxHeight: "94%",
+
+    backgroundColor: "#F4F1E8",
+
+    borderRadius: 24,
+
+    overflow: "hidden",
+  },
+
+  modalHeader: {
+    minHeight: 76,
+
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+
+    flexDirection: "row",
+
+    alignItems: "center",
+
+    justifyContent: "space-between",
+  },
+
+  modalEyebrow: {
+    fontSize: 9,
+
+    fontWeight: "900",
+
+    letterSpacing: 1.5,
+
+    color: "#6A6A6A",
+  },
+
+  modalTitle: {
+    marginTop: 4,
+
+    fontSize: 19,
+
+    fontWeight: "900",
+
+    color: "#242424",
+  },
+
+  closeButton: {
+    width: 40,
+    height: 40,
+
+    borderRadius: 20,
+
+    backgroundColor: "#E8E4D8",
+
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  previewContainer: {
+    paddingHorizontal: 18,
+    paddingBottom: 18,
+
+    alignItems: "center",
+  },
+
+  // ==========================================================
+  // CAPTURE CONTAINER
+  // ==========================================================
+
+  captureContainer: {
+    width: "100%",
+
+    alignItems: "center",
+  },
+
+  // ==========================================================
+  // YELLOW TICKET
+  // ==========================================================
+
+  ticket: {
+    width: "100%",
+
+    backgroundColor: "#F5C842",
+
+    borderRadius: 6,
+
+    padding: 18,
+
+    overflow: "hidden",
+  },
+
+  // ==========================================================
+  // HEADER
+  // ==========================================================
+
+  header: {
+    flexDirection: "row",
+
+    justifyContent: "space-between",
+
+    alignItems: "flex-start",
+
+    marginBottom: 16,
+  },
+
+  brand: {
+    fontSize: 22,
+
+    fontWeight: "900",
+
+    letterSpacing: 1,
+
+    color: "#1D2528",
+  },
+
+  tagline: {
+    marginTop: 3,
+
+    fontSize: 9,
+
+    fontWeight: "800",
+
+    letterSpacing: 1.5,
+
+    color: "#1D2528",
+  },
+
+  numberContainer: {
+    alignItems: "flex-end",
+  },
+
+  numberLabel: {
+    fontSize: 8,
+
+    fontWeight: "900",
+
+    letterSpacing: 1,
+
+    color: "#1D2528",
+  },
+
+  number: {
+    marginTop: 2,
+
+    fontSize: 14,
+
+    fontWeight: "900",
+
+    letterSpacing: 1,
+
+    color: "#1D2528",
+  },
+
+  // ==========================================================
+  // IMAGE
+  // ==========================================================
+
+  imageContainer: {
+    width: "100%",
+
+    height: 250,
+
+    backgroundColor: "#D8B438",
+
+    borderRadius: 4,
+
+    overflow: "hidden",
+
+    borderWidth: 2,
+
+    borderColor: "#1D2528",
+  },
+
+  image: {
+    width: "100%",
+    height: "100%",
+  },
+
+  noImage: {
+    flex: 1,
+
+    alignItems: "center",
+
+    justifyContent: "center",
+  },
+
+  noImageText: {
+    marginTop: 8,
+
+    fontSize: 10,
+
+    fontWeight: "900",
+
+    letterSpacing: 1,
+
+    color: "#1D2528",
+  },
+
+  // ==========================================================
+  // BOTTOM SECTION
+  // ==========================================================
+
+  bottomSection: {
+    marginTop: 18,
+
+    paddingTop: 16,
+
+    borderTopWidth: 2,
+
+    borderTopColor: "#1D2528",
+
+    flexDirection: "row",
+
+    alignItems: "center",
+
+    justifyContent: "space-between",
+
+    minHeight: 82,
+  },
+
+  // ==========================================================
+  // MEMORY
+  // ==========================================================
+
+  memorySection: {
+    flex: 1,
+
+    paddingRight: 18,
+  },
+
+  memoryLabel: {
+    fontSize: 9,
+
+    fontWeight: "900",
+
+    letterSpacing: 1.8,
+
+    color: "#1D2528",
+  },
+
+  memoryName: {
+    marginTop: 5,
+
+    fontSize: 19,
+
+    lineHeight: 23,
+
+    fontWeight: "900",
+
+    color: "#1D2528",
+  },
+
+  // ==========================================================
+  // BARCODE
+  // ==========================================================
+
+  barcodeSection: {
+    width: 118,
+
+    height: 58,
+
+    justifyContent: "center",
+
+    alignItems: "flex-end",
+  },
+
+  barcode: {
+    height: 50,
+
+    flexDirection: "row",
+
+    alignItems: "center",
+
+    justifyContent: "flex-end",
+
+    overflow: "hidden",
+  },
+
+  bar: {
+    height: 48,
+
+    marginRight: 2,
+
+    backgroundColor: "#1D2528",
+  },
+
+  // ==========================================================
+  // CONFIRM SHARE BUTTON
+  // ==========================================================
+
+  confirmButton: {
+    marginHorizontal: 18,
+
+    marginBottom: 18,
+
+    height: 52,
+
+    borderRadius: 14,
+
+    backgroundColor: "#34345C",
+
+    flexDirection: "row",
+
+    alignItems: "center",
+
+    justifyContent: "center",
+
+    gap: 9,
+  },
+
+  confirmButtonDisabled: {
+    opacity: 0.7,
+  },
+
+  confirmButtonText: {
+    color: "#FFFFFF",
+
+    fontSize: 11,
+
+    fontWeight: "900",
+
+    letterSpacing: 1,
+  },
+});
 
 export default MemoryDetailsScreen;
