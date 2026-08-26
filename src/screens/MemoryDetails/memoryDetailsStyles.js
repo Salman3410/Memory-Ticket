@@ -171,6 +171,28 @@ const styles = StyleSheet.create({
 
     // backgroundColor: "rgba(255, 176, 0, 0.18)",
   },
+  imageCounter: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    minWidth: 42,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    backgroundColor: "rgba(36, 36, 36, 0.72)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.25)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  imageCounterText: {
+    color: "#FFFFFF",
+    fontSize: 10,
+    fontWeight: "900",
+    letterSpacing: 0.8,
+    textAlign: "center",
+  },
 
   noImage: {
     flex: 1,

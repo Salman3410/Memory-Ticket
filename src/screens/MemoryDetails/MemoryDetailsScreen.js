@@ -811,8 +811,7 @@ function MemoryDetailsScreen({ navigation, route }) {
           snapToAlignment="start"
           onMomentumScrollEnd={(event) => {
             const index = Math.round(
-              event.nativeEvent.contentOffset.x /
-                (screenWidth - 44 + 12),
+              event.nativeEvent.contentOffset.x / (screenWidth - 44 + 12),
             );
 
             setActiveImage(index);
@@ -939,12 +938,12 @@ function MemoryDetailsScreen({ navigation, route }) {
             </TouchableOpacity>
 
             {images.length > 0 && (
-              <Text style={imageViewerStyles.counter}>
-                {viewerImage + 1}/{images.length}
-              </Text>
+              <View style={imageViewerStyles.counterWrapper}>
+                <Text style={imageViewerStyles.counter}>
+                  {viewerImage + 1}/{images.length}
+                </Text>
+              </View>
             )}
-
-            <View style={imageViewerStyles.topBarSpacer} />
           </View>
 
           {/* FULL SCREEN IMAGE CAROUSEL */}
@@ -1070,88 +1069,6 @@ function MemoryDetailsScreen({ navigation, route }) {
     </View>
   );
 }
-
-const imageViewerStyles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#000000",
-  },
-
-  topBar: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-
-    zIndex: 10,
-
-    paddingTop: 50,
-    paddingHorizontal: 18,
-
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-
-  closeButton: {
-    width: 42,
-    height: 42,
-
-    borderRadius: 21,
-
-    backgroundColor: "rgba(255, 255, 255, 0.16)",
-
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  counter: {
-    color: "#FFFFFF",
-
-    fontSize: 12,
-    fontWeight: "900",
-
-    letterSpacing: 1,
-  },
-
-  topBarSpacer: {
-    width: 42,
-    height: 42,
-  },
-
-  imagePage: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  fullImage: {
-    alignSelf: "center",
-  },
-
-  bottomHint: {
-    position: "absolute",
-
-    bottom: 35,
-    left: 0,
-    right: 0,
-
-    flexDirection: "row",
-
-    alignItems: "center",
-    justifyContent: "center",
-
-    gap: 7,
-  },
-
-  bottomHintText: {
-    color: "#BDBDBD",
-
-    fontSize: 10,
-    fontWeight: "800",
-
-    letterSpacing: 0.8,
-  },
-});
 
 const shareStyles = StyleSheet.create({
   actionButtons: {
@@ -1543,6 +1460,129 @@ const shareStyles = StyleSheet.create({
     fontWeight: "900",
 
     letterSpacing: 1,
+  },
+});
+
+const imageViewerStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#0B0B0D",
+  },
+
+  // ==========================================================
+  // TOP BAR
+  // ==========================================================
+
+  topBar: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 20,
+    height: 92,
+    paddingTop: 48,
+    paddingHorizontal: 18,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  closeButton: {
+    position: "absolute",
+    left: 18,
+    top: 48,
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    backgroundColor: "rgba(255, 255, 255, 0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.12)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  counterWrapper: {
+    flex: 1,
+    alignItems: "center",
+  },
+
+  counter: {
+    minWidth: 54,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 14,
+    backgroundColor: "rgba(255, 255, 255, 0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.14)",
+  },
+
+  counter: {
+    color: "#FFFFFF",
+    fontSize: 11,
+    fontWeight: "900",
+    letterSpacing: 1,
+    textAlign: "center",
+  },
+  topBarSpacer: {
+    width: 42,
+    height: 42,
+  },
+
+  // ==========================================================
+  // IMAGE CAROUSEL
+  // ==========================================================
+
+  imagePage: {
+    flex: 1,
+
+    alignItems: "center",
+    justifyContent: "center",
+
+    backgroundColor: "#0B0B0D",
+  },
+
+  fullImage: {
+    alignSelf: "center",
+
+    backgroundColor: "transparent",
+  },
+
+  // ==========================================================
+  // BOTTOM HINT
+  // ==========================================================
+
+  bottomHint: {
+    position: "absolute",
+
+    left: 18,
+    right: 18,
+    bottom: 28,
+
+    minHeight: 42,
+
+    paddingHorizontal: 15,
+
+    borderRadius: 21,
+
+    backgroundColor: "rgba(255, 255, 255, 0.10)",
+
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.10)",
+
+    flexDirection: "row",
+
+    alignItems: "center",
+    justifyContent: "center",
+
+    gap: 7,
+  },
+
+  bottomHintText: {
+    color: "#C9C9CE",
+
+    fontSize: 10,
+    fontWeight: "800",
+
+    letterSpacing: 0.8,
   },
 });
 
