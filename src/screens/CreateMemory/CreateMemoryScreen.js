@@ -1,19 +1,11 @@
-import React, { useState } from "react";
-
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  TextInput,
-  FlatList,
-  Image,
-  Alert,
-} from "react-native";
-
+import { useState } from "react";
+import { View, Text, FlatList, Alert } from "react-native";
 import * as ImagePicker from "expo-image-picker";
-
-import { Ionicons } from "@expo/vector-icons";
-
+import CreateMemoryHeader from "./components/CreateMemoryHeader";
+import PhotoSection from "./components/PhotoSection";
+import MemoryForm from "./components/MemoryForm";
+import DescriptionInput from "./components/DescriptionInput";
+import PreviewButton from "./components/PreviewButton";
 import styles from "./createMemoryStyles";
 
 const MAX_IMAGES = 5;
@@ -21,29 +13,10 @@ const MAX_IMAGES = 5;
 function CreateMemoryScreen({ navigation }) {
   const [images, setImages] = useState([]);
   const [activeImage, setActiveImage] = useState(0);
+
   const [title, setTitle] = useState("");
   const [location, setLocation] = useState("");
   const [description, setDescription] = useState("");
-
-  // --------------------------------------------------
-  // NORMALIZE IMAGE
-  // --------------------------------------------------
-
-  const getImageUri = (item) => {
-    if (!item) {
-      return null;
-    }
-
-    if (typeof item === "string") {
-      return item;
-    }
-
-    if (typeof item === "object" && item.uri) {
-      return item.uri;
-    }
-
-    return null;
-  };
 
   // --------------------------------------------------
   // ADD IMAGES FROM GALLERY
@@ -59,6 +32,7 @@ function CreateMemoryScreen({ navigation }) {
           "Permission Required",
           "Please allow photo library access to select photos.",
         );
+
         return;
       }
 
@@ -66,6 +40,7 @@ function CreateMemoryScreen({ navigation }) {
 
       if (remainingSlots <= 0) {
         Alert.alert("Maximum Photos", "You can add up to 5 photos.");
+
         return;
       }
 
@@ -113,6 +88,7 @@ function CreateMemoryScreen({ navigation }) {
     try {
       if (images.length >= MAX_IMAGES) {
         Alert.alert("Maximum Photos", "You can add up to 5 photos.");
+
         return;
       }
 
@@ -123,6 +99,7 @@ function CreateMemoryScreen({ navigation }) {
           "Permission Required",
           "Please allow camera access to take a photo.",
         );
+
         return;
       }
 
@@ -190,54 +167,6 @@ function CreateMemoryScreen({ navigation }) {
   };
 
   // --------------------------------------------------
-  // IMAGE PAGE
-  // --------------------------------------------------
-
-  const renderImage = ({ item, index }) => {
-    const uri = getImageUri(item);
-
-    if (!uri) {
-      return (
-        <View style={styles.imagePage}>
-          <View style={styles.imageError}>
-            <Ionicons name="image-outline" size={40} color="#9A99A5" />
-
-            <Text style={styles.imageErrorText}>Image unavailable</Text>
-          </View>
-        </View>
-      );
-    }
-
-    return (
-      <View style={styles.imagePage}>
-        <Image
-          source={{ uri }}
-          style={styles.selectedImage}
-          resizeMode="cover"
-        />
-
-        {/* REMOVE */}
-
-        <TouchableOpacity
-          style={styles.removeImageButton}
-          onPress={() => removeImage(index)}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="close" size={20} color="#FFFFFF" />
-        </TouchableOpacity>
-
-        {/* IMAGE NUMBER */}
-
-        <View style={styles.imageNumber}>
-          <Text style={styles.imageNumberText}>
-            {index + 1}/{images.length}
-          </Text>
-        </View>
-      </View>
-    );
-  };
-
-  // --------------------------------------------------
   // IMAGE SCROLL
   // --------------------------------------------------
 
@@ -262,6 +191,7 @@ function CreateMemoryScreen({ navigation }) {
   const resetForm = () => {
     setImages([]);
     setActiveImage(0);
+
     setTitle("");
     setLocation("");
     setDescription("");
@@ -274,11 +204,13 @@ function CreateMemoryScreen({ navigation }) {
   const handleCreateMemory = () => {
     if (!images.length) {
       Alert.alert("Add Photos", "Please add at least one photo.");
+
       return;
     }
 
     if (!title.trim()) {
       Alert.alert("Memory Title", "Please give this memory a title.");
+
       return;
     }
 
@@ -292,7 +224,6 @@ function CreateMemoryScreen({ navigation }) {
       description: description.trim(),
 
       image: images[0] || null,
-
       images: [...images],
 
       date: new Date().toISOString(),
@@ -328,226 +259,40 @@ function CreateMemoryScreen({ navigation }) {
           <>
             {/* HEADER */}
 
-            <View style={styles.header}>
-              <TouchableOpacity
-                style={styles.backButton}
-                onPress={() => navigation.goBack()}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="arrow-back" size={22} color="#242424" />
-              </TouchableOpacity>
-
-              <View style={styles.headerTitleContainer}>
-                <Text style={styles.headerEyebrow}>CREATE MEMORY</Text>
-
-                <Text style={styles.headerTitle}>New Memory</Text>
-              </View>
-
-              <View style={styles.headerSpacer} />
-            </View>
+            <CreateMemoryHeader navigation={navigation} />
 
             {/* PHOTOS */}
 
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Photos</Text>
+            <PhotoSection
+              images={images}
+              activeImage={activeImage}
+              pickImages={pickImages}
+              takePhoto={takePhoto}
+              removeImage={removeImage}
+              handleImageScroll={handleImageScroll}
+            />
 
-                <Text style={styles.stepText}>
-                  {images.length}/{MAX_IMAGES}
-                </Text>
-              </View>
+            {/* TITLE + LOCATION */}
 
-              {images.length > 0 ? (
-                <>
-                  {/* PHOTO PREVIEW */}
-
-                  <View style={styles.imageContainer}>
-                    <FlatList
-                      data={images}
-                      keyExtractor={(item, index) => `${item}-${index}`}
-                      renderItem={renderImage}
-                      horizontal
-                      pagingEnabled
-                      showsHorizontalScrollIndicator={false}
-                      bounces={false}
-                      decelerationRate="fast"
-                      disableIntervalMomentum={true}
-                      onScroll={handleImageScroll}
-                      scrollEventThrottle={16}
-                      nestedScrollEnabled
-                    />
-                  </View>
-
-                  {/* ADD MORE */}
-
-                  {images.length < MAX_IMAGES && (
-                    <View style={styles.addMoreRow}>
-                      <TouchableOpacity
-                        style={styles.addMoreButton}
-                        onPress={pickImages}
-                        activeOpacity={0.8}
-                      >
-                        <Ionicons
-                          name="images-outline"
-                          size={18}
-                          color="#34345C"
-                        />
-
-                        <Text style={styles.addMoreText}>ADD MORE</Text>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity
-                        style={styles.addCameraButton}
-                        onPress={takePhoto}
-                        activeOpacity={0.8}
-                      >
-                        <Ionicons
-                          name="camera-outline"
-                          size={18}
-                          color="#FFFFFF"
-                        />
-
-                        <Text style={styles.addCameraText}>CAMERA</Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
-
-                  {/* SWIPE HINT */}
-
-                  {images.length > 1 && (
-                    <View style={styles.swipeHint}>
-                      <Ionicons
-                        name="swap-horizontal-outline"
-                        size={15}
-                        color="#707080"
-                      />
-
-                      <Text style={styles.swipeHintText}>
-                        Swipe to view photos
-                      </Text>
-
-                      <Text style={styles.swipeCountText}>
-                        {activeImage + 1}/{images.length}
-                      </Text>
-                    </View>
-                  )}
-                </>
-              ) : (
-                /* EMPTY PHOTO PLACEHOLDER */
-
-                <View style={styles.photoPlaceholder}>
-                  <View style={styles.photoIcon}>
-                    <Ionicons name="images-outline" size={30} color="#34345C" />
-                  </View>
-
-                  <Text style={styles.photoTitle}>Add your photos</Text>
-
-                  <Text style={styles.photoDescription}>
-                    Capture this moment with up to 5 photos.
-                  </Text>
-
-                  <View style={styles.photoButtons}>
-                    <TouchableOpacity
-                      style={styles.galleryButton}
-                      onPress={pickImages}
-                      activeOpacity={0.8}
-                    >
-                      <Ionicons
-                        name="images-outline"
-                        size={19}
-                        color="#34345C"
-                      />
-
-                      <Text style={styles.galleryButtonText}>ADD PHOTOS</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={styles.cameraButton}
-                      onPress={takePhoto}
-                      activeOpacity={0.8}
-                    >
-                      <Ionicons
-                        name="camera-outline"
-                        size={19}
-                        color="#FFFFFF"
-                      />
-
-                      <Text style={styles.cameraButtonText}>CAMERA</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              )}
-            </View>
-
-            {/* TITLE */}
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>MEMORY TITLE</Text>
-
-              <TextInput
-                style={styles.input}
-                value={title}
-                onChangeText={setTitle}
-                placeholder="Give this moment a name"
-                placeholderTextColor="#A6A5AE"
-              />
-            </View>
-
-            {/* LOCATION */}
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>LOCATION</Text>
-
-              <View style={styles.inputWithIcon}>
-                <Ionicons name="location-outline" size={22} color="#707080" />
-
-                <TextInput
-                  style={styles.iconInput}
-                  value={location}
-                  onChangeText={setLocation}
-                  placeholder="Where did it happen?"
-                  placeholderTextColor="#A6A5AE"
-                />
-              </View>
-            </View>
+            <MemoryForm
+              title={title}
+              setTitle={setTitle}
+              location={location}
+              setLocation={setLocation}
+            />
 
             {/* DESCRIPTION */}
 
-            <View style={styles.inputGroup}>
-              <View style={styles.descriptionHeader}>
-                <Text style={styles.label}>DESCRIPTION</Text>
-
-                <Text style={styles.characterCount}>
-                  {description.length}/500
-                </Text>
-              </View>
-
-              <TextInput
-                style={styles.descriptionInput}
-                value={description}
-                onChangeText={(text) => {
-                  if (text.length <= 500) {
-                    setDescription(text);
-                  }
-                }}
-                placeholder="Tell the story behind this moment..."
-                placeholderTextColor="#A6A5AE"
-                multiline
-                textAlignVertical="top"
-              />
-            </View>
+            <DescriptionInput
+              description={description}
+              setDescription={setDescription}
+            />
 
             {/* PREVIEW */}
 
-            <TouchableOpacity
-              style={styles.continueButton}
-              onPress={handleCreateMemory}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.continueButtonText}>PREVIEW TICKET</Text>
+            <PreviewButton onPress={handleCreateMemory} />
 
-              <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
-            </TouchableOpacity>
+            {/* FOOTER */}
 
             <Text style={styles.footerText}>
               KEEP THE MOMENT. KEEP THE STORY.
