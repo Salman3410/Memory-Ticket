@@ -1,16 +1,17 @@
-import React from "react";
 import {
   View,
   Text,
   ScrollView,
-  TouchableOpacity,
   Alert,
-  Image,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 
 import { useMemory } from "../../hooks/useMemory";
 import { useAuth } from "../../hooks/useAuth";
+
+import ProfileCard from "../../components/Profile/Card/ProfileCard";
+import ProfileStats from "../../components/Profile/Stats/ProfileStats";
+import ProfileMenu from "../../components/Profile/Menu/ProfileMenu";
+import LogoutButton from "../../components/Profile/Logout/LogoutButton";
 
 import styles from "./profileStyles";
 
@@ -37,18 +38,55 @@ function ProfileScreen({ navigation }) {
   };
 
   const handleLogout = () => {
-    Alert.alert("Log Out", "Are you sure you want to log out?", [
-      {
-        text: "Cancel",
-        style: "cancel",
-      },
-      {
-        text: "Log Out",
-        style: "destructive",
-        onPress: logout,
-      },
-    ]);
+    Alert.alert(
+      "Log Out",
+      "Are you sure you want to log out?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Log Out",
+          style: "destructive",
+          onPress: logout,
+        },
+      ]
+    );
   };
+
+  const accountMenuItems = [
+    {
+      title: "Edit Profile",
+      subtitle: "Change your name or profile photo",
+      icon: "person-outline",
+      onPress: handleEditProfile,
+    },
+    {
+      title: "Settings",
+      subtitle: "Manage your app preferences",
+      icon: "options-outline",
+      onPress: handleSettings,
+    },
+    {
+      title: "About Memory Ticket",
+      subtitle: "Learn more about the app",
+      icon: "information-circle-outline",
+      onPress: handleAbout,
+    },
+  ];
+
+  const appMenuItems = [
+    {
+      title: "Your Favorites",
+      subtitle: "Memories you don't want to forget",
+      icon: "heart-outline",
+      onPress: () =>
+        navigation.navigate("Memories", {
+          filter: "favorites",
+        }),
+    },
+  ];
 
   return (
     <View style={styles.container}>
@@ -56,7 +94,7 @@ function ProfileScreen({ navigation }) {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Header */}
+        {/* HEADER */}
 
         <View style={styles.header}>
           <View>
@@ -64,202 +102,29 @@ function ProfileScreen({ navigation }) {
 
             <Text style={styles.headerTitle}>Profile</Text>
           </View>
-
-          <TouchableOpacity
-            style={styles.settingsButton}
-            onPress={handleSettings}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="settings-outline" size={21} color="#34345C" />
-          </TouchableOpacity>
         </View>
 
-        {/* Profile Card */}
+        {/* PROFILE CARD */}
 
-        <View style={styles.profileCard}>
-          <View style={styles.avatarContainer}>
-            {user?.profileImage ? (
-              <Image
-                source={{
-                  uri: user.profileImage,
-                }}
-                style={styles.avatar}
-              />
-            ) : (
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>
-                  {user?.name?.charAt(0)?.toUpperCase() || "M"}
-                </Text>
-              </View>
-            )}
+        <ProfileCard user={user} onEditProfile={handleEditProfile} />
 
-            <TouchableOpacity
-              style={styles.cameraButton}
-              onPress={handleEditProfile}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="camera" size={13} color="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
+        {/* STATS */}
 
-          <Text style={styles.userName}>{user?.name || "Memory Keeper"}</Text>
+        <ProfileStats stats={stats} />
 
-          <Text style={styles.userEmail}>{user?.email || ""}</Text>
+        {/* ACCOUNT */}
 
-          <View style={styles.memberBadge}>
-            <Ionicons name="ticket-outline" size={13} color="#E76F51" />
+        <ProfileMenu title="ACCOUNT" items={accountMenuItems} />
 
-            <Text style={styles.memberBadgeText}>MEMORY COLLECTOR</Text>
-          </View>
-        </View>
+        {/* APP */}
 
-        {/* Stats */}
+        <ProfileMenu title="APP" items={appMenuItems} />
 
-        <View style={styles.statsContainer}>
-          <View style={styles.stat}>
-            <Text style={styles.statNumber}>{stats.memories}</Text>
+        {/* LOGOUT */}
 
-            <Text style={styles.statLabel}>MEMORIES</Text>
-          </View>
+        <LogoutButton onPress={handleLogout} />
 
-          <View style={styles.statDivider} />
-
-          <View style={styles.stat}>
-            <Text style={styles.statNumber}>{stats.tickets}</Text>
-
-            <Text style={styles.statLabel}>TICKETS</Text>
-          </View>
-
-          <View style={styles.statDivider} />
-
-          <View style={styles.stat}>
-            <Text style={styles.statNumber}>{stats.favorites}</Text>
-
-            <Text style={styles.statLabel}>FAVORITES</Text>
-          </View>
-        </View>
-
-        {/* Account */}
-
-        <Text style={styles.sectionTitle}>ACCOUNT</Text>
-
-        <View style={styles.menuContainer}>
-          {/* Edit Profile */}
-
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={handleEditProfile}
-            activeOpacity={0.7}
-          >
-            <View style={styles.menuIcon}>
-              <Ionicons name="person-outline" size={19} color="#34345C" />
-            </View>
-
-            <View style={styles.menuTextContainer}>
-              <Text style={styles.menuTitle}>Edit Profile</Text>
-
-              <Text style={styles.menuSubtitle}>
-                Change your name or profile photo
-              </Text>
-            </View>
-
-            <Ionicons name="chevron-forward" size={18} color="#A4A3AE" />
-          </TouchableOpacity>
-
-          <View style={styles.menuDivider} />
-
-          {/* Settings */}
-
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={handleSettings}
-            activeOpacity={0.7}
-          >
-            <View style={styles.menuIcon}>
-              <Ionicons name="options-outline" size={19} color="#34345C" />
-            </View>
-
-            <View style={styles.menuTextContainer}>
-              <Text style={styles.menuTitle}>Settings</Text>
-
-              <Text style={styles.menuSubtitle}>
-                Manage your app preferences
-              </Text>
-            </View>
-
-            <Ionicons name="chevron-forward" size={18} color="#A4A3AE" />
-          </TouchableOpacity>
-
-          <View style={styles.menuDivider} />
-
-          {/* About */}
-
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={handleAbout}
-            activeOpacity={0.7}
-          >
-            <View style={styles.menuIcon}>
-              <Ionicons
-                name="information-circle-outline"
-                size={19}
-                color="#34345C"
-              />
-            </View>
-
-            <View style={styles.menuTextContainer}>
-              <Text style={styles.menuTitle}>About Memory Ticket</Text>
-
-              <Text style={styles.menuSubtitle}>Learn more about the app</Text>
-            </View>
-
-            <Ionicons name="chevron-forward" size={18} color="#A4A3AE" />
-          </TouchableOpacity>
-        </View>
-
-        {/* App */}
-
-        <Text style={styles.sectionTitle}>APP</Text>
-
-        <View style={styles.menuContainer}>
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() =>
-              navigation.navigate("Memories", {
-                filter: "favorites",
-              })
-            }
-            activeOpacity={0.7}
-          >
-            <View style={styles.menuIcon}>
-              <Ionicons name="heart-outline" size={19} color="#34345C" />
-            </View>
-
-            <View style={styles.menuTextContainer}>
-              <Text style={styles.menuTitle}>Your Favorites</Text>
-
-              <Text style={styles.menuSubtitle}>
-                Memories you don't want to forget
-              </Text>
-            </View>
-
-            <Ionicons name="chevron-forward" size={18} color="#A4A3AE" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Logout */}
-
-        <TouchableOpacity
-          style={styles.logoutButton}
-          onPress={handleLogout}
-          activeOpacity={0.75}
-        >
-          <Ionicons name="log-out-outline" size={19} color="#D9534F" />
-
-          <Text style={styles.logoutText}>LOG OUT</Text>
-        </TouchableOpacity>
-
-        {/* Version */}
+        {/* VERSION */}
 
         <Text style={styles.versionText}>MEMORY TICKET • VERSION 1.0.0</Text>
       </ScrollView>
@@ -268,3 +133,4 @@ function ProfileScreen({ navigation }) {
 }
 
 export default ProfileScreen;
+

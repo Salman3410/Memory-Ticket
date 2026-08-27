@@ -1,15 +1,13 @@
-import React, { useEffect, useMemo, useState } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  ScrollView,
-  TextInput,
-} from "react-native";
+import { useEffect, useMemo, useState } from "react";
+import { View, Text, ScrollView, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-
 import { useMemory } from "../../hooks/useMemory";
-import MemoryTicket from "../../components/MemoryTicket/MemoryTicket";
+
+import SearchBar from "../../components/Memories/SearchBar/SearchBar";
+import CollectionStats from "../../components/Memories/CollectionStats/CollectionStats";
+import MemoryFilters from "../../components/Memories/MemoryFilters/MemoryFilters";
+import EmptyMemoryState from "../../components/Memories/EmptyMemoryState/EmptyMemoryState";
+import MemoryTicketList from "../../components/Memories/MemoryTicketList/MemoryTicketList";
 
 import styles from "./memoriesStyles";
 
@@ -19,11 +17,6 @@ function MemoriesScreen({ navigation, route }) {
   const [filter, setFilter] = useState("all");
   const [sortOrder, setSortOrder] = useState("newest");
   const [showSortMenu, setShowSortMenu] = useState(false);
-
-  // --------------------------------------------------
-  // SEARCH
-  // --------------------------------------------------
-
   const [searchQuery, setSearchQuery] = useState("");
 
   // --------------------------------------------------
@@ -60,6 +53,7 @@ function MemoriesScreen({ navigation, route }) {
     let filtered = [...memories];
 
     // SEARCH
+
     const query = searchQuery.trim().toLowerCase();
 
     if (query) {
@@ -180,171 +174,27 @@ function MemoriesScreen({ navigation, route }) {
           </TouchableOpacity>
         </View>
 
-        {/* SEARCH BAR */}
+        {/* SEARCH */}
 
-        <View style={styles.searchContainer}>
-          <Ionicons name="search-outline" size={20} color="#707080" />
-
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search memories..."
-            placeholderTextColor="#9999A8"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            autoCapitalize="none"
-            autoCorrect={false}
-            returnKeyType="search"
-          />
-
-          {searchQuery.length > 0 && (
-            <TouchableOpacity
-              onPress={() => setSearchQuery("")}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="close-circle" size={20} color="#707080" />
-            </TouchableOpacity>
-          )}
-        </View>
+        <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
 
         {/* COLLECTION STATS */}
 
-        <View style={styles.collectionCard}>
-          <View style={styles.collectionIcon}>
-            <Ionicons name="ticket-outline" size={25} color="#FFFFFF" />
-          </View>
-
-          <View style={styles.collectionInfo}>
-            <Text style={styles.collectionNumber}>{memories.length}</Text>
-
-            <Text style={styles.collectionLabel}>MEMORY TICKETS</Text>
-          </View>
-
-          <View style={styles.favoriteStat}>
-            <Ionicons name="heart" size={16} color="#E76F51" />
-
-            <Text style={styles.favoriteStatNumber}>{favoriteCount}</Text>
-          </View>
-
-          <View style={styles.collectionDecor}>
-            <View style={styles.decorCircleOne} />
-
-            <View style={styles.decorCircleTwo} />
-          </View>
-        </View>
+        <CollectionStats
+          memoryCount={memories.length}
+          favoriteCount={favoriteCount}
+        />
 
         {/* FILTERS */}
 
-        <View style={styles.filterRow}>
-          <TouchableOpacity
-            style={
-              filter === "all" ? styles.filterButtonActive : styles.filterButton
-            }
-            onPress={() => setFilter("all")}
-            activeOpacity={0.8}
-          >
-            <Text
-              style={
-                filter === "all" ? styles.filterTextActive : styles.filterText
-              }
-            >
-              ALL
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={
-              filter === "favorites"
-                ? styles.filterButtonActive
-                : styles.filterButton
-            }
-            onPress={() => setFilter("favorites")}
-            activeOpacity={0.8}
-          >
-            <Text
-              style={
-                filter === "favorites"
-                  ? styles.filterTextActive
-                  : styles.filterText
-              }
-            >
-              FAVORITES
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={
-              filter === "recent"
-                ? styles.filterButtonActive
-                : styles.filterButton
-            }
-            onPress={() => setFilter("recent")}
-            activeOpacity={0.8}
-          >
-            <Text
-              style={
-                filter === "recent"
-                  ? styles.filterTextActive
-                  : styles.filterText
-              }
-            >
-              RECENT
-            </Text>
-          </TouchableOpacity>
-
-          {/* SORT */}
-
-          <TouchableOpacity
-            style={styles.sortButton}
-            onPress={() => setShowSortMenu((previous) => !previous)}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="swap-vertical" size={16} color="#707080" />
-
-            <Text style={styles.sortText}>SORT</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* SORT MENU */}
-
-        {showSortMenu && (
-          <View style={styles.sortMenu}>
-            <Text style={styles.sortMenuTitle}>SORT BY</Text>
-
-            <TouchableOpacity
-              style={styles.sortOption}
-              onPress={() => {
-                setSortOrder("newest");
-                setShowSortMenu(false);
-              }}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="arrow-down" size={16} color="#34345C" />
-
-              <Text style={styles.sortOptionText}>NEWEST FIRST</Text>
-
-              {sortOrder === "newest" && (
-                <Ionicons name="checkmark" size={18} color="#E76F51" />
-              )}
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.sortOption}
-              onPress={() => {
-                setSortOrder("oldest");
-                setShowSortMenu(false);
-              }}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="arrow-up" size={16} color="#34345C" />
-
-              <Text style={styles.sortOptionText}>OLDEST FIRST</Text>
-
-              {sortOrder === "oldest" && (
-                <Ionicons name="checkmark" size={18} color="#E76F51" />
-              )}
-            </TouchableOpacity>
-          </View>
-        )}
+        <MemoryFilters
+          filter={filter}
+          setFilter={setFilter}
+          sortOrder={sortOrder}
+          setSortOrder={setSortOrder}
+          showSortMenu={showSortMenu}
+          setShowSortMenu={setShowSortMenu}
+        />
 
         {/* CURRENT VIEW */}
 
@@ -357,102 +207,30 @@ function MemoriesScreen({ navigation, route }) {
           </Text>
         </View>
 
-        {/* LOADING */}
+        {/* CONTENT */}
 
         {loading ? (
-          <View style={styles.emptyState}>
+          <View style={styles.loadingState}>
             <Ionicons name="hourglass-outline" size={30} color="#34345C" />
 
-            <Text style={styles.emptyTitle}>Loading memories...</Text>
+            <Text style={styles.loadingTitle}>Loading memories...</Text>
           </View>
         ) : displayedMemories.length === 0 ? (
-          /* EMPTY STATE */
-
-          <View style={styles.emptyState}>
-            <View style={styles.emptyTicket}>
-              <View style={styles.emptyTicketTop}>
-                <Ionicons
-                  name={
-                    filter === "favorites" ? "heart-outline" : "ticket-outline"
-                  }
-                  size={28}
-                  color="#34345C"
-                />
-              </View>
-
-              <View style={styles.emptyTicketLine} />
-
-              <View style={styles.emptyTicketBody}>
-                <View style={styles.emptyTicketTextLine} />
-
-                <View style={styles.emptyTicketTextLineShort} />
-              </View>
-            </View>
-
-            <Text style={styles.emptyTitle}>
-              {searchQuery.trim()
-                ? "No memories found"
-                : filter === "favorites"
-                  ? "No favorite memories"
-                  : filter === "recent"
-                    ? "No recent memories"
-                    : "Your collection is empty"}
-            </Text>
-
-            <Text style={styles.emptyDescription}>
-              {searchQuery.trim()
-                ? `No memories match "${searchQuery.trim()}".`
-                : filter === "favorites"
-                  ? "Tap the heart on a memory to add it to your favorites."
-                  : filter === "recent"
-                    ? "Memories created within the last 30 days will appear here."
-                    : "Every great collection starts with one memory. Capture yours and turn it into a ticket."}
-            </Text>
-
-            {filter === "all" && !searchQuery.trim() && (
-              <TouchableOpacity
-                style={styles.createButton}
-                onPress={() => navigation.navigate("Create")}
-                activeOpacity={0.85}
-              >
-                <Ionicons name="camera-outline" size={19} color="#FFFFFF" />
-
-                <Text style={styles.createButtonText}>CREATE FIRST MEMORY</Text>
-              </TouchableOpacity>
-            )}
-          </View>
+          <EmptyMemoryState
+            filter={filter}
+            searchQuery={searchQuery}
+            onCreateMemory={() => navigation.navigate("Create")}
+          />
         ) : (
-          /* MEMORY TICKETS */
-
-          <View style={styles.memoriesList}>
-            {displayedMemories.map((memory) => (
-              <View key={memory.id} style={styles.memoryTicketWrapper}>
-                <MemoryTicket
-                  memory={memory}
-                  compact={true}
-                  onPress={() =>
-                    navigation.navigate("MemoryDetails", {
-                      memoryId: memory.id,
-                    })
-                  }
-                />
-
-                {/* FAVORITE BUTTON */}
-
-                <TouchableOpacity
-                  style={styles.ticketFavoriteButton}
-                  onPress={() => toggleFavorite(memory)}
-                  activeOpacity={0.8}
-                >
-                  <Ionicons
-                    name={memory.favorite ? "heart" : "heart-outline"}
-                    size={20}
-                    color={memory.favorite ? "#E76F51" : "#34345C"}
-                  />
-                </TouchableOpacity>
-              </View>
-            ))}
-          </View>
+          <MemoryTicketList
+            memories={displayedMemories}
+            onMemoryPress={(memoryId) =>
+              navigation.navigate("MemoryDetails", {
+                memoryId,
+              })
+            }
+            onToggleFavorite={toggleFavorite}
+          />
         )}
 
         {/* FOOTER */}

@@ -269,3 +269,4 @@ function MemoryTicket({ memory, onPress, compact = false }) {
 }
 
 export default MemoryTicket;
+ 

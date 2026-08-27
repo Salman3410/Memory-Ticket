@@ -4,11 +4,11 @@ import * as ImagePicker from "expo-image-picker";
 import { useMemory } from "../../hooks/useMemory";
 import styles from "./editMemoryStyles";
 
-import EditMemoryHeader from "../../components/EditMemoryHeader/EditMemoryHeader";
-import EditMemoryPhotos from "../../components/EditMemoryPhotos/EditMemoryPhotos";
-import EditMemoryDetails from "../../components/EditMemoryDetails/EditMemoryDetails";
-import EditMemoryActions from "../../components/EditMemoryActions/EditMemoryActions";
-import EditMemoryNotFound from "../../components/EditMemoryNotFound/EditMemoryNotFound";
+import EditMemoryHeader from "../../components/EditScreen/EditMemoryHeader/EditMemoryHeader";
+import EditMemoryPhotos from "../../components/EditScreen/EditMemoryPhotos/EditMemoryPhotos";
+import EditMemoryDetails from "../../components/EditScreen/EditMemoryDetails/EditMemoryDetails";
+import EditMemoryActions from "../../components/EditScreen/EditMemoryActions/EditMemoryActions";
+import EditMemoryNotFound from "../../components/EditScreen/EditMemoryNotFound/EditMemoryNotFound";
 
 function EditMemoryScreen({ navigation, route }) {
   const { getMemoryById, updateMemory } = useMemory();
