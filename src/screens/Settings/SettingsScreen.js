@@ -1,18 +1,19 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   View,
   Text,
   ScrollView,
-  TouchableOpacity,
-  Switch,
   Alert,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { File } from "expo-file-system";
-
 import { useMemory } from "../../hooks/useMemory";
 import { useAuth } from "../../hooks/useAuth";
+import SettingsHeader from "./components/SettingsHeader";
+import PreferenceRow from "./components/PreferenceRow";
+import StorageSection from "./components/StorageSection";
+import AppearanceSection from "./components/AppearanceSection";
+import AccountSection from "./components/AccountSection";
 
 import styles from "./settingsStyles";
 
@@ -22,7 +23,6 @@ function SettingsScreen({ navigation }) {
 
   const [notifications, setNotifications] = useState(true);
   const [loading, setLoading] = useState(true);
-
   const [storageSize, setStorageSize] = useState(0);
   const [storageLoading, setStorageLoading] = useState(true);
 
@@ -49,22 +49,30 @@ function SettingsScreen({ navigation }) {
       let totalBytes = 0;
 
       for (const memory of memories) {
-        if (!memory.image) {
-          continue;
-        }
+        const memoryImages = Array.isArray(memory.images)
+          ? memory.images
+          : memory.image
+            ? [memory.image]
+            : [];
 
-        try {
-          const file = new File(memory.image);
-
-          const info = file.info();
-
-          if (info.exists && info.size) {
-            totalBytes += info.size;
+        for (const imageUri of memoryImages) {
+          if (!imageUri) {
+            continue;
           }
-        } catch (error) {
-          // Some image URIs may no longer exist.
-          // Ignore them instead of breaking the whole calculation.
-          console.log("Unable to calculate image size:", error);
+
+          try {
+            const file = new File(imageUri);
+            const info = file.info();
+
+            if (info.exists && info.size) {
+              totalBytes += info.size;
+            }
+          } catch (error) {
+            console.log(
+              "Unable to calculate image size:",
+              error
+            );
+          }
         }
       }
 
@@ -98,9 +106,8 @@ function SettingsScreen({ navigation }) {
 
   const loadSettings = async () => {
     try {
-      const savedNotifications = await AsyncStorage.getItem(
-        "notificationsEnabled",
-      );
+      const savedNotifications =
+        await AsyncStorage.getItem("notificationsEnabled");
 
       if (savedNotifications !== null) {
         setNotifications(savedNotifications === "true");
@@ -120,9 +127,15 @@ function SettingsScreen({ navigation }) {
     try {
       setNotifications(value);
 
-      await AsyncStorage.setItem("notificationsEnabled", value.toString());
+      await AsyncStorage.setItem(
+        "notificationsEnabled",
+        value.toString()
+      );
     } catch (error) {
-      console.log("Save notification setting error:", error);
+      console.log(
+        "Save notification setting error:",
+        error
+      );
     }
   };
 
@@ -132,20 +145,30 @@ function SettingsScreen({ navigation }) {
 
   const deleteMemoryImages = async () => {
     for (const memory of memories) {
-      if (!memory.image) {
-        continue;
-      }
+      const memoryImages = Array.isArray(memory.images)
+        ? memory.images
+        : memory.image
+          ? [memory.image]
+          : [];
 
-      try {
-        const file = new File(memory.image);
-
-        const info = file.info();
-
-        if (info.exists) {
-          file.delete();
+      for (const imageUri of memoryImages) {
+        if (!imageUri) {
+          continue;
         }
-      } catch (error) {
-        console.log("Unable to delete memory image:", error);
+
+        try {
+          const file = new File(imageUri);
+          const info = file.info();
+
+          if (info.exists) {
+            file.delete();
+          }
+        } catch (error) {
+          console.log(
+            "Unable to delete memory image:",
+            error
+          );
+        }
       }
     }
   };
@@ -156,7 +179,10 @@ function SettingsScreen({ navigation }) {
 
   const handleClearStorage = () => {
     if (memories.length === 0) {
-      Alert.alert("Memory Storage", "There are no memories to clear.");
+      Alert.alert(
+        "Memory Storage",
+        "There are no memories to clear."
+      );
 
       return;
     }
@@ -187,19 +213,22 @@ function SettingsScreen({ navigation }) {
 
               Alert.alert(
                 "Storage Cleared",
-                "All memory tickets and their photos have been removed.",
+                "All memory tickets and their photos have been removed."
               );
             } catch (error) {
-              console.log("Clear storage error:", error);
+              console.log(
+                "Clear storage error:",
+                error
+              );
 
               Alert.alert(
                 "Error",
-                "Unable to completely clear memory storage.",
+                "Unable to completely clear memory storage."
               );
             }
           },
         },
-      ],
+      ]
     );
   };
 
@@ -232,11 +261,14 @@ function SettingsScreen({ navigation }) {
 
               logout();
             } catch (error) {
-              console.log("Delete account error:", error);
+              console.log(
+                "Delete account error:",
+                error
+              );
             }
           },
         },
-      ],
+      ]
     );
   };
 
@@ -246,252 +278,40 @@ function SettingsScreen({ navigation }) {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* --------------------------------------------------
-            HEADER
-        -------------------------------------------------- */}
+        <SettingsHeader navigation={navigation} />
 
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="arrow-back" size={21} color="#34345C" />
-          </TouchableOpacity>
+        <Text style={styles.sectionTitle}>
+          PREFERENCES
+        </Text>
 
-          <View style={styles.headerText}>
-            <Text style={styles.headerEyebrow}>APP PREFERENCES</Text>
+        <PreferenceRow
+          notifications={notifications}
+          loading={loading}
+          onNotificationsChange={handleNotifications}
+        />
 
-            <Text style={styles.headerTitle}>Settings</Text>
-          </View>
-        </View>
+        <StorageSection
+          memories={memories}
+          storageSize={storageSize}
+          storageLoading={storageLoading}
+          formatStorageSize={formatStorageSize}
+          onClearStorage={handleClearStorage}
+        />
 
-        {/* --------------------------------------------------
-            PREFERENCES
-        -------------------------------------------------- */}
+        <AppearanceSection />
 
-        <Text style={styles.sectionTitle}>PREFERENCES</Text>
+        <AccountSection
+          navigation={navigation}
+          onDeleteAccount={handleDeleteAccount}
+        />
 
-        <View style={styles.card}>
-          <View style={styles.row}>
-            <View style={styles.iconBox}>
-              <Ionicons
-                name="notifications-outline"
-                size={20}
-                color="#34345C"
-              />
-            </View>
-
-            <View style={styles.rowContent}>
-              <Text style={styles.rowTitle}>Notifications</Text>
-
-              <Text style={styles.rowSubtitle}>
-                Get reminders about your memories
-              </Text>
-            </View>
-
-            {!loading && (
-              <Switch
-                value={notifications}
-                onValueChange={handleNotifications}
-                trackColor={{
-                  false: "#D9D8E2",
-                  true: "#E7A18F",
-                }}
-                thumbColor={notifications ? "#E76F51" : "#FFFFFF"}
-              />
-            )}
-          </View>
-        </View>
-
-        {/* --------------------------------------------------
-    STORAGE
--------------------------------------------------- */}
-
-        <Text style={styles.sectionTitle}>STORAGE</Text>
-
-        <View style={styles.card}>
-          <View style={styles.storageContainer}>
-            {/* HEADER */}
-
-            <View style={styles.storageHeader}>
-              <View style={styles.iconBox}>
-                <Ionicons name="images-outline" size={20} color="#34345C" />
-              </View>
-
-              <View style={styles.rowContent}>
-                <Text style={styles.rowTitle}>Memory Storage</Text>
-
-                <Text style={styles.rowSubtitle}>
-                  Your memories and photos are stored locally on this device.
-                </Text>
-              </View>
-            </View>
-
-            {/* MEMORY COUNT */}
-
-            <View style={styles.storageInfo}>
-              <Ionicons name="ticket-outline" size={15} color="#E76F51" />
-
-              <Text style={styles.storageCount}>
-                {memories.length}{" "}
-                {memories.length === 1 ? "memory ticket" : "memory tickets"}
-              </Text>
-            </View>
-
-            {/* STORAGE SIZE */}
-
-            <View style={styles.storageInfo}>
-              <Ionicons name="folder-outline" size={15} color="#E76F51" />
-
-              <Text style={styles.storageCount}>
-                {storageLoading
-                  ? "Calculating..."
-                  : `${formatStorageSize(storageSize)} used`}
-              </Text>
-            </View>
-
-            {/* STORAGE DETAILS */}
-
-            <View style={styles.storageDetails}>
-              <View style={styles.storageUsageRow}>
-                <Text style={styles.storageUsageLabel}>LOCAL STORAGE</Text>
-
-                <Text style={styles.storageUsageValue}>
-                  {storageLoading ? "..." : formatStorageSize(storageSize)}
-                </Text>
-              </View>
-
-              <View style={styles.storageBreakdown}>
-                <View style={styles.storageBreakdownRow}>
-                  <Text style={styles.storageBreakdownLabel}>
-                    Memory photos
-                  </Text>
-
-                  <Text style={styles.storageBreakdownValue}>
-                    {storageLoading ? "..." : formatStorageSize(storageSize)}
-                  </Text>
-                </View>
-
-                <View style={styles.storageBreakdownRow}>
-                  <Text style={styles.storageBreakdownLabel}>
-                    Memory records
-                  </Text>
-
-                  <Text style={styles.storageBreakdownValue}>
-                    {memories.length}{" "}
-                    {memories.length === 1 ? "ticket" : "tickets"}
-                  </Text>
-                </View>
-              </View>
-            </View>
-
-            {/* CLEAR STORAGE */}
-
-            <TouchableOpacity
-              style={styles.clearStorageButton}
-              onPress={handleClearStorage}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="trash-outline" size={16} color="#D9534F" />
-
-              <Text style={styles.clearStorageText}>CLEAR MEMORY STORAGE</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* --------------------------------------------------
-            APPEARANCE
-        -------------------------------------------------- */}
-
-        <Text style={styles.sectionTitle}>APPEARANCE</Text>
-
-        <View style={styles.card}>
-          <View style={styles.row}>
-            <View style={styles.iconBox}>
-              <Ionicons
-                name="color-palette-outline"
-                size={20}
-                color="#34345C"
-              />
-            </View>
-
-            <View style={styles.rowContent}>
-              <Text style={styles.rowTitle}>Memory Ticket Theme</Text>
-
-              <Text style={styles.rowSubtitle}>
-                Minimal, nostalgic and personal.
-              </Text>
-            </View>
-
-            <Text style={styles.themeText}>DEFAULT</Text>
-          </View>
-        </View>
-
-        {/* --------------------------------------------------
-            ACCOUNT
-        -------------------------------------------------- */}
-
-        <Text style={styles.sectionTitle}>ACCOUNT</Text>
-
-        <View style={styles.card}>
-          {/* CHANGE PASSWORD */}
-
-          <TouchableOpacity
-            style={styles.accountRow}
-            onPress={() => navigation.navigate("ChangePassword")}
-            activeOpacity={0.7}
-          >
-            <View style={[styles.iconBox, styles.passwordIconBox]}>
-              <Ionicons name="lock-closed-outline" size={20} color="#34345C" />
-            </View>
-
-            <View style={styles.rowContent}>
-              <Text style={styles.rowTitle}>Change Password</Text>
-
-              <Text style={styles.rowSubtitle}>
-                Update your account password
-              </Text>
-            </View>
-
-            <Ionicons name="chevron-forward" size={18} color="#A4A3AE" />
-          </TouchableOpacity>
-
-          <View style={styles.accountDivider} />
-
-          {/* DELETE ACCOUNT */}
-
-          <TouchableOpacity
-            style={styles.accountRow}
-            onPress={handleDeleteAccount}
-            activeOpacity={0.7}
-          >
-            <View style={[styles.iconBox, styles.deleteIconBox]}>
-              <Ionicons name="trash-outline" size={20} color="#D9534F" />
-            </View>
-
-            <View style={styles.rowContent}>
-              <Text style={[styles.rowTitle, styles.deleteTitle]}>
-                Delete Account
-              </Text>
-
-              <Text style={styles.rowSubtitle}>
-                Permanently delete your account and memories
-              </Text>
-            </View>
-
-            <Ionicons name="chevron-forward" size={18} color="#A4A3AE" />
-          </TouchableOpacity>
-        </View>
-
-        {/* --------------------------------------------------
-            FOOTER
-        -------------------------------------------------- */}
-
-        <Text style={styles.footerText}>MEMORY TICKET • VERSION 1.0.0</Text>
+        <Text style={styles.footerText}>
+          MEMORY TICKET • VERSION 1.0.0
+        </Text>
       </ScrollView>
     </View>
   );
 }
 
 export default SettingsScreen;
+
