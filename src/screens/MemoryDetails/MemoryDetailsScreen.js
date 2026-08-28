@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import { useRef, useState } from "react";
 
 import {
   View,
@@ -552,16 +552,6 @@ function MemoryDetailsScreen({ navigation, route }) {
                 </View>
               )}
 
-              {/* COUNTER */}
-
-              {/* {images.length > 1 && (
-                <View style={styles.imageCounter}>
-                  <Text style={styles.imageCounterText}>
-                    {index + 1}/{images.length}
-                  </Text>
-                </View>
-              )} */}
-
               {/* DOTS */}
 
               {images.length > 1 && (
@@ -822,7 +812,7 @@ function MemoryDetailsScreen({ navigation, route }) {
             : renderTicket(null, 0)}
         </ScrollView>
 
-        {/* SWIPE HINT */}
+        
 
         {images.length > 1 && (
           <View style={styles.swipeHint}>
