@@ -1,22 +1,82 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
 import { View, Text, FlatList, Alert } from "react-native";
+
 import * as ImagePicker from "expo-image-picker";
+
+import * as FileSystem from "expo-file-system/legacy";
+
 import CreateMemoryHeader from "./components/CreateMemoryHeader";
+
 import PhotoSection from "./components/PhotoSection";
+
 import MemoryForm from "./components/MemoryForm";
+
 import DescriptionInput from "./components/DescriptionInput";
+
 import PreviewButton from "./components/PreviewButton";
+
 import styles from "./createMemoryStyles";
 
 const MAX_IMAGES = 5;
 
-function CreateMemoryScreen({ navigation }) {
+function CreateMemoryScreen({ navigation, route }) {
   const [images, setImages] = useState([]);
   const [activeImage, setActiveImage] = useState(0);
-
   const [title, setTitle] = useState("");
   const [location, setLocation] = useState("");
   const [description, setDescription] = useState("");
+
+  // --------------------------------------------------
+  // LOAD EDIT MEMORY / DRAFT
+  // --------------------------------------------------
+
+  useEffect(() => {
+    const editMemory = route?.params?.editMemory;
+
+    if (!editMemory) {
+      return;
+    }
+
+    const existingImages = Array.isArray(editMemory.images)
+      ? editMemory.images
+      : editMemory.image
+        ? [editMemory.image]
+        : [];
+
+    setImages(existingImages.slice(0, MAX_IMAGES));
+    setActiveImage(0);
+    setTitle(editMemory.title || "");
+    setLocation(editMemory.location || "");
+    setDescription(editMemory.description || "");
+
+    // Clear navigation params after loading the memory.
+    // This prevents the old draft from being loaded again.
+    navigation.setParams({
+      editMemory: undefined,
+    });
+  }, [route?.params?.editMemory]);
+
+  // --------------------------------------------------
+  // SAVE IMAGE PERMANENTLY
+  // --------------------------------------------------
+
+  const saveImagePermanently = async (uri) => {
+    const extension = uri?.split(".").pop()?.split("?")[0] || "jpg";
+
+    const filename = `memory-${Date.now()}-${Math.random()
+      .toString(36)
+      .substring(2, 8)}.${extension}`;
+
+    const permanentUri = `${FileSystem.documentDirectory}${filename}`;
+
+    await FileSystem.copyAsync({
+      from: uri,
+      to: permanentUri,
+    });
+
+    return permanentUri;
+  };
 
   // --------------------------------------------------
   // ADD IMAGES FROM GALLERY
@@ -55,9 +115,21 @@ function CreateMemoryScreen({ navigation }) {
         return;
       }
 
-      const newImages = result.assets
-        .map((asset) => asset?.uri)
-        .filter(Boolean);
+      // ------------------------------------------
+      // COPY SELECTED IMAGES TO PERMANENT STORAGE
+      // ------------------------------------------
+
+      const newImages = [];
+
+      for (const asset of result.assets) {
+        if (!asset?.uri) {
+          continue;
+        }
+
+        const permanentUri = await saveImagePermanently(asset.uri);
+
+        newImages.push(permanentUri);
+      }
 
       if (!newImages.length) {
         return;
@@ -118,6 +190,12 @@ function CreateMemoryScreen({ navigation }) {
         return;
       }
 
+      // ------------------------------------------
+      // COPY CAMERA IMAGE TO PERMANENT STORAGE
+      // ------------------------------------------
+
+      const permanentUri = await saveImagePermanently(uri);
+
       const newIndex = images.length;
 
       setImages((currentImages) => {
@@ -125,7 +203,7 @@ function CreateMemoryScreen({ navigation }) {
           return currentImages;
         }
 
-        return [...currentImages, uri];
+        return [...currentImages, permanentUri];
       });
 
       setActiveImage(newIndex);
@@ -191,7 +269,6 @@ function CreateMemoryScreen({ navigation }) {
   const resetForm = () => {
     setImages([]);
     setActiveImage(0);
-
     setTitle("");
     setLocation("");
     setDescription("");
@@ -224,6 +301,7 @@ function CreateMemoryScreen({ navigation }) {
       description: description.trim(),
 
       image: images[0] || null,
+
       images: [...images],
 
       date: new Date().toISOString(),
@@ -239,7 +317,7 @@ function CreateMemoryScreen({ navigation }) {
     // SEND DRAFT TO TICKET PREVIEW
     // ------------------------------------------
 
-    navigation.replace("TicketPreview", {
+    navigation.navigate("TicketPreview", {
       memory: draftMemory,
     });
   };

@@ -16,8 +16,15 @@ import { useMemory } from "../../hooks/useMemory";
 
 import styles from "./ticketPreviewStyles";
 
+import PreviewActions from "../../components/TicketPreview/PreviewActions";
+
+import PreviewIntro from "../../components/TicketPreview/PreviewIntro";
+
+import PreviewHeader from "../../components/TicketPreview/PreviewHeader";
+
+import PreviewFooter from "../../components/TicketPreview/PreviewFooter";
+
 function TicketPreviewScreen({ route, navigation }) {
-  
   const { addMemory } = useMemory();
 
   const { memory } = route.params || {};
@@ -138,16 +145,15 @@ function TicketPreviewScreen({ route, navigation }) {
     try {
       if (!images.length) {
         Alert.alert("No Photos", "This memory doesn't contain any photos.");
+
         return;
       }
 
-      // ------------------------------------------
-      // ACTUALLY SAVE TO MEMORY CONTEXT
-      // ------------------------------------------
-
       const savedMemory = await addMemory({
         title: memory.title || "",
+
         location: memory.location || "",
+
         description: memory.description || "",
 
         image: images[0],
@@ -160,10 +166,6 @@ function TicketPreviewScreen({ route, navigation }) {
       if (!savedMemory) {
         throw new Error("Memory was not created.");
       }
-
-      // ------------------------------------------
-      // GO TO MEMORIES
-      // ------------------------------------------
 
       navigation.navigate("MainTabs", {
         screen: "Memories",
@@ -370,39 +372,9 @@ function TicketPreviewScreen({ route, navigation }) {
         contentContainerStyle={styles.scrollContent}
         nestedScrollEnabled
       >
-        {/* HEADER */}
+        <PreviewHeader />
 
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() =>
-              navigation.navigate("MainTabs", {
-                screen: "Create",
-              })
-            }
-            activeOpacity={0.7}
-          >
-            <Ionicons name="arrow-back" size={21} color="#242424" />
-          </TouchableOpacity>
-
-          <View style={styles.headerTextContainer}>
-            <Text style={styles.headerEyebrow}>YOUR MEMORY</Text>
-
-            <Text style={styles.headerTitle}>Ticket Preview</Text>
-          </View>
-
-          <View style={styles.headerSpacer} />
-        </View>
-
-        {/* INTRO */}
-
-        <View style={styles.previewHeader}>
-          <Text style={styles.previewTitle}>Looks good?</Text>
-
-          <Text style={styles.previewSubtitle}>
-            This moment is ready to become a ticket.
-          </Text>
-        </View>
+        <PreviewIntro />
 
         {/* WHOLE TICKET HORIZONTAL CAROUSEL */}
 
@@ -428,8 +400,6 @@ function TicketPreviewScreen({ route, navigation }) {
             : renderTicket(null, 0)}
         </ScrollView>
 
-        {/* SWIPE HINT */}
-
         {images.length > 1 && (
           <View style={styles.swipeHint}>
             <Ionicons
@@ -442,31 +412,19 @@ function TicketPreviewScreen({ route, navigation }) {
           </View>
         )}
 
-        {/* ACTIONS */}
+        <PreviewActions
+          onSave={handleSave}
+          onEdit={() => {
+            navigation.navigate("MainTabs", {
+              screen: "Create",
+              params: {
+                editMemory: memory,
+              },
+            });
+          }}
+        />
 
-        <View style={styles.actionsContainer}>
-          <TouchableOpacity
-            style={styles.saveButton}
-            onPress={handleSave}
-            activeOpacity={0.85}
-          >
-            <Ionicons name="bookmark-outline" size={20} color="#FFFFFF" />
-
-            <Text style={styles.saveButtonText}>SAVE MEMORY</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.editButton}
-            onPress={() => navigation.goBack()}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="create-outline" size={19} color="#34345C" />
-
-            <Text style={styles.editButtonText}>EDIT</Text>
-          </TouchableOpacity>
-        </View>
-
-        <Text style={styles.footerText}>Every moment deserves a ticket.</Text>
+        <PreviewFooter />
       </ScrollView>
     </View>
   );
