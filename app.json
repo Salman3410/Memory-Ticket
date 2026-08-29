@@ -14,7 +14,10 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.salera.memoryticket"
+      "bundleIdentifier": "com.salera.memoryticket",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -24,8 +27,16 @@
       "edgeToEdgeEnabled": true,
       "package": "com.salera.memoryticket",
       "config": {
-        "abiFilters": ["armeabi-v7a", "arm64-v8a", "x86", "x86_64"]
-      }
+        "abiFilters": [
+          "armeabi-v7a",
+          "arm64-v8a",
+          "x86",
+          "x86_64"
+        ]
+      },
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "plugins": [
       "expo-secure-store",
