@@ -14,53 +14,63 @@ import {
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
+
 import { captureRef } from "react-native-view-shot";
 import * as Sharing from "expo-sharing";
 import * as Print from "expo-print";
 import * as FileSystem from "expo-file-system/legacy";
+import * as MediaLibrary from "expo-media-library";
 
 import { useMemory } from "../../hooks/useMemory";
 
-// Reusable Memory Ticket
 import MemoryTicket from "../../components/MemoryTicket/MemoryTicket";
+
+import ShareExportSheet from "../../components/ShareExportSheet/ShareExportSheet";
 
 import styles from "./memoryDetailsStyles";
 
 function MemoryDetailsScreen({ navigation, route }) {
   const { getMemoryById, deleteMemory, updateMemory } = useMemory();
 
-  const { width: screenWidth, height: screenHeight } =
-    useWindowDimensions();
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
 
   const memoryId = route?.params?.memoryId;
+
+  // ==========================================================
+  // GENERAL
+  // ==========================================================
 
   const [activeImage, setActiveImage] = useState(0);
 
   // ==========================================================
-  // FULL IMAGE VIEWER
+  // IMAGE VIEWER
   // ==========================================================
 
-  const [imageViewerVisible, setImageViewerVisible] =
-    useState(false);
+  const [imageViewerVisible, setImageViewerVisible] = useState(false);
 
   const [viewerImage, setViewerImage] = useState(0);
 
   // ==========================================================
-  // SHARE
+  // SHARE / EXPORT
   // ==========================================================
 
-  const [shareVisible, setShareVisible] = useState(false);
+  const shareSheetRef = useRef(null);
+
   const [sharing, setSharing] = useState(false);
 
-  const shareTicketRef = useRef(null);
+  const [savingImage, setSavingImage] = useState(false);
 
   // ==========================================================
   // PDF
   // ==========================================================
 
   const [generatingPdf, setGeneratingPdf] = useState(false);
-  const [pdfOptionsVisible, setPdfOptionsVisible] =
-    useState(false);
+
+  const [pdfOptionsVisible, setPdfOptionsVisible] = useState(false);
+
+  // ==========================================================
+  // TICKET REFS
+  // ==========================================================
 
   const ticketRefs = useRef([]);
 
@@ -71,24 +81,16 @@ function MemoryDetailsScreen({ navigation, route }) {
   if (!memoryId) {
     return (
       <View style={styles.notFoundContainer}>
-        <Ionicons
-          name="sad-outline"
-          size={45}
-          color="#34345C"
-        />
+        <Ionicons name="sad-outline" size={45} color="#34345C" />
 
-        <Text style={styles.notFoundTitle}>
-          Memory not found
-        </Text>
+        <Text style={styles.notFoundTitle}>Memory not found</Text>
 
         <TouchableOpacity
           style={styles.backToMemoriesButton}
           onPress={() => navigation.goBack()}
           activeOpacity={0.8}
         >
-          <Text style={styles.backToMemoriesText}>
-            GO BACK
-          </Text>
+          <Text style={styles.backToMemoriesText}>GO BACK</Text>
         </TouchableOpacity>
       </View>
     );
@@ -99,24 +101,16 @@ function MemoryDetailsScreen({ navigation, route }) {
   if (!memory) {
     return (
       <View style={styles.notFoundContainer}>
-        <Ionicons
-          name="sad-outline"
-          size={45}
-          color="#34345C"
-        />
+        <Ionicons name="sad-outline" size={45} color="#34345C" />
 
-        <Text style={styles.notFoundTitle}>
-          Memory not found
-        </Text>
+        <Text style={styles.notFoundTitle}>Memory not found</Text>
 
         <TouchableOpacity
           style={styles.backToMemoriesButton}
           onPress={() => navigation.goBack()}
           activeOpacity={0.8}
         >
-          <Text style={styles.backToMemoriesText}>
-            GO BACK
-          </Text>
+          <Text style={styles.backToMemoriesText}>GO BACK</Text>
         </TouchableOpacity>
       </View>
     );
@@ -133,7 +127,7 @@ function MemoryDetailsScreen({ navigation, route }) {
       : [];
 
   // ==========================================================
-  // FULL IMAGE VIEWER
+  // IMAGE VIEWER
   // ==========================================================
 
   const openImageViewer = (index) => {
@@ -150,9 +144,7 @@ function MemoryDetailsScreen({ navigation, route }) {
   };
 
   const handleViewerScroll = (event) => {
-    const index = Math.round(
-      event.nativeEvent.contentOffset.x / screenWidth,
-    );
+    const index = Math.round(event.nativeEvent.contentOffset.x / screenWidth);
 
     setViewerImage(index);
     setActiveImage(index);
@@ -197,6 +189,7 @@ function MemoryDetailsScreen({ navigation, route }) {
           text: "CANCEL",
           style: "cancel",
         },
+
         {
           text: "DELETE",
           style: "destructive",
@@ -218,38 +211,53 @@ function MemoryDetailsScreen({ navigation, route }) {
   };
 
   // ==========================================================
-  // SHARE MEMORY
+  // OPEN SHARE BOTTOM SHEET
   // ==========================================================
 
-  const openSharePreview = () => {
-    setShareVisible(true);
+  const openShareSheet = () => {
+    shareSheetRef.current?.present();
   };
 
-  const closeSharePreview = () => {
-    if (sharing) {
-      return;
+  // ==========================================================
+  // CAPTURE CURRENT MEMORY TICKET
+  // ==========================================================
+
+  const captureCurrentTicket = async () => {
+    const safeIndex =
+      activeImage >= 0 && activeImage < images.length ? activeImage : 0;
+
+    const ticketRef = ticketRefs.current[safeIndex];
+
+    if (!ticketRef) {
+      throw new Error("Memory Ticket is still rendering.");
     }
 
-    setShareVisible(false);
+    return await captureRef(ticketRef, {
+      format: "png",
+      quality: 1,
+      result: "tmpfile",
+    });
   };
 
-  const handleShareTicket = async () => {
-    try {
-      if (!shareTicketRef.current) {
-        Alert.alert(
-          "Share Failed",
-          "The Memory Ticket is still rendering. Please try again.",
-        );
+  // ==========================================================
+  // MORE
+  //
+  // THIS OPENS THE NATIVE OS SHARE SHEET.
+  //
+  // NO CUSTOM SOCIAL POPUP.
+  // ==========================================================
 
+  const handleMore = async () => {
+    try {
+      if (sharing) {
         return;
       }
 
       setSharing(true);
 
-      const isAvailable =
-        await Sharing.isAvailableAsync();
+      const available = await Sharing.isAvailableAsync();
 
-      if (!isAvailable) {
+      if (!available) {
         Alert.alert(
           "Sharing unavailable",
           "Sharing is not available on this device.",
@@ -258,30 +266,83 @@ function MemoryDetailsScreen({ navigation, route }) {
         return;
       }
 
-      // Capture reusable MemoryTicket
-      const imageUri = await captureRef(
-        shareTicketRef.current,
-        {
-          format: "png",
-          quality: 1,
-          result: "tmpfile",
-        },
-      );
+      const imageUri = await captureCurrentTicket();
+
+      /*
+       * This is the important part.
+       *
+       * We give the native share system
+       * the ACTUAL Memory Ticket image.
+       *
+       * The OS decides which compatible apps
+       * are displayed:
+       *
+       * WhatsApp
+       * Instagram
+       * Facebook
+       * Messages
+       * Drive
+       * etc.
+       */
 
       await Sharing.shareAsync(imageUri, {
         mimeType: "image/png",
+
         dialogTitle: "Share Memory Ticket",
+
         UTI: "public.png",
       });
     } catch (error) {
-      console.log("Share ticket error:", error);
+      console.log("Share error:", error);
 
-      Alert.alert(
-        "Share Failed",
-        "Something went wrong while creating your Memory Ticket.",
-      );
+      Alert.alert("Share Failed", "Unable to share the Memory Ticket.");
     } finally {
       setSharing(false);
+    }
+  };
+
+  // ==========================================================
+  // SAVE IMAGE
+  // ==========================================================
+
+  const handleSaveImage = async () => {
+    try {
+      if (savingImage) {
+        return;
+      }
+
+      setSavingImage(true);
+
+      const permission = await MediaLibrary.requestPermissionsAsync();
+
+      if (!permission.granted) {
+        Alert.alert(
+          "Permission Required",
+          "Allow photo access so Memory Ticket can save the image to your device.",
+        );
+
+        return;
+      }
+
+      const imageUri = await captureCurrentTicket();
+
+      await MediaLibrary.saveToLibraryAsync(imageUri);
+
+      shareSheetRef.current?.close();
+
+      Alert.alert(
+        "Saved",
+        "Your Memory Ticket has been saved to your gallery.",
+      );
+    } catch (error) {
+      console.log("Save image error:", error);
+
+      Alert.alert(
+        "Save Failed",
+        "Something went wrong while saving your Memory Ticket.",
+      );
+    } finally {
+      setSavingImage(false);
     }
   };
 
@@ -290,10 +351,9 @@ function MemoryDetailsScreen({ navigation, route }) {
   // ==========================================================
 
   const imageToBase64 = async (uri) => {
-    const base64 =
-      await FileSystem.readAsStringAsync(uri, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
+    const base64 = await FileSystem.readAsStringAsync(uri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
 
     return `data:image/png;base64,${base64}`;
   };
@@ -312,89 +372,86 @@ function MemoryDetailsScreen({ navigation, route }) {
   };
 
   // ==========================================================
-  // STANDARD MEMORY TICKET BACK
+  // STANDARD PDF BACK
   // ==========================================================
 
   const createStandardBackPage = () => {
     return `
-      <section class="page back-page">
+        <section class="page back-page">
 
-        <div class="back-ticket">
+          <div class="back-ticket">
 
-          <div class="back-top-line"></div>
+            <div class="back-top-line"></div>
 
-          <div class="back-content">
+            <div class="back-content">
 
-            <div class="back-brand">
-              MEMORY TICKET
-            </div>
-
-            <div class="back-tagline">
-              KEEP THE MOMENT. KEEP THE STORY.
-            </div>
-
-            <div class="back-divider"></div>
-
-            <div class="back-title">
-              MEMORY ARCHIVE
-            </div>
-
-            <div class="back-description">
-              A small reminder that this moment
-              happened and is worth remembering.
-            </div>
-
-            <div class="back-divider"></div>
-
-            <div class="back-info">
-
-              <div>
-                <div class="back-label">
-                  TICKET
-                </div>
-
-                <div class="back-value">
-                  #${escapeHtml(getTicketNumber())}
-                </div>
-              </div>
-
-              <div>
-                <div class="back-label">
-                  MEMORY
-                </div>
-
-                <div class="back-value">
-                  ${escapeHtml(
-                    memory?.title ||
-                      "UNTITLED MEMORY",
-                  )}
-                </div>
-              </div>
-
-            </div>
-
-            <div class="back-spacer"></div>
-
-            <div class="back-footer">
-
-              <div class="back-small">
+              <div class="back-brand">
                 MEMORY TICKET
               </div>
 
-              <div class="back-small">
-                THE POWER OF THE MOMENT
+              <div class="back-tagline">
+                KEEP THE MOMENT. KEEP THE STORY.
+              </div>
+
+              <div class="back-divider"></div>
+
+              <div class="back-title">
+                MEMORY ARCHIVE
+              </div>
+
+              <div class="back-description">
+                A small reminder that this moment
+                happened and is worth remembering.
+              </div>
+
+              <div class="back-divider"></div>
+
+              <div class="back-info">
+
+                <div>
+                  <div class="back-label">
+                    TICKET
+                  </div>
+
+                  <div class="back-value">
+                    #${escapeHtml(getTicketNumber())}
+                  </div>
+                </div>
+
+                <div>
+                  <div class="back-label">
+                    MEMORY
+                  </div>
+
+                  <div class="back-value">
+                    ${escapeHtml(memory?.title || "UNTITLED MEMORY")}
+                  </div>
+                </div>
+
+              </div>
+
+              <div class="back-spacer"></div>
+
+              <div class="back-footer">
+
+                <div class="back-small">
+                  MEMORY TICKET
+                </div>
+
+                <div class="back-small">
+                  THE POWER OF THE MOMENT
+                </div>
+
               </div>
 
             </div>
 
+            <div class="back-bottom-line"></div>
+
           </div>
 
-          <div class="back-bottom-line"></div>
-
-        </div>
-
-      </section>
-    `;
+        </section>
+      `;
   };
 
   // ==========================================================
@@ -408,6 +465,7 @@ function MemoryDetailsScreen({ navigation, route }) {
       }
 
       setPdfOptionsVisible(false);
+
       setGeneratingPdf(true);
 
       if (!images.length) {
@@ -419,15 +477,10 @@ function MemoryDetailsScreen({ navigation, route }) {
         return;
       }
 
-      // Current selected image
       const selectedImageIndex =
-        activeImage >= 0 &&
-        activeImage < images.length
-          ? activeImage
-          : 0;
+        activeImage >= 0 && activeImage < images.length ? activeImage : 0;
 
-      const ticketRef =
-        ticketRefs.current[selectedImageIndex];
+      const ticketRef = ticketRefs.current[selectedImageIndex];
 
       if (!ticketRef) {
         Alert.alert(
@@ -438,320 +491,331 @@ function MemoryDetailsScreen({ navigation, route }) {
         return;
       }
 
-      // Capture front
-      const ticketUri = await captureRef(
-        ticketRef,
-        {
-          format: "png",
-          quality: 1,
-          result: "tmpfile",
-        },
-      );
+      const ticketUri = await captureRef(ticketRef, {
+        format: "png",
+        quality: 1,
+        result: "tmpfile",
+      });
 
-      const ticketImage =
-        await imageToBase64(ticketUri);
+      const ticketImage = await imageToBase64(ticketUri);
 
-      // Page 1
       const frontPage = `
-        <section class="page">
+          <section class="page">
 
-          <img
-            class="ticket"
-            src="${ticketImage}"
-            alt="Memory Ticket Front"
-          />
+            <img
+              class="ticket"
+              src="${ticketImage}"
+              alt="Memory Ticket Front"
+            />
 
-        </section>
-      `;
+          </section>
+        `;
 
-      // Page 2
       let backPage = "";
 
       if (backType === "blank") {
         backPage = `
-          <section class="page blank-back-page">
-            <div class="blank-yellow"></div>
-          </section>
-        `;
+            <section class="page blank-back-page">
+
+              <div class="blank-yellow"></div>
+
+            </section>
+          `;
       }
 
       if (backType === "standard") {
         backPage = createStandardBackPage();
       }
 
-      // Complete HTML
       const html = `
-        <!DOCTYPE html>
+          <!DOCTYPE html>
 
-        <html>
+          <html>
 
-        <head>
+          <head>
 
-          <meta
-            name="viewport"
-            content="width=device-width, initial-scale=1.0"
-          />
+            <meta
+              name="viewport"
+              content="width=device-width, initial-scale=1.0"
+            />
 
-          <style>
+            <style>
 
-            @page {
-              size: A4 portrait;
-              margin: 0;
-            }
+              @page {
+                size: A4 portrait;
+                margin: 0;
+              }
 
-            * {
-              box-sizing: border-box;
-            }
+              * {
+                box-sizing: border-box;
+              }
 
-            html,
-            body {
-              margin: 0;
-              padding: 0;
-              width: 210mm;
-              background: #FFFFFF;
-            }
+              html,
+              body {
+                margin: 0;
+                padding: 0;
+                width: 210mm;
+                background: #FFFFFF;
+              }
 
-            body {
-              font-family:
-                Arial,
-                Helvetica,
-                sans-serif;
-            }
+              body {
+                font-family:
+                  Arial,
+                  Helvetica,
+                  sans-serif;
+              }
 
-            .page {
-              position: relative;
-              width: 210mm;
-              height: 297mm;
+              .page {
+                position: relative;
 
-              display: flex;
-              align-items: center;
-              justify-content: center;
+                width: 210mm;
+                height: 297mm;
 
-              page-break-after: always;
+                display: flex;
 
-              overflow: hidden;
+                align-items: center;
+                justify-content: center;
 
-              margin: 0;
-              padding: 0;
-            }
+                page-break-after:
+                  always;
 
-            .page:last-child {
-              page-break-after: auto;
-            }
+                overflow: hidden;
 
-            .ticket {
-              display: block;
+                margin: 0;
+                padding: 0;
+              }
 
-              width: 115mm;
+              .page:last-child {
+                page-break-after:
+                  auto;
+              }
 
-              height: auto;
+              .ticket {
+                display: block;
 
-              max-width: 115mm;
-              max-height: 270mm;
+                width: 115mm;
 
-              object-fit: contain;
+                height: auto;
 
-              margin: 0;
-              padding: 0;
+                max-width: 115mm;
+                max-height: 270mm;
 
-              border: 0;
-            }
+                object-fit: contain;
 
-            .blank-back-page {
-              background: #F5C842;
-            }
+                margin: 0;
+                padding: 0;
 
-            .blank-yellow {
-              position: absolute;
+                border: 0;
+              }
 
-              top: 0;
-              left: 0;
+              .blank-back-page {
+                background: #F5C842;
+              }
 
-              width: 210mm;
-              height: 297mm;
+              .blank-yellow {
+                position: absolute;
 
-              background: #F5C842;
-            }
+                top: 0;
+                left: 0;
 
-            .back-page {
-              background: #F5C842;
-            }
+                width: 210mm;
+                height: 297mm;
 
-            .back-ticket {
-              position: relative;
+                background: #F5C842;
+              }
 
-              width: 115mm;
-              height: 270mm;
+              .back-page {
+                background: #F5C842;
+              }
 
-              background: #F5C842;
+              .back-ticket {
+                position: relative;
 
-              border-radius: 6px;
+                width: 115mm;
+                height: 270mm;
 
-              overflow: hidden;
+                background: #F5C842;
 
-              display: flex;
-              flex-direction: column;
+                border-radius: 6px;
 
-              padding: 18mm 14mm;
-            }
+                overflow: hidden;
 
-            .back-top-line {
-              width: 100%;
-              height: 2px;
+                display: flex;
+                flex-direction: column;
 
-              background: #1D2528;
+                padding: 18mm 14mm;
+              }
 
-              margin-bottom: 12mm;
-            }
+              .back-top-line {
+                width: 100%;
+                height: 2px;
 
-            .back-content {
-              flex: 1;
+                background: #1D2528;
 
-              display: flex;
-              flex-direction: column;
-            }
+                margin-bottom: 12mm;
+              }
 
-            .back-brand {
-              font-size: 22px;
-              font-weight: 900;
-              letter-spacing: 1px;
+              .back-content {
+                flex: 1;
 
-              color: #1D2528;
-            }
+                display: flex;
+                flex-direction: column;
+              }
 
-            .back-tagline {
-              margin-top: 4px;
+              .back-brand {
+                font-size: 22px;
+                font-weight: 900;
 
-              font-size: 9px;
-              font-weight: 800;
-              letter-spacing: 1.5px;
+                letter-spacing: 1px;
 
-              color: #1D2528;
-            }
+                color: #1D2528;
+              }
 
-            .back-divider {
-              width: 100%;
-              height: 2px;
+              .back-tagline {
+                margin-top: 4px;
 
-              background: #1D2528;
+                font-size: 9px;
+                font-weight: 800;
 
-              margin-top: 18mm;
-              margin-bottom: 18mm;
-            }
+                letter-spacing: 1.5px;
 
-            .back-title {
-              font-size: 18px;
-              font-weight: 900;
-              letter-spacing: 1.5px;
+                color: #1D2528;
+              }
 
-              color: #1D2528;
+              .back-divider {
+                width: 100%;
+                height: 2px;
 
-              text-align: center;
-            }
+                background: #1D2528;
 
-            .back-description {
-              margin-top: 10mm;
+                margin-top: 18mm;
+                margin-bottom: 18mm;
+              }
 
-              padding: 0 8mm;
+              .back-title {
+                font-size: 18px;
 
-              font-size: 11px;
-              line-height: 17px;
-              font-weight: 700;
+                font-weight: 900;
 
-              color: #1D2528;
+                letter-spacing: 1.5px;
 
-              text-align: center;
-            }
+                color: #1D2528;
 
-            .back-info {
-              display: flex;
-              flex-direction: column;
+                text-align: center;
+              }
 
-              gap: 12mm;
-            }
+              .back-description {
+                margin-top: 10mm;
 
-            .back-label {
-              font-size: 8px;
-              font-weight: 900;
-              letter-spacing: 1.5px;
+                padding: 0 8mm;
 
-              color: #1D2528;
+                font-size: 11px;
 
-              margin-bottom: 3px;
-            }
+                line-height: 17px;
 
-            .back-value {
-              font-size: 13px;
-              font-weight: 900;
+                font-weight: 700;
 
-              color: #1D2528;
+                color: #1D2528;
 
-              word-wrap: break-word;
-            }
+                text-align: center;
+              }
 
-            .back-spacer {
-              flex: 1;
-            }
+              .back-info {
+                display: flex;
 
-            .back-footer {
-              border-top: 2px solid #1D2528;
+                flex-direction: column;
 
-              padding-top: 8mm;
+                gap: 12mm;
+              }
 
-              display: flex;
+              .back-label {
+                font-size: 8px;
 
-              justify-content: space-between;
+                font-weight: 900;
 
-              gap: 10mm;
-            }
+                letter-spacing: 1.5px;
 
-            .back-small {
-              font-size: 7px;
-              font-weight: 900;
-              letter-spacing: 1px;
+                color: #1D2528;
 
-              color: #1D2528;
-            }
+                margin-bottom: 3px;
+              }
 
-            .back-bottom-line {
-              width: 100%;
-              height: 2px;
+              .back-value {
+                font-size: 13px;
 
-              background: #1D2528;
+                font-weight: 900;
 
-              margin-top: 12mm;
-            }
+                color: #1D2528;
 
-          </style>
+                word-wrap: break-word;
+              }
 
-        </head>
+              .back-spacer {
+                flex: 1;
+              }
 
-        <body>
+              .back-footer {
+                border-top:
+                  2px solid
+                  #1D2528;
 
-          ${frontPage}
+                padding-top: 8mm;
 
-          ${backPage}
+                display: flex;
 
-        </body>
+                justify-content:
+                  space-between;
 
-        </html>
-      `;
+                gap: 10mm;
+              }
 
-      // Create PDF
-      const { uri } =
-        await Print.printToFileAsync({
-          html,
-          base64: false,
-        });
+              .back-small {
+                font-size: 7px;
 
-      // Share PDF
-      const isAvailable =
-        await Sharing.isAvailableAsync();
+                font-weight: 900;
 
-      if (isAvailable) {
+                letter-spacing: 1px;
+
+                color: #1D2528;
+              }
+
+              .back-bottom-line {
+                width: 100%;
+                height: 2px;
+
+                background: #1D2528;
+
+                margin-top: 12mm;
+              }
+
+            </style>
+
+          </head>
+
+          <body>
+
+            ${frontPage}
+
+            ${backPage}
+
+          </body>
+
+          </html>
+        `;
+
+      const { uri } = await Print.printToFileAsync({
+        html,
+        base64: false,
+      });
+
+      const available = await Sharing.isAvailableAsync();
+
+      if (available) {
         await Sharing.shareAsync(uri, {
           mimeType: "application/pdf",
+
           dialogTitle: "Export Memory Ticket",
+
           UTI: "com.adobe.pdf",
         });
       } else {
@@ -785,6 +849,7 @@ function MemoryDetailsScreen({ navigation, route }) {
           styles.ticketSlide,
           {
             width: screenWidth - 44,
+
             marginRight: 12,
           },
         ]}
@@ -803,49 +868,9 @@ function MemoryDetailsScreen({ navigation, route }) {
             imageIndex={index}
             activeImage={activeImage}
             images={images}
-            onImagePress={() =>
-              openImageViewer(index)
-            }
+            onImagePress={() => openImageViewer(index)}
           />
         </View>
-      </View>
-    );
-  };
-
-  // ==========================================================
-  // SHARE TICKET
-  // ==========================================================
-
-  /*
-   * IMPORTANT:
-   *
-   * We are NOT creating another ticket design here.
-   *
-   * The exact same reusable MemoryTicket component
-   * is rendered inside the capture ref.
-   */
-
-  const renderShareTicket = () => {
-    const image =
-      images[activeImage] ||
-      images[0] ||
-      null;
-
-    return (
-      <View
-        ref={shareTicketRef}
-        collapsable={false}
-        style={shareStyles.captureContainer}
-      >
-        <MemoryTicket
-          memory={memory}
-          image={image}
-          ticketNumber={getTicketNumber()}
-          imageIndex={activeImage}
-          activeImage={activeImage}
-          images={images}
-          onImagePress={() => {}}
-        />
       </View>
     );
   };
@@ -856,241 +881,170 @@ function MemoryDetailsScreen({ navigation, route }) {
 
   return (
     <View style={styles.container}>
-
       <ScrollView
+        style={detailStyles.scrollView}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={
-          styles.scrollContent
-        }
+        nestedScrollEnabled
+        keyboardShouldPersistTaps="handled"
       >
-
-        {/* HEADER */}
+        {/* ====================================================
+            HEADER
+        ==================================================== */}
 
         <View style={styles.header}>
-
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() =>
-              navigation.goBack()
-            }
+            onPress={() => navigation.goBack()}
             activeOpacity={0.7}
           >
-            <Ionicons
-              name="arrow-back"
-              size={22}
-              color="#242424"
-            />
+            <Ionicons name="arrow-back" size={22} color="#242424" />
           </TouchableOpacity>
 
-          <Text style={styles.headerTitle}>
-            Memory
-          </Text>
+          <Text style={styles.headerTitle}>Memory</Text>
 
           <TouchableOpacity
             style={[
               styles.favoriteButton,
-              memory.favorite &&
-                styles.favoriteButtonActive,
+              memory.favorite && styles.favoriteButtonActive,
             ]}
             onPress={handleFavorite}
             activeOpacity={0.8}
           >
             <Ionicons
-              name={
-                memory.favorite
-                  ? "heart"
-                  : "heart-outline"
-              }
+              name={memory.favorite ? "heart" : "heart-outline"}
               size={21}
-              color={
-                memory.favorite
-                  ? "#E76F51"
-                  : "#34345C"
-              }
+              color={memory.favorite ? "#E76F51" : "#34345C"}
             />
           </TouchableOpacity>
-
         </View>
 
-        {/* TICKET CAROUSEL */}
+        {/* ====================================================
+            TICKET CAROUSEL
+        ==================================================== */}
 
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           nestedScrollEnabled
+          directionalLockEnabled
           decelerationRate="fast"
-          snapToInterval={
-            screenWidth - 44 + 12
-          }
+          snapToInterval={screenWidth - 44 + 12}
           snapToAlignment="start"
           onMomentumScrollEnd={(event) => {
             const index = Math.round(
-              event.nativeEvent.contentOffset.x /
-                (screenWidth - 44 + 12),
+              event.nativeEvent.contentOffset.x / (screenWidth - 44 + 12),
             );
 
-            setActiveImage(index);
+            if (index >= 0 && index < images.length) {
+              setActiveImage(index);
+            }
           }}
         >
           {images.length > 0
-            ? images.map((image, index) =>
-                renderTicket(
-                  image,
-                  index,
-                ),
-              )
+            ? images.map((image, index) => renderTicket(image, index))
             : renderTicket(null, 0)}
         </ScrollView>
 
-        {/* SWIPE HINT */}
+        {/* ====================================================
+            SWIPE HINT
+        ==================================================== */}
 
         {images.length > 1 && (
           <View style={styles.swipeHint}>
-
             <Ionicons
               name="swap-horizontal-outline"
               size={15}
               color="#707080"
             />
 
-            <Text style={styles.swipeHintText}>
-              Swipe to view photos
-            </Text>
+            <Text style={styles.swipeHintText}>Swipe to view photos</Text>
 
             <Text style={styles.swipeCountText}>
-              {activeImage + 1}/
-              {images.length}
+              {activeImage + 1}/{images.length}
             </Text>
-
           </View>
         )}
 
-        {/* ACTION BUTTONS */}
+        {/* ====================================================
+            SHARE MEMORY
+        ==================================================== */}
 
-        <View
-          style={
-            shareStyles.actionButtons
-          }
+        <TouchableOpacity
+          style={detailStyles.shareButton}
+          onPress={openShareSheet}
+          activeOpacity={0.85}
         >
+          <Ionicons name="share-social-outline" size={19} color="#FFFFFF" />
 
-          {/* SHARE MEMORY */}
+          <Text style={detailStyles.shareButtonText}>SHARE MEMORY</Text>
+        </TouchableOpacity>
 
-          <TouchableOpacity
-            style={
-              shareStyles.shareButton
-            }
-            onPress={openSharePreview}
-            activeOpacity={0.85}
-          >
-            <Ionicons
-              name="share-social-outline"
-              size={19}
-              color="#FFFFFF"
-            />
-
-            <Text
-              style={
-                shareStyles.shareButtonText
-              }
-            >
-              SHARE MEMORY
-            </Text>
-          </TouchableOpacity>
-
-          {/* EXPORT PDF */}
-
-          <TouchableOpacity
-            style={[
-              shareStyles.pdfButton,
-              generatingPdf &&
-                shareStyles.pdfButtonDisabled,
-            ]}
-            onPress={() =>
-              setPdfOptionsVisible(true)
-            }
-            disabled={generatingPdf}
-            activeOpacity={0.85}
-          >
-            {generatingPdf ? (
-              <ActivityIndicator
-                size="small"
-                color="#34345C"
-              />
-            ) : (
-              <Ionicons
-                name="document-text-outline"
-                size={19}
-                color="#34345C"
-              />
-            )}
-
-            <Text
-              style={
-                shareStyles.pdfButtonText
-              }
-            >
-              {generatingPdf
-                ? "CREATING PDF..."
-                : "EXPORT PDF"}
-            </Text>
-
-          </TouchableOpacity>
-
-        </View>
-
-        {/* EDIT */}
+        {/* ====================================================
+            EDIT
+        ==================================================== */}
 
         <TouchableOpacity
           style={styles.editButton}
           onPress={() =>
-            navigation.navigate(
-              "EditMemory",
-              {
-                memoryId: memory.id,
-              },
-            )
+            navigation.navigate("EditMemory", {
+              memoryId: memory.id,
+            })
           }
           activeOpacity={0.8}
         >
-          <Ionicons
-            name="create-outline"
-            size={18}
-            color="#34345C"
-          />
+          <Ionicons name="create-outline" size={18} color="#34345C" />
 
-          <Text style={styles.editText}>
-            EDIT MEMORY
-          </Text>
+          <Text style={styles.editText}>EDIT MEMORY</Text>
         </TouchableOpacity>
 
-        {/* DELETE */}
+        {/* ====================================================
+            DELETE
+        ==================================================== */}
 
         <TouchableOpacity
           style={styles.deleteButton}
           onPress={handleDelete}
           activeOpacity={0.8}
         >
-          <Ionicons
-            name="trash-outline"
-            size={18}
-            color="#D9534F"
-          />
+          <Ionicons name="trash-outline" size={18} color="#D9534F" />
 
-          <Text style={styles.deleteText}>
-            DELETE MEMORY
-          </Text>
+          <Text style={styles.deleteText}>DELETE MEMORY</Text>
         </TouchableOpacity>
 
-        {/* FOOTER */}
+        {/* ====================================================
+            FOOTER
+        ==================================================== */}
 
-        <Text style={styles.footerText}>
-          KEEP THE MOMENT. KEEP THE STORY.
-        </Text>
-
+        <Text style={styles.footerText}>KEEP THE MOMENT. KEEP THE STORY.</Text>
       </ScrollView>
 
       {/* ======================================================
-          PDF OPTIONS MODAL
+          GORHOM SHARE / EXPORT SHEET
+
+          Save Image
+          Export PDF
+          More -> NATIVE SHARE POPUP
+      ====================================================== */}
+
+      <ShareExportSheet
+        ref={shareSheetRef}
+        onSaveImage={handleSaveImage}
+        onExportPDF={() => {
+          shareSheetRef.current?.close();
+
+          setTimeout(() => {
+            setPdfOptionsVisible(true);
+          }, 250);
+        }}
+        onMore={handleMore}
+        savingImage={savingImage}
+        generatingPdf={generatingPdf}
+        sharing={sharing}
+      />
+
+      {/* ======================================================
+          PDF OPTIONS
       ====================================================== */}
 
       <Modal
@@ -1098,158 +1052,85 @@ function MemoryDetailsScreen({ navigation, route }) {
         transparent
         animationType="fade"
         onRequestClose={() =>
-          generatingPdf
-            ? null
-            : setPdfOptionsVisible(false)
+          generatingPdf ? null : setPdfOptionsVisible(false)
         }
       >
         <View style={pdfStyles.overlay}>
-
           <View style={pdfStyles.modal}>
-
             <View style={pdfStyles.header}>
-
               <View>
+                <Text style={pdfStyles.eyebrow}>EXPORT PDF</Text>
 
-                <Text
-                  style={
-                    pdfStyles.eyebrow
-                  }
-                >
-                  EXPORT PDF
-                </Text>
-
-                <Text
-                  style={pdfStyles.title}
-                >
-                  Choose Ticket Back
-                </Text>
-
+                <Text style={pdfStyles.title}>Choose Ticket Back</Text>
               </View>
 
               <TouchableOpacity
-                style={
-                  pdfStyles.closeButton
-                }
-                onPress={() =>
-                  setPdfOptionsVisible(
-                    false,
-                  )
-                }
+                style={pdfStyles.closeButton}
+                onPress={() => setPdfOptionsVisible(false)}
                 disabled={generatingPdf}
               >
-                <Ionicons
-                  name="close"
-                  size={22}
-                  color="#242424"
-                />
+                <Ionicons name="close" size={22} color="#242424" />
               </TouchableOpacity>
-
             </View>
 
-            <Text
-              style={
-                pdfStyles.description
-              }
-            >
-              Your PDF will contain exactly
-              2 pages. Page 1 is the selected
-              ticket front. Page 2 will be
-              the back you choose.
+            <Text style={pdfStyles.description}>
+              Your PDF will contain exactly 2 pages. Page 1 is the selected
+              ticket front. Page 2 will be the back you choose.
             </Text>
 
-            {/* BLANK BACK */}
+            {/* =================================================
+                BLANK BACK
+            ================================================= */}
 
             <TouchableOpacity
               style={pdfStyles.option}
-              onPress={() =>
-                handleExportPdf("blank")
-              }
+              onPress={() => handleExportPdf("blank")}
               activeOpacity={0.85}
             >
-
-              <View
-                style={
-                  pdfStyles.optionPreview
-                }
-              >
+              <View style={pdfStyles.optionPreview}>
                 <View
                   style={[
                     pdfStyles.miniPage,
                     {
-                      backgroundColor:
-                        "#F5C842",
+                      backgroundColor: "#F5C842",
                     },
                   ]}
                 />
               </View>
 
-              <View
-                style={
-                  pdfStyles.optionContent
-                }
-              >
+              <View style={pdfStyles.optionContent}>
+                <Text style={pdfStyles.optionTitle}>Yellow Blank Back</Text>
 
-                <Text
-                  style={
-                    pdfStyles.optionTitle
-                  }
-                >
-                  Yellow Blank Back
-                </Text>
-
-                <Text
-                  style={
-                    pdfStyles.optionText
-                  }
-                >
+                <Text style={pdfStyles.optionText}>
                   Page 1 → Ticket Front{"\n"}
-                  Page 2 → Same yellow
-                  background
+                  Page 2 → Same yellow background
                 </Text>
-
               </View>
 
-              <Ionicons
-                name="chevron-forward"
-                size={20}
-                color="#34345C"
-              />
-
+              <Ionicons name="chevron-forward" size={20} color="#34345C" />
             </TouchableOpacity>
 
-            {/* STANDARD BACK */}
+            {/* =================================================
+                STANDARD BACK
+            ================================================= */}
 
             <TouchableOpacity
               style={pdfStyles.option}
-              onPress={() =>
-                handleExportPdf("standard")
-              }
+              onPress={() => handleExportPdf("standard")}
               activeOpacity={0.85}
             >
-
-              <View
-                style={
-                  pdfStyles.optionPreview
-                }
-              >
-
+              <View style={pdfStyles.optionPreview}>
                 <View
                   style={[
                     pdfStyles.miniPage,
                     {
-                      backgroundColor:
-                        "#F5C842",
+                      backgroundColor: "#F5C842",
+
                       padding: 5,
                     },
                   ]}
                 >
-
-                  <View
-                    style={
-                      pdfStyles.miniLine
-                    }
-                  />
+                  <View style={pdfStyles.miniLine} />
 
                   <View
                     style={[
@@ -1265,71 +1146,36 @@ function MemoryDetailsScreen({ navigation, route }) {
                       pdfStyles.miniLine,
                       {
                         marginTop: 8,
+
                         width: "60%",
                       },
                     ]}
                   />
-
                 </View>
-
               </View>
 
-              <View
-                style={
-                  pdfStyles.optionContent
-                }
-              >
+              <View style={pdfStyles.optionContent}>
+                <Text style={pdfStyles.optionTitle}>Standard Ticket Back</Text>
 
-                <Text
-                  style={
-                    pdfStyles.optionTitle
-                  }
-                >
-                  Standard Ticket Back
-                </Text>
-
-                <Text
-                  style={
-                    pdfStyles.optionText
-                  }
-                >
+                <Text style={pdfStyles.optionText}>
                   Page 1 → Ticket Front{"\n"}
-                  Page 2 → Memory Ticket
-                  Back
+                  Page 2 → Memory Ticket Back
                 </Text>
-
               </View>
 
-              <Ionicons
-                name="chevron-forward"
-                size={20}
-                color="#34345C"
-              />
-
+              <Ionicons name="chevron-forward" size={20} color="#34345C" />
             </TouchableOpacity>
+
+            {/* CANCEL */}
 
             <TouchableOpacity
-              style={
-                pdfStyles.cancelButton
-              }
-              onPress={() =>
-                setPdfOptionsVisible(
-                  false,
-                )
-              }
+              style={pdfStyles.cancelButton}
+              onPress={() => setPdfOptionsVisible(false)}
               disabled={generatingPdf}
             >
-              <Text
-                style={
-                  pdfStyles.cancelText
-                }
-              >
-                CANCEL
-              </Text>
+              <Text style={pdfStyles.cancelText}>CANCEL</Text>
             </TouchableOpacity>
-
           </View>
-
         </View>
       </Modal>
 
@@ -1341,276 +1187,127 @@ function MemoryDetailsScreen({ navigation, route }) {
         visible={imageViewerVisible}
         transparent={false}
         animationType="fade"
-        onRequestClose={
-          closeImageViewer
-        }
+        onRequestClose={closeImageViewer}
       >
-
-        <View
-          style={
-            imageViewerStyles.container
-          }
-        >
-
-          {/* TOP BAR */}
-
-          <View
-            style={
-              imageViewerStyles.topBar
-            }
-          >
-
+        <View style={imageViewerStyles.container}>
+          <View style={imageViewerStyles.topBar}>
             <TouchableOpacity
-              style={
-                imageViewerStyles.closeButton
-              }
-              onPress={
-                closeImageViewer
-              }
+              style={imageViewerStyles.closeButton}
+              onPress={closeImageViewer}
               activeOpacity={0.8}
             >
-              <Ionicons
-                name="close"
-                size={25}
-                color="#FFFFFF"
-              />
+              <Ionicons name="close" size={25} color="#FFFFFF" />
             </TouchableOpacity>
 
             {images.length > 0 && (
-              <View
-                style={
-                  imageViewerStyles.counterWrapper
-                }
-              >
-                <Text
-                  style={
-                    imageViewerStyles.counter
-                  }
-                >
-                  {viewerImage + 1}/
-                  {images.length}
+              <View style={imageViewerStyles.counterWrapper}>
+                <Text style={imageViewerStyles.counter}>
+                  {viewerImage + 1}/{images.length}
                 </Text>
               </View>
             )}
-
           </View>
-
-          {/* IMAGE CAROUSEL */}
 
           <ScrollView
             horizontal
             pagingEnabled
-            showsHorizontalScrollIndicator={
-              false
-            }
+            showsHorizontalScrollIndicator={false}
             decelerationRate="fast"
-            onMomentumScrollEnd={
-              handleViewerScroll
-            }
+            onMomentumScrollEnd={handleViewerScroll}
             contentOffset={{
-              x:
-                viewerImage *
-                screenWidth,
+              x: viewerImage * screenWidth,
+
               y: 0,
             }}
           >
-            {images.map(
-              (image, index) => (
-                <View
-                  key={`${image}-viewer-${index}`}
+            {images.map((image, index) => (
+              <View
+                key={`${image}-viewer-${index}`}
+                style={[
+                  imageViewerStyles.imagePage,
+                  {
+                    width: screenWidth,
+
+                    height: screenHeight,
+                  },
+                ]}
+              >
+                <Image
+                  source={{
+                    uri: image,
+                  }}
                   style={[
-                    imageViewerStyles.imagePage,
+                    imageViewerStyles.fullImage,
                     {
-                      width:
-                        screenWidth,
-                      height:
-                        screenHeight,
+                      width: screenWidth,
+
+                      height: screenHeight,
                     },
                   ]}
-                >
-
-                  <Image
-                    source={{
-                      uri: image,
-                    }}
-                    style={[
-                      imageViewerStyles.fullImage,
-                      {
-                        width:
-                          screenWidth,
-                        height:
-                          screenHeight,
-                      },
-                    ]}
-                    resizeMode="contain"
-                  />
-
-                </View>
-              ),
-            )}
+                  resizeMode="contain"
+                />
+              </View>
+            ))}
           </ScrollView>
 
-          {/* BOTTOM HINT */}
-
           {images.length > 1 && (
-            <View
-              style={
-                imageViewerStyles.bottomHint
-              }
-            >
-
+            <View style={imageViewerStyles.bottomHint}>
               <Ionicons
                 name="swap-horizontal-outline"
                 size={16}
                 color="#BDBDBD"
               />
 
-              <Text
-                style={
-                  imageViewerStyles.bottomHintText
-                }
-              >
+              <Text style={imageViewerStyles.bottomHintText}>
                 Swipe to view photos
               </Text>
-
             </View>
           )}
-
         </View>
-
       </Modal>
-
-      {/* ======================================================
-          SHARE MODAL
-      ====================================================== */}
-
-      <Modal
-        visible={shareVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={
-          closeSharePreview
-        }
-      >
-
-        <View
-          style={
-            shareStyles.modalOverlay
-          }
-        >
-
-          <View
-            style={shareStyles.modal}
-          >
-
-            {/* MODAL HEADER */}
-
-            <View
-              style={
-                shareStyles.modalHeader
-              }
-            >
-
-              <View>
-
-                <Text
-                  style={
-                    shareStyles.modalEyebrow
-                  }
-                >
-                  SHARE MEMORY
-                </Text>
-
-                <Text
-                  style={
-                    shareStyles.modalTitle
-                  }
-                >
-                  Your Memory Ticket
-                </Text>
-
-              </View>
-
-              <TouchableOpacity
-                style={
-                  shareStyles.closeButton
-                }
-                onPress={
-                  closeSharePreview
-                }
-                disabled={sharing}
-              >
-                <Ionicons
-                  name="close"
-                  size={22}
-                  color="#242424"
-                />
-              </TouchableOpacity>
-
-            </View>
-
-            {/* REUSABLE MEMORY TICKET */}
-
-            <ScrollView
-              showsVerticalScrollIndicator={
-                false
-              }
-              contentContainerStyle={
-                shareStyles.previewContainer
-              }
-            >
-              {renderShareTicket()}
-            </ScrollView>
-
-            {/* SHARE BUTTON */}
-
-            <TouchableOpacity
-              style={[
-                shareStyles.confirmButton,
-                sharing &&
-                  shareStyles.confirmButtonDisabled,
-              ]}
-              onPress={
-                handleShareTicket
-              }
-              disabled={sharing}
-              activeOpacity={0.85}
-            >
-
-              {sharing ? (
-                <ActivityIndicator
-                  size="small"
-                  color="#FFFFFF"
-                />
-              ) : (
-                <Ionicons
-                  name="share-social"
-                  size={20}
-                  color="#FFFFFF"
-                />
-              )}
-
-              <Text
-                style={
-                  shareStyles.confirmButtonText
-                }
-              >
-                {sharing
-                  ? "CREATING TICKET..."
-                  : "SHARE TICKET"}
-              </Text>
-
-            </TouchableOpacity>
-
-          </View>
-
-        </View>
-
-      </Modal>
-
     </View>
   );
 }
+
+// ==========================================================
+// DETAIL STYLES
+// ==========================================================
+
+const detailStyles = StyleSheet.create({
+  scrollView: {
+    flex: 1,
+  },
+
+  shareButton: {
+    height: 50,
+
+    marginHorizontal: 22,
+
+    marginTop: 20,
+
+    borderRadius: 14,
+
+    backgroundColor: "#34345C",
+
+    flexDirection: "row",
+
+    alignItems: "center",
+
+    justifyContent: "center",
+
+    gap: 9,
+  },
+
+  shareButtonText: {
+    color: "#FFFFFF",
+
+    fontSize: 11,
+
+    fontWeight: "900",
+
+    letterSpacing: 1,
+  },
+});
 
 // ==========================================================
 // PDF STYLES
@@ -1619,60 +1316,81 @@ function MemoryDetailsScreen({ navigation, route }) {
 const pdfStyles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor:
-      "rgba(20, 20, 20, 0.72)",
+
+    backgroundColor: "rgba(20, 20, 20, 0.72)",
+
     justifyContent: "center",
+
     paddingHorizontal: 18,
   },
 
   modal: {
     width: "100%",
+
     backgroundColor: "#F4F1E8",
+
     borderRadius: 24,
+
     paddingBottom: 18,
+
     overflow: "hidden",
   },
 
   header: {
     minHeight: 76,
+
     paddingHorizontal: 20,
+
     paddingVertical: 14,
 
     flexDirection: "row",
+
     alignItems: "center",
+
     justifyContent: "space-between",
   },
 
   eyebrow: {
     fontSize: 9,
+
     fontWeight: "900",
+
     letterSpacing: 1.5,
+
     color: "#6A6A6A",
   },
 
   title: {
     marginTop: 4,
+
     fontSize: 19,
+
     fontWeight: "900",
+
     color: "#242424",
   },
 
   closeButton: {
     width: 40,
+
     height: 40,
+
     borderRadius: 20,
 
     backgroundColor: "#E8E4D8",
 
     alignItems: "center",
+
     justifyContent: "center",
   },
 
   description: {
     paddingHorizontal: 20,
+
     marginBottom: 16,
 
     fontSize: 11,
+
     lineHeight: 17,
 
     color: "#6A6A6A",
@@ -1680,6 +1398,7 @@ const pdfStyles = StyleSheet.create({
 
   option: {
     marginHorizontal: 18,
+
     marginBottom: 10,
 
     padding: 13,
@@ -1691,14 +1410,17 @@ const pdfStyles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
 
     borderWidth: 1,
+
     borderColor: "#E2DED3",
 
     flexDirection: "row",
+
     alignItems: "center",
   },
 
   optionPreview: {
     width: 54,
+
     height: 68,
 
     borderRadius: 6,
@@ -1708,24 +1430,29 @@ const pdfStyles = StyleSheet.create({
     backgroundColor: "#F5C842",
 
     alignItems: "center",
+
     justifyContent: "center",
   },
 
   miniPage: {
     width: 42,
+
     height: 60,
 
     borderRadius: 3,
 
     borderWidth: 1,
+
     borderColor: "#1D2528",
 
     alignItems: "center",
+
     justifyContent: "flex-start",
   },
 
   miniLine: {
     width: "75%",
+
     height: 2,
 
     marginTop: 10,
@@ -1735,12 +1462,15 @@ const pdfStyles = StyleSheet.create({
 
   optionContent: {
     flex: 1,
+
     paddingHorizontal: 13,
   },
 
   optionTitle: {
     fontSize: 13,
+
     fontWeight: "900",
+
     color: "#242424",
   },
 
@@ -1748,6 +1478,7 @@ const pdfStyles = StyleSheet.create({
     marginTop: 5,
 
     fontSize: 9,
+
     lineHeight: 14,
 
     color: "#777777",
@@ -1757,191 +1488,24 @@ const pdfStyles = StyleSheet.create({
     height: 46,
 
     marginHorizontal: 18,
+
     marginTop: 4,
 
     borderRadius: 13,
 
     alignItems: "center",
+
     justifyContent: "center",
   },
 
   cancelText: {
     fontSize: 10,
+
     fontWeight: "900",
+
     letterSpacing: 1.2,
+
     color: "#6A6A6A",
-  },
-});
-
-// ==========================================================
-// SHARE STYLES
-// ==========================================================
-
-const shareStyles = StyleSheet.create({
-  actionButtons: {
-    marginHorizontal: 22,
-    marginTop: 20,
-    gap: 10,
-  },
-
-  shareButton: {
-    height: 50,
-
-    borderRadius: 14,
-
-    backgroundColor: "#34345C",
-
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-
-    gap: 9,
-  },
-
-  shareButtonText: {
-    color: "#FFFFFF",
-
-    fontSize: 11,
-    fontWeight: "900",
-    letterSpacing: 1,
-  },
-
-  pdfButton: {
-    height: 50,
-
-    borderRadius: 14,
-
-    backgroundColor: "#F4F1E8",
-
-    borderWidth: 1.5,
-    borderColor: "#34345C",
-
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-
-    gap: 9,
-  },
-
-  pdfButtonDisabled: {
-    opacity: 0.65,
-  },
-
-  pdfButtonText: {
-    color: "#34345C",
-
-    fontSize: 11,
-    fontWeight: "900",
-    letterSpacing: 1,
-  },
-
-  modalOverlay: {
-    flex: 1,
-
-    backgroundColor:
-      "rgba(20, 20, 20, 0.72)",
-
-    justifyContent: "center",
-
-    paddingHorizontal: 18,
-    paddingVertical: 28,
-  },
-
-  modal: {
-    width: "100%",
-    maxHeight: "94%",
-
-    backgroundColor: "#F4F1E8",
-
-    borderRadius: 24,
-
-    overflow: "hidden",
-  },
-
-  modalHeader: {
-    minHeight: 76,
-
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-
-  modalEyebrow: {
-    fontSize: 9,
-    fontWeight: "900",
-    letterSpacing: 1.5,
-    color: "#6A6A6A",
-  },
-
-  modalTitle: {
-    marginTop: 4,
-
-    fontSize: 19,
-    fontWeight: "900",
-
-    color: "#242424",
-  },
-
-  closeButton: {
-    width: 40,
-    height: 40,
-
-    borderRadius: 20,
-
-    backgroundColor: "#E8E4D8",
-
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  previewContainer: {
-    paddingHorizontal: 18,
-    paddingBottom: 18,
-
-    alignItems: "center",
-  },
-
-  /*
-   * This container is used as the capture target.
-   *
-   * The MemoryTicket itself controls its own
-   * appearance and dimensions.
-   */
-  captureContainer: {
-    width: "100%",
-    alignItems: "center",
-  },
-
-  confirmButton: {
-    marginHorizontal: 18,
-    marginBottom: 18,
-
-    height: 52,
-
-    borderRadius: 14,
-
-    backgroundColor: "#34345C",
-
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-
-    gap: 9,
-  },
-
-  confirmButtonDisabled: {
-    opacity: 0.7,
-  },
-
-  confirmButtonText: {
-    color: "#FFFFFF",
-
-    fontSize: 11,
-    fontWeight: "900",
-    letterSpacing: 1,
   },
 });
 
@@ -1952,6 +1516,7 @@ const shareStyles = StyleSheet.create({
 const imageViewerStyles = StyleSheet.create({
   container: {
     flex: 1,
+
     backgroundColor: "#0B0B0D",
   },
 
@@ -1959,7 +1524,9 @@ const imageViewerStyles = StyleSheet.create({
     position: "absolute",
 
     top: 0,
+
     left: 0,
+
     right: 0,
 
     zIndex: 20,
@@ -1967,9 +1534,11 @@ const imageViewerStyles = StyleSheet.create({
     height: 92,
 
     paddingTop: 48,
+
     paddingHorizontal: 18,
 
     flexDirection: "row",
+
     alignItems: "center",
   },
 
@@ -1977,26 +1546,29 @@ const imageViewerStyles = StyleSheet.create({
     position: "absolute",
 
     left: 18,
+
     top: 48,
 
     width: 42,
+
     height: 42,
 
     borderRadius: 14,
 
-    backgroundColor:
-      "rgba(255, 255, 255, 0.12)",
+    backgroundColor: "rgba(255, 255, 255, 0.12)",
 
     borderWidth: 1,
-    borderColor:
-      "rgba(255, 255, 255, 0.12)",
+
+    borderColor: "rgba(255, 255, 255, 0.12)",
 
     alignItems: "center",
+
     justifyContent: "center",
   },
 
   counterWrapper: {
     flex: 1,
+
     alignItems: "center",
   },
 
@@ -2004,21 +1576,23 @@ const imageViewerStyles = StyleSheet.create({
     minWidth: 54,
 
     paddingHorizontal: 12,
+
     paddingVertical: 7,
 
     borderRadius: 14,
 
-    backgroundColor:
-      "rgba(255, 255, 255, 0.12)",
+    backgroundColor: "rgba(255, 255, 255, 0.12)",
 
     borderWidth: 1,
-    borderColor:
-      "rgba(255, 255, 255, 0.14)",
+
+    borderColor: "rgba(255, 255, 255, 0.14)",
 
     color: "#FFFFFF",
 
     fontSize: 11,
+
     fontWeight: "900",
+
     letterSpacing: 1,
 
     textAlign: "center",
@@ -2028,6 +1602,7 @@ const imageViewerStyles = StyleSheet.create({
     flex: 1,
 
     alignItems: "center",
+
     justifyContent: "center",
 
     backgroundColor: "#0B0B0D",
@@ -2035,6 +1610,7 @@ const imageViewerStyles = StyleSheet.create({
 
   fullImage: {
     alignSelf: "center",
+
     backgroundColor: "transparent",
   },
 
@@ -2042,7 +1618,9 @@ const imageViewerStyles = StyleSheet.create({
     position: "absolute",
 
     left: 18,
+
     right: 18,
+
     bottom: 28,
 
     minHeight: 42,
@@ -2051,15 +1629,16 @@ const imageViewerStyles = StyleSheet.create({
 
     borderRadius: 21,
 
-    backgroundColor:
-      "rgba(255, 255, 255, 0.10)",
+    backgroundColor: "rgba(255, 255, 255, 0.10)",
 
     borderWidth: 1,
-    borderColor:
-      "rgba(255, 255, 255, 0.10)",
+
+    borderColor: "rgba(255, 255, 255, 0.10)",
 
     flexDirection: "row",
+
     alignItems: "center",
+
     justifyContent: "center",
 
     gap: 7,
@@ -2069,7 +1648,9 @@ const imageViewerStyles = StyleSheet.create({
     color: "#C9C9CE",
 
     fontSize: 10,
+
     fontWeight: "800",
+
     letterSpacing: 0.8,
   },
 });

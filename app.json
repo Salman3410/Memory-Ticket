@@ -7,45 +7,51 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+
     "splash": {
       "image": "./assets/splash-image.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.salera.memoryticket",
+
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+
+        "LSApplicationQueriesSchemes": ["instagram", "fb", "whatsapp"]
       }
     },
+
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
+
       "edgeToEdgeEnabled": true,
+
       "package": "com.salera.memoryticket",
+
       "config": {
-        "abiFilters": [
-          "armeabi-v7a",
-          "arm64-v8a",
-          "x86",
-          "x86_64"
-        ]
+        "abiFilters": ["armeabi-v7a", "arm64-v8a", "x86", "x86_64"]
       },
-      "permissions": [
-        "android.permission.RECORD_AUDIO"
-      ]
+
+      "permissions": ["android.permission.RECORD_AUDIO"]
     },
+
     "plugins": [
       "expo-secure-store",
+
       [
         "expo-image-picker",
         {
           "photosPermission": "Allow MemoryTicket to access your photos so you can create memories."
         }
       ],
+
       [
         "expo-build-properties",
         {
@@ -58,14 +64,17 @@
         }
       ]
     ],
+
     "extra": {
       "eas": {
         "projectId": "39c9d6d9-62d6-40d1-96f5-746f16355596"
       }
     },
+
     "runtimeVersion": {
       "policy": "appVersion"
     },
+
     "updates": {
       "url": "https://u.expo.dev/39c9d6d9-62d6-40d1-96f5-746f16355596"
     }
