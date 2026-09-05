@@ -2550,6 +2550,13 @@ expo-constants@~18.0.13, expo-constants@~18.0.14:
     "@expo/config" "~12.0.14"
     "@expo/env" "~2.0.12"
 
+expo-device@~8.0.10:
+  version "8.0.10"
+  resolved "https://registry.npmjs.org/expo-device/-/expo-device-8.0.10.tgz"
+  integrity sha512-jd5BxjaF7382JkDMaC+P04aXXknB2UhWaVx5WiQKA05ugm/8GH5uaz9P9ckWdMKZGQVVEOC8MHaUADoT26KmFA==
+  dependencies:
+    ua-parser-js "^0.7.33"
+
 expo-eas-client@~1.0.8:
   version "1.0.8"
   resolved "https://registry.npmjs.org/expo-eas-client/-/expo-eas-client-1.0.8.tgz"
@@ -2596,6 +2603,11 @@ expo-keep-awake@~15.0.8:
   resolved "https://registry.npmjs.org/expo-keep-awake/-/expo-keep-awake-15.0.8.tgz"
   integrity sha512-YK9M1VrnoH1vLJiQzChZgzDvVimVoriibiDIFLbQMpjYBnvyfUeHJcin/Gx1a+XgupNXy92EQJLgI/9ZuXajYQ==
 
+expo-location@~19.0.8:
+  version "19.0.8"
+  resolved "https://registry.npmjs.org/expo-location/-/expo-location-19.0.8.tgz"
+  integrity sha512-H/FI75VuJ1coodJbbMu82pf+Zjess8X8Xkiv9Bv58ZgPKS/2ztjC1YO1/XMcGz7+s9DrbLuMIw22dFuP4HqneA==
+
 expo-manifests@~1.0.11:
   version "1.0.11"
   resolved "https://registry.npmjs.org/expo-manifests/-/expo-manifests-1.0.11.tgz"
@@ -2626,6 +2638,11 @@ expo-modules-core@3.0.30:
   integrity sha512-a6IrpAn/Jbmwxi9L+hMmXKpNqnkUpoF7WHOpn02rVLyax2J0gB1vvCVE5rNydplEnt41Q6WxQwvcOjZaIkcSUg==
   dependencies:
     invariant "^2.2.4"
+
+expo-network@~8.0.8:
+  version "8.0.8"
+  resolved "https://registry.npmjs.org/expo-network/-/expo-network-8.0.8.tgz"
+  integrity sha512-dgrL8UHAmWofqeY4UEjWskCl/RoQAM0DG6PZR8xz2WZt+6aQEboQgFRXowCfhbKZ71d16sNuKXtwBEsp2DtdNw==
 
 expo-print@~15.0.8:
   version "15.0.8"
@@ -4711,6 +4728,11 @@ type-fest@^2.19.0:
   version "2.19.0"
   resolved "https://registry.npmjs.org/type-fest/-/type-fest-2.19.0.tgz"
   integrity sha512-RAH822pAdBgcNMAfWnCBU3CFZcfZ/i1eZjwFU/dsLKumyuuP3niueg2UAukXYF0E2AAoc82ZSSf9J0WQBinzHA==
+
+ua-parser-js@^0.7.33:
+  version "0.7.41"
+  resolved "https://registry.npmjs.org/ua-parser-js/-/ua-parser-js-0.7.41.tgz"
+  integrity sha512-O3oYyCMPYgNNHuO7Jjk3uacJWZF8loBgwrfd/5LE/HyZ3lUIOdniQ7DNXJcIgZbwioZxk0fLfI4EVnetdiX5jg==
 
 undici-types@~8.3.0:
   version "8.3.0"

@@ -1,5 +1,9 @@
 import { createContext, useEffect, useState } from "react";
+
 import AsyncStorage from "@react-native-async-storage/async-storage";
+
+import { getCurrentLocation } from "../services/locationService";
+import { getNetworkInfo } from "../services/networkService";
 
 export const MemoryContext = createContext(null);
 
@@ -7,11 +11,8 @@ const STORAGE_KEY = "@memory_ticket_memories";
 
 export function MemoryProvider({ children }) {
   const [memories, setMemories] = useState([]);
-  const [loading, setLoading] = useState(true);
 
-  // --------------------------------------------------
-  // LOAD MEMORIES
-  // --------------------------------------------------
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadMemories();
@@ -34,15 +35,12 @@ export function MemoryProvider({ children }) {
       }
     } catch (error) {
       console.log("Error loading memories:", error);
+
       setMemories([]);
     } finally {
       setLoading(false);
     }
   };
-
-  // --------------------------------------------------
-  // SAVE MEMORIES
-  // --------------------------------------------------
 
   const persistMemories = async (updatedMemories) => {
     try {
@@ -52,47 +50,75 @@ export function MemoryProvider({ children }) {
     }
   };
 
-  // --------------------------------------------------
-  // ADD MEMORY
-  // --------------------------------------------------
+  const getEnvironmentInfo = async () => {
+    const [locationResult, networkResult] = await Promise.allSettled([
+      getCurrentLocation(),
+      getNetworkInfo(),
+    ]);
 
-  const addMemory = async (memory) => {
-    const images = Array.isArray(memory?.images)
-      ? memory.images
-      : memory?.image
-        ? [memory.image]
-        : [];
+    const location =
+      locationResult.status === "fulfilled" ? locationResult.value : null;
 
-    const newMemory = {
-      ...memory,
+    const network =
+      networkResult.status === "fulfilled" ? networkResult.value : null;
 
-      // Backwards compatibility
-      image: images[0] || null,
+    if (locationResult.status === "rejected") {
+      console.log("Memory location error:", locationResult.reason);
+    }
 
-      // Store all images
-      images,
+    if (networkResult.status === "rejected") {
+      console.log("Memory network error:", networkResult.reason);
+    }
 
-      description: memory?.description || "",
-
-      id: Date.now().toString() + Math.random().toString(36).substring(2, 8),
-
-      createdAt: new Date().toISOString(),
-
-      favorite: memory?.favorite || false,
+    return {
+      location,
+      network,
     };
-
-    const updatedMemories = [newMemory, ...memories];
-
-    setMemories(updatedMemories);
-
-    await persistMemories(updatedMemories);
-
-    return newMemory;
   };
 
-  // --------------------------------------------------
-  // DELETE MEMORY
-  // --------------------------------------------------
+  const addMemory = async (memory) => {
+    try {
+      const images = Array.isArray(memory?.images)
+        ? memory.images
+        : memory?.image
+          ? [memory.image]
+          : [];
+
+      const environment = await getEnvironmentInfo();
+
+      const newMemory = {
+        ...memory,
+
+        // Backwards compatibility
+        image: images[0] || null,
+
+        // Store all images
+        images,
+
+        description: memory?.description || "",
+
+        id: Date.now().toString() + Math.random().toString(36).substring(2, 8),
+
+        createdAt: new Date().toISOString(),
+
+        favorite: memory?.favorite || false,
+
+        environment,
+      };
+
+      const updatedMemories = [newMemory, ...memories];
+
+      setMemories(updatedMemories);
+
+      await persistMemories(updatedMemories);
+
+      return newMemory;
+    } catch (error) {
+      console.log("Add memory error:", error);
+
+      return null;
+    }
+  };
 
   const deleteMemory = async (memoryId) => {
     const updatedMemories = memories.filter((memory) => memory.id !== memoryId);
@@ -102,10 +128,6 @@ export function MemoryProvider({ children }) {
     await persistMemories(updatedMemories);
   };
 
-  // --------------------------------------------------
-  // UPDATE MEMORY
-  // --------------------------------------------------
-
   const updateMemory = async (memoryId, updatedData) => {
     let updatedMemory = null;
 
@@ -113,10 +135,6 @@ export function MemoryProvider({ children }) {
       if (memory.id !== memoryId) {
         return memory;
       }
-
-      // ------------------------------------------
-      // NORMALIZE IMAGES
-      // ------------------------------------------
 
       const updatedImages = Array.isArray(updatedData?.images)
         ? updatedData.images
@@ -127,10 +145,6 @@ export function MemoryProvider({ children }) {
             : memory.image
               ? [memory.image]
               : [];
-
-      // ------------------------------------------
-      // CREATE UPDATED MEMORY
-      // ------------------------------------------
 
       updatedMemory = {
         ...memory,
@@ -145,13 +159,15 @@ export function MemoryProvider({ children }) {
             ? updatedData.description
             : memory.description || "",
 
+        // KEEP EXISTING ENVIRONMENT DATA
+        environment:
+          updatedData?.environment !== undefined
+            ? updatedData.environment
+            : memory.environment || null,
+
         // Update timestamp
         updatedAt: new Date().toISOString(),
       };
-
-      // ------------------------------------------
-      // KEEP FIRST IMAGE FOR OLD COMPONENTS
-      // ------------------------------------------
 
       updatedMemory.image = updatedImages[0] || null;
 
@@ -165,30 +181,19 @@ export function MemoryProvider({ children }) {
     return updatedMemory;
   };
 
-  // --------------------------------------------------
-  // FIND MEMORY
-  // --------------------------------------------------
-
   const getMemoryById = (memoryId) => {
     return memories.find((memory) => memory.id === memoryId);
   };
 
-  // --------------------------------------------------
-  // CLEAR ALL MEMORIES
-  // --------------------------------------------------
-
   const clearMemories = async () => {
     try {
       await AsyncStorage.removeItem(STORAGE_KEY);
+
       setMemories([]);
     } catch (error) {
       console.log("Error clearing memories:", error);
     }
   };
-
-  // --------------------------------------------------
-  // PROVIDER
-  // --------------------------------------------------
 
   return (
     <MemoryContext.Provider
