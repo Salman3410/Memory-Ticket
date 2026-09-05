@@ -844,12 +844,11 @@ function MemoryDetailsScreen({ navigation, route }) {
   const renderTicket = (image, index) => {
     return (
       <View
-        key={`${image}-${index}`}
+        key={`ticket-${index}-${image}`}
         style={[
           styles.ticketSlide,
           {
             width: screenWidth - 44,
-
             marginRight: 12,
           },
         ]}
@@ -866,9 +865,7 @@ function MemoryDetailsScreen({ navigation, route }) {
             image={image}
             ticketNumber={getTicketNumber()}
             imageIndex={index}
-            activeImage={activeImage}
-            images={images}
-            onImagePress={() => openImageViewer(index)}
+            onPress={() => openImageViewer(index)}
           />
         </View>
       </View>

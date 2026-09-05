@@ -175,8 +175,7 @@ function MemoriesScreen({ navigation, route }) {
         </View>
 
         {/* SEARCH */}
-
-        <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+        <SearchBar value={searchQuery} onChangeText={setSearchQuery} />
 
         {/* COLLECTION STATS */}
 

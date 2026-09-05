@@ -16,14 +16,6 @@ import { useMemory } from "../../hooks/useMemory";
 
 import styles from "./ticketPreviewStyles";
 
-import PreviewActions from "../../components/TicketPreview/PreviewActions";
-
-import PreviewIntro from "../../components/TicketPreview/PreviewIntro";
-
-import PreviewHeader from "../../components/TicketPreview/PreviewHeader";
-
-import PreviewFooter from "../../components/TicketPreview/PreviewFooter";
-
 function TicketPreviewScreen({ route, navigation }) {
   const { addMemory } = useMemory();
 
@@ -149,14 +141,22 @@ function TicketPreviewScreen({ route, navigation }) {
         return;
       }
 
+      // --------------------------------------------------
+      // SAVE EVERYTHING INCLUDING LOCATION DATA
+      // --------------------------------------------------
+
       const savedMemory = await addMemory({
         title: memory.title || "",
 
+        // Human-readable location
         location: memory.location || "",
+
+        // GPS coordinates, if available
+        locationData: memory.locationData || null,
 
         description: memory.description || "",
 
-        image: images[0],
+        image: images[0] || null,
 
         images: [...images],
 
@@ -197,12 +197,14 @@ function TicketPreviewScreen({ route, navigation }) {
             {/* TOP PERFORATION */}
 
             <View style={styles.topPerforation}>
-              {Array.from({ length: 15 }).map((_, holeIndex) => (
+              {Array.from({
+                length: 15,
+              }).map((_, holeIndex) => (
                 <View key={holeIndex} style={styles.perforationHole} />
               ))}
             </View>
 
-            {/* TICKET HEADER */}
+            {/* HEADER */}
 
             <View style={styles.ticketHeader}>
               <View>
@@ -220,15 +222,13 @@ function TicketPreviewScreen({ route, navigation }) {
 
             <View style={styles.ticketImageContainer}>
               {image ? (
-                <>
-                  <Image
-                    source={{ uri: image }}
-                    style={styles.ticketImage}
-                    resizeMode="cover"
-                  />
-
-                  <View style={styles.imageOverlay} />
-                </>
+                <Image
+                  source={{
+                    uri: image,
+                  }}
+                  style={styles.ticketImage}
+                  resizeMode="cover"
+                />
               ) : (
                 <View style={styles.noImage}>
                   <Ionicons name="image-outline" size={42} color="#D94D28" />
@@ -264,7 +264,7 @@ function TicketPreviewScreen({ route, navigation }) {
               )}
             </View>
 
-            {/* TICKET INFORMATION */}
+            {/* INFORMATION */}
 
             <View style={styles.ticketInfo}>
               <Text style={styles.memoryLabel}>MEMORY</Text>
@@ -323,10 +323,10 @@ function TicketPreviewScreen({ route, navigation }) {
                 <Text style={styles.footerSmallText}>MEMORY ARCHIVE</Text>
               </View>
 
-              {/* BARCODE */}
-
               <View style={styles.barcode}>
-                {Array.from({ length: 28 }).map((_, barIndex) => (
+                {Array.from({
+                  length: 28,
+                }).map((_, barIndex) => (
                   <View
                     key={barIndex}
                     style={[
@@ -351,7 +351,9 @@ function TicketPreviewScreen({ route, navigation }) {
             {/* BOTTOM PERFORATION */}
 
             <View style={styles.bottomPerforation}>
-              {Array.from({ length: 15 }).map((_, holeIndex) => (
+              {Array.from({
+                length: 15,
+              }).map((_, holeIndex) => (
                 <View key={holeIndex} style={styles.perforationHole} />
               ))}
             </View>
@@ -372,11 +374,37 @@ function TicketPreviewScreen({ route, navigation }) {
         contentContainerStyle={styles.scrollContent}
         nestedScrollEnabled
       >
-        <PreviewHeader />
+        {/* HEADER */}
 
-        <PreviewIntro />
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="arrow-back" size={21} color="#242424" />
+          </TouchableOpacity>
 
-        {/* WHOLE TICKET HORIZONTAL CAROUSEL */}
+          <View style={styles.headerTextContainer}>
+            <Text style={styles.headerEyebrow}>YOUR MEMORY</Text>
+
+            <Text style={styles.headerTitle}>Ticket Preview</Text>
+          </View>
+
+          <View style={styles.headerSpacer} />
+        </View>
+
+        {/* INTRO */}
+
+        <View style={styles.previewHeader}>
+          <Text style={styles.previewTitle}>Looks good?</Text>
+
+          <Text style={styles.previewSubtitle}>
+            This moment is ready to become a ticket.
+          </Text>
+        </View>
+
+        {/* TICKET CAROUSEL */}
 
         <ScrollView
           horizontal
@@ -386,7 +414,7 @@ function TicketPreviewScreen({ route, navigation }) {
           decelerationRate="fast"
           snapToInterval={screenWidth - 44}
           snapToAlignment="start"
-          disableIntervalMomentum={true}
+          disableIntervalMomentum
           onMomentumScrollEnd={(event) => {
             const index = Math.round(
               event.nativeEvent.contentOffset.x / (screenWidth - 44),
@@ -400,6 +428,8 @@ function TicketPreviewScreen({ route, navigation }) {
             : renderTicket(null, 0)}
         </ScrollView>
 
+        {/* SWIPE HINT */}
+
         {images.length > 1 && (
           <View style={styles.swipeHint}>
             <Ionicons
@@ -412,19 +442,31 @@ function TicketPreviewScreen({ route, navigation }) {
           </View>
         )}
 
-        <PreviewActions
-          onSave={handleSave}
-          onEdit={() => {
-            navigation.navigate("MainTabs", {
-              screen: "Create",
-              params: {
-                editMemory: memory,
-              },
-            });
-          }}
-        />
+        {/* ACTIONS */}
 
-        <PreviewFooter />
+        <View style={styles.actionsContainer}>
+          <TouchableOpacity
+            style={styles.saveButton}
+            onPress={handleSave}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="bookmark-outline" size={20} color="#FFFFFF" />
+
+            <Text style={styles.saveButtonText}>SAVE MEMORY</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.editButton}
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="create-outline" size={19} color="#34345C" />
+
+            <Text style={styles.editButtonText}>EDIT</Text>
+          </TouchableOpacity>
+        </View>
+
+        <Text style={styles.footerText}>Every moment deserves a ticket.</Text>
       </ScrollView>
     </View>
   );

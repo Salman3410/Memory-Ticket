@@ -1,4 +1,4 @@
-import { View, Text, TextInput, ActivityIndicator } from "react-native";
+import { View, Text, TextInput } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
 
@@ -6,16 +6,26 @@ import { getCurrentLocation } from "../../../services/locationService";
 
 import styles from "../createMemoryStyles";
 
-function MemoryForm({ title, setTitle, location, setLocation }) {
+function MemoryForm({
+  title,
+  setTitle,
+  location,
+  setLocation,
+  locationData,
+  setLocationData,
+}) {
   const handleLocationFocus = async () => {
     try {
       const currentLocation = await getCurrentLocation();
 
-      if (currentLocation?.readableLocation) {
-        setLocation(currentLocation.readableLocation);
-      }
+      setLocationData({
+        latitude: currentLocation.latitude,
+        longitude: currentLocation.longitude,
+        accuracy: currentLocation.accuracy,
+        readableLocation: currentLocation.readableLocation || "",
+      });
     } catch (error) {
-      console.log("Location error:", error);
+      console.log("Location permission/location error:", error);
     }
   };
 

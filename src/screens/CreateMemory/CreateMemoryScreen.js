@@ -3,17 +3,12 @@ import { useEffect, useState } from "react";
 import { View, Text, FlatList, Alert } from "react-native";
 
 import * as ImagePicker from "expo-image-picker";
-
 import * as FileSystem from "expo-file-system/legacy";
 
 import CreateMemoryHeader from "./components/CreateMemoryHeader";
-
 import PhotoSection from "./components/PhotoSection";
-
 import MemoryForm from "./components/MemoryForm";
-
 import DescriptionInput from "./components/DescriptionInput";
-
 import PreviewButton from "./components/PreviewButton";
 
 import styles from "./createMemoryStyles";
@@ -23,8 +18,13 @@ const MAX_IMAGES = 5;
 function CreateMemoryScreen({ navigation, route }) {
   const [images, setImages] = useState([]);
   const [activeImage, setActiveImage] = useState(0);
+
   const [title, setTitle] = useState("");
   const [location, setLocation] = useState("");
+
+  // GPS data is kept separately from the readable location.
+  const [locationData, setLocationData] = useState(null);
+
   const [description, setDescription] = useState("");
 
   // --------------------------------------------------
@@ -46,12 +46,14 @@ function CreateMemoryScreen({ navigation, route }) {
 
     setImages(existingImages.slice(0, MAX_IMAGES));
     setActiveImage(0);
+
     setTitle(editMemory.title || "");
     setLocation(editMemory.location || "");
+
+    setLocationData(editMemory.locationData || null);
+
     setDescription(editMemory.description || "");
 
-    // Clear navigation params after loading the memory.
-    // This prevents the old draft from being loaded again.
     navigation.setParams({
       editMemory: undefined,
     });
@@ -115,10 +117,6 @@ function CreateMemoryScreen({ navigation, route }) {
         return;
       }
 
-      // ------------------------------------------
-      // COPY SELECTED IMAGES TO PERMANENT STORAGE
-      // ------------------------------------------
-
       const newImages = [];
 
       for (const asset of result.assets) {
@@ -135,7 +133,6 @@ function CreateMemoryScreen({ navigation, route }) {
         return;
       }
 
-      // Remember where the new images start
       const oldLength = images.length;
 
       setImages((currentImages) => {
@@ -190,10 +187,6 @@ function CreateMemoryScreen({ navigation, route }) {
         return;
       }
 
-      // ------------------------------------------
-      // COPY CAMERA IMAGE TO PERMANENT STORAGE
-      // ------------------------------------------
-
       const permanentUri = await saveImagePermanently(uri);
 
       const newIndex = images.length;
@@ -220,11 +213,7 @@ function CreateMemoryScreen({ navigation, route }) {
 
   const removeImage = (index) => {
     setImages((currentImages) => {
-      const updated = currentImages.filter(
-        (_, imageIndex) => imageIndex !== index,
-      );
-
-      return updated;
+      return currentImages.filter((_, imageIndex) => imageIndex !== index);
     });
 
     setActiveImage((currentIndex) => {
@@ -271,6 +260,7 @@ function CreateMemoryScreen({ navigation, route }) {
     setActiveImage(0);
     setTitle("");
     setLocation("");
+    setLocationData(null);
     setDescription("");
   };
 
@@ -291,13 +281,19 @@ function CreateMemoryScreen({ navigation, route }) {
       return;
     }
 
-    // ------------------------------------------
+    // --------------------------------------------------
     // CREATE TEMPORARY DRAFT
-    // ------------------------------------------
+    // --------------------------------------------------
 
     const draftMemory = {
       title: title.trim(),
+
+      // Human-readable location
       location: location.trim(),
+
+      // GPS information, if permission was granted
+      locationData,
+
       description: description.trim(),
 
       image: images[0] || null,
@@ -307,15 +303,15 @@ function CreateMemoryScreen({ navigation, route }) {
       date: new Date().toISOString(),
     };
 
-    // ------------------------------------------
+    // --------------------------------------------------
     // CLEAR CREATE MEMORY FORM
-    // ------------------------------------------
+    // --------------------------------------------------
 
     resetForm();
 
-    // ------------------------------------------
+    // --------------------------------------------------
     // SEND DRAFT TO TICKET PREVIEW
-    // ------------------------------------------
+    // --------------------------------------------------
 
     navigation.navigate("TicketPreview", {
       memory: draftMemory,
@@ -335,11 +331,7 @@ function CreateMemoryScreen({ navigation, route }) {
         contentContainerStyle={styles.scrollContent}
         renderItem={() => (
           <>
-            {/* HEADER */}
-
             <CreateMemoryHeader navigation={navigation} />
-
-            {/* PHOTOS */}
 
             <PhotoSection
               images={images}
@@ -350,27 +342,21 @@ function CreateMemoryScreen({ navigation, route }) {
               handleImageScroll={handleImageScroll}
             />
 
-            {/* TITLE + LOCATION */}
-
             <MemoryForm
               title={title}
               setTitle={setTitle}
               location={location}
               setLocation={setLocation}
+              locationData={locationData}
+              setLocationData={setLocationData}
             />
-
-            {/* DESCRIPTION */}
 
             <DescriptionInput
               description={description}
               setDescription={setDescription}
             />
 
-            {/* PREVIEW */}
-
             <PreviewButton onPress={handleCreateMemory} />
-
-            {/* FOOTER */}
 
             <Text style={styles.footerText}>
               KEEP THE MOMENT. KEEP THE STORY.

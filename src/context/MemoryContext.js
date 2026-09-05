@@ -2,7 +2,6 @@ import { createContext, useEffect, useState } from "react";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { getCurrentLocation } from "../services/locationService";
 import { getNetworkInfo } from "../services/networkService";
 
 export const MemoryContext = createContext(null);
@@ -11,8 +10,11 @@ const STORAGE_KEY = "@memory_ticket_memories";
 
 export function MemoryProvider({ children }) {
   const [memories, setMemories] = useState([]);
-
   const [loading, setLoading] = useState(true);
+
+  // --------------------------------------------------
+  // LOAD MEMORIES
+  // --------------------------------------------------
 
   useEffect(() => {
     loadMemories();
@@ -42,6 +44,10 @@ export function MemoryProvider({ children }) {
     }
   };
 
+  // --------------------------------------------------
+  // SAVE MEMORIES
+  // --------------------------------------------------
+
   const persistMemories = async (updatedMemories) => {
     try {
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedMemories));
@@ -50,31 +56,27 @@ export function MemoryProvider({ children }) {
     }
   };
 
+  // --------------------------------------------------
+  // GET NETWORK INFO
+  // --------------------------------------------------
+
   const getEnvironmentInfo = async () => {
-    const [locationResult, networkResult] = await Promise.allSettled([
-      getCurrentLocation(),
-      getNetworkInfo(),
-    ]);
+    let network = null;
 
-    const location =
-      locationResult.status === "fulfilled" ? locationResult.value : null;
-
-    const network =
-      networkResult.status === "fulfilled" ? networkResult.value : null;
-
-    if (locationResult.status === "rejected") {
-      console.log("Memory location error:", locationResult.reason);
-    }
-
-    if (networkResult.status === "rejected") {
-      console.log("Memory network error:", networkResult.reason);
+    try {
+      network = await getNetworkInfo();
+    } catch (error) {
+      console.log("Memory network error:", error);
     }
 
     return {
-      location,
       network,
     };
   };
+
+  // --------------------------------------------------
+  // ADD MEMORY
+  // --------------------------------------------------
 
   const addMemory = async (memory) => {
     try {
@@ -86,16 +88,37 @@ export function MemoryProvider({ children }) {
 
       const environment = await getEnvironmentInfo();
 
+      // --------------------------------------------------
+      // LOCATION DATA
+      //
+      // location = human-readable text
+      // locationData = exact GPS coordinates
+      // --------------------------------------------------
+
+      const location = memory?.location || "";
+
+      const locationData = memory?.locationData || null;
+
+      // --------------------------------------------------
+      // CREATE MEMORY
+      // --------------------------------------------------
+
       const newMemory = {
         ...memory,
 
         // Backwards compatibility
         image: images[0] || null,
 
-        // Store all images
+        // All images
         images,
 
         description: memory?.description || "",
+
+        // Human-readable location
+        location,
+
+        // Exact GPS location
+        locationData,
 
         id: Date.now().toString() + Math.random().toString(36).substring(2, 8),
 
@@ -120,6 +143,10 @@ export function MemoryProvider({ children }) {
     }
   };
 
+  // --------------------------------------------------
+  // DELETE MEMORY
+  // --------------------------------------------------
+
   const deleteMemory = async (memoryId) => {
     const updatedMemories = memories.filter((memory) => memory.id !== memoryId);
 
@@ -127,6 +154,10 @@ export function MemoryProvider({ children }) {
 
     await persistMemories(updatedMemories);
   };
+
+  // --------------------------------------------------
+  // UPDATE MEMORY
+  // --------------------------------------------------
 
   const updateMemory = async (memoryId, updatedData) => {
     let updatedMemory = null;
@@ -150,7 +181,7 @@ export function MemoryProvider({ children }) {
         ...memory,
         ...updatedData,
 
-        // Always keep images as an array
+        // Always keep images as array
         images: updatedImages,
 
         // Keep description
@@ -159,7 +190,19 @@ export function MemoryProvider({ children }) {
             ? updatedData.description
             : memory.description || "",
 
-        // KEEP EXISTING ENVIRONMENT DATA
+        // Keep human-readable location
+        location:
+          updatedData?.location !== undefined
+            ? updatedData.location
+            : memory.location || "",
+
+        // Keep exact GPS location
+        locationData:
+          updatedData?.locationData !== undefined
+            ? updatedData.locationData
+            : memory.locationData || null,
+
+        // Keep existing environment
         environment:
           updatedData?.environment !== undefined
             ? updatedData.environment
@@ -169,6 +212,7 @@ export function MemoryProvider({ children }) {
         updatedAt: new Date().toISOString(),
       };
 
+      // First image compatibility
       updatedMemory.image = updatedImages[0] || null;
 
       return updatedMemory;
@@ -181,9 +225,17 @@ export function MemoryProvider({ children }) {
     return updatedMemory;
   };
 
+  // --------------------------------------------------
+  // FIND MEMORY
+  // --------------------------------------------------
+
   const getMemoryById = (memoryId) => {
     return memories.find((memory) => memory.id === memoryId);
   };
+
+  // --------------------------------------------------
+  // CLEAR ALL MEMORIES
+  // --------------------------------------------------
 
   const clearMemories = async () => {
     try {
@@ -194,6 +246,10 @@ export function MemoryProvider({ children }) {
       console.log("Error clearing memories:", error);
     }
   };
+
+  // --------------------------------------------------
+  // PROVIDER
+  // --------------------------------------------------
 
   return (
     <MemoryContext.Provider

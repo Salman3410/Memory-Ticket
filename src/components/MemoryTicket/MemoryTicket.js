@@ -1,6 +1,12 @@
-import React, { useState } from "react";
+import { useState } from "react";
 
-import { View, Text, Image, TouchableOpacity, ScrollView } from "react-native";
+import {
+  View,
+  Text,
+  Image,
+  TouchableOpacity,
+  ScrollView,
+} from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
 
@@ -8,7 +14,15 @@ import { useMemory } from "../../hooks/useMemory";
 
 import styles from "./memoryTicketStyles";
 
-function MemoryTicket({ memory, onPress, compact = false }) {
+function MemoryTicket({
+  memory,
+  onPress,
+  compact = false,
+
+  // NEW:
+  // When provided, this ticket displays ONLY this image.
+  image = null,
+}) {
   const { getMemoryById } = useMemory();
 
   const [imageWidth, setImageWidth] = useState(0);
@@ -21,7 +35,6 @@ function MemoryTicket({ memory, onPress, compact = false }) {
   // If only an ID is passed, get the complete memory
   // from MemoryContext.
   const contextMemory = memory.id ? getMemoryById(memory.id) : memory;
-
   const currentMemory = contextMemory || memory;
 
   const formatDate = (value) => {
@@ -43,15 +56,10 @@ function MemoryTicket({ memory, onPress, compact = false }) {
   };
 
   const title = currentMemory.title || "UNTITLED MEMORY";
-
   const location = currentMemory.location || "MEMORY TICKET";
-
   const date = formatDate(currentMemory.createdAt || currentMemory.date);
-
   const time = currentMemory.time || "";
-
   const description = currentMemory.description?.trim() || "";
-
   const admission = currentMemory.admission || "X1";
 
   const ticketNumber =
@@ -59,15 +67,39 @@ function MemoryTicket({ memory, onPress, compact = false }) {
     currentMemory.id?.toString().slice(-6) ||
     "000000";
 
-  // ------------------------------------------
+  // --------------------------------------------------
   // GET ALL IMAGES
-  // ------------------------------------------
+  // --------------------------------------------------
 
   const images = Array.isArray(currentMemory.images)
     ? currentMemory.images
     : currentMemory.image
       ? [currentMemory.image]
       : [];
+
+  // --------------------------------------------------
+  // DETAIL MODE
+  // --------------------------------------------------
+  // If MemoryDetailsScreen passes an `image` prop,
+  // this ticket must display ONLY that image.
+  //
+  // Otherwise, the normal MemoryTicket carousel
+  // behavior remains unchanged.
+  // --------------------------------------------------
+
+  const isSingleImageMode = Boolean(image);
+
+  const displayImages = isSingleImageMode ? [image] : images;
+
+  // --------------------------------------------------
+  // IMAGE PRESS
+  // --------------------------------------------------
+
+  const handleImagePress = () => {
+    if (onPress) {
+      onPress();
+    }
+  };
 
   const ticketContent = (
     <View style={[styles.ticket, compact && styles.ticketCompact]}>
@@ -84,74 +116,110 @@ function MemoryTicket({ memory, onPress, compact = false }) {
         <View style={styles.header}>
           <Text style={styles.brandText}>MEMORY TICKET</Text>
 
-          <Ionicons name="ticket-outline" size={18} color="#F0442C" />
+          <Ionicons
+            name="ticket-outline"
+            size={18}
+            color="#F0442C"
+          />
         </View>
 
-        {/* IMAGE CAROUSEL */}
+        {/* IMAGE */}
         <View
           style={styles.ticketImageContainer}
           onLayout={(event) => {
             const width = event.nativeEvent.layout.width;
-
             setImageWidth(width);
           }}
         >
-          {images.length > 0 ? (
-            <ScrollView
-              horizontal
-              pagingEnabled
-              showsHorizontalScrollIndicator={false}
-              nestedScrollEnabled
-              onMomentumScrollEnd={(event) => {
-                if (!imageWidth) return;
+          {displayImages.length > 0 ? (
+            isSingleImageMode ? (
+              // ----------------------------------------
+              // SINGLE IMAGE MODE
+              // ----------------------------------------
+              <TouchableOpacity
+                activeOpacity={0.95}
+                onPress={handleImagePress}
+                disabled={!onPress}
+                style={{ flex: 1 }}
+              >
+                <Image
+                  source={{ uri: displayImages[0] }}
+                  style={styles.ticketImage}
+                  resizeMode="cover"
+                />
+              </TouchableOpacity>
+            ) : (
+              // ----------------------------------------
+              // NORMAL IMAGE CAROUSEL
+              // ----------------------------------------
+              <ScrollView
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                nestedScrollEnabled
+                onMomentumScrollEnd={(event) => {
+                  if (!imageWidth) return;
 
-                const index = Math.round(
-                  event.nativeEvent.contentOffset.x / imageWidth,
-                );
+                  const index = Math.round(
+                    event.nativeEvent.contentOffset.x / imageWidth,
+                  );
 
-                setActiveImage(index);
-              }}
-            >
-              {images.map((image, index) => (
-                <View
-                  key={`${image}-${index}`}
-                  style={[
-                    styles.ticketImageSlide,
-                    imageWidth ? { width: imageWidth } : null,
-                  ]}
-                >
-                  <Image
-                    source={{ uri: image }}
-                    style={styles.ticketImage}
-                    resizeMode="cover"
-                  />
-                </View>
-              ))}
-            </ScrollView>
+                  setActiveImage(index);
+                }}
+              >
+                {displayImages.map((imageUri, index) => (
+                  <View
+                    key={`${imageUri}-${index}`}
+                    style={[
+                      styles.ticketImageSlide,
+                      imageWidth ? { width: imageWidth } : null,
+                    ]}
+                  >
+                    <TouchableOpacity
+                      activeOpacity={0.95}
+                      onPress={handleImagePress}
+                      disabled={!onPress}
+                      style={{ flex: 1 }}
+                    >
+                      <Image
+                        source={{ uri: imageUri }}
+                        style={styles.ticketImage}
+                        resizeMode="cover"
+                      />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </ScrollView>
+            )
           ) : (
             <View style={styles.noImage}>
-              <Ionicons name="image-outline" size={40} color="#707080" />
+              <Ionicons
+                name="image-outline"
+                size={40}
+                color="#707080"
+              />
             </View>
           )}
 
           {/* IMAGE COUNTER */}
-          {images.length > 1 && (
+          {!isSingleImageMode && displayImages.length > 1 && (
             <View style={styles.imageCounter}>
               <Text style={styles.imageCounterText}>
-                {activeImage + 1}/{images.length}
+                {activeImage + 1}/{displayImages.length}
               </Text>
             </View>
           )}
 
           {/* DOT INDICATORS */}
-          {images.length > 1 && (
+          {!isSingleImageMode && displayImages.length > 1 && (
             <View style={styles.imageDots}>
-              {images.map((_, index) => (
+              {displayImages.map((_, index) => (
                 <View
                   key={index}
                   style={[
                     styles.imageDot,
-                    index === activeImage && styles.imageDotActive,
+                    index === activeImage &&
+                      styles.imageDotActive,
                   ]}
                 />
               ))}
@@ -161,7 +229,10 @@ function MemoryTicket({ memory, onPress, compact = false }) {
 
         {/* TITLE */}
         <View style={styles.titleContainer}>
-          <Text style={styles.ticketTitle} numberOfLines={2}>
+          <Text
+            style={styles.ticketTitle}
+            numberOfLines={2}
+          >
             {title}
           </Text>
         </View>
@@ -169,9 +240,14 @@ function MemoryTicket({ memory, onPress, compact = false }) {
         {/* DESCRIPTION */}
         {description ? (
           <View style={styles.descriptionContainer}>
-            <Text style={styles.descriptionLabel}>THE STORY</Text>
+            <Text style={styles.descriptionLabel}>
+              THE STORY
+            </Text>
 
-            <Text style={styles.descriptionText} numberOfLines={4}>
+            <Text
+              style={styles.descriptionText}
+              numberOfLines={4}
+            >
               {description}
             </Text>
           </View>
@@ -181,17 +257,27 @@ function MemoryTicket({ memory, onPress, compact = false }) {
         <View style={styles.infoSection}>
           <View style={styles.infoRow}>
             <View style={styles.infoBlock}>
-              <Text style={styles.infoLabel}>LOCATION</Text>
+              <Text style={styles.infoLabel}>
+                LOCATION
+              </Text>
 
-              <Text style={styles.infoValue} numberOfLines={1}>
+              <Text
+                style={styles.infoValue}
+                numberOfLines={1}
+              >
                 {location}
               </Text>
             </View>
 
             <View style={styles.infoBlock}>
-              <Text style={styles.infoLabel}>DATE</Text>
+              <Text style={styles.infoLabel}>
+                DATE
+              </Text>
 
-              <Text style={styles.infoValue} numberOfLines={1}>
+              <Text
+                style={styles.infoValue}
+                numberOfLines={1}
+              >
                 {date}
               </Text>
             </View>
@@ -199,16 +285,22 @@ function MemoryTicket({ memory, onPress, compact = false }) {
 
           {time ? (
             <View style={styles.timeRow}>
-              <Text style={styles.infoLabel}>TIME</Text>
+              <Text style={styles.infoLabel}>
+                TIME
+              </Text>
 
-              <Text style={styles.infoValue}>{time}</Text>
+              <Text style={styles.infoValue}>
+                {time}
+              </Text>
             </View>
           ) : null}
         </View>
 
         {/* ADMISSION */}
         <View style={styles.admissionSection}>
-          <Text style={styles.admissionLabel}>ADMISSION</Text>
+          <Text style={styles.admissionLabel}>
+            ADMISSION
+          </Text>
 
           <Text style={styles.admissionValue}>
             X{admission.toString().replace(/^X/, "")}
@@ -225,9 +317,13 @@ function MemoryTicket({ memory, onPress, compact = false }) {
         {/* FOOTER */}
         <View style={styles.ticketFooter}>
           <View style={styles.ticketNumberContainer}>
-            <Text style={styles.ticketNumberLabel}>TICKET NO.</Text>
+            <Text style={styles.ticketNumberLabel}>
+              TICKET NO.
+            </Text>
 
-            <Text style={styles.ticketNumber}>{ticketNumber}</Text>
+            <Text style={styles.ticketNumber}>
+              {ticketNumber}
+            </Text>
           </View>
 
           <View style={styles.barcode}>
@@ -251,7 +347,10 @@ function MemoryTicket({ memory, onPress, compact = false }) {
       {/* BOTTOM PERFORATION */}
       <View style={styles.bottomPerforation}>
         {Array.from({ length: 12 }).map((_, index) => (
-          <View key={index} style={styles.perforationDot} />
+          <View
+            key={index}
+            style={styles.perforationDot}
+          />
         ))}
       </View>
     </View>
@@ -259,7 +358,10 @@ function MemoryTicket({ memory, onPress, compact = false }) {
 
   if (onPress) {
     return (
-      <TouchableOpacity activeOpacity={0.92} onPress={onPress}>
+      <TouchableOpacity
+        activeOpacity={0.92}
+        onPress={onPress}
+      >
         {ticketContent}
       </TouchableOpacity>
     );
@@ -269,4 +371,4 @@ function MemoryTicket({ memory, onPress, compact = false }) {
 }
 
 export default MemoryTicket;
- 
+
