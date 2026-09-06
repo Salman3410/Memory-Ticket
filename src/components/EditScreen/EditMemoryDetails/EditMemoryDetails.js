@@ -1,4 +1,3 @@
-import React from "react";
 import { View, Text, TextInput } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -58,7 +57,7 @@ function EditMemoryDetails({
         <View style={styles.descriptionHeader}>
           <Text style={styles.label}>DESCRIPTION</Text>
 
-          <Text style={styles.characterCount}>{description.length}/200</Text>
+          <Text style={styles.characterCount}>{description.length}/500</Text>
         </View>
 
         <TextInput

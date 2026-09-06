@@ -1,9 +1,7 @@
 import { View, Text, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-
 import PhotoPreview from "./PhotoPreview";
 import PhotoPlaceholder from "./PhotoPlaceholder";
-
 import styles from "../createMemoryStyles";
 
 const MAX_IMAGES = 5;

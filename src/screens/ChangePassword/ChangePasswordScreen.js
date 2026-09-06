@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 
 import {
   View,
@@ -9,28 +9,19 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
-
 import { Ionicons } from "@expo/vector-icons";
-
 import { useAuth } from "../../hooks/useAuth";
-
 import styles from "./changePasswordStyles";
 
 function ChangePasswordScreen({ navigation }) {
   const { changePassword } = useAuth();
 
   const [currentPassword, setCurrentPassword] = useState("");
-
   const [newPassword, setNewPassword] = useState("");
-
   const [confirmPassword, setConfirmPassword] = useState("");
-
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-
   const [showNewPassword, setShowNewPassword] = useState(false);
-
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
   const [loading, setLoading] = useState(false);
 
   const hasMinimumLength = newPassword.length >= 8;
@@ -110,11 +101,6 @@ function ChangePasswordScreen({ navigation }) {
         [
           {
             text: "OK",
-            onPress: () => {
-              // The AuthContext logs out the current
-              // session because the backend increments
-              // tokenVersion.
-            },
           },
         ],
       );
@@ -329,7 +315,7 @@ function ChangePasswordScreen({ navigation }) {
           )}
         </TouchableOpacity>
 
-        <Text style={styles.footerText}>MEMORY TICKET • ACCOUNT SECURITY</Text>
+        <Text style={styles.footerText}>MEMENTO • ACCOUNT SECURITY</Text>
       </ScrollView>
     </View>
   );

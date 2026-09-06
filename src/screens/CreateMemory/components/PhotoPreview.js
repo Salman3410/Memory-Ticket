@@ -1,11 +1,9 @@
-import React from "react";
 import { View, Text, TouchableOpacity, Image, FlatList } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 import styles from "../createMemoryStyles";
 
 function PhotoPreview({ images, removeImage, handleImageScroll }) {
-  // NORMALIZE IMAGE
   const getImageUri = (item) => {
     if (!item) {
       return null;
@@ -22,7 +20,6 @@ function PhotoPreview({ images, removeImage, handleImageScroll }) {
     return null;
   };
 
-  // RENDER IMAGE
   const renderImage = ({ item, index }) => {
     const uri = getImageUri(item);
 

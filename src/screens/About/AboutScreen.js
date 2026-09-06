@@ -1,4 +1,3 @@
-import React from "react";
 import { View, Text, ScrollView, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -23,7 +22,7 @@ function AboutScreen({ navigation }) {
           <View>
             <Text style={styles.eyebrow}>THE IDEA</Text>
 
-            <Text style={styles.title}>About Memory Ticket</Text>
+            <Text style={styles.title}>About Memento</Text>
           </View>
         </View>
 
@@ -32,7 +31,7 @@ function AboutScreen({ navigation }) {
             <Ionicons name="ticket" size={30} color="#FFFFFF" />
           </View>
 
-          <Text style={styles.logoTitle}>Memory Ticket</Text>
+          <Text style={styles.logoTitle}>Memento</Text>
 
           <Text style={styles.logoSubtitle}>
             Keep the moment. Keep the story.
@@ -40,7 +39,7 @@ function AboutScreen({ navigation }) {
         </View>
 
         <View style={styles.contentCard}>
-          <Text style={styles.heading}>Why Memory Ticket?</Text>
+          <Text style={styles.heading}>Why Memento?</Text>
 
           <Text style={styles.paragraph}>
             Some moments deserve more than a photo sitting silently in your
@@ -48,7 +47,7 @@ function AboutScreen({ navigation }) {
           </Text>
 
           <Text style={styles.paragraph}>
-            Memory Ticket turns those moments into personal digital ticket stubs,
+            Memento turns those moments into personal digital ticket stubs,
             giving each memory its own story, place and time.
           </Text>
 
@@ -97,7 +96,7 @@ function AboutScreen({ navigation }) {
           </View>
         </View>
 
-        <Text style={styles.version}>MEMORY TICKET • VERSION 1.0.0</Text>
+        <Text style={styles.version}>MEMENTO • VERSION 1.0.0</Text>
       </ScrollView>
     </View>
   );

@@ -3,9 +3,7 @@ import {
   Text,
   TextInput,
 } from "react-native";
-
 import { Ionicons } from "@expo/vector-icons";
-
 import styles from "../createMemoryStyles";
 
 function MemoryForm({
@@ -18,9 +16,6 @@ function MemoryForm({
 }) {
   return (
     <>
-      {/* --------------------------------------------------
-          TITLE
-      -------------------------------------------------- */}
 
       <View style={styles.inputGroup}>
         <Text style={styles.label}>
@@ -35,10 +30,6 @@ function MemoryForm({
           placeholderTextColor="#A6A5AE"
         />
       </View>
-
-      {/* --------------------------------------------------
-          LOCATION
-      -------------------------------------------------- */}
 
       <View style={styles.inputGroup}>
         <Text style={styles.label}>

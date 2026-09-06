@@ -1,11 +1,7 @@
-import React, { useState } from "react";
-
+import { useState } from "react";
 import { View, Alert, ScrollView } from "react-native";
-
 import * as ImagePicker from "expo-image-picker";
-
 import { useMemory } from "../../hooks/useMemory";
-
 import styles from "./editMemoryStyles";
 
 import EditMemoryHeader from "../../components/EditScreen/EditMemoryHeader/EditMemoryHeader";
@@ -18,11 +14,8 @@ const MAX_IMAGES = 5;
 
 function EditMemoryScreen({ navigation, route }) {
   const { getMemoryById, updateMemory } = useMemory();
-
   const { memoryId } = route.params;
-
   const memory = getMemoryById(memoryId);
-
   const [images, setImages] = useState(
     Array.isArray(memory?.images)
       ? memory.images
@@ -30,22 +23,14 @@ function EditMemoryScreen({ navigation, route }) {
         ? [memory.image]
         : [],
   );
-
   const [title, setTitle] = useState(memory?.title || "");
-
   const [location, setLocation] = useState(memory?.location || "");
-
   const [description, setDescription] = useState(memory?.description || "");
-
   const [saving, setSaving] = useState(false);
 
   if (!memory) {
     return <EditMemoryNotFound onBack={() => navigation.goBack()} />;
-  }
-
-  // --------------------------------------------------
-  // CHECK WHETHER IMAGE IS A LOCAL FILE
-  // --------------------------------------------------
+  };
 
   const isLocalImage = (uri) => {
     if (!uri) {
@@ -54,10 +39,6 @@ function EditMemoryScreen({ navigation, route }) {
 
     return uri.startsWith("file://") || uri.startsWith("content://");
   };
-
-  // --------------------------------------------------
-  // ADD IMAGES
-  // --------------------------------------------------
 
   const addImages = async (newImages) => {
     try {
@@ -85,10 +66,6 @@ function EditMemoryScreen({ navigation, route }) {
       Alert.alert("Error", "Unable to add the selected photos.");
     }
   };
-
-  // --------------------------------------------------
-  // PICK IMAGE
-  // --------------------------------------------------
 
   const pickImage = async () => {
     try {
@@ -127,10 +104,6 @@ function EditMemoryScreen({ navigation, route }) {
     }
   };
 
-  // --------------------------------------------------
-  // TAKE PHOTO
-  // --------------------------------------------------
-
   const takePhoto = async () => {
     try {
       if (images.length >= MAX_IMAGES) {
@@ -165,19 +138,11 @@ function EditMemoryScreen({ navigation, route }) {
     }
   };
 
-  // --------------------------------------------------
-  // REMOVE IMAGE
-  // --------------------------------------------------
-
   const removeImage = (indexToRemove) => {
     setImages((currentImages) =>
       currentImages.filter((_, index) => index !== indexToRemove),
     );
   };
-
-  // --------------------------------------------------
-  // SAVE CHANGES
-  // --------------------------------------------------
 
   const handleSave = async () => {
     if (saving) {
@@ -202,21 +167,11 @@ function EditMemoryScreen({ navigation, route }) {
     setSaving(true);
 
     try {
-      /*
-       * Existing Cloudinary images.
-       */
       const existingImages = [];
       const existingImagePublicIds = [];
 
-      /*
-       * New local images.
-       */
       const newImages = [];
 
-      /*
-       * Match Cloudinary URLs with their
-       * corresponding public IDs.
-       */
       const originalImages = Array.isArray(memory.images)
         ? memory.images
         : memory.image
@@ -273,10 +228,6 @@ function EditMemoryScreen({ navigation, route }) {
       setSaving(false);
     }
   };
-
-  // --------------------------------------------------
-  // SCREEN
-  // --------------------------------------------------
 
   return (
     <View style={styles.container}>

@@ -2,27 +2,21 @@ import {
   useEffect,
   useState,
 } from "react";
-
 import {
   View,
   Text,
   ScrollView,
   Alert,
 } from "react-native";
-
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
 import { File } from "expo-file-system";
-
 import { useMemory } from "../../hooks/useMemory";
 import { useAuth } from "../../hooks/useAuth";
-
 import SettingsHeader from "./components/SettingsHeader";
 import PreferenceRow from "./components/PreferenceRow";
 import StorageSection from "./components/StorageSection";
 import AppearanceSection from "./components/AppearanceSection";
 import AccountSection from "./components/AccountSection";
-
 import styles from "./settingsStyles";
 
 function SettingsScreen({ navigation }) {
@@ -55,25 +49,13 @@ function SettingsScreen({ navigation }) {
     setStorageLoading,
   ] = useState(true);
 
-  // --------------------------------------------------
-  // LOAD SETTINGS
-  // --------------------------------------------------
-
   useEffect(() => {
     loadSettings();
   }, []);
 
-  // --------------------------------------------------
-  // CALCULATE STORAGE WHEN MEMORIES CHANGE
-  // --------------------------------------------------
-
   useEffect(() => {
     calculateStorage();
   }, [memories]);
-
-  // --------------------------------------------------
-  // CALCULATE LOCAL IMAGE STORAGE
-  // --------------------------------------------------
 
 const calculateStorage = async () => {
   try {
@@ -82,9 +64,6 @@ const calculateStorage = async () => {
     const localImageUris = [];
 
     for (const memory of memories) {
-      // Prefer persistent local images.
-      // These are the files actually consuming
-      // device storage.
       if (
         Array.isArray(memory.localImages) &&
         memory.localImages.length
@@ -171,12 +150,6 @@ const calculateStorage = async () => {
   }
 };
 
-
-
-  // --------------------------------------------------
-  // FORMAT STORAGE SIZE
-  // --------------------------------------------------
-
   const formatStorageSize = (
     bytes,
   ) => {
@@ -198,10 +171,6 @@ const calculateStorage = async () => {
       (1024 * 1024)
     ).toFixed(1)} MB`;
   };
-
-  // --------------------------------------------------
-  // LOAD SETTINGS
-  // --------------------------------------------------
 
   const loadSettings = async () => {
     try {
@@ -228,10 +197,6 @@ const calculateStorage = async () => {
     }
   };
 
-  // --------------------------------------------------
-  // SAVE NOTIFICATION SETTING
-  // --------------------------------------------------
-
   const handleNotifications =
     async (value) => {
       try {
@@ -248,10 +213,6 @@ const calculateStorage = async () => {
         );
       }
     };
-
-  // --------------------------------------------------
-  // CLEAR MEMORY STORAGE
-  // --------------------------------------------------
 
   const handleClearStorage = () => {
     if (memories.length === 0) {
@@ -321,10 +282,6 @@ const calculateStorage = async () => {
     );
   };
 
-  // --------------------------------------------------
-  // DELETE ACCOUNT
-  // --------------------------------------------------
-
   const handleDeleteAccount = () => {
     Alert.alert(
       "Delete Account",
@@ -374,10 +331,6 @@ const calculateStorage = async () => {
       ],
     );
   };
-
-  // --------------------------------------------------
-  // SCREEN
-  // --------------------------------------------------
 
   return (
     <View
@@ -451,7 +404,7 @@ const calculateStorage = async () => {
         <Text
           style={styles.footerText}
         >
-          MEMORY TICKET • VERSION 1.0.0
+          MEMENTO • VERSION 1.0.0
         </Text>
       </ScrollView>
     </View>

@@ -1,4 +1,3 @@
-import React from "react";
 import { View, Text, Image, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import styles from "./memoryTicketHorizontalStyles";
@@ -8,14 +7,9 @@ function MemoryTicketHorizontal({ memory, onPress }) {
     return null;
   }
 
-  // --------------------------------------------------
-  // MEMORY DATA
-  // --------------------------------------------------
-
   const title = memory.title || "UNTITLED MEMORY";
-  const location = memory.location || "MEMORY TICKET";
+  const location = memory.location || "MEMENTO";
 
-  // Support both old and new memory structures
   const images = Array.isArray(memory.images)
     ? memory.images
     : memory.image
@@ -23,10 +17,6 @@ function MemoryTicketHorizontal({ memory, onPress }) {
       : [];
 
   const image = images[0] || null;
-
-  // --------------------------------------------------
-  // DATE
-  // --------------------------------------------------
 
   const dateValue = memory.createdAt || memory.date;
 
@@ -44,18 +34,10 @@ function MemoryTicketHorizontal({ memory, onPress }) {
     }
   }
 
-  // --------------------------------------------------
-  // TICKET NUMBER
-  // --------------------------------------------------
-
   const ticketNumber =
     memory.ticketNumber ||
     memory.id?.toString().slice(-6).toUpperCase() ||
     "000000";
-
-  // --------------------------------------------------
-  // TICKET
-  // --------------------------------------------------
 
   const ticketContent = (
     <View style={styles.ticket}>
@@ -92,7 +74,7 @@ function MemoryTicketHorizontal({ memory, onPress }) {
       <View style={styles.ticketContent}>
         {/* HEADER */}
         <View style={styles.header}>
-          <Text style={styles.brandText}>MEMORY TICKET</Text>
+          <Text style={styles.brandText}>MEMENTO</Text>
 
           <Ionicons name="arrow-forward" size={16} color="#F0442C" />
         </View>
@@ -153,10 +135,6 @@ function MemoryTicketHorizontal({ memory, onPress }) {
       <View style={styles.bottomNotch} />
     </View>
   );
-
-  // --------------------------------------------------
-  // PRESSABLE TICKET
-  // --------------------------------------------------
 
   if (onPress) {
     return (

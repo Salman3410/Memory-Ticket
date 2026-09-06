@@ -1,45 +1,32 @@
-import React, {
+import {
   forwardRef,
   useImperativeHandle,
   useMemo,
   useRef,
-  useState,
 } from "react";
-
-import { Text, TouchableOpacity, View, Alert } from "react-native";
-
+import { Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-
 import {
   BottomSheetModal,
   BottomSheetView,
   BottomSheetBackdrop,
 } from "@gorhom/bottom-sheet";
-
 import styles from "./shareExportSheetStyles";
 
 const ShareExportSheet = forwardRef(
   (
     {
       onClose,
-
       onSaveImage,
       onExportPDF,
-
       onMore,
-
       savingImage = false,
       generatingPdf = false,
     },
     ref,
   ) => {
     const bottomSheetRef = useRef(null);
-
     const snapPoints = useMemo(() => ["30%"], []);
-
-    // ========================================================
-    // EXPOSE METHODS TO PARENT
-    // ========================================================
 
     useImperativeHandle(
       ref,
@@ -55,17 +42,9 @@ const ShareExportSheet = forwardRef(
       [],
     );
 
-    // ========================================================
-    // DISMISS
-    // ========================================================
-
     const handleDismiss = () => {
       onClose?.();
     };
-
-    // ========================================================
-    // EXPORT PDF
-    // ========================================================
 
     const handleExportPDF = () => {
       if (savingImage || generatingPdf) {
@@ -79,10 +58,6 @@ const ShareExportSheet = forwardRef(
       }, 250);
     };
 
-    // ========================================================
-    // SAVE IMAGE
-    // ========================================================
-
     const handleSaveImage = () => {
       if (savingImage || generatingPdf) {
         return;
@@ -90,10 +65,6 @@ const ShareExportSheet = forwardRef(
 
       onSaveImage?.();
     };
-
-    // ========================================================
-    // MORE
-    // ========================================================
 
     const handleMore = () => {
       if (savingImage || generatingPdf) {
@@ -107,10 +78,6 @@ const ShareExportSheet = forwardRef(
       }, 250);
     };
 
-    // ========================================================
-    // BACKDROP
-    // ========================================================
-
     const renderBackdrop = (props) => {
       return (
         <BottomSheetBackdrop
@@ -122,10 +89,6 @@ const ShareExportSheet = forwardRef(
         />
       );
     };
-
-    // ========================================================
-    // RENDER
-    // ========================================================
 
     return (
       <BottomSheetModal
@@ -140,20 +103,10 @@ const ShareExportSheet = forwardRef(
         handleIndicatorStyle={styles.handle}
       >
         <BottomSheetView style={styles.content}>
-          {/* ==================================================
-              TITLE
-          ================================================== */}
 
-          <Text style={styles.title}>Memory Ticket</Text>
-
-          {/* ==================================================
-              ACTIONS
-          ================================================== */}
+          <Text style={styles.title}>Memento</Text>
 
           <View style={styles.optionsRow}>
-            {/* =================================================
-                SAVE IMAGE
-            ================================================= */}
 
             <TouchableOpacity
               style={styles.option}
@@ -173,10 +126,6 @@ const ShareExportSheet = forwardRef(
                 {savingImage ? "Saving..." : "Save image"}
               </Text>
             </TouchableOpacity>
-
-            {/* =================================================
-                EXPORT PDF
-            ================================================= */}
 
             <TouchableOpacity
               style={styles.option}
@@ -200,10 +149,6 @@ const ShareExportSheet = forwardRef(
                 {generatingPdf ? "Creating..." : "Export PDF"}
               </Text>
             </TouchableOpacity>
-
-            {/* =================================================
-                MORE
-            ================================================= */}
 
             <TouchableOpacity
               style={styles.option}

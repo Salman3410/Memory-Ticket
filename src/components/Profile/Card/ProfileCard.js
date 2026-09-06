@@ -1,7 +1,5 @@
-import React from "react";
 import { View, Text, TouchableOpacity, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-
 import styles from "./profileCardStyles";
 
 function ProfileCard({ user, onEditProfile }) {

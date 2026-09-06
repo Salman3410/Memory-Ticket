@@ -1,5 +1,4 @@
-import React, { useRef, useState } from "react";
-
+import { useRef, useState } from "react";
 import {
   View,
   Text,
@@ -10,91 +9,55 @@ import {
   Alert,
   Modal,
   StyleSheet,
-  ActivityIndicator,
 } from "react-native";
-
 import { Ionicons } from "@expo/vector-icons";
-
 import { captureRef } from "react-native-view-shot";
 import * as Sharing from "expo-sharing";
 import * as Print from "expo-print";
 import * as FileSystem from "expo-file-system/legacy";
 import * as MediaLibrary from "expo-media-library";
-
 import { useMemory } from "../../hooks/useMemory";
-
 import MemoryTicket from "../../components/MemoryTicket/MemoryTicket";
-
 import ShareExportSheet from "../../components/ShareExportSheet/ShareExportSheet";
-
 import styles from "./memoryDetailsStyles";
 
 function MemoryDetailsScreen({ navigation, route }) {
   const { getMemoryById, toggleFavorite, deleteMemory } = useMemory();
-
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
 
   const memoryId = route?.params?.memoryId;
 
-  // ==========================================================
-  // GENERAL
-  // ==========================================================
-
   const [activeImage, setActiveImage] = useState(0);
-
-  // ==========================================================
-  // IMAGE VIEWER
-  // ==========================================================
-
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
-
   const [viewerImage, setViewerImage] = useState(0);
-
-  // ==========================================================
-  // SHARE / EXPORT
-  // ==========================================================
 
   const shareSheetRef = useRef(null);
 
   const [sharing, setSharing] = useState(false);
-
   const [savingImage, setSavingImage] = useState(false);
 
-  // ==========================================================
-  // PDF
-  // ==========================================================
-
   const [generatingPdf, setGeneratingPdf] = useState(false);
-
   const [pdfOptionsVisible, setPdfOptionsVisible] = useState(false);
-
-  // ==========================================================
-  // TICKET REFS
-  // ==========================================================
 
   const ticketRefs = useRef([]);
 
-  // ==========================================================
-  // MEMORY CHECK
-  // ==========================================================
+  // if (!memoryId) {
+  //   return (
+  //     <View style={styles.notFoundContainer}>
+  //       <Ionicons name="sad-outline" size={45} color="#34345C" />
 
-  if (!memoryId) {
-    return (
-      <View style={styles.notFoundContainer}>
-        <Ionicons name="sad-outline" size={45} color="#34345C" />
+  //       <Text style={styles.notFoundTitle}>Memory not found</Text>
 
-        <Text style={styles.notFoundTitle}>Memory not found</Text>
-
-        <TouchableOpacity
-          style={styles.backToMemoriesButton}
-          onPress={() => navigation.goBack()}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.backToMemoriesText}>GO BACK</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
+  //       <TouchableOpacity
+  //         style={styles.backToMemoriesButton}
+  //         onPress={() => navigation.goBack()}
+  //         activeOpacity={0.8}
+  //       >
+  //         <Text style={styles.backToMemoriesText}>GO BACK</Text>
+  //       </TouchableOpacity>
+  //     </View>
+  //   );
+  // }
 
   const memory = getMemoryById(memoryId);
 
@@ -116,19 +79,11 @@ function MemoryDetailsScreen({ navigation, route }) {
     );
   }
 
-  // ==========================================================
-  // IMAGES
-  // ==========================================================
-
   const images = Array.isArray(memory?.images)
     ? memory.images
     : memory?.image
       ? [memory.image]
       : [];
-
-  // ==========================================================
-  // IMAGE VIEWER
-  // ==========================================================
 
   const openImageViewer = (index) => {
     if (!images[index]) {
@@ -150,10 +105,6 @@ function MemoryDetailsScreen({ navigation, route }) {
     setActiveImage(index);
   };
 
-  // ==========================================================
-  // TICKET NUMBER
-  // ==========================================================
-
   const getTicketNumber = () => {
     if (memory?.id) {
       return memory.id.slice(-5).toUpperCase();
@@ -161,10 +112,6 @@ function MemoryDetailsScreen({ navigation, route }) {
 
     return "00001";
   };
-
-  // ==========================================================
-  // FAVORITE
-  // ==========================================================
 
   const handleFavorite = async () => {
     try {
@@ -175,10 +122,6 @@ function MemoryDetailsScreen({ navigation, route }) {
       console.log("Favorite update error:", error);
     }
   };
-
-  // ==========================================================
-  // DELETE
-  // ==========================================================
 
   const handleDelete = () => {
     Alert.alert(
@@ -210,17 +153,9 @@ function MemoryDetailsScreen({ navigation, route }) {
     );
   };
 
-  // ==========================================================
-  // OPEN SHARE BOTTOM SHEET
-  // ==========================================================
-
   const openShareSheet = () => {
     shareSheetRef.current?.present();
   };
-
-  // ==========================================================
-  // CAPTURE CURRENT MEMORY TICKET
-  // ==========================================================
 
   const captureCurrentTicket = async () => {
     const safeIndex =
@@ -238,14 +173,6 @@ function MemoryDetailsScreen({ navigation, route }) {
       result: "tmpfile",
     });
   };
-
-  // ==========================================================
-  // MORE
-  //
-  // THIS OPENS THE NATIVE OS SHARE SHEET.
-  //
-  // NO CUSTOM SOCIAL POPUP.
-  // ==========================================================
 
   const handleMore = async () => {
     try {
@@ -268,23 +195,6 @@ function MemoryDetailsScreen({ navigation, route }) {
 
       const imageUri = await captureCurrentTicket();
 
-      /*
-       * This is the important part.
-       *
-       * We give the native share system
-       * the ACTUAL Memory Ticket image.
-       *
-       * The OS decides which compatible apps
-       * are displayed:
-       *
-       * WhatsApp
-       * Instagram
-       * Facebook
-       * Messages
-       * Drive
-       * etc.
-       */
-
       await Sharing.shareAsync(imageUri, {
         mimeType: "image/png",
 
@@ -300,10 +210,6 @@ function MemoryDetailsScreen({ navigation, route }) {
       setSharing(false);
     }
   };
-
-  // ==========================================================
-  // SAVE IMAGE
-  // ==========================================================
 
   const handleSaveImage = async () => {
     try {
@@ -346,10 +252,6 @@ function MemoryDetailsScreen({ navigation, route }) {
     }
   };
 
-  // ==========================================================
-  // PDF HELPERS
-  // ==========================================================
-
   const imageToBase64 = async (uri) => {
     const base64 = await FileSystem.readAsStringAsync(uri, {
       encoding: FileSystem.EncodingType.Base64,
@@ -371,10 +273,6 @@ function MemoryDetailsScreen({ navigation, route }) {
       .replace(/'/g, "&#039;");
   };
 
-  // ==========================================================
-  // STANDARD PDF BACK
-  // ==========================================================
-
   const createStandardBackPage = () => {
     return `
         <section class="page back-page">
@@ -386,7 +284,7 @@ function MemoryDetailsScreen({ navigation, route }) {
             <div class="back-content">
 
               <div class="back-brand">
-                MEMORY TICKET
+                MEMENTO
               </div>
 
               <div class="back-tagline">
@@ -435,7 +333,7 @@ function MemoryDetailsScreen({ navigation, route }) {
               <div class="back-footer">
 
                 <div class="back-small">
-                  MEMORY TICKET
+                  MEMENTO
                 </div>
 
                 <div class="back-small">
@@ -453,10 +351,6 @@ function MemoryDetailsScreen({ navigation, route }) {
         </section>
       `;
   };
-
-  // ==========================================================
-  // PDF EXPORT
-  // ==========================================================
 
   const handleExportPdf = async (backType) => {
     try {
@@ -505,7 +399,7 @@ function MemoryDetailsScreen({ navigation, route }) {
             <img
               class="ticket"
               src="${ticketImage}"
-              alt="Memory Ticket Front"
+              alt="Memento Front"
             />
 
           </section>
@@ -609,7 +503,7 @@ function MemoryDetailsScreen({ navigation, route }) {
               }
 
               .blank-back-page {
-                background: #F5C842;
+                background: #F0442C;
               }
 
               .blank-yellow {
@@ -621,11 +515,11 @@ function MemoryDetailsScreen({ navigation, route }) {
                 width: 210mm;
                 height: 297mm;
 
-                background: #F5C842;
+                background: #F0442C;
               }
 
               .back-page {
-                background: #F5C842;
+                background: #F0442C;
               }
 
               .back-ticket {
@@ -634,7 +528,7 @@ function MemoryDetailsScreen({ navigation, route }) {
                 width: 115mm;
                 height: 270mm;
 
-                background: #F5C842;
+                background: #F0442C;
 
                 border-radius: 6px;
 
@@ -837,10 +731,6 @@ function MemoryDetailsScreen({ navigation, route }) {
     }
   };
 
-  // ==========================================================
-  // TICKET
-  // ==========================================================
-
   const renderTicket = (image, index) => {
     return (
       <View
@@ -872,10 +762,6 @@ function MemoryDetailsScreen({ navigation, route }) {
     );
   };
 
-  // ==========================================================
-  // SCREEN
-  // ==========================================================
-
   return (
     <View style={styles.container}>
       <ScrollView
@@ -885,9 +771,6 @@ function MemoryDetailsScreen({ navigation, route }) {
         nestedScrollEnabled
         keyboardShouldPersistTaps="handled"
       >
-        {/* ====================================================
-            HEADER
-        ==================================================== */}
 
         <View style={styles.header}>
           <TouchableOpacity
@@ -916,10 +799,6 @@ function MemoryDetailsScreen({ navigation, route }) {
           </TouchableOpacity>
         </View>
 
-        {/* ====================================================
-            TICKET CAROUSEL
-        ==================================================== */}
-
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -943,10 +822,6 @@ function MemoryDetailsScreen({ navigation, route }) {
             : renderTicket(null, 0)}
         </ScrollView>
 
-        {/* ====================================================
-            SWIPE HINT
-        ==================================================== */}
-
         {images.length > 1 && (
           <View style={styles.swipeHint}>
             <Ionicons
@@ -963,10 +838,6 @@ function MemoryDetailsScreen({ navigation, route }) {
           </View>
         )}
 
-        {/* ====================================================
-            SHARE MEMORY
-        ==================================================== */}
-
         <TouchableOpacity
           style={detailStyles.shareButton}
           onPress={openShareSheet}
@@ -976,10 +847,6 @@ function MemoryDetailsScreen({ navigation, route }) {
 
           <Text style={detailStyles.shareButtonText}>SHARE MEMORY</Text>
         </TouchableOpacity>
-
-        {/* ====================================================
-            EDIT
-        ==================================================== */}
 
         <TouchableOpacity
           style={styles.editButton}
@@ -995,10 +862,6 @@ function MemoryDetailsScreen({ navigation, route }) {
           <Text style={styles.editText}>EDIT MEMORY</Text>
         </TouchableOpacity>
 
-        {/* ====================================================
-            DELETE
-        ==================================================== */}
-
         <TouchableOpacity
           style={styles.deleteButton}
           onPress={handleDelete}
@@ -1009,20 +872,8 @@ function MemoryDetailsScreen({ navigation, route }) {
           <Text style={styles.deleteText}>DELETE MEMORY</Text>
         </TouchableOpacity>
 
-        {/* ====================================================
-            FOOTER
-        ==================================================== */}
-
         <Text style={styles.footerText}>KEEP THE MOMENT. KEEP THE STORY.</Text>
       </ScrollView>
-
-      {/* ======================================================
-          GORHOM SHARE / EXPORT SHEET
-
-          Save Image
-          Export PDF
-          More -> NATIVE SHARE POPUP
-      ====================================================== */}
 
       <ShareExportSheet
         ref={shareSheetRef}
@@ -1039,10 +890,6 @@ function MemoryDetailsScreen({ navigation, route }) {
         generatingPdf={generatingPdf}
         sharing={sharing}
       />
-
-      {/* ======================================================
-          PDF OPTIONS
-      ====================================================== */}
 
       <Modal
         visible={pdfOptionsVisible}
@@ -1075,10 +922,6 @@ function MemoryDetailsScreen({ navigation, route }) {
               ticket front. Page 2 will be the back you choose.
             </Text>
 
-            {/* =================================================
-                BLANK BACK
-            ================================================= */}
-
             <TouchableOpacity
               style={pdfStyles.option}
               onPress={() => handleExportPdf("blank")}
@@ -1106,10 +949,6 @@ function MemoryDetailsScreen({ navigation, route }) {
 
               <Ionicons name="chevron-forward" size={20} color="#34345C" />
             </TouchableOpacity>
-
-            {/* =================================================
-                STANDARD BACK
-            ================================================= */}
 
             <TouchableOpacity
               style={pdfStyles.option}
@@ -1175,10 +1014,6 @@ function MemoryDetailsScreen({ navigation, route }) {
           </View>
         </View>
       </Modal>
-
-      {/* ======================================================
-          FULL IMAGE VIEWER
-      ====================================================== */}
 
       <Modal
         visible={imageViewerVisible}
@@ -1266,10 +1101,6 @@ function MemoryDetailsScreen({ navigation, route }) {
   );
 }
 
-// ==========================================================
-// DETAIL STYLES
-// ==========================================================
-
 const detailStyles = StyleSheet.create({
   scrollView: {
     flex: 1,
@@ -1305,10 +1136,6 @@ const detailStyles = StyleSheet.create({
     letterSpacing: 1,
   },
 });
-
-// ==========================================================
-// PDF STYLES
-// ==========================================================
 
 const pdfStyles = StyleSheet.create({
   overlay: {
@@ -1506,148 +1333,84 @@ const pdfStyles = StyleSheet.create({
   },
 });
 
-// ==========================================================
-// IMAGE VIEWER STYLES
-// ==========================================================
-
 const imageViewerStyles = StyleSheet.create({
   container: {
     flex: 1,
-
     backgroundColor: "#0B0B0D",
   },
-
   topBar: {
     position: "absolute",
-
     top: 0,
-
     left: 0,
-
     right: 0,
-
     zIndex: 20,
-
     height: 92,
-
     paddingTop: 48,
-
     paddingHorizontal: 18,
-
     flexDirection: "row",
-
     alignItems: "center",
   },
-
   closeButton: {
     position: "absolute",
-
     left: 18,
-
     top: 48,
-
     width: 42,
-
     height: 42,
-
     borderRadius: 14,
-
     backgroundColor: "rgba(255, 255, 255, 0.12)",
-
     borderWidth: 1,
-
     borderColor: "rgba(255, 255, 255, 0.12)",
-
     alignItems: "center",
-
     justifyContent: "center",
   },
-
   counterWrapper: {
     flex: 1,
-
     alignItems: "center",
   },
-
   counter: {
     minWidth: 54,
-
     paddingHorizontal: 12,
-
     paddingVertical: 7,
-
     borderRadius: 14,
-
     backgroundColor: "rgba(255, 255, 255, 0.12)",
-
     borderWidth: 1,
-
     borderColor: "rgba(255, 255, 255, 0.14)",
-
     color: "#FFFFFF",
-
     fontSize: 11,
-
     fontWeight: "900",
-
     letterSpacing: 1,
-
     textAlign: "center",
   },
-
   imagePage: {
     flex: 1,
-
     alignItems: "center",
-
     justifyContent: "center",
-
     backgroundColor: "#0B0B0D",
   },
-
   fullImage: {
     alignSelf: "center",
-
     backgroundColor: "transparent",
   },
-
   bottomHint: {
     position: "absolute",
-
     left: 18,
-
     right: 18,
-
     bottom: 28,
-
     minHeight: 42,
-
     paddingHorizontal: 15,
-
     borderRadius: 21,
-
     backgroundColor: "rgba(255, 255, 255, 0.10)",
-
     borderWidth: 1,
-
     borderColor: "rgba(255, 255, 255, 0.10)",
-
     flexDirection: "row",
-
     alignItems: "center",
-
     justifyContent: "center",
-
     gap: 7,
   },
-
   bottomHintText: {
     color: "#C9C9CE",
-
     fontSize: 10,
-
     fontWeight: "800",
-
     letterSpacing: 0.8,
   },
 });

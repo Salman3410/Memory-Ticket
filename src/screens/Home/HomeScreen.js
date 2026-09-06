@@ -12,7 +12,6 @@ import styles from "./homeStyles";
 function HomeScreen({ navigation }) {
   const { memories, loading } = useMemory();
 
-  // RECENT MEMORIES
   const recentMemories = useMemo(() => {
     return [...memories]
       .sort((a, b) => {
@@ -24,12 +23,10 @@ function HomeScreen({ navigation }) {
       .slice(0, 2);
   }, [memories]);
 
-  // FAVORITE MEMORIES
   const favoriteMemories = useMemo(() => {
     return memories.filter((memory) => memory.favorite === true);
   }, [memories]);
 
-  // LATEST MEMORY
   const latestMemory = recentMemories[0];
 
   return (

@@ -1,7 +1,6 @@
-import React, {
+import {
   useState,
 } from "react";
-
 import {
   View,
   Text,
@@ -12,11 +11,8 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
-
 import { Ionicons } from "@expo/vector-icons";
-
 import { useMemory } from "../../hooks/useMemory";
-
 import styles from "./ticketPreviewStyles";
 
 function TicketPreviewScreen({
@@ -43,10 +39,6 @@ function TicketPreviewScreen({
     saving,
     setSaving,
   ] = useState(false);
-
-  // --------------------------------------------------
-  // NO MEMORY DATA
-  // --------------------------------------------------
 
   if (!memory) {
     return (
@@ -117,10 +109,6 @@ function TicketPreviewScreen({
     );
   }
 
-  // --------------------------------------------------
-  // GET ALL IMAGES
-  // --------------------------------------------------
-
   const images =
     Array.isArray(
       memory.images,
@@ -129,10 +117,6 @@ function TicketPreviewScreen({
       : memory.image
         ? [memory.image]
         : [];
-
-  // --------------------------------------------------
-  // DATE
-  // --------------------------------------------------
 
   const formatDate = (
     date,
@@ -162,10 +146,6 @@ function TicketPreviewScreen({
     );
   };
 
-  // --------------------------------------------------
-  // TICKET NUMBER
-  // --------------------------------------------------
-
   const getTicketNumber = () => {
     if (memory?.id) {
       return memory.id
@@ -175,10 +155,6 @@ function TicketPreviewScreen({
 
     return "00001";
   };
-
-  // --------------------------------------------------
-  // SAVE MEMORY
-  // --------------------------------------------------
 
   const handleSave =
     async () => {
@@ -204,8 +180,6 @@ function TicketPreviewScreen({
               memory.title ||
               "",
 
-            // Keep the manually entered
-            // location exactly as provided.
             location:
               memory.location ||
               "",
@@ -262,10 +236,6 @@ function TicketPreviewScreen({
       }
     };
 
-  // --------------------------------------------------
-  // EDIT MEMORY
-  // --------------------------------------------------
-
   const handleEdit = () => {
     if (saving) {
       return;
@@ -284,10 +254,6 @@ function TicketPreviewScreen({
       },
     });
   };
-
-  // --------------------------------------------------
-  // TICKET
-  // --------------------------------------------------
 
   const renderTicket = (
     image,
@@ -347,7 +313,7 @@ function TicketPreviewScreen({
                     styles.ticketBrand
                   }
                 >
-                  MEMORY TICKET
+                  MEMENTO
                 </Text>
 
                 <Text
@@ -677,10 +643,6 @@ function TicketPreviewScreen({
       </View>
     );
   };
-
-  // --------------------------------------------------
-  // SCREEN
-  // --------------------------------------------------
 
   return (
     <View

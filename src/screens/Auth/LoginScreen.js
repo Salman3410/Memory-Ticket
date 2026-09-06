@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 
 import {
   View,
@@ -77,8 +77,8 @@ function LoginScreen({ navigation }) {
               <Ionicons name="ticket-outline" size={28} color="#FFFFFF" />
             </View>
 
-            <Text style={styles.brandText}>MEMORY</Text>
-            <Text style={styles.brandSubText}>TICKET</Text>
+            <Text style={styles.brandText}>MEMENTO</Text>
+            {/* <Text style={styles.brandSubText}>TICKET</Text> */}
           </View>
 
           {/* Heading */}

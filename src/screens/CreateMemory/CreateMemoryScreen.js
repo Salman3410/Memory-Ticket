@@ -38,17 +38,11 @@ function CreateMemoryScreen({
   const [location, setLocation] =
     useState("");
 
-  // GPS metadata is kept separately
-  // from the manual location field.
   const [locationData, setLocationData] =
     useState(null);
 
   const [description, setDescription] =
     useState("");
-
-  // --------------------------------------------------
-  // LOAD EDIT MEMORY / DRAFT
-  // --------------------------------------------------
 
   useEffect(() => {
     const editMemory =
@@ -92,8 +86,6 @@ function CreateMemoryScreen({
       editMemory.description || "",
     );
 
-    // Clear the route parameter after
-    // loading the edit data.
     navigation.setParams({
       editMemory: undefined,
     });
@@ -101,10 +93,6 @@ function CreateMemoryScreen({
     route?.params?.editMemory,
     navigation,
   ]);
-
-  // --------------------------------------------------
-  // ADD IMAGES FROM GALLERY
-  // --------------------------------------------------
 
   const pickImages = async () => {
     try {
@@ -191,10 +179,6 @@ function CreateMemoryScreen({
     }
   };
 
-  // --------------------------------------------------
-  // CAMERA
-  // --------------------------------------------------
-
   const takePhoto = async () => {
     try {
       if (
@@ -269,10 +253,6 @@ function CreateMemoryScreen({
     }
   };
 
-  // --------------------------------------------------
-  // REMOVE IMAGE
-  // --------------------------------------------------
-
   const removeImage = (
     index,
   ) => {
@@ -310,10 +290,6 @@ function CreateMemoryScreen({
     );
   };
 
-  // --------------------------------------------------
-  // IMAGE SCROLL
-  // --------------------------------------------------
-
   const handleImageScroll = (
     event,
   ) => {
@@ -346,10 +322,6 @@ function CreateMemoryScreen({
     );
   };
 
-  // --------------------------------------------------
-  // RESET FORM
-  // --------------------------------------------------
-
   const resetForm = () => {
     setImages([]);
     setActiveImage(0);
@@ -358,10 +330,6 @@ function CreateMemoryScreen({
     setLocationData(null);
     setDescription("");
   };
-
-  // --------------------------------------------------
-  // GO TO TICKET PREVIEW
-  // --------------------------------------------------
 
   const handleCreateMemory = () => {
     if (!images.length) {
@@ -395,12 +363,9 @@ function CreateMemoryScreen({
       title:
         title.trim(),
 
-      // IMPORTANT:
-      // This remains ONLY the user's manual location.
       location:
         location.trim(),
 
-      // GPS metadata is separate.
       locationData,
 
       description:
@@ -417,8 +382,6 @@ function CreateMemoryScreen({
         new Date().toISOString(),
     };
 
-    // Clear form because the preview screen
-    // now owns this draft.
     resetForm();
 
     navigation.navigate(
@@ -429,10 +392,6 @@ function CreateMemoryScreen({
       },
     );
   };
-
-  // --------------------------------------------------
-  // SCREEN
-  // --------------------------------------------------
 
   return (
     <View

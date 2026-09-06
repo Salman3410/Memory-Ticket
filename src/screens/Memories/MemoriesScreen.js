@@ -36,19 +36,11 @@ function MemoriesScreen({ navigation, route }) {
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // --------------------------------------------------
-  // HANDLE NAVIGATION FILTER
-  // --------------------------------------------------
-
   useEffect(() => {
     if (route?.params?.filter) {
       setFilter(route.params.filter);
     }
   }, [route?.params?.filter]);
-
-  // --------------------------------------------------
-  // GET MEMORY DATE
-  // --------------------------------------------------
 
   const getMemoryTime = (memory) => {
     const dateValue =
@@ -63,16 +55,8 @@ function MemoriesScreen({ navigation, route }) {
     return Number.isNaN(time) ? 0 : time;
   };
 
-  // --------------------------------------------------
-  // DISPLAYED MEMORIES
-  // --------------------------------------------------
-
   const displayedMemories = useMemo(() => {
     let filtered = [...memories];
-
-    // --------------------------------------------------
-    // SEARCH
-    // --------------------------------------------------
 
     const query =
       searchQuery.trim().toLowerCase();
@@ -97,10 +81,6 @@ function MemoriesScreen({ navigation, route }) {
         },
       );
     }
-
-    // --------------------------------------------------
-    // FILTER
-    // --------------------------------------------------
 
     if (filter === "favorites") {
       filtered = filtered.filter(
@@ -134,10 +114,6 @@ function MemoriesScreen({ navigation, route }) {
       );
     }
 
-    // --------------------------------------------------
-    // SORT
-    // --------------------------------------------------
-
     filtered.sort((a, b) => {
       const dateA =
         getMemoryTime(a);
@@ -160,20 +136,12 @@ function MemoriesScreen({ navigation, route }) {
     searchQuery,
   ]);
 
-  // --------------------------------------------------
-  // FAVORITE COUNT
-  // --------------------------------------------------
-
   const favoriteCount = useMemo(() => {
     return memories.filter(
       (memory) =>
         memory.favorite === true,
     ).length;
   }, [memories]);
-
-  // --------------------------------------------------
-  // TOGGLE FAVORITE
-  // --------------------------------------------------
 
   const handleToggleFavorite =
     async (memory) => {
@@ -203,10 +171,6 @@ function MemoriesScreen({ navigation, route }) {
       }
     };
 
-  // --------------------------------------------------
-  // FILTER LABEL
-  // --------------------------------------------------
-
   const getFilterLabel = () => {
     switch (filter) {
       case "favorites":
@@ -220,17 +184,9 @@ function MemoriesScreen({ navigation, route }) {
     }
   };
 
-  // --------------------------------------------------
-  // CLEAR SEARCH
-  // --------------------------------------------------
-
   const handleClearSearch = () => {
     setSearchQuery("");
   };
-
-  // --------------------------------------------------
-  // RENDER
-  // --------------------------------------------------
 
   return (
     <View style={styles.container}>

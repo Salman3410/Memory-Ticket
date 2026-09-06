@@ -333,12 +333,12 @@ function ForgotPasswordScreen({ navigation }) {
       </View>
 
       <Text style={styles.brandText}>
-        MEMORY
+        MEMENTO
       </Text>
 
-      <Text style={styles.brandSubText}>
+      {/* <Text style={styles.brandSubText}>
         TICKET
-      </Text>
+      </Text> */}
     </View>
   );
 
@@ -587,7 +587,7 @@ function ForgotPasswordScreen({ navigation }) {
 
         <Text style={styles.subtitle}>
           Create a new password for your
-          Memory Ticket account.
+          Memento account.
         </Text>
       </View>
 

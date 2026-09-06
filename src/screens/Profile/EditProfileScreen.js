@@ -1,5 +1,4 @@
-import React, { useState } from "react";
-
+import { useState } from "react";
 import {
   View,
   Text,
@@ -10,22 +9,16 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
-
 import * as ImagePicker from "expo-image-picker";
-
 import { Ionicons } from "@expo/vector-icons";
-
 import { useAuth } from "../../hooks/useAuth";
-
 import styles from "./editProfileStyles";
 
 function EditProfileScreen({ navigation }) {
   const { user, updateProfile } = useAuth();
 
   const [name, setName] = useState(user?.name || "");
-
   const [profileImage, setProfileImage] = useState(user?.profileImage || null);
-
   const [saving, setSaving] = useState(false);
 
   const pickProfileImage = async () => {

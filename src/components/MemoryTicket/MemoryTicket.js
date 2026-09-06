@@ -1,5 +1,4 @@
 import { useState } from "react";
-
 import {
   View,
   Text,
@@ -7,20 +6,14 @@ import {
   TouchableOpacity,
   ScrollView,
 } from "react-native";
-
 import { Ionicons } from "@expo/vector-icons";
-
 import { useMemory } from "../../hooks/useMemory";
-
 import styles from "./memoryTicketStyles";
 
 function MemoryTicket({
   memory,
   onPress,
   compact = false,
-
-  // NEW:
-  // When provided, this ticket displays ONLY this image.
   image = null,
 }) {
   const { getMemoryById } = useMemory();
@@ -32,8 +25,6 @@ function MemoryTicket({
     return null;
   }
 
-  // If only an ID is passed, get the complete memory
-  // from MemoryContext.
   const contextMemory = memory.id ? getMemoryById(memory.id) : memory;
   const currentMemory = contextMemory || memory;
 
@@ -56,7 +47,7 @@ function MemoryTicket({
   };
 
   const title = currentMemory.title || "UNTITLED MEMORY";
- const location = currentMemory.location?.trim() || "UNKNOWN";
+  const location = currentMemory.location?.trim() || "UNKNOWN";
   const date = formatDate(currentMemory.createdAt || currentMemory.date);
   const time = currentMemory.time || "";
   const description = currentMemory.description?.trim() || "";
@@ -67,33 +58,15 @@ function MemoryTicket({
     currentMemory.id?.toString().slice(-6) ||
     "000000";
 
-  // --------------------------------------------------
-  // GET ALL IMAGES
-  // --------------------------------------------------
-
   const images = Array.isArray(currentMemory.images)
     ? currentMemory.images
     : currentMemory.image
       ? [currentMemory.image]
       : [];
 
-  // --------------------------------------------------
-  // DETAIL MODE
-  // --------------------------------------------------
-  // If MemoryDetailsScreen passes an `image` prop,
-  // this ticket must display ONLY that image.
-  //
-  // Otherwise, the normal MemoryTicket carousel
-  // behavior remains unchanged.
-  // --------------------------------------------------
-
   const isSingleImageMode = Boolean(image);
 
   const displayImages = isSingleImageMode ? [image] : images;
-
-  // --------------------------------------------------
-  // IMAGE PRESS
-  // --------------------------------------------------
 
   const handleImagePress = () => {
     if (onPress) {
@@ -114,7 +87,7 @@ function MemoryTicket({
       <View style={styles.ticketBody}>
         {/* HEADER */}
         <View style={styles.header}>
-          <Text style={styles.brandText}>MEMORY TICKET</Text>
+          <Text style={styles.brandText}>MEMENTO</Text>
 
           <Ionicons
             name="ticket-outline"
@@ -133,9 +106,6 @@ function MemoryTicket({
         >
           {displayImages.length > 0 ? (
             isSingleImageMode ? (
-              // ----------------------------------------
-              // SINGLE IMAGE MODE
-              // ----------------------------------------
               <TouchableOpacity
                 activeOpacity={0.95}
                 onPress={handleImagePress}
@@ -149,9 +119,6 @@ function MemoryTicket({
                 />
               </TouchableOpacity>
             ) : (
-              // ----------------------------------------
-              // NORMAL IMAGE CAROUSEL
-              // ----------------------------------------
               <ScrollView
                 horizontal
                 pagingEnabled

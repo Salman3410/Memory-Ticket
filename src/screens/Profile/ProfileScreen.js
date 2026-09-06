@@ -69,7 +69,7 @@ function ProfileScreen({ navigation }) {
       onPress: handleSettings,
     },
     {
-      title: "About Memory Ticket",
+      title: "About Memento",
       subtitle: "Learn more about the app",
       icon: "information-circle-outline",
       onPress: handleAbout,
@@ -126,7 +126,7 @@ function ProfileScreen({ navigation }) {
 
         {/* VERSION */}
 
-        <Text style={styles.versionText}>MEMORY TICKET • VERSION 1.0.0</Text>
+        <Text style={styles.versionText}>MEMENTO • VERSION 1.0.0</Text>
       </ScrollView>
     </View>
   );

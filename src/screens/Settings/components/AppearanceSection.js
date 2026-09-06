@@ -20,7 +20,7 @@ function AppearanceSection() {
 
           <View style={styles.rowContent}>
             <Text style={styles.rowTitle}>
-              Memory Ticket Theme
+              Memento Theme
             </Text>
 
             <Text style={styles.rowSubtitle}>
