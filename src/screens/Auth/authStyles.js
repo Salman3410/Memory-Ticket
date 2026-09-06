@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
   forgotButton: {
     alignSelf: "flex-end",
     marginTop: -4,
-    marginBottom: 26,
+    marginBottom: 14,
   },
   forgotText: {
     fontSize: 13,
@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
   dividerContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: 34,
+    marginVertical: 20,
   },
   dividerLine: {
     flex: 1,
@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     letterSpacing: 2.5,
     color: "#A39C92",
-    marginTop: 42,
+    marginTop: 25,
   },
 });
 
