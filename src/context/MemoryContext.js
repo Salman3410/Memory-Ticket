@@ -34,6 +34,7 @@ import {
   removePendingMemory,
   getOfflineMemories,
   upsertLocalMemory,
+  removeLocalMemory,
   clearLocalMemories,
 } from "../services/offlineMemoryService";
 
@@ -48,84 +49,215 @@ export function MemoryProvider({
     loading: authLoading,
   } = useAuth();
 
-  const [memories, setMemories] =
-    useState([]);
+  const [
+    memories,
+    setMemories,
+  ] = useState([]);
 
-  const [loading, setLoading] =
-    useState(true);
+  const [
+    loading,
+    setLoading,
+  ] = useState(true);
 
-  const [syncing, setSyncing] =
-    useState(false);
+  const [
+    syncing,
+    setSyncing,
+  ] = useState(false);
 
   const syncLock =
     useRef(false);
 
   // --------------------------------------------------
-  // NORMALIZE BACKEND MEMORY
+  // NORMALIZE MEMORY
   // --------------------------------------------------
 
-  const normalizeMemory = useCallback(
-    (memory) => {
-      if (!memory) {
-        return null;
-      }
+  const normalizeMemory =
+    useCallback(
+      (memory) => {
+        if (!memory) {
+          return null;
+        }
 
-      const images = Array.isArray(
-        memory.images,
-      )
-        ? memory.images
-        : [];
-
-      return {
-        ...memory,
-
-        // MongoDB ID -> frontend ID
-        id:
-          memory._id ||
-          memory.id ||
-          memory.clientMemoryId,
-
-        images,
-
-        image:
-          images[0] || null,
-
-        favorite:
-          memory.isFavorite === true,
-
-        locationData:
-          memory.locationData ||
-          null,
-
-        environment: {
-          network:
-            memory.network ||
-            null,
-        },
-
-        imagePublicIds:
+        const images =
           Array.isArray(
-            memory.imagePublicIds,
+            memory.images,
           )
-            ? memory.imagePublicIds
-            : [],
+            ? memory.images
+            : [];
 
-        syncStatus:
-          memory.syncStatus ||
-          "synced",
-      };
-    },
-    [],
-  );
+        return {
+          ...memory,
+
+          id:
+            memory._id ||
+            memory.id ||
+            memory.clientMemoryId,
+
+          images,
+
+          image:
+            images[0] || null,
+
+          favorite:
+            memory.isFavorite === true,
+
+          locationData:
+            memory.locationData ||
+            null,
+
+          environment: {
+            network:
+              memory.network ||
+              null,
+          },
+
+          imagePublicIds:
+            Array.isArray(
+              memory.imagePublicIds,
+            )
+              ? memory.imagePublicIds
+              : [],
+
+          syncStatus:
+            memory.syncStatus ||
+            "synced",
+        };
+      },
+      [],
+    );
 
   // --------------------------------------------------
-  // LOAD LOCAL/OFFLINE MEMORIES
+  // MERGE SERVER + LOCAL DATA
   // --------------------------------------------------
 
-  const loadOfflineMemories =
+  const mergeMemories =
+    useCallback(
+      (
+        serverMemories,
+        localMemories,
+        pendingMemories,
+      ) => {
+        const localMap =
+          new Map();
+
+        for (
+          const memory of localMemories
+        ) {
+          const key =
+            memory.clientMemoryId ||
+            memory.id;
+
+          if (key) {
+            localMap.set(
+              key,
+              memory,
+            );
+          }
+        }
+
+        const pendingMap =
+          new Map();
+
+        for (
+          const memory of pendingMemories
+        ) {
+          const key =
+            memory.clientMemoryId ||
+            memory.id;
+
+          if (key) {
+            pendingMap.set(
+              key,
+              memory,
+            );
+          }
+        }
+
+        const mergedServer =
+          serverMemories.map(
+            (memory) => {
+              const key =
+                memory.clientMemoryId ||
+                memory.id;
+
+              const local =
+                localMap.get(key);
+
+              const normalized =
+                normalizeMemory(
+                  memory,
+                );
+
+              if (
+                local?.localImages?.length
+              ) {
+                normalized.localImages =
+                  local.localImages;
+              }
+
+              return normalized;
+            },
+          );
+
+        const serverKeys =
+          new Set(
+            mergedServer.map(
+              (memory) =>
+                memory.clientMemoryId ||
+                memory.id,
+            ),
+          );
+
+        const remainingPending =
+          pendingMemories
+            .filter((memory) => {
+              const key =
+                memory.clientMemoryId ||
+                memory.id;
+
+              return !serverKeys.has(
+                key,
+              );
+            })
+            .map((memory) => {
+              const normalized =
+                normalizeMemory(
+                  memory,
+                );
+
+              if (
+                memory.localImages?.length
+              ) {
+                normalized.images =
+                  memory.localImages;
+
+                normalized.image =
+                  memory.localImages[0] ||
+                  null;
+
+                normalized.localImages =
+                  memory.localImages;
+              }
+
+              return normalized;
+            });
+
+        return [
+          ...remainingPending,
+          ...mergedServer,
+        ].filter(Boolean);
+      },
+      [normalizeMemory],
+    );
+
+  // --------------------------------------------------
+  // LOAD LOCAL DATA
+  // --------------------------------------------------
+
+  const loadLocalMemories =
     useCallback(async () => {
       if (!token) {
-        return;
+        return [];
       }
 
       try {
@@ -142,8 +274,7 @@ export function MemoryProvider({
 
               if (
                 result &&
-                memory.localImages?.length &&
-                !memory.images?.length
+                memory.localImages?.length
               ) {
                 result.images =
                   memory.localImages;
@@ -151,6 +282,9 @@ export function MemoryProvider({
                 result.image =
                   memory.localImages[0] ||
                   null;
+
+                result.localImages =
+                  memory.localImages;
               }
 
               return result;
@@ -159,40 +293,18 @@ export function MemoryProvider({
 
         if (normalized.length) {
           setMemories(
-            (current) => {
-              const merged = [
-                ...normalized,
-                ...current,
-              ];
-
-              const unique = [];
-              const seen = new Set();
-
-              for (const memory of merged) {
-                const key =
-                  memory.clientMemoryId ||
-                  memory.id;
-
-                if (
-                  !key ||
-                  seen.has(key)
-                ) {
-                  continue;
-                }
-
-                seen.add(key);
-                unique.push(memory);
-              }
-
-              return unique;
-            },
+            normalized,
           );
         }
+
+        return normalized;
       } catch (error) {
         console.error(
-          "Load offline memories error:",
+          "Load local memories error:",
           error,
         );
+
+        return [];
       }
     }, [
       token,
@@ -200,7 +312,122 @@ export function MemoryProvider({
     ]);
 
   // --------------------------------------------------
-  // LOAD SERVER MEMORIES
+  // LOAD SERVER DATA
+  // --------------------------------------------------
+
+  const refreshServerMemories =
+    useCallback(async () => {
+      if (!token) {
+        return false;
+      }
+
+      try {
+        const result =
+          await getMemoriesApi(token);
+
+        if (!result.success) {
+          return false;
+        }
+
+        const backendMemories =
+          Array.isArray(
+            result.data?.memories,
+          )
+            ? result.data.memories
+            : [];
+
+        const [
+          localMemories,
+          pendingMemories,
+        ] = await Promise.all([
+          import(
+            "../services/offlineMemoryService"
+          ).then(
+            ({
+              getLocalMemories,
+            }) =>
+              getLocalMemories(),
+          ),
+
+          getPendingMemories(),
+        ]);
+
+        const normalizedServer =
+          backendMemories
+            .map(normalizeMemory)
+            .filter(Boolean);
+
+        // Preserve persistent local image
+        // copies while updating server data.
+        const serverWithLocalImages =
+          normalizedServer.map(
+            (memory) => {
+              const key =
+                memory.clientMemoryId ||
+                memory.id;
+
+              const local =
+                localMemories.find(
+                  (item) =>
+                    (item.clientMemoryId ||
+                      item.id) === key,
+                );
+
+              if (
+                local?.localImages?.length
+              ) {
+                return {
+                  ...memory,
+                  localImages:
+                    local.localImages,
+                };
+              }
+
+              return memory;
+            },
+          );
+
+        const merged =
+          mergeMemories(
+            serverWithLocalImages,
+            localMemories,
+            pendingMemories,
+          );
+
+        setMemories(
+          merged,
+        );
+
+        // Cache the latest merged data locally.
+        for (
+          const memory of serverWithLocalImages
+        ) {
+          await upsertLocalMemory({
+            ...memory,
+            syncStatus:
+              "synced",
+          });
+        }
+
+        return true;
+      } catch (error) {
+        console.error(
+          "Refresh server memories error:",
+          error,
+        );
+
+        return false;
+      }
+    }, [
+      token,
+      normalizeMemory,
+      mergeMemories,
+      getPendingMemories,
+      upsertLocalMemory,
+    ]);
+
+  // --------------------------------------------------
+  // LOAD MEMORIES
   // --------------------------------------------------
 
   const loadMemories =
@@ -211,197 +438,145 @@ export function MemoryProvider({
         return;
       }
 
-      try {
-        setLoading(true);
+      setLoading(true);
 
+      try {
+        // Load local data first.
+        const localMemories =
+          await loadLocalMemories();
+
+        // Immediately release loading state
+        // after local data is available.
+        setLoading(false);
+
+        // Refresh backend in background.
         const network =
           await getNetworkInfo();
 
-        if (
-          network.isConnected === false ||
-          network.isInternetReachable ===
-            false
-        ) {
-          await loadOfflineMemories();
-          return;
+        const online =
+          network.isConnected !== false &&
+          network.isInternetReachable !==
+            false;
+
+        if (online) {
+          await refreshServerMemories();
         }
-
-        const result =
-          await getMemoriesApi(token);
-
-        if (!result.success) {
-          console.error(
-            "Load memories failed:",
-            result.message,
-          );
-
-          await loadOfflineMemories();
-          return;
-        }
-
-        const backendMemories =
-          Array.isArray(
-            result.data?.memories,
-          )
-            ? result.data.memories
-            : [];
-
-        const normalized =
-          backendMemories
-            .map(normalizeMemory)
-            .filter(Boolean);
-
-        // Keep pending memories that have
-        // not reached the backend yet.
-        const pending =
-          await getPendingMemories();
-
-        const normalizedPending =
-          pending
-            .map((memory) => {
-              const result =
-                normalizeMemory(
-                  memory,
-                );
-
-              if (
-                result &&
-                memory.localImages?.length
-              ) {
-                result.images =
-                  memory.localImages;
-
-                result.image =
-                  memory.localImages[0] ||
-                  null;
-              }
-
-              return result;
-            })
-            .filter(Boolean);
-
-        setMemories([
-          ...normalizedPending,
-          ...normalized,
-        ]);
       } catch (error) {
         console.error(
           "Load memories error:",
           error,
         );
 
-        await loadOfflineMemories();
-      } finally {
         setLoading(false);
       }
     }, [
       token,
-      normalizeMemory,
-      loadOfflineMemories,
+      loadLocalMemories,
+      refreshServerMemories,
     ]);
 
   // --------------------------------------------------
   // SYNC ONE MEMORY
   // --------------------------------------------------
 
-  const syncMemory = useCallback(
-    async (pendingMemory) => {
-      if (!token || !pendingMemory) {
-        return false;
-      }
-
-      try {
-        const result =
-          await createMemoryApi(
-            token,
-            pendingMemory,
-          );
-
-        if (!result.success) {
-          console.error(
-            "Memory sync failed:",
-            result.message,
-          );
-
-          return false;
+  const syncMemory =
+    useCallback(
+      async (pendingMemory) => {
+        if (
+          !token ||
+          !pendingMemory
+        ) {
+          return null;
         }
 
-        const savedMemory =
-          normalizeMemory(
-            result.data?.memory,
-          );
+        try {
+          const result =
+            await createMemoryApi(
+              token,
+              pendingMemory,
+            );
 
-        if (!savedMemory) {
-          return false;
-        }
+          if (!result.success) {
+            console.error(
+              "Memory sync failed:",
+              result.message,
+            );
 
-        // Remove from pending queue.
-        await removePendingMemory(
-          pendingMemory.clientMemoryId,
-        );
+            return null;
+          }
 
-        // Update local cache.
-        await upsertLocalMemory({
-          ...savedMemory,
+          const savedMemory =
+            normalizeMemory(
+              result.data?.memory,
+            );
 
-          clientMemoryId:
-            pendingMemory.clientMemoryId,
+          if (!savedMemory) {
+            return null;
+          }
 
-          localImages:
-            pendingMemory.localImages ||
-            [],
-          
-          syncStatus: "synced",
-        });
+          const syncedMemory = {
+            ...savedMemory,
 
-        // Update UI.
-        setMemories(
-          (currentMemories) =>
-            currentMemories.map(
-              (memory) => {
-                const sameClientId =
-                  memory.clientMemoryId ===
-                  pendingMemory.clientMemoryId;
+            clientMemoryId:
+              pendingMemory.clientMemoryId,
 
-                return sameClientId
-                  ? {
-                      ...savedMemory,
-                      clientMemoryId:
-                        pendingMemory.clientMemoryId,
-                      localImages:
-                        pendingMemory.localImages ||
-                        [],
-                      syncStatus:
-                        "synced",
-                    }
-                  : memory;
-              },
+            localImages:
+              pendingMemory.localImages ||
+              [],
+
+            syncStatus:
+              "synced",
+          };
+
+          // These two storage operations are
+          // independent, so execute them together.
+          await Promise.all([
+            removePendingMemory(
+              pendingMemory.clientMemoryId,
             ),
-        );
 
-        return savedMemory;
-      } catch (error) {
-        console.error(
-          "Sync memory error:",
-          error,
-        );
+            upsertLocalMemory(
+              syncedMemory,
+            ),
+          ]);
 
-        return false;
-      }
-    },
-    [
-      token,
-      normalizeMemory,
-    ],
-  );
+          setMemories(
+            (currentMemories) =>
+              currentMemories.map(
+                (memory) =>
+                  memory.clientMemoryId ===
+                    pendingMemory.clientMemoryId
+                    ? syncedMemory
+                    : memory,
+              ),
+          );
+
+          return syncedMemory;
+        } catch (error) {
+          console.error(
+            "Sync memory error:",
+            error,
+          );
+
+          return null;
+        }
+      },
+      [
+        token,
+        normalizeMemory,
+      ],
+    );
 
   // --------------------------------------------------
-  // SYNC ALL PENDING MEMORIES
+  // SYNC ALL PENDING
   // --------------------------------------------------
 
   const syncPendingMemories =
     useCallback(async () => {
-      if (!token || syncLock.current) {
+      if (
+        !token ||
+        syncLock.current
+      ) {
         return;
       }
 
@@ -409,11 +584,12 @@ export function MemoryProvider({
         const network =
           await getNetworkInfo();
 
-        if (
-          network.isConnected === false ||
-          network.isInternetReachable ===
-            false
-        ) {
+        const online =
+          network.isConnected !== false &&
+          network.isInternetReachable !==
+            false;
+
+        if (!online) {
           return;
         }
 
@@ -430,15 +606,14 @@ export function MemoryProvider({
         for (
           const pendingMemory of pending
         ) {
-          const success =
+          const synced =
             await syncMemory(
               pendingMemory,
             );
 
-          if (!success) {
-            // Stop for now.
-            // We'll retry on the next
-            // network event.
+          if (!synced) {
+            // Leave this memory in the queue.
+            // Retry later.
             break;
           }
         }
@@ -457,7 +632,7 @@ export function MemoryProvider({
     ]);
 
   // --------------------------------------------------
-  // LOAD WHEN AUTH IS READY
+  // AUTH READY
   // --------------------------------------------------
 
   useEffect(() => {
@@ -477,7 +652,10 @@ export function MemoryProvider({
   // --------------------------------------------------
 
   useEffect(() => {
-    if (authLoading || !token) {
+    if (
+      authLoading ||
+      !token
+    ) {
       return undefined;
     }
 
@@ -494,11 +672,14 @@ export function MemoryProvider({
 
           if (online) {
             syncPendingMemories();
+
+            // Refresh server data after
+            // connectivity is restored.
+            refreshServerMemories();
           }
         },
       );
 
-    // Also attempt once immediately.
     syncPendingMemories();
 
     return () => {
@@ -508,596 +689,533 @@ export function MemoryProvider({
     authLoading,
     token,
     syncPendingMemories,
+    refreshServerMemories,
   ]);
 
   // --------------------------------------------------
   // CREATE MEMORY
   // --------------------------------------------------
 
-  const addMemory = async (
-    memory,
-  ) => {
-    if (!token) {
-      throw new Error(
-        "You must be logged in to create a memory.",
-      );
-    }
-
-    try {
-      // --------------------------------------------------
-      // CLIENT MEMORY ID
-      // --------------------------------------------------
-
-      const clientMemoryId =
-        memory?.clientMemoryId ||
-        generateClientMemoryId();
-
-      // --------------------------------------------------
-      // GET NETWORK INFORMATION
-      // --------------------------------------------------
-
-      let network = null;
-
-      try {
-        network =
-          await getNetworkInfo();
-
-        console.log(
-          "Network info captured for memory:",
-          network,
-        );
-      } catch (networkError) {
-        console.error(
-          "Failed to get network info:",
-          networkError,
+  const addMemory =
+    async (memory) => {
+      if (!token) {
+        throw new Error(
+          "You must be logged in to create a memory.",
         );
       }
 
-      // --------------------------------------------------
-      // GET LOCATION INFORMATION
-      // --------------------------------------------------
-
-      let locationData =
-        memory?.locationData ||
-        null;
-
       try {
-        if (!locationData) {
-          locationData =
-            await getCurrentLocation();
+        const clientMemoryId =
+          memory?.clientMemoryId ||
+          generateClientMemoryId();
 
-          console.log(
-            "Location info captured for memory:",
-            locationData,
-          );
-        } else {
-          console.log(
-            "Using existing location data:",
-            locationData,
-          );
-        }
-      } catch (locationError) {
-        console.error(
-          "Failed to get location info:",
-          locationError,
-        );
-      }
+        // Network and location are independent.
+        const [
+          networkResult,
+          locationResult,
+        ] = await Promise.all([
+          getNetworkInfo().catch(
+            (error) => {
+              console.error(
+                "Network info error:",
+                error,
+              );
 
-      // --------------------------------------------------
-      // HUMAN-READABLE LOCATION
-      // --------------------------------------------------
+              return null;
+            },
+          ),
 
-      const finalLocation =
-        typeof memory?.location ===
-          "string" &&
-        memory.location.trim()
-          ? memory.location.trim()
-          : locationData
-              ?.readableLocation ||
-            "";
+          memory?.locationData
+            ? Promise.resolve(
+                memory.locationData,
+              )
+            : getCurrentLocation().catch(
+                (error) => {
+                  console.error(
+                    "Location error:",
+                    error,
+                  );
 
-      // --------------------------------------------------
-      // PERSIST IMAGES LOCALLY FIRST
-      // --------------------------------------------------
+                  return null;
+                },
+              ),
+        ]);
 
-      const {
-        localImages,
-      } =
-        await persistMemoryImages({
-          ...memory,
-          clientMemoryId,
-        });
-
-      // --------------------------------------------------
-      // MERGE ALL DATA
-      // --------------------------------------------------
-
-      const memoryWithMetadata = {
-        ...memory,
-
-        clientMemoryId,
-
-        location:
-          finalLocation,
-
-        locationData,
-
-        network:
-          memory?.network ||
-          memory?.environment?.network ||
-          network,
-
-        images:
-          localImages,
-
-        localImages,
-
-        syncStatus: "pending",
-      };
-
-      // --------------------------------------------------
-      // SHOW MEMORY IMMEDIATELY
-      // --------------------------------------------------
-
-      const localMemory =
-        normalizeMemory(
-          memoryWithMetadata,
-        );
-
-      if (localMemory) {
-        localMemory.clientMemoryId =
-          clientMemoryId;
-
-        localMemory.images =
-          localImages;
-
-        localMemory.image =
-          localImages[0] ||
+        const locationData =
+          locationResult ||
           null;
 
-        localMemory.localImages =
-          localImages;
+        // Keep the user's manual location.
+        const finalLocation =
+          typeof memory?.location ===
+            "string" &&
+          memory.location.trim()
+            ? memory.location.trim()
+            : locationData
+                ?.readableLocation ||
+              "";
 
-        localMemory.syncStatus =
-          "pending";
+        // Copy all images in parallel.
+        const {
+          localImages,
+        } =
+          await persistMemoryImages({
+            ...memory,
+            clientMemoryId,
+          });
 
+        const finalNetwork =
+          memory?.network ||
+          memory?.environment?.network ||
+          networkResult;
+
+        const localMemoryData = {
+          ...memory,
+
+          clientMemoryId,
+
+          location:
+            finalLocation,
+
+          locationData,
+
+          network:
+            finalNetwork,
+
+          images:
+            localImages,
+
+          localImages,
+
+          syncStatus:
+            "pending",
+        };
+
+        const localMemory =
+          normalizeMemory(
+            localMemoryData,
+          );
+
+        if (!localMemory) {
+          throw new Error(
+            "Unable to prepare local memory.",
+          );
+        }
+
+        // Show immediately.
         setMemories(
           (current) => [
             localMemory,
             ...current,
           ],
         );
-      }
 
-      // --------------------------------------------------
-      // SAVE LOCALLY BEFORE NETWORK REQUEST
-      // --------------------------------------------------
+        // Save local data.
+        await Promise.all([
+          upsertLocalMemory(
+            localMemoryData,
+          ),
 
-      await upsertLocalMemory({
-        ...memoryWithMetadata,
+          addPendingMemory(
+            localMemoryData,
+          ),
+        ]);
 
-        clientMemoryId,
+        // Use the network state we already
+        // obtained earlier.
+        const online =
+          networkResult?.isConnected !==
+            false &&
+          networkResult?.isInternetReachable !==
+            false;
 
-        images: localImages,
+        if (!online) {
+          return localMemory;
+        }
 
-        localImages,
+        // Upload immediately while online.
+        const syncedMemory =
+          await syncMemory(
+            localMemoryData,
+          );
 
-        syncStatus: "pending",
-      });
-
-      await addPendingMemory({
-        ...memoryWithMetadata,
-
-        clientMemoryId,
-
-        images: localImages,
-
-        localImages,
-
-        syncStatus: "pending",
-      });
-
-      // --------------------------------------------------
-      // TRY IMMEDIATE SYNC
-      // --------------------------------------------------
-
-      const networkState =
-        await getNetworkInfo();
-
-      const online =
-        networkState.isConnected !==
-          false &&
-        networkState.isInternetReachable !==
-          false;
-
-      if (!online) {
-        console.log(
-          "No internet. Memory saved locally and marked pending.",
+        return syncedMemory ||
+          localMemory;
+      } catch (error) {
+        console.error(
+          "Add memory error:",
+          error,
         );
 
-        return localMemory;
+        throw error;
       }
-
-      const syncedMemory =
-        await syncMemory({
-          ...memoryWithMetadata,
-
-          clientMemoryId,
-
-          images: localImages,
-
-          localImages,
-        });
-
-      if (!syncedMemory) {
-        console.log(
-          "Memory could not be synced. It remains pending.",
-        );
-
-        return localMemory;
-      }
-
-      // Get the latest version from state
-      const savedMemory =
-        getMemoryById(
-          clientMemoryId,
-        );
-
-      return savedMemory ||
-        localMemory;
-    } catch (error) {
-      console.error(
-        "Add memory error:",
-        error,
-      );
-
-      throw error;
-    }
-  };
+    };
 
   // --------------------------------------------------
   // UPDATE MEMORY
   // --------------------------------------------------
 
-  const updateMemory = async (
-    memoryId,
-    updatedData,
-  ) => {
-    if (!token) {
-      throw new Error(
-        "You must be logged in.",
-      );
-    }
-
-    if (!memoryId) {
-      throw new Error(
-        "Memory ID is required.",
-      );
-    }
-
-    const existingMemory =
-      memories.find(
-        (memory) =>
-          memory.id === memoryId ||
-          memory.clientMemoryId ===
-            memoryId,
-      );
-
-    if (!existingMemory) {
-      throw new Error(
-        "Memory not found.",
-      );
-    }
-
-    const result =
-      await updateMemoryApi(
-        token,
-        memoryId,
-        updatedData,
-      );
-
-    if (!result.success) {
-      throw new Error(
-        result.message ||
-          "Unable to update memory.",
-      );
-    }
-
-    const updatedMemory =
-      normalizeMemory(
-        result.data?.memory,
-      );
-
-    if (!updatedMemory) {
-      throw new Error(
-        "Server returned invalid memory data.",
-      );
-    }
-
-    setMemories(
-      (currentMemories) =>
-        currentMemories.map(
-          (memory) =>
-            memory.id === memoryId
-              ? updatedMemory
-              : memory,
-        ),
-    );
-
-    await upsertLocalMemory(
-      updatedMemory,
-    );
-
-    return updatedMemory;
-  };
-
-  // --------------------------------------------------
-  // DELETE MEMORY
-  // --------------------------------------------------
-
-  const deleteMemory = async (
-    memoryId,
-  ) => {
-    if (!token) {
-      throw new Error(
-        "You must be logged in.",
-      );
-    }
-
-    if (!memoryId) {
-      throw new Error(
-        "Memory ID is required.",
-      );
-    }
-
-    const existingMemory =
-      memories.find(
-        (memory) =>
-          memory.id === memoryId ||
-          memory.clientMemoryId ===
-            memoryId,
-      );
-
-    // --------------------------------------------------
-    // PENDING OFFLINE MEMORY
-    // --------------------------------------------------
-
-    if (
-      existingMemory?.syncStatus ===
-        "pending" &&
-      existingMemory.clientMemoryId
-    ) {
-      await removePendingMemory(
-        existingMemory.clientMemoryId,
-      );
-
-      await removeLocalMemory(
-        null,
-        existingMemory.clientMemoryId,
-      );
-
-      setMemories(
-        (currentMemories) =>
-          currentMemories.filter(
-            (memory) =>
-              memory.clientMemoryId !==
-              existingMemory.clientMemoryId,
-          ),
-      );
-
-      return true;
-    }
-
-    // --------------------------------------------------
-    // SYNCED MEMORY
-    // --------------------------------------------------
-
-    const result =
-      await deleteMemoryApi(
-        token,
-        memoryId,
-      );
-
-    if (!result.success) {
-      throw new Error(
-        result.message ||
-          "Unable to delete memory.",
-      );
-    }
-
-    setMemories(
-      (currentMemories) =>
-        currentMemories.filter(
-          (memory) =>
-            memory.id !==
-            memoryId,
-        ),
-    );
-
-    await removeLocalMemory(
+  const updateMemory =
+    async (
       memoryId,
-    );
+      updatedData,
+    ) => {
+      if (!token) {
+        throw new Error(
+          "You must be logged in.",
+        );
+      }
 
-    return true;
-  };
+      if (!memoryId) {
+        throw new Error(
+          "Memory ID is required.",
+        );
+      }
 
-  // --------------------------------------------------
-  // TOGGLE FAVORITE
-  // --------------------------------------------------
+      const existingMemory =
+        memories.find(
+          (memory) =>
+            memory.id === memoryId ||
+            memory.clientMemoryId ===
+              memoryId,
+        );
 
-  const toggleFavorite = async (
-    memoryId,
-  ) => {
-    if (!token) {
-      throw new Error(
-        "You must be logged in.",
-      );
-    }
+      if (!existingMemory) {
+        throw new Error(
+          "Memory not found.",
+        );
+      }
 
-    const existingMemory =
-      memories.find(
-        (memory) =>
-          memory.id === memoryId ||
-          memory.clientMemoryId ===
-            memoryId,
-      );
+      const result =
+        await updateMemoryApi(
+          token,
+          memoryId,
+          updatedData,
+        );
 
-    // Pending memories cannot be updated
-    // on the backend yet.
-    if (
-      existingMemory?.syncStatus ===
-      "pending"
-    ) {
-      const nextFavorite =
-        !existingMemory.favorite;
+      if (!result.success) {
+        throw new Error(
+          result.message ||
+            "Unable to update memory.",
+        );
+      }
 
-      const updated = {
-        ...existingMemory,
+      const updatedMemory =
+        normalizeMemory(
+          result.data?.memory,
+        );
 
-        favorite:
-          nextFavorite,
-
-        isFavorite:
-          nextFavorite,
-
-        syncStatus:
-          "pending",
-      };
+      if (!updatedMemory) {
+        throw new Error(
+          "Server returned invalid memory data.",
+        );
+      }
 
       setMemories(
         (currentMemories) =>
           currentMemories.map(
             (memory) =>
-              memory.id === memoryId ||
-              memory.clientMemoryId ===
+              memory.id ===
                 memoryId
-                ? updated
+                ? {
+                    ...updatedMemory,
+                    localImages:
+                      memory.localImages ||
+                      [],
+                  }
                 : memory,
           ),
       );
 
-      return updated;
-    }
+      await upsertLocalMemory({
+        ...updatedMemory,
+        localImages:
+          existingMemory.localImages ||
+          [],
+      });
 
-    const result =
-      await toggleFavoriteApi(
-        token,
+      return updatedMemory;
+    };
+
+  // --------------------------------------------------
+  // DELETE MEMORY
+  // --------------------------------------------------
+
+  const deleteMemory =
+    async (memoryId) => {
+      if (!token) {
+        throw new Error(
+          "You must be logged in.",
+        );
+      }
+
+      if (!memoryId) {
+        throw new Error(
+          "Memory ID is required.",
+        );
+      }
+
+      const existingMemory =
+        memories.find(
+          (memory) =>
+            memory.id === memoryId ||
+            memory.clientMemoryId ===
+              memoryId,
+        );
+
+      // Delete pending offline memory
+      // without contacting backend.
+      if (
+        existingMemory?.syncStatus ===
+          "pending" &&
+        existingMemory.clientMemoryId
+      ) {
+        await Promise.all([
+          removePendingMemory(
+            existingMemory.clientMemoryId,
+          ),
+
+          removeLocalMemory(
+            null,
+            existingMemory.clientMemoryId,
+          ),
+        ]);
+
+        setMemories(
+          (currentMemories) =>
+            currentMemories.filter(
+              (memory) =>
+                memory.clientMemoryId !==
+                existingMemory.clientMemoryId,
+            ),
+        );
+
+        return true;
+      }
+
+      const result =
+        await deleteMemoryApi(
+          token,
+          memoryId,
+        );
+
+      if (!result.success) {
+        throw new Error(
+          result.message ||
+            "Unable to delete memory.",
+        );
+      }
+
+      setMemories(
+        (currentMemories) =>
+          currentMemories.filter(
+            (memory) =>
+              memory.id !== memoryId,
+          ),
+      );
+
+      await removeLocalMemory(
         memoryId,
       );
 
-    if (!result.success) {
-      throw new Error(
-        result.message ||
-          "Unable to update favorite.",
-      );
-    }
+      return true;
+    };
 
-    const updatedMemory =
-      normalizeMemory(
-        result.data?.memory,
-      );
+  // --------------------------------------------------
+  // TOGGLE FAVORITE
+  // --------------------------------------------------
 
-    if (!updatedMemory) {
-      throw new Error(
-        "Server returned invalid memory data.",
-      );
-    }
+  const toggleFavorite =
+    async (memoryId) => {
+      if (!token) {
+        throw new Error(
+          "You must be logged in.",
+        );
+      }
 
-    setMemories(
-      (currentMemories) =>
-        currentMemories.map(
+      const existingMemory =
+        memories.find(
           (memory) =>
-            memory.id === memoryId
-              ? updatedMemory
-              : memory,
-        ),
-    );
+            memory.id === memoryId ||
+            memory.clientMemoryId ===
+              memoryId,
+        );
 
-    await upsertLocalMemory(
-      updatedMemory,
-    );
+      if (
+        existingMemory?.syncStatus ===
+        "pending"
+      ) {
+        const nextFavorite =
+          !existingMemory.favorite;
 
-    return updatedMemory;
-  };
+        const updated = {
+          ...existingMemory,
+
+          favorite:
+            nextFavorite,
+
+          isFavorite:
+            nextFavorite,
+
+          syncStatus:
+            "pending",
+        };
+
+        setMemories(
+          (currentMemories) =>
+            currentMemories.map(
+              (memory) =>
+                memory.id ===
+                    memoryId ||
+                memory.clientMemoryId ===
+                    memoryId
+                  ? updated
+                  : memory,
+            ),
+        );
+
+        await Promise.all([
+          upsertLocalMemory(
+            updated,
+          ),
+
+          addPendingMemory(
+            updated,
+          ),
+        ]);
+
+        return updated;
+      }
+
+      const result =
+        await toggleFavoriteApi(
+          token,
+          memoryId,
+        );
+
+      if (!result.success) {
+        throw new Error(
+          result.message ||
+            "Unable to update favorite.",
+        );
+      }
+
+      const updatedMemory =
+        normalizeMemory(
+          result.data?.memory,
+        );
+
+      if (!updatedMemory) {
+        throw new Error(
+          "Server returned invalid memory data.",
+        );
+      }
+
+      setMemories(
+        (currentMemories) =>
+          currentMemories.map(
+            (memory) =>
+              memory.id ===
+                memoryId
+                ? {
+                    ...updatedMemory,
+                    localImages:
+                      memory.localImages ||
+                      [],
+                  }
+                : memory,
+          ),
+      );
+
+      await upsertLocalMemory(
+        updatedMemory,
+      );
+
+      return updatedMemory;
+    };
 
   // --------------------------------------------------
   // FIND MEMORY
   // --------------------------------------------------
 
-  const getMemoryById = (
-    memoryId,
-  ) => {
-    return memories.find(
-      (memory) =>
-        memory.id === memoryId ||
-        memory.clientMemoryId ===
-          memoryId,
-    );
-  };
+  const getMemoryById =
+    (memoryId) => {
+      return memories.find(
+        (memory) =>
+          memory.id === memoryId ||
+          memory.clientMemoryId ===
+            memoryId,
+      );
+    };
 
   // --------------------------------------------------
   // MANUAL SYNC
   // --------------------------------------------------
 
-  const syncNow = async () => {
-    await syncPendingMemories();
-  };
+  const syncNow =
+    async () => {
+      await syncPendingMemories();
+    };
 
   // --------------------------------------------------
-  // CLEAR LOCAL CONTEXT
+  // CLEAR MEMORY STORAGE
   // --------------------------------------------------
 
-const clearMemories = async () => {
-  if (!token) {
-    throw new Error(
-      "You must be logged in.",
-    );
-  }
-
-  try {
-    const result =
-      await deleteAllMemoriesApi(token);
-
-    if (!result.success) {
-      throw new Error(
-        result.message ||
-          "Unable to clear memory storage.",
-      );
-    }
-
-    // Clear UI state
-    setMemories([]);
-
-    // Clear locally cached/pending memories
-    const pending =
-      await getPendingMemories();
-
-    for (const memory of pending) {
-      if (memory.clientMemoryId) {
-        await removePendingMemory(
-          memory.clientMemoryId,
+  const clearMemories =
+    async () => {
+      if (!token) {
+        throw new Error(
+          "You must be logged in.",
         );
       }
-    }
 
-    // Clear local memory cache
-    // by rebuilding it as empty.
-    await clearLocalMemories([]);
+      const result =
+        await deleteAllMemoriesApi(
+          token,
+        );
 
-    return {
-      success: true,
-      deletedCount:
-        result.data?.deletedCount || 0,
+      if (!result.success) {
+        throw new Error(
+          result.message ||
+            "Unable to clear memory storage.",
+        );
+      }
+
+      await Promise.all([
+        clearLocalMemories(),
+        (async () => {
+          const pending =
+            await getPendingMemories();
+
+          if (!pending.length) {
+            return;
+          }
+
+          await Promise.all(
+            pending
+              .filter(
+                (memory) =>
+                  memory.clientMemoryId,
+              )
+              .map(
+                (memory) =>
+                  removePendingMemory(
+                    memory.clientMemoryId,
+                  ),
+              ),
+          );
+        })(),
+      ]);
+
+      setMemories([]);
+
+      return {
+        success: true,
+        deletedCount:
+          result.data?.deletedCount ||
+          0,
+      };
     };
-  } catch (error) {
-    console.error(
-      "Clear memories error:",
-      error,
-    );
-
-    throw error;
-  }
-};
 
   // --------------------------------------------------
   // PROVIDER
@@ -1107,28 +1225,21 @@ const clearMemories = async () => {
     <MemoryContext.Provider
       value={{
         memories,
-
         loading,
-
         syncing,
 
         addMemory,
-
         updateMemory,
-
         deleteMemory,
-
         toggleFavorite,
 
         getMemoryById,
 
         loadMemories,
-
         refreshMemories:
           loadMemories,
 
         syncNow,
-
         clearMemories,
       }}
     >
@@ -1136,4 +1247,3 @@ const clearMemories = async () => {
     </MemoryContext.Provider>
   );
 }
-
