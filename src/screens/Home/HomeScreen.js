@@ -21,7 +21,7 @@ function HomeScreen({ navigation }) {
 
         return dateB - dateA;
       })
-      .slice(0, 3);
+      .slice(0, 2);
   }, [memories]);
 
   // FAVORITE MEMORIES
