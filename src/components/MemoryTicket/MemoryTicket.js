@@ -56,7 +56,7 @@ function MemoryTicket({
   };
 
   const title = currentMemory.title || "UNTITLED MEMORY";
-  const location = currentMemory.location || "MEMORY TICKET";
+ const location = currentMemory.location?.trim() || "UNKNOWN";
   const date = formatDate(currentMemory.createdAt || currentMemory.date);
   const time = currentMemory.time || "";
   const description = currentMemory.description?.trim() || "";

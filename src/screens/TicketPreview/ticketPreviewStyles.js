@@ -506,6 +506,9 @@ const styles = StyleSheet.create({
     letterSpacing: 1.4,
     color: "#FFFFFF",
   },
+  saveButtonDisabled: {
+    opacity: 0.7,
+  },
 
   editButton: {
     height: 52,

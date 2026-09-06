@@ -1,4 +1,7 @@
-import { useEffect, useState } from "react";
+import {
+  useEffect,
+  useState,
+} from "react";
 
 import {
   View,
@@ -23,7 +26,8 @@ function CreateMemoryScreen({
   navigation,
   route,
 }) {
-  const [images, setImages] = useState([]);
+  const [images, setImages] =
+    useState([]);
 
   const [activeImage, setActiveImage] =
     useState(0);
@@ -34,8 +38,8 @@ function CreateMemoryScreen({
   const [location, setLocation] =
     useState("");
 
-  // GPS data is kept separately
-  // from human-readable location.
+  // GPS metadata is kept separately
+  // from the manual location field.
   const [locationData, setLocationData] =
     useState(null);
 
@@ -74,6 +78,7 @@ function CreateMemoryScreen({
       editMemory.title || "",
     );
 
+    // ONLY use the actual manual location.
     setLocation(
       editMemory.location || "",
     );
@@ -87,6 +92,8 @@ function CreateMemoryScreen({
       editMemory.description || "",
     );
 
+    // Clear the route parameter after
+    // loading the edit data.
     navigation.setParams({
       editMemory: undefined,
     });
@@ -109,7 +116,6 @@ function CreateMemoryScreen({
           "Permission Required",
           "Please allow photo library access to select photos.",
         );
-
         return;
       }
 
@@ -122,7 +128,6 @@ function CreateMemoryScreen({
           "Maximum Photos",
           "You can add up to 5 photos.",
         );
-
         return;
       }
 
@@ -130,7 +135,8 @@ function CreateMemoryScreen({
         await ImagePicker.launchImageLibraryAsync(
           {
             mediaTypes: ["images"],
-            allowsMultipleSelection: true,
+            allowsMultipleSelection:
+              true,
             selectionLimit:
               remainingSlots,
             quality: 0.8,
@@ -159,28 +165,18 @@ function CreateMemoryScreen({
         return;
       }
 
-      const oldLength =
-        images.length;
-
       setImages(
-        (currentImages) => {
-          const combined = [
-            ...currentImages,
-            ...newImages,
-          ];
-
-          return combined.slice(
-            0,
-            MAX_IMAGES,
-          );
-        },
+        (currentImages) => [
+          ...currentImages,
+          ...newImages,
+        ].slice(
+          0,
+          MAX_IMAGES,
+        ),
       );
 
       setActiveImage(
-        Math.min(
-          oldLength,
-          MAX_IMAGES - 1,
-        ),
+        images.length,
       );
     } catch (error) {
       console.error(
@@ -202,13 +198,13 @@ function CreateMemoryScreen({
   const takePhoto = async () => {
     try {
       if (
-        images.length >= MAX_IMAGES
+        images.length >=
+        MAX_IMAGES
       ) {
         Alert.alert(
           "Maximum Photos",
           "You can add up to 5 photos.",
         );
-
         return;
       }
 
@@ -220,7 +216,6 @@ function CreateMemoryScreen({
           "Permission Required",
           "Please allow camera access to take a photo.",
         );
-
         return;
       }
 
@@ -252,19 +247,10 @@ function CreateMemoryScreen({
         images.length;
 
       setImages(
-        (currentImages) => {
-          if (
-            currentImages.length >=
-            MAX_IMAGES
-          ) {
-            return currentImages;
-          }
-
-          return [
-            ...currentImages,
-            uri,
-          ];
-        },
+        (currentImages) => [
+          ...currentImages,
+          uri,
+        ],
       );
 
       setActiveImage(
@@ -377,85 +363,72 @@ function CreateMemoryScreen({
   // GO TO TICKET PREVIEW
   // --------------------------------------------------
 
-  const handleCreateMemory =
-    () => {
-      if (!images.length) {
-        Alert.alert(
-          "Add Photos",
-          "Please add at least one photo.",
-        );
-
-        return;
-      }
-
-      if (!title.trim()) {
-        Alert.alert(
-          "Memory Title",
-          "Please give this memory a title.",
-        );
-
-        return;
-      }
-
-      if (
-        images.length >
-        MAX_IMAGES
-      ) {
-        Alert.alert(
-          "Maximum Photos",
-          "You can add up to 5 photos.",
-        );
-
-        return;
-      }
-
-      // --------------------------------------------------
-      // CREATE TEMPORARY DRAFT
-      // --------------------------------------------------
-
-      const draftMemory = {
-        title:
-          title.trim(),
-
-        // Human-readable location
-        location:
-          location.trim(),
-
-        // Exact GPS data
-        locationData,
-
-        description:
-          description.trim(),
-
-        // First image for backwards compatibility
-        image:
-          images[0] || null,
-
-        // All selected local image URIs
-        images: [...images],
-
-        date:
-          new Date().toISOString(),
-      };
-
-      // --------------------------------------------------
-      // CLEAR FORM
-      // --------------------------------------------------
-
-      resetForm();
-
-      // --------------------------------------------------
-      // SEND TO TICKET PREVIEW
-      // --------------------------------------------------
-
-      navigation.navigate(
-        "TicketPreview",
-        {
-          memory:
-            draftMemory,
-        },
+  const handleCreateMemory = () => {
+    if (!images.length) {
+      Alert.alert(
+        "Add Photos",
+        "Please add at least one photo.",
       );
+      return;
+    }
+
+    if (!title.trim()) {
+      Alert.alert(
+        "Memory Title",
+        "Please give this memory a title.",
+      );
+      return;
+    }
+
+    if (
+      images.length >
+      MAX_IMAGES
+    ) {
+      Alert.alert(
+        "Maximum Photos",
+        "You can add up to 5 photos.",
+      );
+      return;
+    }
+
+    const draftMemory = {
+      title:
+        title.trim(),
+
+      // IMPORTANT:
+      // This remains ONLY the user's manual location.
+      location:
+        location.trim(),
+
+      // GPS metadata is separate.
+      locationData,
+
+      description:
+        description.trim(),
+
+      image:
+        images[0] || null,
+
+      images: [
+        ...images,
+      ],
+
+      date:
+        new Date().toISOString(),
     };
+
+    // Clear form because the preview screen
+    // now owns this draft.
+    resetForm();
+
+    navigation.navigate(
+      "TicketPreview",
+      {
+        memory:
+          draftMemory,
+      },
+    );
+  };
 
   // --------------------------------------------------
   // SCREEN
@@ -510,20 +483,10 @@ function CreateMemoryScreen({
 
             <MemoryForm
               title={title}
-              setTitle={
-                setTitle
-              }
-              location={
-                location
-              }
+              setTitle={setTitle}
+              location={location}
               setLocation={
                 setLocation
-              }
-              locationData={
-                locationData
-              }
-              setLocationData={
-                setLocationData
               }
             />
 
@@ -547,7 +510,8 @@ function CreateMemoryScreen({
                 styles.footerText
               }
             >
-              KEEP THE MOMENT. KEEP THE STORY.
+              KEEP THE MOMENT.
+              KEEP THE STORY.
             </Text>
           </>
         )}

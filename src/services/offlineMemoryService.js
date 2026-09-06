@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as FileSystem from "expo-file-system/legacy";
+import * as ImageManipulator from "expo-image-manipulator";
 
 // --------------------------------------------------
 // STORAGE KEYS
@@ -13,6 +14,13 @@ const LOCAL_MEMORIES_KEY =
 
 const OFFLINE_IMAGES_DIRECTORY =
   `${FileSystem.documentDirectory}memory-ticket-offline/`;
+
+// --------------------------------------------------
+// IMAGE COMPRESSION SETTINGS
+// --------------------------------------------------
+
+const MAX_IMAGE_SIZE = 1600;
+const IMAGE_QUALITY = 0.8;
 
 // --------------------------------------------------
 // IN-MEMORY CACHE
@@ -80,6 +88,51 @@ const getFileName = (uri, index) => {
 };
 
 // --------------------------------------------------
+// COMPRESS IMAGE
+// --------------------------------------------------
+
+export const compressImage = async (
+  uri,
+) => {
+  if (!uri) {
+    throw new Error(
+      "Image URI is required.",
+    );
+  }
+
+  try {
+    const result =
+      await ImageManipulator.manipulateAsync(
+        uri,
+        [
+          {
+            resize: {
+              width: MAX_IMAGE_SIZE,
+            },
+          },
+        ],
+        {
+          compress: IMAGE_QUALITY,
+          format:
+            ImageManipulator.SaveFormat.JPEG,
+        },
+      );
+
+    return result.uri;
+  } catch (error) {
+    console.error(
+      "Image compression error:",
+      error,
+    );
+
+    // If compression fails, keep the
+    // original image rather than breaking
+    // memory creation.
+    return uri;
+  }
+};
+
+// --------------------------------------------------
 // PERSIST ONE IMAGE
 // --------------------------------------------------
 
@@ -96,15 +149,34 @@ export const persistImage = async (
 
   await ensureOfflineDirectory();
 
+  // Already persisted.
+  if (
+    uri.startsWith(
+      OFFLINE_IMAGES_DIRECTORY,
+    )
+  ) {
+    return uri;
+  }
+
+  // Compress first.
+  const compressedUri =
+    await compressImage(uri);
+
   const originalName =
     getFileName(uri, index);
 
-  const safeName =
-    `${clientMemoryId}-${index}-${originalName}`;
+  const baseName =
+    originalName
+      .replace(/\.[^/.]+$/, "")
+      .replace(/[^a-zA-Z0-9-_]/g, "_");
+
+  const fileName =
+    `${clientMemoryId}-${index}-${baseName}.jpg`;
 
   const destination =
-    `${OFFLINE_IMAGES_DIRECTORY}${safeName}`;
+    `${OFFLINE_IMAGES_DIRECTORY}${fileName}`;
 
+  // Reuse existing compressed copy.
   const existing =
     await FileSystem.getInfoAsync(
       destination,
@@ -115,9 +187,33 @@ export const persistImage = async (
   }
 
   await FileSystem.copyAsync({
-    from: uri,
+    from: compressedUri,
     to: destination,
   });
+
+  // Delete the temporary compressed file
+  // produced by ImageManipulator when it
+  // is outside our permanent directory.
+  if (
+    compressedUri !== uri &&
+    !compressedUri.startsWith(
+      OFFLINE_IMAGES_DIRECTORY,
+    )
+  ) {
+    try {
+      await FileSystem.deleteAsync(
+        compressedUri,
+        {
+          idempotent: true,
+        },
+      );
+    } catch (error) {
+      console.log(
+        "Unable to delete temporary compressed image:",
+        error,
+      );
+    }
+  }
 
   return destination;
 };
@@ -126,53 +222,48 @@ export const persistImage = async (
 // PERSIST ALL MEMORY IMAGES
 // --------------------------------------------------
 
-export const persistMemoryImages = async (
-  memory,
-) => {
-  const clientMemoryId =
-    memory.clientMemoryId ||
-    generateClientMemoryId();
+export const persistMemoryImages =
+  async (memory) => {
+    const clientMemoryId =
+      memory.clientMemoryId ||
+      generateClientMemoryId();
 
-  const images = Array.isArray(
-    memory.images,
-  )
-    ? memory.images
-    : memory.image
-      ? [memory.image]
-      : [];
+    const images = Array.isArray(
+      memory.images,
+    )
+      ? memory.images
+      : memory.image
+        ? [memory.image]
+        : [];
 
-  if (images.length === 0) {
-    throw new Error(
-      "At least one image is required.",
-    );
-  }
+    if (images.length === 0) {
+      throw new Error(
+        "At least one image is required.",
+      );
+    }
 
-  const limitedImages =
-    images.slice(0, 5);
+    const limitedImages =
+      images.slice(0, 5);
 
-  // Copy all images in parallel.
-  const localImages =
-    await Promise.all(
-      limitedImages.map(
-        (uri, index) =>
-          typeof uri === "string" &&
-          uri.startsWith(
-            OFFLINE_IMAGES_DIRECTORY,
-          )
-            ? Promise.resolve(uri)
-            : persistImage(
-                uri,
-                clientMemoryId,
-                index,
-              ),
-      ),
-    );
+    // Compress + persist all images
+    // concurrently.
+    const localImages =
+      await Promise.all(
+        limitedImages.map(
+          (uri, index) =>
+            persistImage(
+              uri,
+              clientMemoryId,
+              index,
+            ),
+        ),
+      );
 
-  return {
-    clientMemoryId,
-    localImages,
+    return {
+      clientMemoryId,
+      localImages,
+    };
   };
-};
 
 // --------------------------------------------------
 // GET PENDING MEMORIES
@@ -465,7 +556,9 @@ export const getOfflineMemories =
     const unique = [];
     const seen = new Set();
 
-    for (const memory of combined) {
+    for (
+      const memory of combined
+    ) {
       const key =
         memory.clientMemoryId ||
         memory.id;
