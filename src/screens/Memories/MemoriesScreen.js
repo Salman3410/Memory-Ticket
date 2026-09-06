@@ -1,6 +1,19 @@
-import { useEffect, useMemo, useState } from "react";
-import { View, Text, ScrollView, TouchableOpacity } from "react-native";
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+} from "react-native";
+
 import { Ionicons } from "@expo/vector-icons";
+
 import { useMemory } from "../../hooks/useMemory";
 
 import SearchBar from "../../components/Memories/SearchBar/SearchBar";
@@ -12,7 +25,11 @@ import MemoryTicketList from "../../components/Memories/MemoryTicketList/MemoryT
 import styles from "./memoriesStyles";
 
 function MemoriesScreen({ navigation, route }) {
-  const { memories, loading, updateMemory } = useMemory();
+  const {
+    memories,
+    loading,
+    toggleFavorite,
+  } = useMemory();
 
   const [filter, setFilter] = useState("all");
   const [sortOrder, setSortOrder] = useState("newest");
@@ -34,7 +51,8 @@ function MemoriesScreen({ navigation, route }) {
   // --------------------------------------------------
 
   const getMemoryTime = (memory) => {
-    const dateValue = memory.createdAt || memory.date;
+    const dateValue =
+      memory.createdAt || memory.date;
 
     if (!dateValue) {
       return 0;
@@ -52,50 +70,80 @@ function MemoriesScreen({ navigation, route }) {
   const displayedMemories = useMemo(() => {
     let filtered = [...memories];
 
+    // --------------------------------------------------
     // SEARCH
+    // --------------------------------------------------
 
-    const query = searchQuery.trim().toLowerCase();
+    const query =
+      searchQuery.trim().toLowerCase();
 
     if (query) {
-      filtered = filtered.filter((memory) => {
-        const searchableText = [
-          memory.title,
-          memory.description,
-          memory.location,
-          memory.category,
-          memory.date,
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase();
+      filtered = filtered.filter(
+        (memory) => {
+          const searchableText = [
+            memory.title,
+            memory.description,
+            memory.location,
+            memory.category,
+            memory.date,
+          ]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase();
 
-        return searchableText.includes(query);
-      });
+          return searchableText.includes(
+            query,
+          );
+        },
+      );
     }
 
+    // --------------------------------------------------
     // FILTER
+    // --------------------------------------------------
 
     if (filter === "favorites") {
-      filtered = filtered.filter((memory) => memory.favorite === true);
+      filtered = filtered.filter(
+        (memory) =>
+          memory.favorite === true,
+      );
     }
 
     if (filter === "recent") {
       const now = Date.now();
 
-      const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000;
+      const thirtyDaysAgo =
+        now -
+        30 *
+          24 *
+          60 *
+          60 *
+          1000;
 
-      filtered = filtered.filter((memory) => {
-        const memoryTime = getMemoryTime(memory);
+      filtered = filtered.filter(
+        (memory) => {
+          const memoryTime =
+            getMemoryTime(memory);
 
-        return memoryTime >= thirtyDaysAgo && memoryTime <= now;
-      });
+          return (
+            memoryTime >=
+              thirtyDaysAgo &&
+            memoryTime <= now
+          );
+        },
+      );
     }
 
+    // --------------------------------------------------
     // SORT
+    // --------------------------------------------------
 
     filtered.sort((a, b) => {
-      const dateA = getMemoryTime(a);
-      const dateB = getMemoryTime(b);
+      const dateA =
+        getMemoryTime(a);
+
+      const dateB =
+        getMemoryTime(b);
 
       if (sortOrder === "newest") {
         return dateB - dateA;
@@ -105,29 +153,55 @@ function MemoriesScreen({ navigation, route }) {
     });
 
     return filtered;
-  }, [memories, filter, sortOrder, searchQuery]);
+  }, [
+    memories,
+    filter,
+    sortOrder,
+    searchQuery,
+  ]);
 
   // --------------------------------------------------
   // FAVORITE COUNT
   // --------------------------------------------------
 
   const favoriteCount = useMemo(() => {
-    return memories.filter((memory) => memory.favorite === true).length;
+    return memories.filter(
+      (memory) =>
+        memory.favorite === true,
+    ).length;
   }, [memories]);
 
   // --------------------------------------------------
   // TOGGLE FAVORITE
   // --------------------------------------------------
 
-  const toggleFavorite = async (memory) => {
-    try {
-      await updateMemory(memory.id, {
-        favorite: !memory.favorite,
-      });
-    } catch (error) {
-      console.log("Favorite error:", error);
-    }
-  };
+  const handleToggleFavorite =
+    async (memory) => {
+      try {
+        if (!memory?.id) {
+          Alert.alert(
+            "Favorite Failed",
+            "This memory could not be identified.",
+          );
+          return;
+        }
+
+        await toggleFavorite(
+          memory.id,
+        );
+      } catch (error) {
+        console.error(
+          "Favorite error:",
+          error,
+        );
+
+        Alert.alert(
+          "Favorite Failed",
+          error?.message ||
+            "Unable to update favorite status.",
+        );
+      }
+    };
 
   // --------------------------------------------------
   // FILTER LABEL
@@ -147,6 +221,14 @@ function MemoriesScreen({ navigation, route }) {
   };
 
   // --------------------------------------------------
+  // CLEAR SEARCH
+  // --------------------------------------------------
+
+  const handleClearSearch = () => {
+    setSearchQuery("");
+  };
+
+  // --------------------------------------------------
   // RENDER
   // --------------------------------------------------
 
@@ -154,87 +236,163 @@ function MemoriesScreen({ navigation, route }) {
     <View style={styles.container}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={
+          styles.scrollContent
+        }
       >
         {/* HEADER */}
-
         <View style={styles.header}>
           <View>
-            <Text style={styles.headerEyebrow}>YOUR COLLECTION</Text>
+            <Text
+              style={
+                styles.headerEyebrow
+              }
+            >
+              YOUR COLLECTION
+            </Text>
 
-            <Text style={styles.headerTitle}>Memories</Text>
+            <Text
+              style={styles.headerTitle}
+            >
+              Memories
+            </Text>
           </View>
 
           <TouchableOpacity
             style={styles.addButton}
-            onPress={() => navigation.navigate("Create")}
+            onPress={() =>
+              navigation.navigate(
+                "Create",
+              )
+            }
             activeOpacity={0.8}
           >
-            <Ionicons name="add" size={24} color="#FFFFFF" />
+            <Ionicons
+              name="add"
+              size={24}
+              color="#FFFFFF"
+            />
           </TouchableOpacity>
         </View>
 
         {/* SEARCH */}
-        <SearchBar value={searchQuery} onChangeText={setSearchQuery} />
+        <SearchBar
+          value={searchQuery}
+          onChangeText={
+            setSearchQuery
+          }
+          placeholder="Search memories..."
+        />
 
         {/* COLLECTION STATS */}
-
         <CollectionStats
-          memoryCount={memories.length}
-          favoriteCount={favoriteCount}
+          memoryCount={
+            memories.length
+          }
+          favoriteCount={
+            favoriteCount
+          }
         />
 
         {/* FILTERS */}
-
         <MemoryFilters
           filter={filter}
           setFilter={setFilter}
           sortOrder={sortOrder}
-          setSortOrder={setSortOrder}
-          showSortMenu={showSortMenu}
-          setShowSortMenu={setShowSortMenu}
+          setSortOrder={
+            setSortOrder
+          }
+          showSortMenu={
+            showSortMenu
+          }
+          setShowSortMenu={
+            setShowSortMenu
+          }
         />
 
         {/* CURRENT VIEW */}
+        <View
+          style={styles.viewHeader}
+        >
+          <Text
+            style={styles.viewTitle}
+          >
+            {getFilterLabel()}
+          </Text>
 
-        <View style={styles.viewHeader}>
-          <Text style={styles.viewTitle}>{getFilterLabel()}</Text>
-
-          <Text style={styles.viewCount}>
+          <Text
+            style={styles.viewCount}
+          >
             {displayedMemories.length}{" "}
-            {displayedMemories.length === 1 ? "TICKET" : "TICKETS"}
+            {displayedMemories.length ===
+            1
+              ? "TICKET"
+              : "TICKETS"}
           </Text>
         </View>
 
         {/* CONTENT */}
 
         {loading ? (
-          <View style={styles.loadingState}>
-            <Ionicons name="hourglass-outline" size={30} color="#34345C" />
+          <View
+            style={
+              styles.loadingState
+            }
+          >
+            <Ionicons
+              name="hourglass-outline"
+              size={30}
+              color="#34345C"
+            />
 
-            <Text style={styles.loadingTitle}>Loading memories...</Text>
+            <Text
+              style={
+                styles.loadingTitle
+              }
+            >
+              Loading memories...
+            </Text>
           </View>
-        ) : displayedMemories.length === 0 ? (
+        ) : displayedMemories.length ===
+          0 ? (
           <EmptyMemoryState
             filter={filter}
-            searchQuery={searchQuery}
-            onCreateMemory={() => navigation.navigate("Create")}
+            searchQuery={
+              searchQuery
+            }
+            onCreateMemory={() =>
+              navigation.navigate(
+                "Create",
+              )
+            }
           />
         ) : (
           <MemoryTicketList
-            memories={displayedMemories}
-            onMemoryPress={(memoryId) =>
-              navigation.navigate("MemoryDetails", {
-                memoryId,
-              })
+            memories={
+              displayedMemories
             }
-            onToggleFavorite={toggleFavorite}
+            onMemoryPress={(
+              memoryId,
+            ) =>
+              navigation.navigate(
+                "MemoryDetails",
+                {
+                  memoryId,
+                },
+              )
+            }
+            onToggleFavorite={
+              handleToggleFavorite
+            }
           />
         )}
 
         {/* FOOTER */}
-
-        <Text style={styles.footerText}>KEEP THE MOMENT. KEEP THE STORY.</Text>
+        <Text
+          style={styles.footerText}
+        >
+          KEEP THE MOMENT. KEEP THE STORY.
+        </Text>
       </ScrollView>
     </View>
   );

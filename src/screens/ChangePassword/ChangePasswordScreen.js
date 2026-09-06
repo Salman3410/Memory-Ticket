@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+
 import {
   View,
   Text,
@@ -6,26 +7,31 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
+  ActivityIndicator,
 } from "react-native";
+
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+
+import { useAuth } from "../../hooks/useAuth";
 
 import styles from "./changePasswordStyles";
 
 function ChangePasswordScreen({ navigation }) {
+  const { changePassword } = useAuth();
+
   const [currentPassword, setCurrentPassword] = useState("");
+
   const [newPassword, setNewPassword] = useState("");
+
   const [confirmPassword, setConfirmPassword] = useState("");
 
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+
   const [showNewPassword, setShowNewPassword] = useState(false);
+
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [loading, setLoading] = useState(false);
-
-  // --------------------------------------------------
-  // PASSWORD VALIDATION
-  // --------------------------------------------------
 
   const hasMinimumLength = newPassword.length >= 8;
 
@@ -34,16 +40,11 @@ function ChangePasswordScreen({ navigation }) {
     confirmPassword.length > 0 &&
     newPassword === confirmPassword;
 
-  // --------------------------------------------------
-  // CHANGE PASSWORD
-  // --------------------------------------------------
-
   const handleChangePassword = async () => {
     if (loading) {
       return;
     }
 
-    // Current password
     if (!currentPassword) {
       Alert.alert(
         "Current Password Required",
@@ -52,13 +53,11 @@ function ChangePasswordScreen({ navigation }) {
       return;
     }
 
-    // New password
     if (!newPassword) {
       Alert.alert("New Password Required", "Please enter your new password.");
       return;
     }
 
-    // Minimum length
     if (!hasMinimumLength) {
       Alert.alert(
         "Password Too Short",
@@ -67,7 +66,6 @@ function ChangePasswordScreen({ navigation }) {
       return;
     }
 
-    // Same password
     if (currentPassword === newPassword) {
       Alert.alert(
         "Invalid Password",
@@ -76,7 +74,6 @@ function ChangePasswordScreen({ navigation }) {
       return;
     }
 
-    // Confirmation
     if (!confirmPassword) {
       Alert.alert("Confirm Your Password", "Please confirm your new password.");
       return;
@@ -90,51 +87,18 @@ function ChangePasswordScreen({ navigation }) {
       return;
     }
 
+    setLoading(true);
+
     try {
-      setLoading(true);
+      const result = await changePassword(currentPassword, newPassword);
 
-      // ----------------------------------------------
-      // GET CURRENT USER
-      // ----------------------------------------------
-
-      const storedUser = await AsyncStorage.getItem("user");
-
-      if (!storedUser) {
+      if (!result.success) {
         Alert.alert(
-          "Account Error",
-          "We couldn't find your account information.",
+          "Password Change Failed",
+          result.message || "Unable to change your password.",
         );
         return;
       }
-
-      const user = JSON.parse(storedUser);
-
-      // ----------------------------------------------
-      // VERIFY CURRENT PASSWORD
-      // ----------------------------------------------
-
-      if (user.password !== currentPassword) {
-        Alert.alert(
-          "Incorrect Password",
-          "The current password you entered is incorrect.",
-        );
-        return;
-      }
-
-      // ----------------------------------------------
-      // UPDATE PASSWORD
-      // ----------------------------------------------
-
-      const updatedUser = {
-        ...user,
-        password: newPassword,
-      };
-
-      await AsyncStorage.setItem("user", JSON.stringify(updatedUser));
-
-      // ----------------------------------------------
-      // SUCCESS
-      // ----------------------------------------------
 
       setCurrentPassword("");
       setNewPassword("");
@@ -142,16 +106,20 @@ function ChangePasswordScreen({ navigation }) {
 
       Alert.alert(
         "Password Changed",
-        "Your password has been changed successfully.",
+        "Your password has been changed successfully. Please log in again.",
         [
           {
-            text: "Done",
-            onPress: () => navigation.goBack(),
+            text: "OK",
+            onPress: () => {
+              // The AuthContext logs out the current
+              // session because the backend increments
+              // tokenVersion.
+            },
           },
         ],
       );
     } catch (error) {
-      console.log("Change password error:", error);
+      console.error("Change password screen error:", error);
 
       Alert.alert(
         "Something Went Wrong",
@@ -169,15 +137,13 @@ function ChangePasswordScreen({ navigation }) {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        {/* --------------------------------------------------
-            HEADER
-        -------------------------------------------------- */}
-
+        {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}
             activeOpacity={0.7}
+            disabled={loading}
           >
             <Ionicons name="arrow-back" size={21} color="#34345C" />
           </TouchableOpacity>
@@ -189,10 +155,7 @@ function ChangePasswordScreen({ navigation }) {
           </View>
         </View>
 
-        {/* --------------------------------------------------
-            INTRO
-        -------------------------------------------------- */}
-
+        {/* Intro */}
         <View style={styles.introCard}>
           <View style={styles.introIcon}>
             <Ionicons name="lock-closed-outline" size={22} color="#34345C" />
@@ -207,10 +170,7 @@ function ChangePasswordScreen({ navigation }) {
           </View>
         </View>
 
-        {/* --------------------------------------------------
-            CURRENT PASSWORD
-        -------------------------------------------------- */}
-
+        {/* Current Password */}
         <Text style={styles.sectionTitle}>CURRENT PASSWORD</Text>
 
         <View style={styles.inputContainer}>
@@ -225,11 +185,13 @@ function ChangePasswordScreen({ navigation }) {
             secureTextEntry={!showCurrentPassword}
             autoCapitalize="none"
             autoCorrect={false}
+            editable={!loading}
           />
 
           <TouchableOpacity
             onPress={() => setShowCurrentPassword((previous) => !previous)}
             activeOpacity={0.7}
+            disabled={loading}
           >
             <Ionicons
               name={showCurrentPassword ? "eye-off-outline" : "eye-outline"}
@@ -239,10 +201,7 @@ function ChangePasswordScreen({ navigation }) {
           </TouchableOpacity>
         </View>
 
-        {/* --------------------------------------------------
-            NEW PASSWORD
-        -------------------------------------------------- */}
-
+        {/* New Password */}
         <Text style={styles.sectionTitle}>NEW PASSWORD</Text>
 
         <View style={styles.inputContainer}>
@@ -257,11 +216,13 @@ function ChangePasswordScreen({ navigation }) {
             secureTextEntry={!showNewPassword}
             autoCapitalize="none"
             autoCorrect={false}
+            editable={!loading}
           />
 
           <TouchableOpacity
             onPress={() => setShowNewPassword((previous) => !previous)}
             activeOpacity={0.7}
+            disabled={loading}
           >
             <Ionicons
               name={showNewPassword ? "eye-off-outline" : "eye-outline"}
@@ -271,10 +232,7 @@ function ChangePasswordScreen({ navigation }) {
           </TouchableOpacity>
         </View>
 
-        {/* --------------------------------------------------
-            PASSWORD REQUIREMENTS
-        -------------------------------------------------- */}
-
+        {/* Requirements */}
         <View style={styles.requirements}>
           <View style={styles.requirementRow}>
             <Ionicons
@@ -294,10 +252,7 @@ function ChangePasswordScreen({ navigation }) {
           </View>
         </View>
 
-        {/* --------------------------------------------------
-            CONFIRM PASSWORD
-        -------------------------------------------------- */}
-
+        {/* Confirm */}
         <Text style={styles.sectionTitle}>CONFIRM NEW PASSWORD</Text>
 
         <View
@@ -317,11 +272,13 @@ function ChangePasswordScreen({ navigation }) {
             secureTextEntry={!showConfirmPassword}
             autoCapitalize="none"
             autoCorrect={false}
+            editable={!loading}
           />
 
           <TouchableOpacity
             onPress={() => setShowConfirmPassword((previous) => !previous)}
             activeOpacity={0.7}
+            disabled={loading}
           >
             <Ionicons
               name={showConfirmPassword ? "eye-off-outline" : "eye-outline"}
@@ -354,26 +311,23 @@ function ChangePasswordScreen({ navigation }) {
           </View>
         )}
 
-        {/* --------------------------------------------------
-            CHANGE PASSWORD BUTTON
-        -------------------------------------------------- */}
-
+        {/* Button */}
         <TouchableOpacity
           style={[styles.changeButton, loading && styles.changeButtonDisabled]}
           onPress={handleChangePassword}
           activeOpacity={0.85}
           disabled={loading}
         >
-          <Ionicons name="lock-closed-outline" size={18} color="#FFFFFF" />
+          {loading ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : (
+            <>
+              <Ionicons name="lock-closed-outline" size={18} color="#FFFFFF" />
 
-          <Text style={styles.changeButtonText}>
-            {loading ? "CHANGING PASSWORD..." : "CHANGE PASSWORD"}
-          </Text>
+              <Text style={styles.changeButtonText}>CHANGE PASSWORD</Text>
+            </>
+          )}
         </TouchableOpacity>
-
-        {/* --------------------------------------------------
-            FOOTER
-        -------------------------------------------------- */}
 
         <Text style={styles.footerText}>MEMORY TICKET • ACCOUNT SECURITY</Text>
       </ScrollView>

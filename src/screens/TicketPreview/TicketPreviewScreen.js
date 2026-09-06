@@ -137,30 +137,25 @@ function TicketPreviewScreen({ route, navigation }) {
     try {
       if (!images.length) {
         Alert.alert("No Photos", "This memory doesn't contain any photos.");
-
         return;
       }
-
-      // --------------------------------------------------
-      // SAVE EVERYTHING INCLUDING LOCATION DATA
-      // --------------------------------------------------
 
       const savedMemory = await addMemory({
         title: memory.title || "",
 
-        // Human-readable location
         location: memory.location || "",
 
-        // GPS coordinates, if available
         locationData: memory.locationData || null,
 
         description: memory.description || "",
 
-        image: images[0] || null,
-
         images: [...images],
 
         date: memory.date || new Date().toISOString(),
+
+        favorite: false,
+
+        environment: memory.environment || null,
       });
 
       if (!savedMemory) {
@@ -171,9 +166,9 @@ function TicketPreviewScreen({ route, navigation }) {
         screen: "Memories",
       });
     } catch (error) {
-      console.log("Error saving memory:", error);
+      console.error("Error saving memory:", error);
 
-      Alert.alert("Error", "Unable to save memory.");
+      Alert.alert("Save Failed", error.message || "Unable to save memory.");
     }
   };
 

@@ -39,3 +39,9 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+#
+src/api/apiClient.js
+src/api/authApi.js
+src/api/memoryApi.js
+src/api/userApi.js

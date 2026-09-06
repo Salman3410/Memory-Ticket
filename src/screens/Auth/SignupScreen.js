@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+
 import {
   View,
   Text,
@@ -8,10 +9,13 @@ import {
   Platform,
   ScrollView,
   Alert,
+  ActivityIndicator,
 } from "react-native";
+
 import { Ionicons } from "@expo/vector-icons";
 
 import styles from "./authStyles";
+
 import { useAuth } from "../../hooks/useAuth";
 
 function SignupScreen({ navigation }) {
@@ -19,51 +23,53 @@ function SignupScreen({ navigation }) {
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const handleSignup = async () => {
-    // Name validation
-    if (!name.trim()) {
-      Alert.alert("Name Required", "Please enter your name.");
+  const [isLoading, setIsLoading] = useState(false);
 
+  const handleSignup = async () => {
+    const trimmedName = name.trim();
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // Name
+    if (!trimmedName) {
+      Alert.alert("Name Required", "Please enter your name.");
       return;
     }
 
-    // Email validation
-    if (!email.trim()) {
+    // Email
+    if (!normalizedEmail) {
       Alert.alert("Email Required", "Please enter your email address.");
-
       return;
     }
 
     // Basic email validation
-    if (!email.includes("@") || !email.includes(".")) {
-      Alert.alert("Invalid Email", "Please enter a valid email address.");
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+    if (!emailRegex.test(normalizedEmail)) {
+      Alert.alert("Invalid Email", "Please enter a valid email address.");
       return;
     }
 
-    // Password validation
+    // Password
     if (!password) {
       Alert.alert("Password Required", "Please create a password.");
-
       return;
     }
 
     if (password.length < 6) {
       Alert.alert("Weak Password", "Password must be at least 6 characters.");
-
       return;
     }
 
     // Confirm password
     if (!confirmPassword) {
       Alert.alert("Confirm Password", "Please confirm your password.");
-
       return;
     }
 
@@ -72,24 +78,32 @@ function SignupScreen({ navigation }) {
         "Passwords Don't Match",
         "Please make sure both passwords are the same.",
       );
-
       return;
     }
 
-    // Create account
-    const result = await signup(name, email, password);
+    setIsLoading(true);
 
-    if (!result.success) {
-      Alert.alert("Signup Failed", result.message);
+    try {
+      const result = await signup(trimmedName, normalizedEmail, password);
 
-      return;
+      if (!result.success) {
+        Alert.alert(
+          "Signup Failed",
+          result.message || "Unable to create account.",
+        );
+        return;
+      }
+
+      // Do NOT navigate manually.
+      // signup() stores the JWT and user inside AuthContext.
+      // RootNavigator should switch to the authenticated app.
+    } catch (error) {
+      console.error("Signup screen error:", error);
+
+      Alert.alert("Signup Failed", "Something went wrong. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
-
-    // DO NOT navigate manually.
-    //
-    // signup() updates the user inside AuthContext.
-    // RootNavigator sees isAuthenticated === true
-    // and switches from AuthNavigator to AppNavigator.
   };
 
   return (
@@ -108,6 +122,7 @@ function SignupScreen({ navigation }) {
             style={styles.backButton}
             onPress={() => navigation.goBack()}
             activeOpacity={0.7}
+            disabled={isLoading}
           >
             <Ionicons name="arrow-back" size={22} color="#242424" />
 
@@ -121,7 +136,6 @@ function SignupScreen({ navigation }) {
             </View>
 
             <Text style={styles.brandText}>MEMORY</Text>
-
             <Text style={styles.brandSubText}>TICKET</Text>
           </View>
 
@@ -156,6 +170,8 @@ function SignupScreen({ navigation }) {
                   onChangeText={setName}
                   autoCapitalize="words"
                   autoCorrect={false}
+                  editable={!isLoading}
+                  returnKeyType="next"
                 />
               </View>
             </View>
@@ -181,6 +197,8 @@ function SignupScreen({ navigation }) {
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
+                  editable={!isLoading}
+                  returnKeyType="next"
                 />
               </View>
             </View>
@@ -206,12 +224,15 @@ function SignupScreen({ navigation }) {
                   secureTextEntry={!showPassword}
                   autoCapitalize="none"
                   autoCorrect={false}
+                  editable={!isLoading}
+                  returnKeyType="next"
                 />
 
                 <TouchableOpacity
                   style={styles.passwordButton}
-                  onPress={() => setShowPassword(!showPassword)}
+                  onPress={() => setShowPassword((prev) => !prev)}
                   activeOpacity={0.7}
+                  disabled={isLoading}
                 >
                   <Ionicons
                     name={showPassword ? "eye-off-outline" : "eye-outline"}
@@ -243,12 +264,16 @@ function SignupScreen({ navigation }) {
                   secureTextEntry={!showConfirmPassword}
                   autoCapitalize="none"
                   autoCorrect={false}
+                  editable={!isLoading}
+                  returnKeyType="done"
+                  onSubmitEditing={handleSignup}
                 />
 
                 <TouchableOpacity
                   style={styles.passwordButton}
-                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                  onPress={() => setShowConfirmPassword((prev) => !prev)}
                   activeOpacity={0.7}
+                  disabled={isLoading}
                 >
                   <Ionicons
                     name={
@@ -263,13 +288,20 @@ function SignupScreen({ navigation }) {
 
             {/* Signup Button */}
             <TouchableOpacity
-              style={styles.loginButton}
+              style={[styles.loginButton, isLoading && { opacity: 0.7 }]}
               onPress={handleSignup}
               activeOpacity={0.85}
+              disabled={isLoading}
             >
-              <Text style={styles.loginButtonText}>CREATE ACCOUNT</Text>
+              {isLoading ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <>
+                  <Text style={styles.loginButtonText}>CREATE ACCOUNT</Text>
 
-              <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
+                  <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
+                </>
+              )}
             </TouchableOpacity>
           </View>
 
@@ -291,6 +323,7 @@ function SignupScreen({ navigation }) {
             <TouchableOpacity
               onPress={() => navigation.navigate("Login")}
               activeOpacity={0.7}
+              disabled={isLoading}
             >
               <Text style={styles.signupLink}>Login</Text>
             </TouchableOpacity>

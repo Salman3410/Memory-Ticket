@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+
 import {
   View,
   Text,
@@ -9,7 +10,9 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
+
 import * as ImagePicker from "expo-image-picker";
+
 import { Ionicons } from "@expo/vector-icons";
 
 import { useAuth } from "../../hooks/useAuth";
@@ -20,6 +23,7 @@ function EditProfileScreen({ navigation }) {
   const { user, updateProfile } = useAuth();
 
   const [name, setName] = useState(user?.name || "");
+
   const [profileImage, setProfileImage] = useState(user?.profileImage || null);
 
   const [saving, setSaving] = useState(false);
@@ -32,7 +36,6 @@ function EditProfileScreen({ navigation }) {
         "Permission Required",
         "Please allow photo library access to choose a profile photo.",
       );
-
       return;
     }
 
@@ -49,37 +52,45 @@ function EditProfileScreen({ navigation }) {
   };
 
   const handleSave = async () => {
+    if (saving) {
+      return;
+    }
+
     if (!name.trim()) {
       Alert.alert("Name Required", "Please enter your name.");
-
       return;
     }
 
     setSaving(true);
 
-    const result = await updateProfile({
-      name: name.trim(),
-      profileImage,
-    });
+    try {
+      const result = await updateProfile({
+        name: name.trim(),
+        profileImage,
+      });
 
-    setSaving(false);
+      if (!result.success) {
+        Alert.alert("Update Failed", result.message || "Something went wrong.");
+        return;
+      }
 
-    if (!result.success) {
-      Alert.alert("Update Failed", result.message || "Something went wrong.");
+      Alert.alert(
+        "Profile Updated",
+        "Your profile has been updated successfully.",
+        [
+          {
+            text: "OK",
+            onPress: () => navigation.goBack(),
+          },
+        ],
+      );
+    } catch (error) {
+      console.error("Edit profile error:", error);
 
-      return;
+      Alert.alert("Update Failed", "Unable to update your profile.");
+    } finally {
+      setSaving(false);
     }
-
-    Alert.alert(
-      "Profile Updated",
-      "Your profile has been updated successfully.",
-      [
-        {
-          text: "OK",
-          onPress: () => navigation.goBack(),
-        },
-      ],
-    );
   };
 
   return (
@@ -89,12 +100,12 @@ function EditProfileScreen({ navigation }) {
         contentContainerStyle={styles.scrollContent}
       >
         {/* Header */}
-
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}
             activeOpacity={0.7}
+            disabled={saving}
           >
             <Ionicons name="arrow-back" size={22} color="#242424" />
           </TouchableOpacity>
@@ -109,12 +120,13 @@ function EditProfileScreen({ navigation }) {
         </View>
 
         {/* Profile Photo */}
-
         <View style={styles.photoSection}>
           <View style={styles.avatarContainer}>
             {profileImage ? (
               <Image
-                source={{ uri: profileImage }}
+                source={{
+                  uri: profileImage,
+                }}
                 style={styles.avatarImage}
               />
             ) : (
@@ -129,6 +141,7 @@ function EditProfileScreen({ navigation }) {
               style={styles.cameraButton}
               onPress={pickProfileImage}
               activeOpacity={0.8}
+              disabled={saving}
             >
               <Ionicons name="camera" size={17} color="#FFFFFF" />
             </TouchableOpacity>
@@ -136,16 +149,18 @@ function EditProfileScreen({ navigation }) {
 
           <Text style={styles.photoTitle}>Profile Photo</Text>
 
-          <TouchableOpacity onPress={pickProfileImage} activeOpacity={0.7}>
+          <TouchableOpacity
+            onPress={pickProfileImage}
+            activeOpacity={0.7}
+            disabled={saving}
+          >
             <Text style={styles.changePhotoText}>CHANGE PHOTO</Text>
           </TouchableOpacity>
         </View>
 
         {/* Form */}
-
         <View style={styles.formContainer}>
           {/* Name */}
-
           <View style={styles.inputGroup}>
             <Text style={styles.label}>NAME</Text>
 
@@ -166,12 +181,12 @@ function EditProfileScreen({ navigation }) {
                 autoCapitalize="words"
                 autoCorrect={false}
                 maxLength={40}
+                editable={!saving}
               />
             </View>
           </View>
 
           {/* Email */}
-
           <View style={styles.inputGroup}>
             <Text style={styles.label}>EMAIL</Text>
 
@@ -195,7 +210,6 @@ function EditProfileScreen({ navigation }) {
         </View>
 
         {/* Save */}
-
         <TouchableOpacity
           style={[styles.saveButton, saving && styles.saveButtonDisabled]}
           onPress={handleSave}

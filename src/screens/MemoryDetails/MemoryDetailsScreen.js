@@ -30,7 +30,7 @@ import ShareExportSheet from "../../components/ShareExportSheet/ShareExportSheet
 import styles from "./memoryDetailsStyles";
 
 function MemoryDetailsScreen({ navigation, route }) {
-  const { getMemoryById, deleteMemory, updateMemory } = useMemory();
+  const { getMemoryById, toggleFavorite, deleteMemory } = useMemory();
 
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
 
@@ -168,7 +168,7 @@ function MemoryDetailsScreen({ navigation, route }) {
 
   const handleFavorite = async () => {
     try {
-      await updateMemory(memory.id, {
+      await toggleFavorite(memory.id, {
         favorite: !memory.favorite,
       });
     } catch (error) {

@@ -1,8 +1,10 @@
-import { View, Text, TextInput } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+} from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
-
-import { getCurrentLocation } from "../../../services/locationService";
 
 import styles from "../createMemoryStyles";
 
@@ -14,27 +16,16 @@ function MemoryForm({
   locationData,
   setLocationData,
 }) {
-  const handleLocationFocus = async () => {
-    try {
-      const currentLocation = await getCurrentLocation();
-
-      setLocationData({
-        latitude: currentLocation.latitude,
-        longitude: currentLocation.longitude,
-        accuracy: currentLocation.accuracy,
-        readableLocation: currentLocation.readableLocation || "",
-      });
-    } catch (error) {
-      console.log("Location permission/location error:", error);
-    }
-  };
-
   return (
     <>
-      {/* TITLE */}
+      {/* --------------------------------------------------
+          TITLE
+      -------------------------------------------------- */}
 
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>MEMORY TITLE</Text>
+        <Text style={styles.label}>
+          MEMORY TITLE
+        </Text>
 
         <TextInput
           style={styles.input}
@@ -45,21 +36,30 @@ function MemoryForm({
         />
       </View>
 
-      {/* LOCATION */}
+      {/* --------------------------------------------------
+          LOCATION
+      -------------------------------------------------- */}
 
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>LOCATION</Text>
+        <Text style={styles.label}>
+          LOCATION
+        </Text>
 
         <View style={styles.inputWithIcon}>
-          <Ionicons name="location-outline" size={22} color="#707080" />
+          <Ionicons
+            name="location-outline"
+            size={22}
+            color="#707080"
+          />
 
           <TextInput
             style={styles.iconInput}
             value={location}
             onChangeText={setLocation}
-            onFocus={handleLocationFocus}
             placeholder="Where did it happen?"
             placeholderTextColor="#A6A5AE"
+            autoCapitalize="sentences"
+            autoCorrect={false}
           />
         </View>
       </View>
