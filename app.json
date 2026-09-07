@@ -4,11 +4,11 @@
     "slug": "MemoryTicket",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/memoryTicket.jpeg",
+    "icon": "./assets/memento.jpeg",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/memoryTicket.jpeg",
+      "image": "./assets/memento.jpeg",
       "resizeMode": "contain",
       "backgroundColor": "#34345C"
     },
