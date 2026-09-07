@@ -10,6 +10,7 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  Image
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
@@ -127,13 +128,16 @@ function SignupScreen({ navigation }) {
           </TouchableOpacity>
 
           {/* Brand */}
-          <View style={styles.signupBrandContainer}>
+          <View style={styles.brandContainer}>
             <View style={styles.brandIcon}>
-              <Ionicons name="ticket-outline" size={28} color="#FFFFFF" />
+              <Image
+                source={require("../../../assets/icon.png")}
+                style={styles.logoImage}
+                resizeMode="contain"
+              />
             </View>
 
             <Text style={styles.brandText}>MEMENTO</Text>
-            {/* <Text style={styles.brandSubText}>TICKET</Text> */}
           </View>
 
           {/* Heading */}

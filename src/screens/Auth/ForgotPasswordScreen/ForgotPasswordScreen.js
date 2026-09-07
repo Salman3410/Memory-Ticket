@@ -10,6 +10,7 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  Image
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
@@ -249,10 +250,10 @@ function ForgotPasswordScreen({ navigation }) {
       return;
     }
 
-    if (newPassword.length < 6) {
+    if (newPassword.length < 8) {
       Alert.alert(
         "Invalid Password",
-        "Password must contain 6 or more characters.",
+        "Password must contain 8 or more characters.",
       );
       return;
     }
@@ -323,23 +324,17 @@ function ForgotPasswordScreen({ navigation }) {
   // --------------------------------------------------
 
   const renderBrand = () => (
-    <View style={styles.brandContainer}>
-      <View style={styles.brandIcon}>
-        <Ionicons
-          name="ticket-outline"
-          size={28}
-          color="#FFFFFF"
-        />
-      </View>
+<View style={styles.brandContainer}>
+  <View style={styles.brandIcon}>
+    <Image
+      source={require("../../../../assets/icon.png")}
+      style={styles.logoImage}
+      resizeMode="contain"
+    />
+  </View>
 
-      <Text style={styles.brandText}>
-        MEMENTO
-      </Text>
-
-      {/* <Text style={styles.brandSubText}>
-        TICKET
-      </Text> */}
-    </View>
+  <Text style={styles.brandText}>MEMENTO</Text>
+</View>
   );
 
   // --------------------------------------------------
@@ -653,7 +648,7 @@ function ForgotPasswordScreen({ navigation }) {
         </View>
 
         <Text style={styles.passwordHint}>
-          Password must contain 6 or more
+          Password must contain 8 or more
           characters.
         </Text>
 

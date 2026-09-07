@@ -1,5 +1,4 @@
 import { useState } from "react";
-
 import {
   View,
   Text,
@@ -10,12 +9,10 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  Image
 } from "react-native";
-
 import { Ionicons } from "@expo/vector-icons";
-
 import styles from "./authStyles";
-
 import { useAuth } from "../../hooks/useAuth";
 
 function LoginScreen({ navigation }) {
@@ -23,7 +20,6 @@ function LoginScreen({ navigation }) {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -74,11 +70,14 @@ function LoginScreen({ navigation }) {
           {/* Brand */}
           <View style={styles.brandContainer}>
             <View style={styles.brandIcon}>
-              <Ionicons name="ticket-outline" size={28} color="#FFFFFF" />
+              <Image
+                source={require("../../../assets/icon.png")}
+                style={styles.logoImage}
+                resizeMode="contain"
+              />
             </View>
 
             <Text style={styles.brandText}>MEMENTO</Text>
-            {/* <Text style={styles.brandSubText}>TICKET</Text> */}
           </View>
 
           {/* Heading */}

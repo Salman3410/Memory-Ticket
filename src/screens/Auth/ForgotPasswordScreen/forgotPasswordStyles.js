@@ -46,13 +46,20 @@ const styles = StyleSheet.create({
   },
 
   brandIcon: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
+    width: 72,
+    height: 72,
+    borderRadius: 41,
     backgroundColor: "#34345C",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 12,
+    marginBottom: 14,
+    overflow: "hidden",
+  },
+
+  logoImage: {
+    width: 62,
+    height: 62,
+    resizeMode: "contain",
   },
 
   brandText: {

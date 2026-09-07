@@ -8,6 +8,7 @@ import {
   Platform,
   Alert,
   ActivityIndicator,
+  Image
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import styles from "./authStyles";
@@ -116,7 +117,11 @@ function VerifySignupOtpScreen({ navigation, route }) {
 
         <View style={styles.signupBrandContainer}>
           <View style={styles.brandIcon}>
-            <Ionicons name="ticket-outline" size={28} color="#FFFFFF" />
+            <Image
+              source={require("../../../assets/icon.png")}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
           </View>
 
           <Text style={styles.brandText}>MEMENTO</Text>

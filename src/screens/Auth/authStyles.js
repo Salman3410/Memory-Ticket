@@ -18,27 +18,29 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 48,
   },
+
   brandIcon: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     backgroundColor: "#34345C",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 12,
+    marginBottom: 14,
+    overflow: "hidden",
   },
+
+  logoImage: {
+    width: 62,
+    height: 62,
+    resizeMode: "contain",
+  },
+
   brandText: {
     fontSize: 25,
     fontWeight: "800",
     letterSpacing: 5,
     color: "#242424",
-  },
-  brandSubText: {
-    fontSize: 13,
-    fontWeight: "700",
-    letterSpacing: 7,
-    color: "#34345C",
-    marginTop: 2,
   },
   headingContainer: {
     marginBottom: 34,
