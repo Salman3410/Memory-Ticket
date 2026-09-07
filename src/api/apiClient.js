@@ -1,10 +1,4 @@
-const API_BASE_URL =
-  process.env.EXPO_PUBLIC_API_URL ||
-  "http://192.168.1.4:5000/api";
-
-// --------------------------------------------------
-// API REQUEST
-// --------------------------------------------------
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
 
 async function apiRequest(
   endpoint,
@@ -26,9 +20,6 @@ async function apiRequest(
     ...headers,
   };
 
-  // Only add JSON content type for JSON bodies.
-  // FormData needs fetch to generate the
-  // multipart boundary automatically.
   if (!isFormData) {
     requestHeaders[
       "Content-Type"
