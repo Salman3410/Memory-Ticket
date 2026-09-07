@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Memento",
-    "slug": "memento",
+    "slug": "MemoryTicket",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/memento.jpeg",
