@@ -47,12 +47,14 @@ function VerifySignupOtpScreen({ navigation, route }) {
     setIsLoading(true);
 
     try {
-      const result = await verifySignupOtp(email, cleanedOtp);
+      const result = await verifySignupOtp(email, otp);
 
       if (!result.success) {
-        Alert.alert("Verification Failed", result.message || "Invalid OTP.");
+        Alert.alert("Verification Failed", result.message);
         return;
       }
+
+      navigation.replace("Login");
     } catch (error) {
       console.error("Signup OTP verification error:", error);
 

@@ -114,20 +114,9 @@ export function AuthProvider({ children }) {
         };
       }
 
-      const { token: authToken, user: newUser } = result.data;
-
-      if (!authToken || !newUser) {
-        return {
-          success: false,
-          message: "Invalid response from server.",
-        };
-      }
-
-      await saveSession(authToken, newUser);
-
       return {
         success: true,
-        user: newUser,
+        message: result.data?.message || "Account verified successfully.",
       };
     } catch (error) {
       console.error("Verify signup OTP error:", error);
