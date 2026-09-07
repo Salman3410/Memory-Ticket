@@ -11,13 +11,13 @@ import {
 } from "react-native";
 
 import * as ImagePicker from "expo-image-picker";
+import * as Location from "expo-location";
 
 import CreateMemoryHeader from "./components/CreateMemoryHeader";
 import PhotoSection from "./components/PhotoSection";
 import MemoryForm from "./components/MemoryForm";
 import DescriptionInput from "./components/DescriptionInput";
 import PreviewButton from "./components/PreviewButton";
-
 import styles from "./createMemoryStyles";
 
 const MAX_IMAGES = 5;
@@ -35,14 +35,24 @@ function CreateMemoryScreen({
   const [title, setTitle] =
     useState("");
 
+  // MANUALLY ENTERED LOCATION
   const [location, setLocation] =
     useState("");
 
+  // DEVICE GPS LOCATION DATA
   const [locationData, setLocationData] =
     useState(null);
 
   const [description, setDescription] =
     useState("");
+
+  /*
+   * Prevents requesting/capturing the
+   * device location multiple times for
+   * the same memory.
+   */
+  const [locationCaptured, setLocationCaptured] =
+    useState(false);
 
   useEffect(() => {
     const editMemory =
@@ -72,14 +82,21 @@ function CreateMemoryScreen({
       editMemory.title || "",
     );
 
-    // ONLY use the actual manual location.
+    // Keep the user's original manual location
     setLocation(
       editMemory.location || "",
     );
 
+    // Keep the existing GPS data
     setLocationData(
       editMemory.locationData ||
         null,
+    );
+
+    // If editing and locationData already exists,
+    // don't immediately capture a new location.
+    setLocationCaptured(
+      !!editMemory.locationData,
     );
 
     setDescription(
@@ -120,16 +137,14 @@ function CreateMemoryScreen({
       }
 
       const result =
-        await ImagePicker.launchImageLibraryAsync(
-          {
-            mediaTypes: ["images"],
-            allowsMultipleSelection:
-              true,
-            selectionLimit:
-              remainingSlots,
-            quality: 0.8,
-          },
-        );
+        await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ["images"],
+          allowsMultipleSelection:
+            true,
+          selectionLimit:
+            remainingSlots,
+          quality: 0.8,
+        });
 
       if (
         result.canceled ||
@@ -204,14 +219,12 @@ function CreateMemoryScreen({
       }
 
       const result =
-        await ImagePicker.launchCameraAsync(
-          {
-            mediaTypes: ["images"],
-            allowsEditing: true,
-            aspect: [4, 3],
-            quality: 0.8,
-          },
-        );
+        await ImagePicker.launchCameraAsync({
+          mediaTypes: ["images"],
+          allowsEditing: true,
+          aspect: [4, 3],
+          quality: 0.8,
+        });
 
       if (
         result.canceled ||
@@ -248,7 +261,160 @@ function CreateMemoryScreen({
 
       Alert.alert(
         "Error",
-        "Unable to take photo.",
+        "Unable to take a photo.",
+      );
+    }
+  };
+
+  /*
+   * IMPORTANT:
+   *
+   * This function ONLY captures the
+   * device's GPS information.
+   *
+   * It does NOT modify `location`.
+   *
+   * The user still manually types
+   * the location into the Location field.
+   */
+  const handleLocationPress = async () => {
+    try {
+      // Already captured for this memory.
+      if (locationCaptured) {
+        return;
+      }
+
+      /*
+       * Mark as captured/requested before
+       * the async work starts so repeated
+       * focus events don't create multiple
+       * permission requests.
+       */
+      setLocationCaptured(true);
+
+      // Ask for foreground location permission
+      const {
+        status,
+      } =
+        await Location.requestForegroundPermissionsAsync();
+
+      if (status !== "granted") {
+        /*
+         * The user can still manually
+         * enter a location.
+         *
+         * locationData stays null.
+         */
+        setLocationCaptured(false);
+
+        Alert.alert(
+          "Location Permission",
+          "Location permission was not granted. You can still enter your location manually.",
+        );
+
+        return;
+      }
+
+      // Get current device GPS location
+      const currentLocation =
+        await Location.getCurrentPositionAsync({
+          accuracy:
+            Location.Accuracy.Balanced,
+        });
+
+      const {
+        latitude,
+        longitude,
+      } = currentLocation.coords;
+
+      /*
+       * Try to get readable address
+       * information from the coordinates.
+       */
+      let addressData = null;
+
+      try {
+        const addresses =
+          await Location.reverseGeocodeAsync({
+            latitude,
+            longitude,
+          });
+
+        addressData =
+          addresses?.[0] ||
+          null;
+      } catch (geocodeError) {
+        console.warn(
+          "Reverse geocoding failed:",
+          geocodeError,
+        );
+      }
+
+      /*
+       * IMPORTANT:
+       *
+       * Do NOT call setLocation() here.
+       *
+       * `location` is the text manually
+       * entered by the user.
+       */
+      setLocationData({
+        latitude,
+        longitude,
+
+        address:
+          addressData?.formattedAddress ||
+          null,
+
+        name:
+          addressData?.name ||
+          null,
+
+        district:
+          addressData?.district ||
+          null,
+
+        city:
+          addressData?.city ||
+          null,
+
+        region:
+          addressData?.region ||
+          null,
+
+        country:
+          addressData?.country ||
+          null,
+
+        postalCode:
+          addressData?.postalCode ||
+          null,
+
+        isoCountryCode:
+          addressData?.isoCountryCode ||
+          null,
+      });
+
+      console.log(
+        "Location data captured:",
+        {
+          latitude,
+          longitude,
+          addressData,
+        },
+      );
+    } catch (error) {
+      console.error(
+        "Location error:",
+        error,
+      );
+
+      // Allow another attempt after an error
+      setLocationCaptured(false);
+
+      Alert.alert(
+        "Location Error",
+        "Unable to capture your current location. You can still enter your location manually.",
       );
     }
   };
@@ -329,6 +495,7 @@ function CreateMemoryScreen({
     setLocation("");
     setLocationData(null);
     setDescription("");
+    setLocationCaptured(false);
   };
 
   const handleCreateMemory = () => {
@@ -359,6 +526,16 @@ function CreateMemoryScreen({
       return;
     }
 
+    /*
+     * BOTH values are preserved:
+     *
+     * location:
+     *   User manually entered text
+     *
+     * locationData:
+     *   GPS information captured
+     *   from the device
+     */
     const draftMemory = {
       title:
         title.trim(),
@@ -422,7 +599,9 @@ function CreateMemoryScreen({
             />
 
             <PhotoSection
-              images={images}
+              images={
+                images
+              }
               activeImage={
                 activeImage
               }
@@ -441,11 +620,20 @@ function CreateMemoryScreen({
             />
 
             <MemoryForm
-              title={title}
-              setTitle={setTitle}
-              location={location}
+              title={
+                title
+              }
+              setTitle={
+                setTitle
+              }
+              location={
+                location
+              }
               setLocation={
                 setLocation
+              }
+              onLocationPress={
+                handleLocationPress
               }
             />
 
