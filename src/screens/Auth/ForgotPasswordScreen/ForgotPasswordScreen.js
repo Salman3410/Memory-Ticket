@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-
 import {
   View,
   Text,
@@ -12,12 +11,10 @@ import {
   ActivityIndicator,
   Image
 } from "react-native";
-
 import { Ionicons } from "@expo/vector-icons";
-
 import styles from "./forgotPasswordStyles";
-
 import { useAuth } from "../../../hooks/useAuth";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 
 function ForgotPasswordScreen({ navigation }) {
   const {

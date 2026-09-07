@@ -4,8 +4,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  KeyboardAvoidingView,
-  Platform,
   Alert,
   ActivityIndicator,
   Image
@@ -13,6 +11,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import styles from "./authStyles";
 import { useAuth } from "../../hooks/useAuth";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 
 function VerifySignupOtpScreen({ navigation, route }) {
   const { verifySignupOtp, resendSignupOtp } = useAuth();
@@ -102,9 +101,11 @@ function VerifySignupOtpScreen({ navigation, route }) {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.keyboardContainer}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    <KeyboardAwareScrollView
+      bottomOffset={20}
+      contentContainerStyle={styles.scrollContainer}
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
     >
       <View style={styles.container}>
         <TouchableOpacity
@@ -228,7 +229,7 @@ function VerifySignupOtpScreen({ navigation, route }) {
           </View>
         </View>
       </View>
-    </KeyboardAvoidingView>
+    </KeyboardAwareScrollView>
   );
 }
 

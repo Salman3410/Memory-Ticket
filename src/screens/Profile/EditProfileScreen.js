@@ -1,16 +1,19 @@
 import { useState } from "react";
+
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
-  ScrollView,
   Image,
   Alert,
   ActivityIndicator,
 } from "react-native";
+
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+
 import { useAuth } from "../../hooks/useAuth";
 import styles from "./editProfileStyles";
 
@@ -18,16 +21,19 @@ function EditProfileScreen({ navigation }) {
   const { user, updateProfile } = useAuth();
 
   const [name, setName] = useState(user?.name || "");
-  const [profileImage, setProfileImage] = useState(user?.profileImage || null);
+  const [profileImage, setProfileImage] = useState(
+    user?.profileImage || null
+  );
   const [saving, setSaving] = useState(false);
 
   const pickProfileImage = async () => {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    const permission =
+      await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (!permission.granted) {
       Alert.alert(
         "Permission Required",
-        "Please allow photo library access to choose a profile photo.",
+        "Please allow photo library access to choose a profile photo."
       );
       return;
     }
@@ -63,7 +69,10 @@ function EditProfileScreen({ navigation }) {
       });
 
       if (!result.success) {
-        Alert.alert("Update Failed", result.message || "Something went wrong.");
+        Alert.alert(
+          "Update Failed",
+          result.message || "Something went wrong."
+        );
         return;
       }
 
@@ -75,12 +84,15 @@ function EditProfileScreen({ navigation }) {
             text: "OK",
             onPress: () => navigation.goBack(),
           },
-        ],
+        ]
       );
     } catch (error) {
       console.error("Edit profile error:", error);
 
-      Alert.alert("Update Failed", "Unable to update your profile.");
+      Alert.alert(
+        "Update Failed",
+        "Unable to update your profile."
+      );
     } finally {
       setSaving(false);
     }
@@ -88,9 +100,11 @@ function EditProfileScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
+      <KeyboardAwareScrollView
+        bottomOffset={30}
         contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
         {/* Header */}
         <View style={styles.header}>
@@ -100,12 +114,15 @@ function EditProfileScreen({ navigation }) {
             activeOpacity={0.7}
             disabled={saving}
           >
-            <Ionicons name="arrow-back" size={22} color="#242424" />
+            <Ionicons
+              name="arrow-back"
+              size={22}
+              color="#242424"
+            />
           </TouchableOpacity>
 
           <View style={styles.headerTextContainer}>
             <Text style={styles.headerEyebrow}>ACCOUNT</Text>
-
             <Text style={styles.headerTitle}>Edit Profile</Text>
           </View>
 
@@ -136,7 +153,11 @@ function EditProfileScreen({ navigation }) {
               activeOpacity={0.8}
               disabled={saving}
             >
-              <Ionicons name="camera" size={17} color="#FFFFFF" />
+              <Ionicons
+                name="camera"
+                size={17}
+                color="#FFFFFF"
+              />
             </TouchableOpacity>
           </View>
 
@@ -147,7 +168,9 @@ function EditProfileScreen({ navigation }) {
             activeOpacity={0.7}
             disabled={saving}
           >
-            <Text style={styles.changePhotoText}>CHANGE PHOTO</Text>
+            <Text style={styles.changePhotoText}>
+              CHANGE PHOTO
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -175,6 +198,7 @@ function EditProfileScreen({ navigation }) {
                 autoCorrect={false}
                 maxLength={40}
                 editable={!saving}
+                returnKeyType="done"
               />
             </View>
           </View>
@@ -183,7 +207,12 @@ function EditProfileScreen({ navigation }) {
           <View style={styles.inputGroup}>
             <Text style={styles.label}>EMAIL</Text>
 
-            <View style={[styles.inputWrapper, styles.disabledInput]}>
+            <View
+              style={[
+                styles.inputWrapper,
+                styles.disabledInput,
+              ]}
+            >
               <Ionicons
                 name="mail-outline"
                 size={20}
@@ -192,36 +221,55 @@ function EditProfileScreen({ navigation }) {
               />
 
               <TextInput
-                style={[styles.input, styles.disabledText]}
+                style={[
+                  styles.input,
+                  styles.disabledText,
+                ]}
                 value={user?.email || ""}
                 editable={false}
               />
             </View>
 
-            <Text style={styles.helperText}>Email cannot be changed here.</Text>
+            <Text style={styles.helperText}>
+              Email cannot be changed here.
+            </Text>
           </View>
         </View>
 
         {/* Save */}
         <TouchableOpacity
-          style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+          style={[
+            styles.saveButton,
+            saving && styles.saveButtonDisabled,
+          ]}
           onPress={handleSave}
           disabled={saving}
           activeOpacity={0.85}
         >
           {saving ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
+            <ActivityIndicator
+              size="small"
+              color="#FFFFFF"
+            />
           ) : (
             <>
-              <Text style={styles.saveButtonText}>SAVE CHANGES</Text>
+              <Text style={styles.saveButtonText}>
+                SAVE CHANGES
+              </Text>
 
-              <Ionicons name="checkmark" size={20} color="#FFFFFF" />
+              <Ionicons
+                name="checkmark"
+                size={20}
+                color="#FFFFFF"
+              />
             </>
           )}
         </TouchableOpacity>
 
-        <Text style={styles.footerText}>Keep your profile up to date.</Text>
-      </ScrollView>
+        <Text style={styles.footerText}>
+          Keep your profile up to date.
+        </Text>
+      </KeyboardAwareScrollView>
     </View>
   );
 }

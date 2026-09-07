@@ -1,13 +1,10 @@
-import React, { useState } from "react";
+import { useState } from "react";
 
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
   Alert,
   ActivityIndicator,
   Image
@@ -18,6 +15,7 @@ import { Ionicons } from "@expo/vector-icons";
 import styles from "./authStyles";
 
 import { useAuth } from "../../hooks/useAuth";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 
 function SignupScreen({ navigation }) {
   const { signup } = useAuth();
@@ -105,15 +103,12 @@ function SignupScreen({ navigation }) {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.keyboardContainer}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    <KeyboardAwareScrollView
+      bottomOffset={20}
+      contentContainerStyle={styles.scrollContainer}
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
     >
-      <ScrollView
-        contentContainerStyle={styles.scrollContainer}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
         <View style={styles.container}>
           {/* Back Button */}
           <TouchableOpacity
@@ -333,8 +328,7 @@ function SignupScreen({ navigation }) {
           {/* Tagline */}
           <Text style={styles.tagline}>YOUR STORY STARTS HERE</Text>
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+    </KeyboardAwareScrollView>
   );
 }
 
