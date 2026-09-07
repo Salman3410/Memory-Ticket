@@ -23,13 +23,10 @@ function SignupScreen({ navigation }) {
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSignup = async () => {
@@ -62,8 +59,8 @@ function SignupScreen({ navigation }) {
       return;
     }
 
-    if (password.length < 6) {
-      Alert.alert("Weak Password", "Password must be at least 6 characters.");
+    if (password.length < 8) {
+      Alert.alert("Weak Password", "Password must be at least 8 characters.");
       return;
     }
 
@@ -89,14 +86,14 @@ function SignupScreen({ navigation }) {
       if (!result.success) {
         Alert.alert(
           "Signup Failed",
-          result.message || "Unable to create account.",
+          result.message || "Unable to start account creation.",
         );
         return;
       }
 
-      // Do NOT navigate manually.
-      // signup() stores the JWT and user inside AuthContext.
-      // RootNavigator should switch to the authenticated app.
+      navigation.navigate("VerifySignupOtp", {
+        email: normalizedEmail,
+      });
     } catch (error) {
       console.error("Signup screen error:", error);
 

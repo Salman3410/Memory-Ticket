@@ -438,23 +438,17 @@ function ForgotPasswordScreen({ navigation }) {
   const renderOtpStep = () => (
     <>
       <View style={styles.headingContainer}>
-        <Text style={styles.title}>
-          Verify OTP
-        </Text>
+        <Text style={styles.title}>Verify OTP</Text>
 
         <Text style={styles.subtitle}>
           Enter the 6-digit OTP sent to{" "}
-          <Text style={styles.emailText}>
-            {email}
-          </Text>
+          <Text style={styles.emailText}>{email}</Text>
         </Text>
       </View>
 
       <View style={styles.formContainer}>
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>
-            OTP
-          </Text>
+          <Text style={styles.label}>OTP</Text>
 
           <View style={styles.inputWrapper}>
             <Ionicons
@@ -470,11 +464,7 @@ function ForgotPasswordScreen({ navigation }) {
               placeholderTextColor="#A39C92"
               value={otp}
               onChangeText={(value) =>
-                setOtp(
-                  value
-                    .replace(/[^0-9]/g, "")
-                    .slice(0, 6),
-                )
+                setOtp(value.replace(/[^0-9]/g, "").slice(0, 6))
               }
               keyboardType="number-pad"
               maxLength={6}
@@ -483,71 +473,49 @@ function ForgotPasswordScreen({ navigation }) {
           </View>
         </View>
 
-        {error ? (
-          <Text style={styles.errorText}>
-            {error}
-          </Text>
-        ) : null}
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-        {message ? (
-          <Text style={styles.messageText}>
-            {message}
-          </Text>
-        ) : null}
+        {message ? <Text style={styles.messageText}>{message}</Text> : null}
 
         <TouchableOpacity
-          style={[
-            styles.primaryButton,
-            loading && styles.disabledButton,
-          ]}
+          style={[styles.primaryButton, loading && styles.disabledButton]}
           onPress={handleVerifyOtp}
           disabled={loading}
           activeOpacity={0.85}
         >
           {loading ? (
-            <ActivityIndicator
-              size="small"
-              color="#FFFFFF"
-            />
+            <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
             <>
-              <Text style={styles.primaryButtonText}>
-                VERIFY OTP
-              </Text>
+              <Text style={styles.primaryButtonText}>VERIFY OTP</Text>
 
-              <Ionicons
-                name="checkmark"
-                size={20}
-                color="#FFFFFF"
-              />
+              <Ionicons name="checkmark" size={20} color="#FFFFFF" />
             </>
           )}
         </TouchableOpacity>
 
-        <View style={styles.resendContainer}>
-          <Text style={styles.resendLabel}>
-            Didn't receive it?
-          </Text>
+        <View style={styles.resendSection}>
+          <View style={styles.resendContainer}>
 
-          <TouchableOpacity
-            onPress={handleResendOtp}
-            disabled={
-              resendTimer > 0 || loading
-            }
-            activeOpacity={0.7}
-          >
-            <Text
-              style={[
-                styles.resendText,
-                (resendTimer > 0 || loading) &&
-                  styles.resendDisabled,
-              ]}
+            <TouchableOpacity
+              onPress={handleResendOtp}
+              disabled={resendTimer > 0 || loading}
+              activeOpacity={0.7}
             >
-              {resendTimer > 0
-                ? `Resend in ${resendTimer}s`
-                : "Resend OTP"}
-            </Text>
-          </TouchableOpacity>
+              <Text
+                style={[
+                  styles.resendText,
+                  (resendTimer > 0 || loading) && styles.resendDisabled,
+                ]}
+              >
+                {resendTimer > 0 ? `Resend in ${resendTimer}s` : "Resend OTP"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.spamCheck}>
+            Didn't receive the code? Check your spam folder.
+          </Text>
         </View>
 
         <TouchableOpacity
@@ -560,15 +528,9 @@ function ForgotPasswordScreen({ navigation }) {
           disabled={loading}
           activeOpacity={0.7}
         >
-          <Ionicons
-            name="arrow-back"
-            size={16}
-            color="#34345C"
-          />
+          <Ionicons name="arrow-back" size={16} color="#34345C" />
 
-          <Text style={styles.backLinkText}>
-            Change email
-          </Text>
+          <Text style={styles.backLinkText}>Change email</Text>
         </TouchableOpacity>
       </View>
     </>

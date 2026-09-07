@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 10,
-    paddingHorizontal:20,
+    paddingHorizontal: 20,
 
     shadowColor: "#242440",
     shadowOffset: {
@@ -238,20 +238,19 @@ const styles = StyleSheet.create({
   // RESEND
   // --------------------------------------------------
 
+  resendSection: {
+    alignItems: "center",
+    marginTop: 24,
+  },
+
   resendContainer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 24,
-  },
-
-  resendLabel: {
-    fontSize: 13,
-    color: "#707080",
   },
 
   resendText: {
-    fontSize: 13,
+    fontSize: 16,
     fontWeight: "800",
     color: "#34345C",
     marginLeft: 5,
@@ -259,6 +258,13 @@ const styles = StyleSheet.create({
 
   resendDisabled: {
     color: "#A39C92",
+  },
+
+  spamCheck: {
+    marginTop: 8,
+    fontSize: 12,
+    color: "#A39C92",
+    textAlign: "center",
   },
 
   // --------------------------------------------------

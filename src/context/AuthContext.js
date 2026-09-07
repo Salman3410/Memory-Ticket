@@ -7,6 +7,8 @@ import { getDeviceInfo } from "../utils/deviceInfo";
 
 import {
   registerUser,
+  verifySignupOtp as verifySignupOtpApi,
+  resendSignupOtp as resendSignupOtpApi,
   loginUser,
   getCurrentUser,
   forgotPassword as forgotPasswordApi,
@@ -83,7 +85,32 @@ export function AuthProvider({ children }) {
       if (!result.success) {
         return {
           success: false,
-          message: result.message || "Unable to create account.",
+          message: result.message || "Unable to start account creation.",
+        };
+      }
+
+      return {
+        success: true,
+        message: result.data?.message || "Verification OTP sent successfully.",
+      };
+    } catch (error) {
+      console.error("Signup error:", error);
+
+      return {
+        success: false,
+        message: "Unable to start account creation.",
+      };
+    }
+  };
+
+  const verifySignupOtp = async (email, otp) => {
+    try {
+      const result = await verifySignupOtpApi(email, otp);
+
+      if (!result.success) {
+        return {
+          success: false,
+          message: result.message || "Invalid OTP.",
         };
       }
 
@@ -103,11 +130,36 @@ export function AuthProvider({ children }) {
         user: newUser,
       };
     } catch (error) {
-      console.error("Signup error:", error);
+      console.error("Verify signup OTP error:", error);
 
       return {
         success: false,
-        message: "Unable to create account.",
+        message: "Unable to verify OTP.",
+      };
+    }
+  };
+
+  const resendSignupOtp = async (email) => {
+    try {
+      const result = await resendSignupOtpApi(email);
+
+      if (!result.success) {
+        return {
+          success: false,
+          message: result.message || "Unable to resend OTP.",
+        };
+      }
+
+      return {
+        success: true,
+        message: result.data?.message || "OTP resent successfully.",
+      };
+    } catch (error) {
+      console.error("Resend signup OTP error:", error);
+
+      return {
+        success: false,
+        message: "Unable to resend OTP.",
       };
     }
   };
@@ -371,6 +423,8 @@ export function AuthProvider({ children }) {
         token,
         loading,
         signup,
+        verifySignupOtp,
+        resendSignupOtp,
         login,
         logout,
         updateProfile,

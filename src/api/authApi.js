@@ -12,6 +12,25 @@ export async function registerUser(name, email, password, device = null) {
   });
 }
 
+export async function verifySignupOtp(email, otp) {
+  return apiRequest("/auth/verify-signup-otp", {
+    method: "POST",
+    body: {
+      email: email.trim().toLowerCase(),
+      otp: otp.trim(),
+    },
+  });
+}
+
+export async function resendSignupOtp(email) {
+  return apiRequest("/auth/resend-signup-otp", {
+    method: "POST",
+    body: {
+      email: email.trim().toLowerCase(),
+    },
+  });
+}
+
 export async function loginUser(email, password, device = null) {
   return apiRequest("/auth/login", {
     method: "POST",

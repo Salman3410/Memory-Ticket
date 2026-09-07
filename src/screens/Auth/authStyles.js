@@ -183,6 +183,27 @@ const styles = StyleSheet.create({
     color: "#A39C92",
     marginTop: 25,
   },
+  resendSection: {
+    alignItems: "center",
+    marginTop: 22,
+  },
+
+  resendText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#34345C",
+  },
+
+  resendDisabled: {
+    color: "#999999",
+  },
+
+  spamCheck: {
+    marginTop: 8,
+    fontSize: 12,
+    color: "#A39C92",
+    textAlign: "center",
+  },
 });
 
 export default styles;
