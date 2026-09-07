@@ -11,7 +11,7 @@
     "splash": {
       "image": "./assets/memoryTicket.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#34345C"
     },
 
     "ios": {

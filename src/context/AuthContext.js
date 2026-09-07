@@ -1,5 +1,7 @@
 import { createContext, useEffect, useState } from "react";
+
 import * as SecureStore from "expo-secure-store";
+import * as SplashScreen from "expo-splash-screen";
 
 import { getDeviceInfo } from "../utils/deviceInfo";
 
@@ -31,10 +33,6 @@ export function AuthProvider({ children }) {
     restoreSession();
   }, []);
 
-  /**
-   * Restore authenticated session
-   * when the application starts.
-   */
   const restoreSession = async () => {
     try {
       const storedToken = await SecureStore.getItemAsync(TOKEN_KEY);
@@ -58,41 +56,29 @@ export function AuthProvider({ children }) {
       console.error("Restore session error:", error);
 
       await SecureStore.deleteItemAsync(TOKEN_KEY);
-
       setToken(null);
       setUser(null);
     } finally {
       setLoading(false);
+      await SplashScreen.hideAsync();
     }
   };
 
-  /**
-   * Save authenticated session.
-   */
   const saveSession = async (authToken, userData) => {
     if (!authToken) {
       throw new Error("Authentication token is missing.");
     }
 
     await SecureStore.setItemAsync(TOKEN_KEY, authToken);
-
     setToken(authToken);
     setUser(userData);
   };
 
-  /**
-   * Register.
-   */
   const signup = async (name, email, password) => {
     try {
       const device = getDeviceInfo();
 
-      const result = await registerUser(
-        name,
-        email,
-        password,
-        device,
-      );
+      const result = await registerUser(name, email, password, device);
 
       if (!result.success) {
         return {
@@ -126,18 +112,11 @@ export function AuthProvider({ children }) {
     }
   };
 
-  /**
-   * Login.
-   */
   const login = async (email, password) => {
     try {
       const device = getDeviceInfo();
 
-      const result = await loginUser(
-        email,
-        password,
-        device,
-      );
+      const result = await loginUser(email, password, device);
 
       if (!result.success) {
         return {
@@ -171,11 +150,6 @@ export function AuthProvider({ children }) {
     }
   };
 
-  /**
-   * Forgot password.
-   *
-   * Sends a password-reset OTP to the user's email.
-   */
   const forgotPassword = async (email) => {
     try {
       const result = await forgotPasswordApi(email);
@@ -184,16 +158,13 @@ export function AuthProvider({ children }) {
         return {
           success: false,
           message:
-            result.message ||
-            "Unable to process password reset request.",
+            result.message || "Unable to process password reset request.",
         };
       }
 
       return {
         success: true,
-        message:
-          result.data?.message ||
-          "OTP sent successfully.",
+        message: result.data?.message || "OTP sent successfully.",
         data: result.data,
       };
     } catch (error) {
@@ -201,15 +172,11 @@ export function AuthProvider({ children }) {
 
       return {
         success: false,
-        message:
-          "Unable to process password reset request.",
+        message: "Unable to process password reset request.",
       };
     }
   };
 
-  /**
-   * Verify password-reset OTP.
-   */
   const verifyOtp = async (email, otp) => {
     try {
       const result = await verifyOtpApi(email, otp);
@@ -223,9 +190,7 @@ export function AuthProvider({ children }) {
 
       return {
         success: true,
-        message:
-          result.data?.message ||
-          "OTP verified successfully.",
+        message: result.data?.message || "OTP verified successfully.",
         data: result.data,
       };
     } catch (error) {
@@ -238,35 +203,20 @@ export function AuthProvider({ children }) {
     }
   };
 
-  /**
-   * Reset password after OTP verification.
-   */
-  const resetPassword = async (
-    email,
-    resetToken,
-    newPassword,
-  ) => {
+  const resetPassword = async (email, resetToken, newPassword) => {
     try {
-      const result = await resetPasswordApi(
-        email,
-        resetToken,
-        newPassword,
-      );
+      const result = await resetPasswordApi(email, resetToken, newPassword);
 
       if (!result.success) {
         return {
           success: false,
-          message:
-            result.message ||
-            "Unable to reset password.",
+          message: result.message || "Unable to reset password.",
         };
       }
 
       return {
         success: true,
-        message:
-          result.data?.message ||
-          "Password reset successfully.",
+        message: result.data?.message || "Password reset successfully.",
         data: result.data,
       };
     } catch (error) {
@@ -279,9 +229,6 @@ export function AuthProvider({ children }) {
     }
   };
 
-  /**
-   * Update profile.
-   */
   const updateProfile = async (updatedData) => {
     try {
       if (!token || !user) {
@@ -291,17 +238,12 @@ export function AuthProvider({ children }) {
         };
       }
 
-      const result = await updateProfileApi(
-        token,
-        updatedData,
-      );
+      const result = await updateProfileApi(token, updatedData);
 
       if (!result.success) {
         return {
           success: false,
-          message:
-            result.message ||
-            "Unable to update profile.",
+          message: result.message || "Unable to update profile.",
         };
       }
 
@@ -323,13 +265,7 @@ export function AuthProvider({ children }) {
     }
   };
 
-  /**
-   * Change password.
-   */
-  const changePassword = async (
-    currentPassword,
-    newPassword,
-  ) => {
+  const changePassword = async (currentPassword, newPassword) => {
     try {
       if (!token || !user) {
         return {
@@ -347,14 +283,10 @@ export function AuthProvider({ children }) {
       if (!result.success) {
         return {
           success: false,
-          message:
-            result.message ||
-            "Unable to change password.",
+          message: result.message || "Unable to change password.",
         };
       }
 
-      // Backend increments tokenVersion,
-      // so the current JWT is no longer valid.
       await SecureStore.deleteItemAsync(TOKEN_KEY);
 
       setToken(null);
@@ -362,9 +294,7 @@ export function AuthProvider({ children }) {
 
       return {
         success: true,
-        message:
-          result.data?.message ||
-          "Password changed successfully.",
+        message: result.data?.message || "Password changed successfully.",
       };
     } catch (error) {
       console.error("Change password error:", error);
@@ -376,9 +306,7 @@ export function AuthProvider({ children }) {
     }
   };
 
-  /**
-   * Delete account.
-   */
+
   const deleteAccount = async () => {
     try {
       if (!token || !user) {
@@ -393,9 +321,7 @@ export function AuthProvider({ children }) {
       if (!result.success) {
         return {
           success: false,
-          message:
-            result.message ||
-            "Unable to delete account.",
+          message: result.message || "Unable to delete account.",
         };
       }
 
@@ -406,9 +332,7 @@ export function AuthProvider({ children }) {
 
       return {
         success: true,
-        message:
-          result.data?.message ||
-          "Account deleted successfully.",
+        message: result.data?.message || "Account deleted successfully.",
       };
     } catch (error) {
       console.error("Delete account error:", error);
@@ -420,9 +344,6 @@ export function AuthProvider({ children }) {
     }
   };
 
-  /**
-   * Logout.
-   */
   const logout = async () => {
     try {
       await SecureStore.deleteItemAsync(TOKEN_KEY);
@@ -449,15 +370,12 @@ export function AuthProvider({ children }) {
         user,
         token,
         loading,
-
         signup,
         login,
         logout,
-
         updateProfile,
         changePassword,
         deleteAccount,
-
         forgotPassword,
         verifyOtp,
         resetPassword,
@@ -467,4 +385,3 @@ export function AuthProvider({ children }) {
     </AuthContext.Provider>
   );
 }
-
