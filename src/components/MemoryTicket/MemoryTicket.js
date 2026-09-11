@@ -1,23 +1,12 @@
-import { useState } from "react";
-import {
-  View,
-  Text,
-  Image,
-  TouchableOpacity,
-  ScrollView,
-} from "react-native";
+import React, { useState } from "react";
+
+import { View, Text, Image, TouchableOpacity, ScrollView } from "react-native";
+
 import { Ionicons } from "@expo/vector-icons";
-import { useMemory } from "../../hooks/useMemory";
+
 import styles from "./memoryTicketStyles";
 
-function MemoryTicket({
-  memory,
-  onPress,
-  compact = false,
-  image = null,
-}) {
-  const { getMemoryById } = useMemory();
-
+function MemoryTicket({ memory, onPress, compact = false, image = null }) {
   const [imageWidth, setImageWidth] = useState(0);
   const [activeImage, setActiveImage] = useState(0);
 
@@ -25,8 +14,9 @@ function MemoryTicket({
     return null;
   }
 
-  const contextMemory = memory.id ? getMemoryById(memory.id) : memory;
-  const currentMemory = contextMemory || memory;
+  // Memory is already provided by the parent.
+  // No need to subscribe to MemoryContext again.
+  const currentMemory = memory;
 
   const formatDate = (value) => {
     if (!value) {
@@ -47,10 +37,15 @@ function MemoryTicket({
   };
 
   const title = currentMemory.title || "UNTITLED MEMORY";
+
   const location = currentMemory.location?.trim() || "UNKNOWN";
+
   const date = formatDate(currentMemory.createdAt || currentMemory.date);
+
   const time = currentMemory.time || "";
+
   const description = currentMemory.description?.trim() || "";
+
   const admission = currentMemory.admission || "X1";
 
   const ticketNumber =
@@ -89,11 +84,7 @@ function MemoryTicket({
         <View style={styles.header}>
           <Text style={styles.brandText}>MEMENTO</Text>
 
-          <Ionicons
-            name="ticket-outline"
-            size={18}
-            color="#F0442C"
-          />
+          <Ionicons name="ticket-outline" size={18} color="#F0442C" />
         </View>
 
         {/* IMAGE */}
@@ -101,6 +92,7 @@ function MemoryTicket({
           style={styles.ticketImageContainer}
           onLayout={(event) => {
             const width = event.nativeEvent.layout.width;
+
             setImageWidth(width);
           }}
         >
@@ -113,7 +105,9 @@ function MemoryTicket({
                 style={{ flex: 1 }}
               >
                 <Image
-                  source={{ uri: displayImages[0] }}
+                  source={{
+                    uri: displayImages[0],
+                  }}
                   style={styles.ticketImage}
                   resizeMode="cover"
                 />
@@ -125,7 +119,9 @@ function MemoryTicket({
                 showsHorizontalScrollIndicator={false}
                 nestedScrollEnabled
                 onMomentumScrollEnd={(event) => {
-                  if (!imageWidth) return;
+                  if (!imageWidth) {
+                    return;
+                  }
 
                   const index = Math.round(
                     event.nativeEvent.contentOffset.x / imageWidth,
@@ -139,17 +135,25 @@ function MemoryTicket({
                     key={`${imageUri}-${index}`}
                     style={[
                       styles.ticketImageSlide,
-                      imageWidth ? { width: imageWidth } : null,
+                      imageWidth
+                        ? {
+                            width: imageWidth,
+                          }
+                        : null,
                     ]}
                   >
                     <TouchableOpacity
                       activeOpacity={0.95}
                       onPress={handleImagePress}
                       disabled={!onPress}
-                      style={{ flex: 1 }}
+                      style={{
+                        flex: 1,
+                      }}
                     >
                       <Image
-                        source={{ uri: imageUri }}
+                        source={{
+                          uri: imageUri,
+                        }}
                         style={styles.ticketImage}
                         resizeMode="cover"
                       />
@@ -160,11 +164,7 @@ function MemoryTicket({
             )
           ) : (
             <View style={styles.noImage}>
-              <Ionicons
-                name="image-outline"
-                size={40}
-                color="#707080"
-              />
+              <Ionicons name="image-outline" size={40} color="#707080" />
             </View>
           )}
 
@@ -185,8 +185,7 @@ function MemoryTicket({
                   key={index}
                   style={[
                     styles.imageDot,
-                    index === activeImage &&
-                      styles.imageDotActive,
+                    index === activeImage && styles.imageDotActive,
                   ]}
                 />
               ))}
@@ -196,10 +195,7 @@ function MemoryTicket({
 
         {/* TITLE */}
         <View style={styles.titleContainer}>
-          <Text
-            style={styles.ticketTitle}
-            numberOfLines={2}
-          >
+          <Text style={styles.ticketTitle} numberOfLines={2}>
             {title}
           </Text>
         </View>
@@ -207,14 +203,9 @@ function MemoryTicket({
         {/* DESCRIPTION */}
         {description ? (
           <View style={styles.descriptionContainer}>
-            <Text style={styles.descriptionLabel}>
-              THE STORY
-            </Text>
+            <Text style={styles.descriptionLabel}>THE STORY</Text>
 
-            <Text
-              style={styles.descriptionText}
-              numberOfLines={4}
-            >
+            <Text style={styles.descriptionText} numberOfLines={4}>
               {description}
             </Text>
           </View>
@@ -224,27 +215,17 @@ function MemoryTicket({
         <View style={styles.infoSection}>
           <View style={styles.infoRow}>
             <View style={styles.infoBlock}>
-              <Text style={styles.infoLabel}>
-                LOCATION
-              </Text>
+              <Text style={styles.infoLabel}>LOCATION</Text>
 
-              <Text
-                style={styles.infoValue}
-                numberOfLines={1}
-              >
+              <Text style={styles.infoValue} numberOfLines={1}>
                 {location}
               </Text>
             </View>
 
             <View style={styles.infoBlock}>
-              <Text style={styles.infoLabel}>
-                DATE
-              </Text>
+              <Text style={styles.infoLabel}>DATE</Text>
 
-              <Text
-                style={styles.infoValue}
-                numberOfLines={1}
-              >
+              <Text style={styles.infoValue} numberOfLines={1}>
                 {date}
               </Text>
             </View>
@@ -252,22 +233,16 @@ function MemoryTicket({
 
           {time ? (
             <View style={styles.timeRow}>
-              <Text style={styles.infoLabel}>
-                TIME
-              </Text>
+              <Text style={styles.infoLabel}>TIME</Text>
 
-              <Text style={styles.infoValue}>
-                {time}
-              </Text>
+              <Text style={styles.infoValue}>{time}</Text>
             </View>
           ) : null}
         </View>
 
         {/* ADMISSION */}
         <View style={styles.admissionSection}>
-          <Text style={styles.admissionLabel}>
-            ADMISSION
-          </Text>
+          <Text style={styles.admissionLabel}>ADMISSION</Text>
 
           <Text style={styles.admissionValue}>
             X{admission.toString().replace(/^X/, "")}
@@ -277,24 +252,24 @@ function MemoryTicket({
         {/* DIVIDER */}
         <View style={styles.divider}>
           <View style={styles.dividerLine} />
+
           <View style={styles.dividerNotchLeft} />
+
           <View style={styles.dividerNotchRight} />
         </View>
 
         {/* FOOTER */}
         <View style={styles.ticketFooter}>
           <View style={styles.ticketNumberContainer}>
-            <Text style={styles.ticketNumberLabel}>
-              TICKET NO.
-            </Text>
+            <Text style={styles.ticketNumberLabel}>TICKET NO.</Text>
 
-            <Text style={styles.ticketNumber}>
-              {ticketNumber}
-            </Text>
+            <Text style={styles.ticketNumber}>{ticketNumber}</Text>
           </View>
 
           <View style={styles.barcode}>
-            {Array.from({ length: 30 }).map((_, index) => (
+            {Array.from({
+              length: 30,
+            }).map((_, index) => (
               <View
                 key={index}
                 style={[
@@ -314,10 +289,7 @@ function MemoryTicket({
       {/* BOTTOM PERFORATION */}
       <View style={styles.bottomPerforation}>
         {Array.from({ length: 12 }).map((_, index) => (
-          <View
-            key={index}
-            style={styles.perforationDot}
-          />
+          <View key={index} style={styles.perforationDot} />
         ))}
       </View>
     </View>
@@ -325,10 +297,7 @@ function MemoryTicket({
 
   if (onPress) {
     return (
-      <TouchableOpacity
-        activeOpacity={0.92}
-        onPress={onPress}
-      >
+      <TouchableOpacity activeOpacity={0.92} onPress={onPress}>
         {ticketContent}
       </TouchableOpacity>
     );
@@ -337,5 +306,4 @@ function MemoryTicket({
   return ticketContent;
 }
 
-export default MemoryTicket;
-
+export default React.memo(MemoryTicket);

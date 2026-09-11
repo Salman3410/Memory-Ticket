@@ -2,21 +2,13 @@ import {
   createContext,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
-
 import { useAuth } from "../hooks/useAuth";
-
-import {
-  getNetworkInfo,
-  addNetworkListener,
-} from "../services/networkService";
-
-import {
-  getCurrentLocation,
-} from "../services/locationService";
-
+import { getNetworkInfo, addNetworkListener } from "../services/networkService";
+import { getCurrentLocation } from "../services/locationService";
 import {
   getMemories as getMemoriesApi,
   createMemory as createMemoryApi,
@@ -25,7 +17,6 @@ import {
   deleteAllMemories as deleteAllMemoriesApi,
   toggleFavorite as toggleFavoriteApi,
 } from "../api/memoryApi";
-
 import {
   generateClientMemoryId,
   persistMemoryImages,
@@ -34,27 +25,21 @@ import {
   removePendingMemory,
   getOfflineMemories,
   upsertLocalMemory,
+  upsertLocalMemories,
   removeLocalMemory,
   clearLocalMemories,
 } from "../services/offlineMemoryService";
 
-export const MemoryContext =
-  createContext(null);
+export const MemoryContext = createContext(null);
 
 export function MemoryProvider({ children }) {
   const { token, loading: authLoading } = useAuth();
 
   const [memories, setMemories] = useState([]);
-
   const [loading, setLoading] = useState(true);
-
   const [syncing, setSyncing] = useState(false);
 
   const syncLock = useRef(false);
-
-  // --------------------------------------------------
-  // NORMALIZE MEMORY
-  // --------------------------------------------------
 
   const normalizeMemory = useCallback((memory) => {
     if (!memory) {
@@ -88,10 +73,6 @@ export function MemoryProvider({ children }) {
     };
   }, []);
 
-  // --------------------------------------------------
-  // MERGE SERVER + LOCAL DATA
-  // --------------------------------------------------
-
   const mergeMemories = useCallback(
     (serverMemories, localMemories, pendingMemories) => {
       const localMap = new Map();
@@ -104,29 +85,21 @@ export function MemoryProvider({ children }) {
         }
       }
 
-      const pendingMap = new Map();
+      const mergedServer = serverMemories
+        .map((memory) => {
+          const key = memory.clientMemoryId || memory.id;
 
-      for (const memory of pendingMemories) {
-        const key = memory.clientMemoryId || memory.id;
+          const local = localMap.get(key);
 
-        if (key) {
-          pendingMap.set(key, memory);
-        }
-      }
+          const normalized = normalizeMemory(memory);
 
-      const mergedServer = serverMemories.map((memory) => {
-        const key = memory.clientMemoryId || memory.id;
+          if (local?.localImages?.length) {
+            normalized.localImages = local.localImages;
+          }
 
-        const local = localMap.get(key);
-
-        const normalized = normalizeMemory(memory);
-
-        if (local?.localImages?.length) {
-          normalized.localImages = local.localImages;
-        }
-
-        return normalized;
-      });
+          return normalized;
+        })
+        .filter(Boolean);
 
       const serverKeys = new Set(
         mergedServer.map((memory) => memory.clientMemoryId || memory.id),
@@ -150,16 +123,13 @@ export function MemoryProvider({ children }) {
           }
 
           return normalized;
-        });
+        })
+        .filter(Boolean);
 
-      return [...remainingPending, ...mergedServer].filter(Boolean);
+      return [...remainingPending, ...mergedServer];
     },
     [normalizeMemory],
   );
-
-  // --------------------------------------------------
-  // LOAD LOCAL DATA
-  // --------------------------------------------------
 
   const loadLocalMemories = useCallback(async () => {
     if (!token) {
@@ -197,90 +167,82 @@ export function MemoryProvider({ children }) {
     }
   }, [token, normalizeMemory]);
 
-  // --------------------------------------------------
-  // LOAD SERVER DATA
-  // --------------------------------------------------
+const refreshServerMemories = useCallback(async () => {
+  if (!token) {
+    return false;
+  }
 
-  const refreshServerMemories = useCallback(async () => {
-    if (!token) {
+  try {
+    const result = await getMemoriesApi(token);
+
+    if (!result.success) {
       return false;
     }
 
-    try {
-      const result = await getMemoriesApi(token);
+    const backendMemories = Array.isArray(result.data?.memories)
+      ? result.data.memories
+      : [];
 
-      if (!result.success) {
-        return false;
+    const [localMemories, pendingMemories] = await Promise.all([
+      import("../services/offlineMemoryService").then(({ getLocalMemories }) =>
+        getLocalMemories(),
+      ),
+
+      getPendingMemories(),
+    ]);
+
+    const normalizedServer = backendMemories
+      .map(normalizeMemory)
+      .filter(Boolean);
+
+    const localMemoryMap = new Map();
+
+    for (const memory of localMemories) {
+      const key = memory.clientMemoryId || memory.id;
+
+      if (key) {
+        localMemoryMap.set(key, memory);
       }
+    }
 
-      const backendMemories = Array.isArray(result.data?.memories)
-        ? result.data.memories
-        : [];
+    const serverWithLocalImages = normalizedServer.map((memory) => {
+      const key = memory.clientMemoryId || memory.id;
 
-      const [localMemories, pendingMemories] = await Promise.all([
-        import("../services/offlineMemoryService").then(
-          ({ getLocalMemories }) => getLocalMemories(),
-        ),
+      const local = localMemoryMap.get(key);
 
-        getPendingMemories(),
-      ]);
-
-      const normalizedServer = backendMemories
-        .map(normalizeMemory)
-        .filter(Boolean);
-
-      // Preserve persistent local image
-      // copies while updating server data.
-      const serverWithLocalImages = normalizedServer.map((memory) => {
-        const key = memory.clientMemoryId || memory.id;
-
-        const local = localMemories.find(
-          (item) => (item.clientMemoryId || item.id) === key,
-        );
-
-        if (local?.localImages?.length) {
-          return {
-            ...memory,
-            localImages: local.localImages,
-          };
-        }
-
-        return memory;
-      });
-
-      const merged = mergeMemories(
-        serverWithLocalImages,
-        localMemories,
-        pendingMemories,
-      );
-
-      setMemories(merged);
-
-      // Cache the latest merged data locally.
-      for (const memory of serverWithLocalImages) {
-        await upsertLocalMemory({
+      if (local?.localImages?.length) {
+        return {
           ...memory,
-          syncStatus: "synced",
-        });
+          localImages: local.localImages,
+        };
       }
 
-      return true;
-    } catch (error) {
-      console.error("Refresh server memories error:", error);
+      return memory;
+    });
 
-      return false;
-    }
-  }, [
-    token,
-    normalizeMemory,
-    mergeMemories,
-    getPendingMemories,
-    upsertLocalMemory,
-  ]);
+    const merged = mergeMemories(
+      serverWithLocalImages,
+      localMemories,
+      pendingMemories,
+    );
 
-  // --------------------------------------------------
-  // LOAD MEMORIES
-  // --------------------------------------------------
+    setMemories(merged);
+
+
+    await upsertLocalMemories(
+      serverWithLocalImages.map((memory) => ({
+        ...memory,
+        syncStatus: "synced",
+      })),
+    );
+
+    return true;
+  } catch (error) {
+    console.error("Refresh server memories error:", error);
+
+    return false;
+  }
+}, [token, normalizeMemory, mergeMemories]);
 
   const loadMemories = useCallback(async () => {
     if (!token) {
@@ -292,14 +254,10 @@ export function MemoryProvider({ children }) {
     setLoading(true);
 
     try {
-      // Load local data first.
-      const localMemories = await loadLocalMemories();
+      await loadLocalMemories();
 
-      // Immediately release loading state
-      // after local data is available.
       setLoading(false);
 
-      // Refresh backend in background.
       const network = await getNetworkInfo();
 
       const online =
@@ -314,10 +272,6 @@ export function MemoryProvider({ children }) {
       setLoading(false);
     }
   }, [token, loadLocalMemories, refreshServerMemories]);
-
-  // --------------------------------------------------
-  // SYNC ONE MEMORY
-  // --------------------------------------------------
 
   const syncMemory = useCallback(
     async (pendingMemory) => {
@@ -350,8 +304,6 @@ export function MemoryProvider({ children }) {
           syncStatus: "synced",
         };
 
-        // These two storage operations are
-        // independent, so execute them together.
         await Promise.all([
           removePendingMemory(pendingMemory.clientMemoryId),
 
@@ -375,10 +327,6 @@ export function MemoryProvider({ children }) {
     },
     [token, normalizeMemory],
   );
-
-  // --------------------------------------------------
-  // SYNC ALL PENDING
-  // --------------------------------------------------
 
   const syncPendingMemories = useCallback(async () => {
     if (!token || syncLock.current) {
@@ -408,8 +356,6 @@ export function MemoryProvider({ children }) {
         const synced = await syncMemory(pendingMemory);
 
         if (!synced) {
-          // Leave this memory in the queue.
-          // Retry later.
           break;
         }
       }
@@ -421,10 +367,6 @@ export function MemoryProvider({ children }) {
     }
   }, [token, syncMemory]);
 
-  // --------------------------------------------------
-  // AUTH READY
-  // --------------------------------------------------
-
   useEffect(() => {
     if (authLoading) {
       return;
@@ -432,10 +374,6 @@ export function MemoryProvider({ children }) {
 
     loadMemories();
   }, [authLoading, token, loadMemories]);
-
-  // --------------------------------------------------
-  // NETWORK LISTENER
-  // --------------------------------------------------
 
   useEffect(() => {
     if (authLoading || !token) {
@@ -448,9 +386,6 @@ export function MemoryProvider({ children }) {
 
         if (online) {
           syncPendingMemories();
-
-          // Refresh server data after
-          // connectivity is restored.
           refreshServerMemories();
         }
       },
@@ -463,291 +398,398 @@ export function MemoryProvider({ children }) {
     };
   }, [authLoading, token, syncPendingMemories, refreshServerMemories]);
 
-  const addMemory = async (memory) => {
-    if (!token) {
-      throw new Error("You must be logged in to create a memory.");
-    }
-
-    try {
-      const clientMemoryId = memory?.clientMemoryId || generateClientMemoryId();
-
-      // Network and location are independent.
-      const [networkResult, locationResult] = await Promise.all([
-        getNetworkInfo().catch((error) => {
-          console.error("Network info error:", error);
-          return null;
-        }),
-
-        memory?.locationData
-          ? Promise.resolve(memory.locationData)
-          : getCurrentLocation().catch((error) => {
-              console.error("Location error:", error);
-              return null;
-            }),
-      ]);
-
-      const locationData = locationResult || null;
-
-      // Keep the user's manual location.
-      const finalLocation =
-        typeof memory?.location === "string" ? memory.location.trim() : "";
-
-      // Copy all images in parallel.
-      const { localImages } = await persistMemoryImages({
-        ...memory,
-        clientMemoryId,
-      });
-
-      const finalNetwork =
-        memory?.network || memory?.environment?.network || networkResult;
-
-      const localMemoryData = {
-        ...memory,
-        clientMemoryId,
-        location: finalLocation,
-        locationData,
-        network: finalNetwork,
-        images: localImages,
-        localImages,
-        syncStatus: "pending",
-      };
-
-      const localMemory = normalizeMemory(localMemoryData);
-
-      if (!localMemory) {
-        throw new Error("Unable to prepare local memory.");
+  const addMemory = useCallback(
+    async (memory) => {
+      if (!token) {
+        throw new Error("You must be logged in to create a memory.");
       }
 
-      // Show immediately in the app.
-      setMemories((current) => [localMemory, ...current]);
+      try {
+        const clientMemoryId =
+          memory?.clientMemoryId || generateClientMemoryId();
 
-      // Persist locally before returning.
-      await Promise.all([
-        upsertLocalMemory(localMemoryData),
-        addPendingMemory(localMemoryData),
-      ]);
+        // Use already captured location data.
+        // Only request GPS when it is actually missing.
+        const locationData = memory?.locationData || null;
 
-      // Use the network state we already obtained.
-      const online =
-        networkResult?.isConnected !== false &&
-        networkResult?.isInternetReachable !== false;
+        const finalLocation =
+          typeof memory?.location === "string" ? memory.location.trim() : "";
 
-      if (online) {
-        // IMPORTANT:
-        // Do not wait for Cloudinary/MongoDB.
-        // Sync in the background.
-        syncMemory(localMemoryData).catch((error) => {
-          console.error("Background memory sync failed:", error);
-        });
-      }
+        const finalNetwork =
+          memory?.network || memory?.environment?.network || null;
 
-      // Return immediately after local save.
-      return localMemory;
-    } catch (error) {
-      console.error("Add memory error:", error);
-      throw error;
-    }
-  };
+        const originalImages = Array.isArray(memory?.images)
+          ? memory.images.slice(0, 5)
+          : memory?.image
+            ? [memory.image]
+            : [];
 
-  // --------------------------------------------------
-  // UPDATE MEMORY
-  // --------------------------------------------------
+        if (!originalImages.length) {
+          throw new Error("At least one image is required.");
+        }
 
-  const updateMemory = async (memoryId, updatedData) => {
-    if (!token) {
-      throw new Error("You must be logged in.");
-    }
+        // --------------------------------------------------
+        // CREATE MEMORY IMMEDIATELY
+        // --------------------------------------------------
 
-    if (!memoryId) {
-      throw new Error("Memory ID is required.");
-    }
+        const localMemoryData = {
+          ...memory,
 
-    const existingMemory = memories.find(
-      (memory) => memory.id === memoryId || memory.clientMemoryId === memoryId,
-    );
+          clientMemoryId,
 
-    if (!existingMemory) {
-      throw new Error("Memory not found.");
-    }
+          location: finalLocation,
 
-    const result = await updateMemoryApi(token, memoryId, updatedData);
+          locationData,
 
-    if (!result.success) {
-      throw new Error(result.message || "Unable to update memory.");
-    }
+          network: finalNetwork,
 
-    const updatedMemory = normalizeMemory(result.data?.memory);
+          // Use the original image URIs for the
+          // immediate UI. They will be permanently
+          // persisted in the background.
+          images: originalImages,
 
-    if (!updatedMemory) {
-      throw new Error("Server returned invalid memory data.");
-    }
+          localImages: originalImages,
 
-    setMemories((currentMemories) =>
-      currentMemories.map((memory) =>
-        memory.id === memoryId
-          ? {
-              ...updatedMemory,
-              localImages: memory.localImages || [],
+          syncStatus: "pending",
+        };
+
+        const localMemory = normalizeMemory(localMemoryData);
+
+        if (!localMemory) {
+          throw new Error("Unable to prepare local memory.");
+        }
+
+        // --------------------------------------------------
+        // SHOW IMMEDIATELY
+        // --------------------------------------------------
+
+        setMemories((current) => [localMemory, ...current]);
+
+        // --------------------------------------------------
+        // SAVE BASIC DATA
+        // --------------------------------------------------
+
+        await Promise.all([
+          upsertLocalMemory(localMemoryData),
+          addPendingMemory(localMemoryData),
+        ]);
+
+        // --------------------------------------------------
+        // BACKGROUND IMAGE PERSISTENCE + SYNC
+        // --------------------------------------------------
+
+        (async () => {
+          try {
+            const { localImages } = await persistMemoryImages({
+              ...memory,
+              clientMemoryId,
+            });
+
+            const persistedMemory = {
+              ...localMemoryData,
+
+              images: localImages,
+
+              localImages,
+
+              syncStatus: "pending",
+            };
+
+            // Update local storage with permanent
+            // image paths.
+            await Promise.all([
+              upsertLocalMemory(persistedMemory),
+              addPendingMemory(persistedMemory),
+            ]);
+
+            // Update currently displayed memory
+            // without blocking the UI.
+            setMemories((currentMemories) =>
+              currentMemories.map((item) =>
+                item.clientMemoryId === clientMemoryId
+                  ? {
+                      ...item,
+                      images: localImages,
+                      image: localImages[0] || null,
+                      localImages,
+                      syncStatus: "pending",
+                    }
+                  : item,
+              ),
+            );
+
+            // Sync only after permanent local
+            // image files are ready.
+            const network = await getNetworkInfo();
+
+            const online =
+              network.isConnected !== false &&
+              network.isInternetReachable !== false;
+
+            if (online) {
+              await syncMemory({
+                ...persistedMemory,
+                images: localImages,
+                localImages,
+              });
             }
-          : memory,
-      ),
-    );
+          } catch (error) {
+            console.error("Background memory preparation failed:", error);
+          }
+        })();
 
-    await upsertLocalMemory({
-      ...updatedMemory,
-      localImages: existingMemory.localImages || [],
-    });
+        // --------------------------------------------------
+        // RETURN IMMEDIATELY
+        // --------------------------------------------------
 
-    return updatedMemory;
-  };
+        return localMemory;
+      } catch (error) {
+        console.error("Add memory error:", error);
 
-  // --------------------------------------------------
-  // DELETE MEMORY
-  // --------------------------------------------------
+        throw error;
+      }
+    },
+    [token, normalizeMemory, syncMemory],
+  );
 
-  const deleteMemory = async (memoryId) => {
-    if (!token) {
-      throw new Error("You must be logged in.");
-    }
+  const updateMemory = useCallback(
+    async (memoryId, updatedData) => {
+      if (!token) {
+        throw new Error("You must be logged in.");
+      }
 
-    if (!memoryId) {
-      throw new Error("Memory ID is required.");
-    }
+      if (!memoryId) {
+        throw new Error("Memory ID is required.");
+      }
 
-    const existingMemory = memories.find(
-      (memory) => memory.id === memoryId || memory.clientMemoryId === memoryId,
-    );
+      const existingMemory = memories.find(
+        (memory) =>
+          memory.id === memoryId || memory.clientMemoryId === memoryId,
+      );
 
-    // Delete pending offline memory
-    // without contacting backend.
-    if (
-      existingMemory?.syncStatus === "pending" &&
-      existingMemory.clientMemoryId
-    ) {
-      await Promise.all([
-        removePendingMemory(existingMemory.clientMemoryId),
+      if (!existingMemory) {
+        throw new Error("Memory not found.");
+      }
 
-        removeLocalMemory(null, existingMemory.clientMemoryId),
-      ]);
+      const result = await updateMemoryApi(token, memoryId, updatedData);
+
+      if (!result.success) {
+        throw new Error(result.message || "Unable to update memory.");
+      }
+
+      const updatedMemory = normalizeMemory(result.data?.memory);
+
+      if (!updatedMemory) {
+        throw new Error("Server returned invalid memory data.");
+      }
 
       setMemories((currentMemories) =>
-        currentMemories.filter(
-          (memory) => memory.clientMemoryId !== existingMemory.clientMemoryId,
+        currentMemories.map((memory) =>
+          memory.id === memoryId
+            ? {
+                ...updatedMemory,
+                localImages: memory.localImages || [],
+              }
+            : memory,
         ),
       );
 
+      await upsertLocalMemory({
+        ...updatedMemory,
+        localImages: existingMemory.localImages || [],
+      });
+
+      return updatedMemory;
+    },
+    [token, memories, normalizeMemory],
+  );
+
+  const deleteMemory = useCallback(
+    async (memoryId) => {
+      if (!token) {
+        throw new Error("You must be logged in.");
+      }
+
+      if (!memoryId) {
+        throw new Error("Memory ID is required.");
+      }
+
+      const existingMemory = memories.find(
+        (memory) =>
+          memory.id === memoryId || memory.clientMemoryId === memoryId,
+      );
+
+      if (
+        existingMemory?.syncStatus === "pending" &&
+        existingMemory.clientMemoryId
+      ) {
+        await Promise.all([
+          removePendingMemory(existingMemory.clientMemoryId),
+
+          removeLocalMemory(null, existingMemory.clientMemoryId),
+        ]);
+
+        setMemories((currentMemories) =>
+          currentMemories.filter(
+            (memory) => memory.clientMemoryId !== existingMemory.clientMemoryId,
+          ),
+        );
+
+        return true;
+      }
+
+      const result = await deleteMemoryApi(token, memoryId);
+
+      if (!result.success) {
+        throw new Error(result.message || "Unable to delete memory.");
+      }
+
+      setMemories((currentMemories) =>
+        currentMemories.filter((memory) => memory.id !== memoryId),
+      );
+
+      await removeLocalMemory(memoryId);
+
       return true;
-    }
+    },
+    [token, memories],
+  );
 
-    const result = await deleteMemoryApi(token, memoryId);
+  const toggleFavorite = useCallback(
+    async (memoryId) => {
+      if (!token) {
+        throw new Error("You must be logged in.");
+      }
 
-    if (!result.success) {
-      throw new Error(result.message || "Unable to delete memory.");
-    }
+      const existingMemory = memories.find(
+        (memory) =>
+          memory.id === memoryId || memory.clientMemoryId === memoryId,
+      );
 
-    setMemories((currentMemories) =>
-      currentMemories.filter((memory) => memory.id !== memoryId),
-    );
+      if (!existingMemory) {
+        throw new Error("Memory not found.");
+      }
 
-    await removeLocalMemory(memoryId);
-
-    return true;
-  };
-
-  // --------------------------------------------------
-  // TOGGLE FAVORITE
-  // --------------------------------------------------
-
-  const toggleFavorite = async (memoryId) => {
-    if (!token) {
-      throw new Error("You must be logged in.");
-    }
-
-    const existingMemory = memories.find(
-      (memory) => memory.id === memoryId || memory.clientMemoryId === memoryId,
-    );
-
-    if (existingMemory?.syncStatus === "pending") {
       const nextFavorite = !existingMemory.favorite;
 
-      const updated = {
+      const optimisticMemory = {
         ...existingMemory,
 
         favorite: nextFavorite,
 
         isFavorite: nextFavorite,
-
-        syncStatus: "pending",
       };
 
+      // Immediate UI update.
       setMemories((currentMemories) =>
         currentMemories.map((memory) =>
           memory.id === memoryId || memory.clientMemoryId === memoryId
-            ? updated
+            ? optimisticMemory
             : memory,
         ),
       );
 
-      await Promise.all([
-        upsertLocalMemory(updated),
+      if (existingMemory.syncStatus === "pending") {
+        const pendingMemory = {
+          ...optimisticMemory,
+          syncStatus: "pending",
+        };
 
-        addPendingMemory(updated),
-      ]);
+        await Promise.all([
+          upsertLocalMemory(pendingMemory),
 
-      return updated;
-    }
+          addPendingMemory(pendingMemory),
+        ]);
 
-    const result = await toggleFavoriteApi(token, memoryId);
+        return pendingMemory;
+      }
 
-    if (!result.success) {
-      throw new Error(result.message || "Unable to update favorite.");
-    }
+      try {
+        await upsertLocalMemory(optimisticMemory);
+      } catch (error) {
+        console.error("Local favorite save error:", error);
+      }
 
-    const updatedMemory = normalizeMemory(result.data?.memory);
+      try {
+        const result = await toggleFavoriteApi(token, memoryId);
 
-    if (!updatedMemory) {
-      throw new Error("Server returned invalid memory data.");
-    }
+        if (!result.success) {
+          throw new Error(result.message || "Unable to update favorite.");
+        }
 
-    setMemories((currentMemories) =>
-      currentMemories.map((memory) =>
-        memory.id === memoryId
-          ? {
-              ...updatedMemory,
-              localImages: memory.localImages || [],
-            }
-          : memory,
-      ),
-    );
+        const updatedMemory = normalizeMemory(result.data?.memory);
 
-    await upsertLocalMemory(updatedMemory);
+        if (!updatedMemory) {
+          throw new Error("Server returned invalid memory data.");
+        }
 
-    return updatedMemory;
-  };
+        const finalMemory = {
+          ...updatedMemory,
 
-  // --------------------------------------------------
-  // FIND MEMORY
-  // --------------------------------------------------
+          localImages: existingMemory.localImages || [],
 
-  const getMemoryById = (memoryId) => {
-    return memories.find(
-      (memory) => memory.id === memoryId || memory.clientMemoryId === memoryId,
-    );
-  };
+          syncStatus: "synced",
+        };
 
-  // --------------------------------------------------
-  // MANUAL SYNC
-  // --------------------------------------------------
+        setMemories((currentMemories) =>
+          currentMemories.map((memory) =>
+            memory.id === memoryId || memory.clientMemoryId === memoryId
+              ? finalMemory
+              : memory,
+          ),
+        );
 
-  const syncNow = async () => {
+        await upsertLocalMemory(finalMemory);
+
+        return finalMemory;
+      } catch (error) {
+        console.error("Favorite sync error:", error);
+
+        const rollbackMemory = {
+          ...existingMemory,
+
+          favorite: existingMemory.favorite,
+
+          isFavorite: existingMemory.favorite,
+
+          syncStatus: existingMemory.syncStatus || "synced",
+        };
+
+        setMemories((currentMemories) =>
+          currentMemories.map((memory) =>
+            memory.id === memoryId || memory.clientMemoryId === memoryId
+              ? rollbackMemory
+              : memory,
+          ),
+        );
+
+        try {
+          await upsertLocalMemory(rollbackMemory);
+        } catch (storageError) {
+          console.error("Favorite rollback storage error:", storageError);
+        }
+
+        throw error;
+      }
+    },
+    [token, memories, normalizeMemory],
+  );
+
+  const getMemoryById = useCallback(
+    (memoryId) => {
+      return memories.find(
+        (memory) =>
+          memory.id === memoryId || memory.clientMemoryId === memoryId,
+      );
+    },
+    [memories],
+  );
+
+  const syncNow = useCallback(async () => {
     await syncPendingMemories();
-  };
+  }, [syncPendingMemories]);
 
-  // --------------------------------------------------
-  // CLEAR MEMORY STORAGE
-  // --------------------------------------------------
-
-  const clearMemories = async () => {
+  const clearMemories = useCallback(async () => {
     if (!token) {
       throw new Error("You must be logged in.");
     }
@@ -760,6 +802,7 @@ export function MemoryProvider({ children }) {
 
     await Promise.all([
       clearLocalMemories(),
+
       (async () => {
         const pending = await getPendingMemories();
 
@@ -781,33 +824,40 @@ export function MemoryProvider({ children }) {
       success: true,
       deletedCount: result.data?.deletedCount || 0,
     };
-  };
+  }, [token]);
 
-  // --------------------------------------------------
-  // PROVIDER
-  // --------------------------------------------------
+  const contextValue = useMemo(
+    () => ({
+      memories,
+      loading,
+      syncing,
+      addMemory,
+      updateMemory,
+      deleteMemory,
+      toggleFavorite,
+      getMemoryById,
+      loadMemories,
+      refreshMemories: loadMemories,
+      syncNow,
+      clearMemories,
+    }),
+    [
+      memories,
+      loading,
+      syncing,
+      addMemory,
+      updateMemory,
+      deleteMemory,
+      toggleFavorite,
+      getMemoryById,
+      loadMemories,
+      syncNow,
+      clearMemories,
+    ],
+  );
 
   return (
-    <MemoryContext.Provider
-      value={{
-        memories,
-        loading,
-        syncing,
-
-        addMemory,
-        updateMemory,
-        deleteMemory,
-        toggleFavorite,
-
-        getMemoryById,
-
-        loadMemories,
-        refreshMemories: loadMemories,
-
-        syncNow,
-        clearMemories,
-      }}
-    >
+    <MemoryContext.Provider value={contextValue}>
       {children}
     </MemoryContext.Provider>
   );

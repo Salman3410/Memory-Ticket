@@ -174,52 +174,24 @@ function TicketPreviewScreen({
 
         setSaving(true);
 
-        const savedMemory =
-          await addMemory({
-            title:
-              memory.title ||
-              "",
-
-            location:
-              memory.location ||
-              "",
-
-            locationData:
-              memory.locationData ||
-              null,
-
-            description:
-              memory.description ||
-              "",
-
-            images: [
-              ...images,
-            ],
-
-            date:
-              memory.date ||
-              new Date().toISOString(),
-
-            favorite: false,
-
-            environment:
-              memory.environment ||
-              null,
-          });
+        const savedMemory = await addMemory({
+          title: memory.title || "",
+          location: memory.location || "",
+          locationData: memory.locationData || null,
+          description: memory.description || "",
+          images: [...images],
+          date: memory.date || new Date().toISOString(),
+          favorite: false,
+          environment: memory.environment || null,
+        });
 
         if (!savedMemory) {
-          throw new Error(
-            "Memory was not created.",
-          );
+          throw new Error("Memory was not created.");
         }
 
-        navigation.navigate(
-          "MainTabs",
-          {
-            screen:
-              "Memories",
-          },
-        );
+        navigation.navigate("MainTabs", {
+          screen: "Memories",
+        });
       } catch (error) {
         console.error(
           "Error saving memory:",
