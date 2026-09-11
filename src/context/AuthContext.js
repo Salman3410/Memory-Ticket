@@ -32,39 +32,41 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const restoreSession = async () => {
+      try {
+        const storedToken = await SecureStore.getItemAsync(TOKEN_KEY);
+
+        if (!storedToken) {
+          return;
+        }
+
+        const result = await getCurrentUser(storedToken);
+
+        if (!result.success) {
+          await SecureStore.deleteItemAsync(TOKEN_KEY);
+
+          return;
+        }
+
+        setToken(storedToken);
+        setUser(result.data.user);
+      } catch (error) {
+        console.error("Restore session error:", error);
+
+        try {
+          await SecureStore.deleteItemAsync(TOKEN_KEY);
+        } catch (deleteError) {
+          console.error("Failed to delete invalid session:", deleteError);
+        }
+      } finally {
+        setLoading(false);
+
+        await SplashScreen.hideAsync();
+      }
+    };
+
     restoreSession();
   }, []);
-
-  const restoreSession = async () => {
-    try {
-      const storedToken = await SecureStore.getItemAsync(TOKEN_KEY);
-
-      if (!storedToken) {
-        return;
-      }
-
-      const result = await getCurrentUser(storedToken);
-
-      if (!result.success) {
-        await SecureStore.deleteItemAsync(TOKEN_KEY);
-        setToken(null);
-        setUser(null);
-        return;
-      }
-
-      setToken(storedToken);
-      setUser(result.data.user);
-    } catch (error) {
-      console.error("Restore session error:", error);
-
-      await SecureStore.deleteItemAsync(TOKEN_KEY);
-      setToken(null);
-      setUser(null);
-    } finally {
-      setLoading(false);
-      await SplashScreen.hideAsync();
-    }
-  };
 
   const saveSession = async (authToken, userData) => {
     if (!authToken) {
@@ -72,6 +74,7 @@ export function AuthProvider({ children }) {
     }
 
     await SecureStore.setItemAsync(TOKEN_KEY, authToken);
+
     setToken(authToken);
     setUser(userData);
   };
@@ -346,7 +349,6 @@ export function AuthProvider({ children }) {
       };
     }
   };
-
 
   const deleteAccount = async () => {
     try {
