@@ -1,21 +1,22 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 
 import { View, Text, Image, TouchableOpacity, ScrollView } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
 
+import { getMemoryThumbnailUrl } from "../../utils/cloudinary";
+
 import styles from "./memoryTicketStyles";
 
 function MemoryTicket({ memory, onPress, compact = false, image = null }) {
   const [imageWidth, setImageWidth] = useState(0);
+
   const [activeImage, setActiveImage] = useState(0);
 
   if (!memory) {
     return null;
   }
 
-  // Memory is already provided by the parent.
-  // No need to subscribe to MemoryContext again.
   const currentMemory = memory;
 
   const formatDate = (value) => {
@@ -63,6 +64,14 @@ function MemoryTicket({ memory, onPress, compact = false, image = null }) {
 
   const displayImages = isSingleImageMode ? [image] : images;
 
+  // --------------------------------------------------
+  // OPTIMIZED CLOUDINARY IMAGES
+  // --------------------------------------------------
+
+  const displayImageSources = useMemo(() => {
+    return displayImages.map((imageUri) => getMemoryThumbnailUrl(imageUri));
+  }, [displayImages]);
+
   const handleImagePress = () => {
     if (onPress) {
       onPress();
@@ -73,7 +82,9 @@ function MemoryTicket({ memory, onPress, compact = false, image = null }) {
     <View style={[styles.ticket, compact && styles.ticketCompact]}>
       {/* TOP PERFORATION */}
       <View style={styles.topPerforation}>
-        {Array.from({ length: 12 }).map((_, index) => (
+        {Array.from({
+          length: 12,
+        }).map((_, index) => (
           <View key={index} style={styles.perforationDot} />
         ))}
       </View>
@@ -93,20 +104,24 @@ function MemoryTicket({ memory, onPress, compact = false, image = null }) {
           onLayout={(event) => {
             const width = event.nativeEvent.layout.width;
 
-            setImageWidth(width);
+            if (width && width !== imageWidth) {
+              setImageWidth(width);
+            }
           }}
         >
-          {displayImages.length > 0 ? (
+          {displayImageSources.length > 0 ? (
             isSingleImageMode ? (
               <TouchableOpacity
                 activeOpacity={0.95}
                 onPress={handleImagePress}
                 disabled={!onPress}
-                style={{ flex: 1 }}
+                style={{
+                  flex: 1,
+                }}
               >
                 <Image
                   source={{
-                    uri: displayImages[0],
+                    uri: displayImageSources[0],
                   }}
                   style={styles.ticketImage}
                   resizeMode="cover"
@@ -130,7 +145,7 @@ function MemoryTicket({ memory, onPress, compact = false, image = null }) {
                   setActiveImage(index);
                 }}
               >
-                {displayImages.map((imageUri, index) => (
+                {displayImageSources.map((imageUri, index) => (
                   <View
                     key={`${imageUri}-${index}`}
                     style={[
@@ -288,7 +303,9 @@ function MemoryTicket({ memory, onPress, compact = false, image = null }) {
 
       {/* BOTTOM PERFORATION */}
       <View style={styles.bottomPerforation}>
-        {Array.from({ length: 12 }).map((_, index) => (
+        {Array.from({
+          length: 12,
+        }).map((_, index) => (
           <View key={index} style={styles.perforationDot} />
         ))}
       </View>

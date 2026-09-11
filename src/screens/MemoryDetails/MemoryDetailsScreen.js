@@ -4,6 +4,7 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
+  FlatList,
   Image,
   useWindowDimensions,
   Alert,
@@ -19,6 +20,7 @@ import * as MediaLibrary from "expo-media-library";
 import { useMemory } from "../../hooks/useMemory";
 import MemoryTicket from "../../components/MemoryTicket/MemoryTicket";
 import ShareExportSheet from "../../components/ShareExportSheet/ShareExportSheet";
+import { getMemoryDetailUrl, getMemoryViewerUrl } from "../../utils/cloudinary";
 import styles from "./memoryDetailsStyles";
 
 function MemoryDetailsScreen({ navigation, route }) {
@@ -40,24 +42,6 @@ function MemoryDetailsScreen({ navigation, route }) {
   const [pdfOptionsVisible, setPdfOptionsVisible] = useState(false);
 
   const ticketRefs = useRef([]);
-
-  // if (!memoryId) {
-  //   return (
-  //     <View style={styles.notFoundContainer}>
-  //       <Ionicons name="sad-outline" size={45} color="#34345C" />
-
-  //       <Text style={styles.notFoundTitle}>Memory not found</Text>
-
-  //       <TouchableOpacity
-  //         style={styles.backToMemoriesButton}
-  //         onPress={() => navigation.goBack()}
-  //         activeOpacity={0.8}
-  //       >
-  //         <Text style={styles.backToMemoriesText}>GO BACK</Text>
-  //       </TouchableOpacity>
-  //     </View>
-  //   );
-  // }
 
   const memory = getMemoryById(memoryId);
 
@@ -84,6 +68,10 @@ function MemoryDetailsScreen({ navigation, route }) {
     : memory?.image
       ? [memory.image]
       : [];
+
+  const detailImages = images.map((image) => getMemoryDetailUrl(image));
+
+  const viewerImages = images.map((image) => getMemoryViewerUrl(image));
 
   const openImageViewer = (index) => {
     if (!images[index]) {
@@ -731,10 +719,9 @@ function MemoryDetailsScreen({ navigation, route }) {
     }
   };
 
-  const renderTicket = (image, index) => {
+  const renderTicket = ({ item: image, index }) => {
     return (
       <View
-        key={`ticket-${index}-${image}`}
         style={[
           styles.ticketSlide,
           {
@@ -752,7 +739,7 @@ function MemoryDetailsScreen({ navigation, route }) {
         >
           <MemoryTicket
             memory={memory}
-            image={image}
+            image={detailImages[index] || image}
             ticketNumber={getTicketNumber()}
             imageIndex={index}
             onPress={() => openImageViewer(index)}
@@ -771,7 +758,6 @@ function MemoryDetailsScreen({ navigation, route }) {
         nestedScrollEnabled
         keyboardShouldPersistTaps="handled"
       >
-
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
@@ -799,14 +785,26 @@ function MemoryDetailsScreen({ navigation, route }) {
           </TouchableOpacity>
         </View>
 
-        <ScrollView
+        <FlatList
           horizontal
+          data={images.length > 0 ? images : [null]}
+          renderItem={renderTicket}
+          keyExtractor={(item, index) => `${item || "empty"}-${index}`}
           showsHorizontalScrollIndicator={false}
           nestedScrollEnabled
           directionalLockEnabled
           decelerationRate="fast"
           snapToInterval={screenWidth - 44 + 12}
           snapToAlignment="start"
+          initialNumToRender={1}
+          maxToRenderPerBatch={2}
+          windowSize={3}
+          removeClippedSubviews={true}
+          getItemLayout={(_, index) => ({
+            length: screenWidth - 44 + 12,
+            offset: (screenWidth - 44 + 12) * index,
+            index,
+          })}
           onMomentumScrollEnd={(event) => {
             const index = Math.round(
               event.nativeEvent.contentOffset.x / (screenWidth - 44 + 12),
@@ -816,11 +814,7 @@ function MemoryDetailsScreen({ navigation, route }) {
               setActiveImage(index);
             }
           }}
-        >
-          {images.length > 0
-            ? images.map((image, index) => renderTicket(image, index))
-            : renderTicket(null, 0)}
-        </ScrollView>
+        />
 
         {images.length > 1 && (
           <View style={styles.swipeHint}>
@@ -1040,47 +1034,50 @@ function MemoryDetailsScreen({ navigation, route }) {
             )}
           </View>
 
-          <ScrollView
+          <FlatList
+            data={images}
             horizontal
             pagingEnabled
             showsHorizontalScrollIndicator={false}
             decelerationRate="fast"
-            onMomentumScrollEnd={handleViewerScroll}
-            contentOffset={{
-              x: viewerImage * screenWidth,
-
-              y: 0,
-            }}
-          >
-            {images.map((image, index) => (
+            initialScrollIndex={viewerImage}
+            initialNumToRender={1}
+            maxToRenderPerBatch={2}
+            windowSize={3}
+            removeClippedSubviews={true}
+            getItemLayout={(_, index) => ({
+              length: screenWidth,
+              offset: screenWidth * index,
+              index,
+            })}
+            keyExtractor={(item, index) => `${item}-viewer-${index}`}
+            renderItem={({ item: image, index }) => (
               <View
-                key={`${image}-viewer-${index}`}
                 style={[
                   imageViewerStyles.imagePage,
                   {
                     width: screenWidth,
-
                     height: screenHeight,
                   },
                 ]}
               >
                 <Image
                   source={{
-                    uri: image,
+                    uri: viewerImages[index] || image,
                   }}
                   style={[
                     imageViewerStyles.fullImage,
                     {
                       width: screenWidth,
-
                       height: screenHeight,
                     },
                   ]}
                   resizeMode="contain"
                 />
               </View>
-            ))}
-          </ScrollView>
+            )}
+            onMomentumScrollEnd={handleViewerScroll}
+          />
 
           {images.length > 1 && (
             <View style={imageViewerStyles.bottomHint}>

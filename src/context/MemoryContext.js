@@ -408,15 +408,43 @@ const refreshServerMemories = useCallback(async () => {
         const clientMemoryId =
           memory?.clientMemoryId || generateClientMemoryId();
 
-        // Use already captured location data.
-        // Only request GPS when it is actually missing.
-        const locationData = memory?.locationData || null;
+        // --------------------------------------------------
+        // NETWORK INFO
+        // --------------------------------------------------
+
+        const networkPromise = getNetworkInfo().catch((error) => {
+          console.error("Network info error:", error);
+
+          return null;
+        });
+
+        // --------------------------------------------------
+        // LOCATION INFO
+        // --------------------------------------------------
+
+        const locationPromise = memory?.locationData
+          ? Promise.resolve(memory.locationData)
+          : getCurrentLocation().catch((error) => {
+              console.warn("Location capture failed:", error);
+
+              return null;
+            });
+
+        const [networkResult, locationResult] = await Promise.all([
+          networkPromise,
+          locationPromise,
+        ]);
+
+        const locationData = locationResult || null;
 
         const finalLocation =
           typeof memory?.location === "string" ? memory.location.trim() : "";
 
         const finalNetwork =
-          memory?.network || memory?.environment?.network || null;
+          memory?.network ||
+          memory?.environment?.network ||
+          networkResult ||
+          null;
 
         const originalImages = Array.isArray(memory?.images)
           ? memory.images.slice(0, 5)
@@ -427,10 +455,6 @@ const refreshServerMemories = useCallback(async () => {
         if (!originalImages.length) {
           throw new Error("At least one image is required.");
         }
-
-        // --------------------------------------------------
-        // CREATE MEMORY IMMEDIATELY
-        // --------------------------------------------------
 
         const localMemoryData = {
           ...memory,
@@ -443,9 +467,6 @@ const refreshServerMemories = useCallback(async () => {
 
           network: finalNetwork,
 
-          // Use the original image URIs for the
-          // immediate UI. They will be permanently
-          // persisted in the background.
           images: originalImages,
 
           localImages: originalImages,
@@ -465,12 +486,9 @@ const refreshServerMemories = useCallback(async () => {
 
         setMemories((current) => [localMemory, ...current]);
 
-        // --------------------------------------------------
-        // SAVE BASIC DATA
-        // --------------------------------------------------
-
         await Promise.all([
           upsertLocalMemory(localMemoryData),
+
           addPendingMemory(localMemoryData),
         ]);
 
@@ -495,41 +513,40 @@ const refreshServerMemories = useCallback(async () => {
               syncStatus: "pending",
             };
 
-            // Update local storage with permanent
-            // image paths.
             await Promise.all([
               upsertLocalMemory(persistedMemory),
+
               addPendingMemory(persistedMemory),
             ]);
 
-            // Update currently displayed memory
-            // without blocking the UI.
             setMemories((currentMemories) =>
               currentMemories.map((item) =>
                 item.clientMemoryId === clientMemoryId
                   ? {
                       ...item,
+
                       images: localImages,
+
                       image: localImages[0] || null,
+
                       localImages,
+
                       syncStatus: "pending",
                     }
                   : item,
               ),
             );
 
-            // Sync only after permanent local
-            // image files are ready.
-            const network = await getNetworkInfo();
-
             const online =
-              network.isConnected !== false &&
-              network.isInternetReachable !== false;
+              networkResult?.isConnected !== false &&
+              networkResult?.isInternetReachable !== false;
 
             if (online) {
               await syncMemory({
                 ...persistedMemory,
+
                 images: localImages,
+
                 localImages,
               });
             }
@@ -537,10 +554,6 @@ const refreshServerMemories = useCallback(async () => {
             console.error("Background memory preparation failed:", error);
           }
         })();
-
-        // --------------------------------------------------
-        // RETURN IMMEDIATELY
-        // --------------------------------------------------
 
         return localMemory;
       } catch (error) {
