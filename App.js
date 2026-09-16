@@ -5,6 +5,7 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 import * as SplashScreen from "expo-splash-screen";
 import { AuthProvider } from "./src/context/AuthContext";
 import { MemoryProvider } from "./src/context/MemoryContext";
+import { CollectionProvider } from "./src/context/CollectionContext";
 import RootNavigator from "./src/navigation/RootNavigator";
 
 SplashScreen.preventAutoHideAsync();
@@ -15,11 +16,13 @@ function App() {
       <KeyboardProvider>
         <AuthProvider>
           <MemoryProvider>
+            <CollectionProvider>
             <BottomSheetModalProvider>
               <NavigationContainer>
                 <RootNavigator />
               </NavigationContainer>
             </BottomSheetModalProvider>
+            </CollectionProvider>
           </MemoryProvider>
         </AuthProvider>
       </KeyboardProvider>

@@ -34,6 +34,7 @@ function MainTabNavigator() {
           tabBarLabel: "MEMORIES",
         }}
       />
+      
 
       <Tab.Screen
         name="Create"
