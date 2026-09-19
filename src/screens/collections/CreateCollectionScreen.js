@@ -18,11 +18,14 @@ function CreateCollectionScreen({ navigation }) {
   const { createCollection } = useCollection();
 
   const [name, setName] = useState("");
+
   const [description, setDescription] = useState("");
+
   const [saving, setSaving] = useState(false);
 
   const handleCreate = useCallback(async () => {
     const trimmedName = name.trim();
+
     const trimmedDescription = description.trim();
 
     if (!trimmedName) {
@@ -51,12 +54,7 @@ function CreateCollectionScreen({ navigation }) {
     } finally {
       setSaving(false);
     }
-  }, [
-    name,
-    description,
-    createCollection,
-    navigation,
-  ]);
+  }, [name, description, createCollection, navigation]);
 
   const handleCancel = useCallback(() => {
     if (saving) {
@@ -71,11 +69,7 @@ function CreateCollectionScreen({ navigation }) {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={
-        Platform.OS === "ios"
-          ? "padding"
-          : undefined
-      }
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <View style={styles.header}>
         <TouchableOpacity
@@ -86,9 +80,7 @@ function CreateCollectionScreen({ navigation }) {
           <Text style={styles.cancelText}>Cancel</Text>
         </TouchableOpacity>
 
-        <Text style={styles.headerTitle}>
-          New Collection
-        </Text>
+        <Text style={styles.headerTitle}>New Collection</Text>
 
         <View style={styles.headerSpacer} />
       </View>
@@ -98,10 +90,40 @@ function CreateCollectionScreen({ navigation }) {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
+        {/* PREVIEW */}
+        <View style={styles.previewTicket}>
+          <View style={styles.previewTop}>
+            <View style={styles.previewMark}>
+              <Text style={styles.previewMarkText}>M</Text>
+            </View>
+
+            <View style={styles.previewText}>
+              <Text style={styles.previewLabel}>NEW COLLECTION</Text>
+
+              <Text style={styles.previewName} numberOfLines={2}>
+                {name.trim() || "Your Collection"}
+              </Text>
+
+              <Text style={styles.previewCount}>0 MEMORIES</Text>
+            </View>
+          </View>
+
+          <View style={styles.previewDivider} />
+
+          <View style={styles.previewFooter}>
+            <Text style={styles.previewBrand}>MEMENTO</Text>
+
+            <View style={styles.previewBarcode}>
+              {[4, 2, 5, 3, 6, 2].map((width, index) => (
+                <View key={index} style={[styles.previewBar, { width }]} />
+              ))}
+            </View>
+          </View>
+        </View>
+
+        {/* NAME */}
         <View style={styles.fieldContainer}>
-          <Text style={styles.label}>
-            Collection Name
-          </Text>
+          <Text style={styles.label}>Collection Name</Text>
 
           <TextInput
             value={name}
@@ -114,44 +136,33 @@ function CreateCollectionScreen({ navigation }) {
             returnKeyType="next"
           />
 
-          <Text style={styles.characterCount}>
-            {name.length}/100
-          </Text>
+          <Text style={styles.characterCount}>{name.length}/100</Text>
         </View>
 
+        {/* DESCRIPTION */}
         <View style={styles.fieldContainer}>
-          <Text style={styles.label}>
-            Description
-          </Text>
+          <Text style={styles.label}>Description</Text>
 
           <TextInput
             value={description}
             onChangeText={setDescription}
             placeholder="Add a short description"
             placeholderTextColor="#999999"
-            style={[
-              styles.input,
-              styles.descriptionInput,
-            ]}
+            style={[styles.input, styles.descriptionInput]}
             maxLength={500}
             multiline
             textAlignVertical="top"
           />
 
-          <Text style={styles.characterCount}>
-            {description.length}/500
-          </Text>
+          <Text style={styles.characterCount}>{description.length}/500</Text>
         </View>
 
-        <View style={styles.infoContainer}>
-          <Text style={styles.infoTitle}>
-            Organize your memories
-          </Text>
+        <View style={styles.helper}>
+          <Text style={styles.helperTitle}>BUILD YOUR TICKET</Text>
 
-          <Text style={styles.infoText}>
-            You can add memories to this collection
-            after creating it. A memory can belong to
-            multiple collections.
+          <Text style={styles.helperText}>
+            Add memories after creating the collection. The same memory can
+            belong to multiple collections.
           </Text>
         </View>
       </ScrollView>
@@ -167,14 +178,9 @@ function CreateCollectionScreen({ navigation }) {
           activeOpacity={0.85}
         >
           {saving ? (
-            <ActivityIndicator
-              size="small"
-              color="#FFFFFF"
-            />
+            <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
-            <Text style={styles.createButtonText}>
-              Create Collection
-            </Text>
+            <Text style={styles.createButtonText}>Create Collection</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -191,26 +197,26 @@ const styles = StyleSheet.create({
   },
 
   header: {
-    height: 90,
+    height: 80,
+    paddingTop:20,
+    paddingHorizontal: 20,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
     borderBottomWidth: 1,
     borderBottomColor: "#D9D8E2",
-    backgroundColor: "#F1F0F6",
   },
 
   cancelText: {
     fontSize: 15,
-    color: "#34345C",
     fontWeight: "600",
+    color: "#34345C",
   },
 
   headerTitle: {
     fontSize: 18,
+    fontWeight: "800",
     color: "#242424",
-    fontWeight: "700",
   },
 
   headerSpacer: {
@@ -219,33 +225,123 @@ const styles = StyleSheet.create({
 
   content: {
     padding: 20,
-    paddingBottom: 40,
+    paddingBottom: 35,
+  },
+
+  previewTicket: {
+    overflow: "hidden",
+    borderRadius: 18,
+    backgroundColor: "#FFFFFF",
+    marginBottom: 28,
+  },
+
+  previewTop: {
+    minHeight: 120,
+    padding: 17,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  previewMark: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#34345C",
+  },
+
+  previewMarkText: {
+    fontSize: 21,
+    fontWeight: "800",
+    color: "#FFFFFF",
+  },
+
+  previewText: {
+    flex: 1,
+    marginLeft: 14,
+  },
+
+  previewLabel: {
+    fontSize: 8,
+    fontWeight: "800",
+    letterSpacing: 1.5,
+    color: "#E76F51",
+  },
+
+  previewName: {
+    marginTop: 4,
+    fontSize: 19,
+    lineHeight: 23,
+    fontWeight: "800",
+    color: "#242424",
+  },
+
+  previewCount: {
+    marginTop: 4,
+    fontSize: 8,
+    fontWeight: "800",
+    letterSpacing: 1,
+    color: "#34345C",
+  },
+
+  previewDivider: {
+    marginHorizontal: 17,
+    borderTopWidth: 1,
+    borderTopColor: "#CECDD6",
+    borderStyle: "dashed",
+  },
+
+  previewFooter: {
+    paddingHorizontal: 17,
+    paddingVertical: 11,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+
+  previewBrand: {
+    fontSize: 7,
+    fontWeight: "800",
+    letterSpacing: 1.4,
+    color: "#9999A1",
+  },
+
+  previewBarcode: {
+    height: 16,
+    flexDirection: "row",
+    gap: 2,
+  },
+
+  previewBar: {
+    height: "100%",
+    backgroundColor: "#34345C",
   },
 
   fieldContainer: {
-    marginBottom: 24,
+    marginBottom: 23,
   },
 
   label: {
     marginBottom: 8,
-    fontSize: 14,
-    fontWeight: "700",
+    fontSize: 13,
+    fontWeight: "800",
     color: "#242424",
   },
 
   input: {
     minHeight: 52,
     paddingHorizontal: 15,
-    borderWidth: 1,
-    borderColor: "#D9D8E2",
     borderRadius: 12,
     backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#D9D8E2",
     fontSize: 16,
     color: "#242424",
   },
 
   descriptionInput: {
-    minHeight: 130,
+    minHeight: 125,
     paddingTop: 14,
     paddingBottom: 14,
   },
@@ -253,54 +349,53 @@ const styles = StyleSheet.create({
   characterCount: {
     marginTop: 5,
     alignSelf: "flex-end",
-    fontSize: 11,
-    color: "#888888",
+    fontSize: 10,
+    color: "#8A8A8A",
   },
 
-  infoContainer: {
-    padding: 16,
+  helper: {
+    padding: 15,
     borderRadius: 14,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#D9D8E2",
+    backgroundColor: "#E9E8F1",
   },
 
-  infoTitle: {
-    fontSize: 15,
-    fontWeight: "700",
+  helperTitle: {
+    fontSize: 8,
+    fontWeight: "800",
+    letterSpacing: 1.4,
     color: "#34345C",
   },
 
-  infoText: {
+  helperText: {
     marginTop: 6,
-    fontSize: 13,
-    lineHeight: 19,
+    fontSize: 12,
+    lineHeight: 18,
     color: "#666666",
   },
 
   footer: {
     paddingHorizontal: 20,
-    paddingTop: 12,
+    paddingTop: 11,
     paddingBottom: 20,
+    backgroundColor: "#F1F0F6",
     borderTopWidth: 1,
     borderTopColor: "#D9D8E2",
-    backgroundColor: "#F1F0F6",
   },
 
   createButton: {
     height: 52,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 12,
     backgroundColor: "#34345C",
   },
 
   createButtonDisabled: {
-    opacity: 0.5,
+    opacity: 0.45,
   },
 
   createButtonText: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "700",
     color: "#FFFFFF",
   },

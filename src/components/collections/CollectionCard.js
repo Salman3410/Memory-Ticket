@@ -1,164 +1,331 @@
-import React, { memo } from "react";
+import React, { useCallback } from "react";
 
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  FlatList,
+  InteractionManager,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
-function CollectionCard({ collection, onPress }) {
-  const coverImage =
-    collection?.coverMemoryId?.images?.[0] ||
-    collection?.coverMemoryId?.image ||
-    null;
+import { useFocusEffect } from "@react-navigation/native";
 
-  const memoryCount = collection?.memoryCount || 0;
+import { useCollection } from "../../hooks/useCollection";
+
+import CollectionCard from "../../components/collections/CollectionCard";
+
+function CollectionsScreen({ navigation }) {
+  const { collections, loading, refreshCollections } = useCollection();
+
+  /*
+   * Refresh whenever the screen becomes active again.
+   *
+   * Wait until navigation/interaction finishes so the refresh
+   * does not interfere with tapping a collection.
+   */
+  useFocusEffect(
+    useCallback(() => {
+      const task = InteractionManager.runAfterInteractions(() => {
+        refreshCollections(false);
+      });
+
+      return () => {
+        task.cancel();
+      };
+    }, [refreshCollections]),
+  );
+
+  const handleCreateCollection = useCallback(() => {
+    navigation.navigate("CreateCollection");
+  }, [navigation]);
+
+  const handleCollectionPress = useCallback(
+    (collection) => {
+      const collectionId = collection?._id || collection?.id;
+
+      if (!collectionId) {
+        return;
+      }
+
+      navigation.navigate("CollectionDetails", {
+        collectionId,
+      });
+    },
+    [navigation],
+  );
+
+  const renderItem = useCallback(
+    ({ item }) => (
+      <CollectionCard
+        collection={item}
+        onPress={() => handleCollectionPress(item)}
+      />
+    ),
+    [handleCollectionPress],
+  );
+
+  const keyExtractor = useCallback(
+    (item, index) => String(item?._id || item?.id || index),
+    [],
+  );
+
+  const renderEmpty = useCallback(() => {
+    if (loading) {
+      return null;
+    }
+
+    return (
+      <View style={styles.emptyState}>
+        <View style={styles.emptyMark}>
+          <Text style={styles.emptyMarkText}>+</Text>
+        </View>
+
+        <Text style={styles.emptyTitle}>Give your memories a place</Text>
+
+        <Text style={styles.emptyText}>
+          Create a collection for trips, people, events, or anything you want to
+          remember together.
+        </Text>
+
+        <TouchableOpacity
+          style={styles.emptyButton}
+          onPress={handleCreateCollection}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.emptyButtonText}>Create Collection</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }, [loading, handleCreateCollection]);
 
   return (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={onPress}
-      activeOpacity={0.88}
-    >
-      <View style={styles.coverContainer}>
-        {coverImage ? (
-          <Image
-            source={{ uri: coverImage }}
-            style={styles.coverImage}
-            resizeMode="cover"
-          />
-        ) : (
-          <View style={styles.placeholder}>
-            <View style={styles.placeholderMark}>
-              <Text style={styles.placeholderMarkText}>M</Text>
-            </View>
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <View style={styles.headerContent}>
+          <Text style={styles.eyebrow}>YOUR STORIES</Text>
 
-            <Text style={styles.placeholderText}>Memento</Text>
-          </View>
-        )}
+          <Text style={styles.title}>Collections</Text>
 
-        <View style={styles.countBadge}>
-          <Text style={styles.countBadgeText}>{memoryCount}</Text>
+          <Text style={styles.subtitle}>
+            Keep moments that belong together.
+          </Text>
         </View>
+
+        <TouchableOpacity
+          style={styles.createButton}
+          onPress={handleCreateCollection}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.createButtonText}>+</Text>
+        </TouchableOpacity>
       </View>
 
-      <View style={styles.content}>
-        <Text style={styles.name} numberOfLines={1}>
-          {collection?.name || "Untitled Collection"}
-        </Text>
-
-        {collection?.description ? (
-          <Text style={styles.description} numberOfLines={2}>
-            {collection.description}
+      {!loading && collections.length > 0 ? (
+        <View style={styles.summaryRow}>
+          <Text style={styles.summaryText}>
+            {collections.length}{" "}
+            {collections.length === 1 ? "collection" : "collections"}
           </Text>
-        ) : (
-          <Text style={styles.noDescription} numberOfLines={1}>
-            No description
-          </Text>
-        )}
 
-        <Text style={styles.memoryText}>
-          {memoryCount} {memoryCount === 1 ? "memory" : "memories"}
-        </Text>
-      </View>
-    </TouchableOpacity>
+          <Text style={styles.summaryHint}>Your memories, together</Text>
+        </View>
+      ) : null}
+
+      {loading && collections.length === 0 ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#34345C" />
+
+          <Text style={styles.loadingText}>Loading collections...</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={collections}
+          renderItem={renderItem}
+          keyExtractor={keyExtractor}
+          numColumns={2}
+          columnWrapperStyle={
+            collections.length > 1 ? styles.columnWrapper : undefined
+          }
+          contentContainerStyle={
+            collections.length === 0 ? styles.emptyList : styles.listContent
+          }
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={loading && collections.length > 0}
+              onRefresh={() => refreshCollections(true)}
+              tintColor="#34345C"
+            />
+          }
+          ListEmptyComponent={renderEmpty}
+          initialNumToRender={6}
+          maxToRenderPerBatch={6}
+          windowSize={5}
+          removeClippedSubviews
+        />
+      )}
+    </View>
   );
 }
 
-export default memo(CollectionCard);
+export default CollectionsScreen;
 
 const styles = StyleSheet.create({
-  card: {
+  container: {
     flex: 1,
-    overflow: "hidden",
-    borderRadius: 18,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#D9D8E2",
+    backgroundColor: "#F1F0F6",
   },
 
-  coverContainer: {
-    height: 145,
-    position: "relative",
-    overflow: "hidden",
-  },
-
-  coverImage: {
-    width: "100%",
-    height: "100%",
-  },
-
-  placeholder: {
-    flex: 1,
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 40,
+    paddingBottom: 14,
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#E9E8F1",
+    justifyContent: "space-between",
   },
 
-  placeholderMark: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+  headerContent: {
+    flex: 1,
+    paddingRight: 18,
+  },
+
+  eyebrow: {
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 1.5,
+    color: "#34345C",
+  },
+
+  title: {
+    marginTop: 5,
+    fontSize: 30,
+    fontWeight: "700",
+    color: "#242424",
+  },
+
+  subtitle: {
+    marginTop: 4,
+    fontSize: 13,
+    lineHeight: 19,
+    color: "#737373",
+  },
+
+  createButton: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#34345C",
   },
 
-  placeholderMarkText: {
+  createButtonText: {
+    marginTop: -2,
+    fontSize: 27,
+    fontWeight: "300",
     color: "#FFFFFF",
-    fontSize: 17,
-    fontWeight: "700",
   },
 
-  placeholderText: {
-    marginTop: 8,
-    fontSize: 11,
-    fontWeight: "600",
+  summaryRow: {
+    paddingHorizontal: 20,
+    paddingBottom: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+
+  summaryText: {
+    fontSize: 12,
+    fontWeight: "700",
     color: "#34345C",
   },
 
-  countBadge: {
-    position: "absolute",
-    right: 10,
-    bottom: 10,
-    minWidth: 30,
-    height: 30,
-    paddingHorizontal: 8,
-    borderRadius: 15,
+  summaryHint: {
+    fontSize: 11,
+    color: "#9A9A9A",
+  },
+
+  listContent: {
+    paddingHorizontal: 14,
+    paddingBottom: 32,
+  },
+
+  columnWrapper: {
+    gap: 12,
+    marginBottom: 12,
+  },
+
+  loadingContainer: {
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(36, 36, 36, 0.72)",
   },
 
-  countBadgeText: {
+  loadingText: {
+    marginTop: 9,
+    fontSize: 13,
+    color: "#777777",
+  },
+
+  emptyList: {
+    flexGrow: 1,
+    paddingHorizontal: 20,
+    paddingBottom: 30,
+  },
+
+  emptyState: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 28,
+  },
+
+  emptyMark: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#34345C",
+  },
+
+  emptyMarkText: {
+    fontSize: 31,
+    fontWeight: "300",
     color: "#FFFFFF",
-    fontSize: 12,
-    fontWeight: "700",
   },
 
-  content: {
-    padding: 13,
-  },
-
-  name: {
-    fontSize: 16,
+  emptyTitle: {
+    marginTop: 18,
+    fontSize: 20,
     fontWeight: "700",
     color: "#242424",
+    textAlign: "center",
   },
 
-  description: {
-    marginTop: 5,
-    fontSize: 12,
-    lineHeight: 17,
-    color: "#666666",
+  emptyText: {
+    marginTop: 8,
+    fontSize: 13,
+    lineHeight: 20,
+    color: "#707070",
+    textAlign: "center",
   },
 
-  noDescription: {
-    marginTop: 5,
-    fontSize: 12,
-    color: "#A0A0A0",
+  emptyButton: {
+    marginTop: 20,
+    paddingHorizontal: 21,
+    paddingVertical: 12,
+    borderRadius: 11,
+    backgroundColor: "#34345C",
   },
 
-  memoryText: {
-    marginTop: 9,
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#34345C",
+  emptyButtonText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#FFFFFF",
   },
 });

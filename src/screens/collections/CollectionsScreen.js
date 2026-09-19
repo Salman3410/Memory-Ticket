@@ -11,12 +11,12 @@ import {
 } from "react-native";
 
 import { useCollection } from "../../hooks/useCollection";
-
 import CollectionCard from "../../components/collections/CollectionCard";
 
 function CollectionsScreen({ navigation }) {
   const { collections, loading, refreshCollections } = useCollection();
 
+  // Initial load only.
   useEffect(() => {
     refreshCollections();
   }, [refreshCollections]);
@@ -30,6 +30,7 @@ function CollectionsScreen({ navigation }) {
       const collectionId = collection?._id || collection?.id;
 
       if (!collectionId) {
+        console.warn("Collection ID missing:", collection);
         return;
       }
 
@@ -41,16 +42,12 @@ function CollectionsScreen({ navigation }) {
   );
 
   const renderItem = useCallback(
-    ({ item }) => {
-      return (
-        <View style={styles.cardWrapper}>
-          <CollectionCard
-            collection={item}
-            onPress={() => handleCollectionPress(item)}
-          />
-        </View>
-      );
-    },
+    ({ item }) => (
+      <CollectionCard
+        collection={item}
+        onPress={() => handleCollectionPress(item)}
+      />
+    ),
     [handleCollectionPress],
   );
 
@@ -66,14 +63,15 @@ function CollectionsScreen({ navigation }) {
 
     return (
       <View style={styles.emptyState}>
-        <View style={styles.emptyIcon}>
-          <Text style={styles.emptyIconText}>+</Text>
+        <View style={styles.emptyMark}>
+          <Text style={styles.emptyMarkText}>+</Text>
         </View>
 
-        <Text style={styles.emptyTitle}>Your story needs a place</Text>
+        <Text style={styles.emptyTitle}>Give your memories a place</Text>
 
         <Text style={styles.emptyText}>
-          Create a collection to bring related memories together.
+          Create a collection for trips, people, events, or anything you want to
+          remember together.
         </Text>
 
         <TouchableOpacity
@@ -90,10 +88,14 @@ function CollectionsScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <View style={styles.headerLeft}>
+        <View style={styles.headerContent}>
+          <Text style={styles.eyebrow}>YOUR STORIES</Text>
+
           <Text style={styles.title}>Collections</Text>
 
-          <Text style={styles.subtitle}>Keep your memories together</Text>
+          <Text style={styles.subtitle}>
+            Keep moments that belong together.
+          </Text>
         </View>
 
         <TouchableOpacity
@@ -101,7 +103,7 @@ function CollectionsScreen({ navigation }) {
           onPress={handleCreateCollection}
           activeOpacity={0.85}
         >
-          <Text style={styles.createIcon}>+</Text>
+          <Text style={styles.createButtonText}>+</Text>
         </TouchableOpacity>
       </View>
 
@@ -112,7 +114,7 @@ function CollectionsScreen({ navigation }) {
             {collections.length === 1 ? "collection" : "collections"}
           </Text>
 
-          <Text style={styles.summaryHint}>Swipe down to refresh</Text>
+          <Text style={styles.summaryHint}>Your memories, together</Text>
         </View>
       ) : null}
 
@@ -138,7 +140,7 @@ function CollectionsScreen({ navigation }) {
           refreshControl={
             <RefreshControl
               refreshing={loading && collections.length > 0}
-              onRefresh={refreshCollections}
+              onRefresh={() => refreshCollections(true)}
               tintColor="#34345C"
             />
           }
@@ -146,6 +148,7 @@ function CollectionsScreen({ navigation }) {
           initialNumToRender={6}
           maxToRenderPerBatch={6}
           windowSize={5}
+          removeClippedSubviews
         />
       )}
     </View>
@@ -162,28 +165,37 @@ const styles = StyleSheet.create({
 
   header: {
     paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 8,
+    paddingTop: 40,
+    paddingBottom: 14,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
 
-  headerLeft: {
+  headerContent: {
     flex: 1,
-    paddingRight: 15,
+    paddingRight: 18,
+  },
+
+  eyebrow: {
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 1.5,
+    color: "#34345C",
   },
 
   title: {
+    marginTop: 5,
     fontSize: 30,
     fontWeight: "700",
     color: "#242424",
   },
 
   subtitle: {
-    marginTop: 5,
-    fontSize: 14,
-    color: "#6B6B6B",
+    marginTop: 4,
+    fontSize: 13,
+    lineHeight: 19,
+    color: "#737373",
   },
 
   createButton: {
@@ -195,16 +207,15 @@ const styles = StyleSheet.create({
     backgroundColor: "#34345C",
   },
 
-  createIcon: {
-    color: "#FFFFFF",
+  createButtonText: {
+    marginTop: -2,
     fontSize: 27,
     fontWeight: "300",
-    lineHeight: 29,
+    color: "#FFFFFF",
   },
 
   summaryRow: {
     paddingHorizontal: 20,
-    paddingTop: 10,
     paddingBottom: 14,
     flexDirection: "row",
     alignItems: "center",
@@ -212,29 +223,24 @@ const styles = StyleSheet.create({
   },
 
   summaryText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "700",
     color: "#34345C",
   },
 
   summaryHint: {
     fontSize: 11,
-    color: "#999999",
+    color: "#9A9A9A",
   },
 
   listContent: {
     paddingHorizontal: 14,
-    paddingBottom: 30,
+    paddingBottom: 32,
   },
 
   columnWrapper: {
     gap: 12,
     marginBottom: 12,
-  },
-
-  cardWrapper: {
-    flex: 1,
-    minWidth: 0,
   },
 
   loadingContainer: {
@@ -244,7 +250,7 @@ const styles = StyleSheet.create({
   },
 
   loadingText: {
-    marginTop: 10,
+    marginTop: 9,
     fontSize: 13,
     color: "#777777",
   },
@@ -259,27 +265,27 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 30,
+    paddingHorizontal: 28,
   },
 
-  emptyIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+  emptyMark: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#34345C",
   },
 
-  emptyIconText: {
-    color: "#FFFFFF",
-    fontSize: 35,
+  emptyMarkText: {
+    fontSize: 31,
     fontWeight: "300",
+    color: "#FFFFFF",
   },
 
   emptyTitle: {
-    marginTop: 20,
-    fontSize: 21,
+    marginTop: 18,
+    fontSize: 20,
     fontWeight: "700",
     color: "#242424",
     textAlign: "center",
@@ -287,23 +293,23 @@ const styles = StyleSheet.create({
 
   emptyText: {
     marginTop: 8,
-    fontSize: 14,
-    lineHeight: 21,
-    color: "#6B6B6B",
+    fontSize: 13,
+    lineHeight: 20,
+    color: "#707070",
     textAlign: "center",
   },
 
   emptyButton: {
-    marginTop: 22,
-    paddingHorizontal: 22,
-    paddingVertical: 13,
-    borderRadius: 12,
+    marginTop: 20,
+    paddingHorizontal: 21,
+    paddingVertical: 12,
+    borderRadius: 11,
     backgroundColor: "#34345C",
   },
 
   emptyButtonText: {
-    color: "#FFFFFF",
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "700",
+    color: "#FFFFFF",
   },
 });

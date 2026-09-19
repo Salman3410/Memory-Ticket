@@ -41,11 +41,7 @@ const extractCollection = (result) => {
 };
 
 export function CollectionProvider({ children }) {
-  const {
-    user,
-    token,
-    loading: authLoading,
-  } = useAuth();
+  const { user, token, loading: authLoading } = useAuth();
 
   const [collections, setCollections] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -55,7 +51,7 @@ export function CollectionProvider({ children }) {
   // --------------------------------------------------
 
   const refreshCollections = useCallback(
-    async () => {
+    async (showLoader = true) => {
       if (!user || !token) {
         setCollections([]);
         setLoading(false);
@@ -63,33 +59,27 @@ export function CollectionProvider({ children }) {
       }
 
       try {
-        setLoading(true);
+        if (showLoader) {
+          setLoading(true);
+        }
 
         const result = await getCollections(token);
 
         if (!result?.success) {
-          console.error(
-            "Get collections failed:",
-            result?.message
-          );
-
+          console.error("Get collections failed:", result?.message);
           return;
         }
 
-        const nextCollections =
-          extractCollections(result);
+        const nextCollections = extractCollections(result);
 
         setCollections(nextCollections);
       } catch (error) {
-        console.error(
-          "Failed to load collections:",
-          error
-        );
+        console.error("Failed to load collections:", error);
       } finally {
         setLoading(false);
       }
     },
-    [user, token]
+    [user, token],
   );
 
   // --------------------------------------------------
@@ -111,50 +101,32 @@ export function CollectionProvider({ children }) {
   const createCollection = useCallback(
     async (collectionData) => {
       if (!token) {
-        throw new Error(
-          "Authentication token is missing."
-        );
+        throw new Error("Authentication token is missing.");
       }
 
       try {
-        const result =
-          await createCollectionApi(
-            token,
-            collectionData
-          );
+        const result = await createCollectionApi(token, collectionData);
 
         if (!result?.success) {
-          throw new Error(
-            result?.message ||
-              "Unable to create collection."
-          );
+          throw new Error(result?.message || "Unable to create collection.");
         }
 
-        const newCollection =
-          extractCollection(result);
+        const newCollection = extractCollection(result);
 
         if (!newCollection) {
-          throw new Error(
-            "Server returned invalid collection data."
-          );
+          throw new Error("Server returned invalid collection data.");
         }
 
-        setCollections((prev) => [
-          newCollection,
-          ...prev,
-        ]);
+        setCollections((prev) => [newCollection, ...prev]);
 
         return newCollection;
       } catch (error) {
-        console.error(
-          "Failed to create collection:",
-          error
-        );
+        console.error("Failed to create collection:", error);
 
         throw error;
       }
     },
-    [token]
+    [token],
   );
 
   // --------------------------------------------------
@@ -164,45 +136,30 @@ export function CollectionProvider({ children }) {
   const getCollectionById = useCallback(
     async (collectionId) => {
       if (!token) {
-        throw new Error(
-          "Authentication token is missing."
-        );
+        throw new Error("Authentication token is missing.");
       }
 
       try {
-        const result =
-          await getCollectionByIdApi(
-            token,
-            collectionId
-          );
+        const result = await getCollectionByIdApi(token, collectionId);
 
         if (!result?.success) {
-          throw new Error(
-            result?.message ||
-              "Unable to get collection."
-          );
+          throw new Error(result?.message || "Unable to get collection.");
         }
 
-        const collection =
-          extractCollection(result);
+        const collection = extractCollection(result);
 
         if (!collection) {
-          throw new Error(
-            "Server returned invalid collection data."
-          );
+          throw new Error("Server returned invalid collection data.");
         }
 
         return collection;
       } catch (error) {
-        console.error(
-          "Failed to get collection:",
-          error
-        );
+        console.error("Failed to get collection:", error);
 
         throw error;
       }
     },
-    [token]
+    [token],
   );
 
   // --------------------------------------------------
@@ -210,67 +167,49 @@ export function CollectionProvider({ children }) {
   // --------------------------------------------------
 
   const updateCollection = useCallback(
-    async (
-      collectionId,
-      collectionData
-    ) => {
+    async (collectionId, collectionData) => {
       if (!token) {
-        throw new Error(
-          "Authentication token is missing."
-        );
+        throw new Error("Authentication token is missing.");
       }
 
       try {
-        const result =
-          await updateCollectionApi(
-            token,
-            collectionId,
-            collectionData
-          );
+        const result = await updateCollectionApi(
+          token,
+          collectionId,
+          collectionData,
+        );
 
         if (!result?.success) {
-          throw new Error(
-            result?.message ||
-              "Unable to update collection."
-          );
+          throw new Error(result?.message || "Unable to update collection.");
         }
 
-        const updatedCollection =
-          extractCollection(result);
+        const updatedCollection = extractCollection(result);
 
         if (!updatedCollection) {
-          throw new Error(
-            "Server returned invalid collection data."
-          );
+          throw new Error("Server returned invalid collection data.");
         }
 
         setCollections((prev) =>
           prev.map((collection) => {
-            const currentId =
-              collection?._id ||
-              collection?.id;
+            const currentId = collection?._id || collection?.id;
 
-            return String(currentId) ===
-              String(collectionId)
+            return String(currentId) === String(collectionId)
               ? {
                   ...collection,
                   ...updatedCollection,
                 }
               : collection;
-          })
+          }),
         );
 
         return updatedCollection;
       } catch (error) {
-        console.error(
-          "Failed to update collection:",
-          error
-        );
+        console.error("Failed to update collection:", error);
 
         throw error;
       }
     },
-    [token]
+    [token],
   );
 
   // --------------------------------------------------
@@ -280,138 +219,95 @@ export function CollectionProvider({ children }) {
   const deleteCollection = useCallback(
     async (collectionId) => {
       if (!token) {
-        throw new Error(
-          "Authentication token is missing."
-        );
+        throw new Error("Authentication token is missing.");
       }
 
       try {
-        const result =
-          await deleteCollectionApi(
-            token,
-            collectionId
-          );
+        const result = await deleteCollectionApi(token, collectionId);
 
         if (!result?.success) {
-          throw new Error(
-            result?.message ||
-              "Unable to delete collection."
-          );
+          throw new Error(result?.message || "Unable to delete collection.");
         }
 
         setCollections((prev) =>
           prev.filter((collection) => {
-            const currentId =
-              collection?._id ||
-              collection?.id;
+            const currentId = collection?._id || collection?.id;
 
-            return String(currentId) !==
-              String(collectionId);
-          })
+            return String(currentId) !== String(collectionId);
+          }),
         );
 
         return true;
       } catch (error) {
-        console.error(
-          "Failed to delete collection:",
-          error
-        );
+        console.error("Failed to delete collection:", error);
 
         throw error;
       }
     },
-    [token]
+    [token],
   );
 
   // --------------------------------------------------
   // ADD MEMORIES TO COLLECTION
   // --------------------------------------------------
 
-  const addMemoryToCollection =
-    useCallback(
-      async (
-        collectionId,
-        memoryIds
-      ) => {
-        if (!token) {
-          throw new Error(
-            "Authentication token is missing."
-          );
+  const addMemoryToCollection = useCallback(
+    async (collectionId, memoryIds) => {
+      if (!token) {
+        throw new Error("Authentication token is missing.");
+      }
+
+      try {
+        const result = await addMemoryToCollectionApi(
+          token,
+          collectionId,
+          memoryIds,
+        );
+
+        if (!result?.success) {
+          throw new Error(result?.message || "Unable to add memories.");
         }
 
-        try {
-          const result =
-            await addMemoryToCollectionApi(
-              token,
-              collectionId,
-              memoryIds
-            );
+        return result;
+      } catch (error) {
+        console.error("Failed to add memories to collection:", error);
 
-          if (!result?.success) {
-            throw new Error(
-              result?.message ||
-                "Unable to add memories."
-            );
-          }
-
-          await refreshCollections();
-
-          return result;
-        } catch (error) {
-          console.error(
-            "Failed to add memories to collection:",
-            error
-          );
-
-          throw error;
-        }
-      },
-      [token, refreshCollections]
-    );
+        throw error;
+      }
+    },
+    [token],
+  );
 
   // --------------------------------------------------
   // REMOVE MEMORY FROM COLLECTION
   // --------------------------------------------------
 
-  const removeMemoryFromCollection =
-    useCallback(
-      async (
-        collectionId,
-        memoryId
-      ) => {
-        if (!token) {
-          throw new Error(
-            "Authentication token is missing."
-          );
+  const removeMemoryFromCollection = useCallback(
+    async (collectionId, memoryId) => {
+      if (!token) {
+        throw new Error("Authentication token is missing.");
+      }
+
+      try {
+        const result = await removeMemoryFromCollectionApi(
+          token,
+          collectionId,
+          memoryId,
+        );
+
+        if (!result?.success) {
+          throw new Error(result?.message || "Unable to remove memory.");
         }
 
-        try {
-          const result =
-            await removeMemoryFromCollectionApi(
-              token,
-              collectionId,
-              memoryId
-            );
+        return result;
+      } catch (error) {
+        console.error("Failed to remove memory from collection:", error);
 
-          if (!result?.success) {
-            throw new Error(
-              result?.message ||
-                "Unable to remove memory."
-            );
-          }
-
-          return result;
-        } catch (error) {
-          console.error(
-            "Failed to remove memory from collection:",
-            error
-          );
-
-          throw error;
-        }
-      },
-      [token]
-    );
+        throw error;
+      }
+    },
+    [token],
+  );
 
   // --------------------------------------------------
   // CONTEXT VALUE
@@ -439,15 +335,12 @@ export function CollectionProvider({ children }) {
       deleteCollection,
       addMemoryToCollection,
       removeMemoryFromCollection,
-    ]
+    ],
   );
 
   return (
-    <CollectionContext.Provider
-      value={value}
-    >
+    <CollectionContext.Provider value={value}>
       {children}
     </CollectionContext.Provider>
   );
 }
-

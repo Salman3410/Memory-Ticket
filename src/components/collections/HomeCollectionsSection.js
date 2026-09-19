@@ -31,49 +31,76 @@ function HomeCollectionsSection({
   );
 
   const keyExtractor = useCallback(
-    (item, index) =>
-      String(item?._id || item?.id || index),
-    []
+    (item, index) => String(item?._id || item?.id || index),
+    [],
   );
 
   return (
     <View style={styles.container}>
+      {/* SECTION HEADER */}
       <View style={styles.header}>
-        <Text style={styles.title}>
-          Your Collections
-        </Text>
+        <View>
+          <Text style={styles.eyebrow}>YOUR STORIES</Text>
 
-        <TouchableOpacity
-          onPress={onViewAll}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.viewAll}>
-            View All
-          </Text>
-        </TouchableOpacity>
+          <Text style={styles.title}>Collections</Text>
+        </View>
+
+        <View style={styles.headerActions}>
+          {collections.length > 0 ? (
+            <TouchableOpacity onPress={onViewAll} activeOpacity={0.7}>
+              <Text style={styles.viewAll}>View All</Text>
+            </TouchableOpacity>
+          ) : null}
+
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={onCreate}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.addText}>+</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
+      {/* EMPTY STATE */}
       {collections.length === 0 ? (
         <TouchableOpacity
-          style={styles.emptyCard}
+          style={styles.emptyTicket}
           onPress={onCreate}
-          activeOpacity={0.85}
+          activeOpacity={0.9}
         >
-          <Text style={styles.plus}>
-            +
-          </Text>
+          <View style={styles.emptyTop}>
+            <View style={styles.emptyMark}>
+              <Text style={styles.emptyPlus}>+</Text>
+            </View>
 
-          <View style={styles.emptyTextContainer}>
-            <Text style={styles.emptyTitle}>
-              Create a collection
-            </Text>
+            <View style={styles.emptyTopText}>
+              <Text style={styles.emptyLabel}>NEW COLLECTION</Text>
 
-            <Text style={styles.emptyText}>
-              Organize your memories into groups.
-            </Text>
+              <Text style={styles.emptyTitle}>Give your memories a place</Text>
+
+              <Text style={styles.emptyDescription}>
+                Bring related moments together.
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.emptyDivider}>
+            <View style={styles.emptyDash} />
+          </View>
+
+          <View style={styles.emptyFooter}>
+            <Text style={styles.emptyBrand}>MEMENTO</Text>
+
+            <View style={styles.emptyBarcode}>
+              {[5, 2, 4, 3, 6, 2].map((width, index) => (
+                <View key={index} style={[styles.emptyBar, { width }]} />
+              ))}
+            </View>
           </View>
         </TouchableOpacity>
       ) : (
+        /* COLLECTION PREVIEWS */
         <FlatList
           horizontal
           data={collections}
@@ -83,18 +110,6 @@ function HomeCollectionsSection({
           contentContainerStyle={styles.listContent}
         />
       )}
-
-      {collections.length > 0 ? (
-        <TouchableOpacity
-          style={styles.createButton}
-          onPress={onCreate}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.createButtonText}>
-            + Create Collection
-          </Text>
-        </TouchableOpacity>
-      ) : null}
     </View>
   );
 }
@@ -103,26 +118,56 @@ export default memo(HomeCollectionsSection);
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 24,
+    marginBottom: 28,
   },
 
   header: {
+    marginBottom: 13,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 12,
+  },
+
+  eyebrow: {
+    fontSize: 8,
+    fontWeight: "800",
+    letterSpacing: 1.5,
+    color: "#E76F51",
   },
 
   title: {
-    fontSize: 18,
-    fontWeight: "700",
+    marginTop: 3,
+    fontSize: 20,
+    fontWeight: "800",
     color: "#242424",
   },
 
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+
   viewAll: {
-    fontSize: 13,
-    fontWeight: "600",
+    fontSize: 12,
+    fontWeight: "700",
     color: "#34345C",
+  },
+
+  addButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#34345C",
+  },
+
+  addText: {
+    marginTop: -2,
+    fontSize: 23,
+    fontWeight: "300",
+    color: "#FFFFFF",
   },
 
   listContent: {
@@ -130,67 +175,104 @@ const styles = StyleSheet.create({
   },
 
   item: {
-    width: 220,
+    width: 180,
     marginRight: 12,
   },
 
-  emptyCard: {
-    minHeight: 100,
-    padding: 16,
-    borderRadius: 16,
+  /* EMPTY TICKET */
+
+  emptyTicket: {
+    overflow: "hidden",
+    borderRadius: 18,
+    backgroundColor: "#FFFFFF",
+  },
+
+  emptyTop: {
+    minHeight: 105,
+    padding: 15,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#D9D8E2",
   },
 
-  plus: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+  emptyMark: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
-    textAlign: "center",
-    textAlignVertical: "center",
     backgroundColor: "#34345C",
-    color: "#FFFFFF",
-    fontSize: 28,
-    overflow: "hidden",
   },
 
-  emptyTextContainer: {
+  emptyPlus: {
+    marginTop: -2,
+    fontSize: 28,
+    fontWeight: "300",
+    color: "#FFFFFF",
+  },
+
+  emptyTopText: {
     flex: 1,
-    marginLeft: 14,
+    marginLeft: 13,
+  },
+
+  emptyLabel: {
+    fontSize: 8,
+    fontWeight: "800",
+    letterSpacing: 1.2,
+    color: "#E76F51",
   },
 
   emptyTitle: {
+    marginTop: 4,
     fontSize: 15,
-    fontWeight: "700",
+    lineHeight: 19,
+    fontWeight: "800",
     color: "#242424",
   },
 
-  emptyText: {
-    marginTop: 4,
-    fontSize: 13,
-    lineHeight: 18,
-    color: "#666666",
+  emptyDescription: {
+    marginTop: 3,
+    fontSize: 11,
+    color: "#737373",
   },
 
-  createButton: {
-    alignSelf: "flex-start",
-    marginTop: 12,
+  emptyDivider: {
+    height: 14,
+    paddingHorizontal: 16,
+    justifyContent: "center",
+  },
+
+  emptyDash: {
+    borderTopWidth: 1,
+    borderTopColor: "#CFCED8",
+    borderStyle: "dashed",
+  },
+
+  emptyFooter: {
     paddingHorizontal: 15,
-    paddingVertical: 9,
-    borderRadius: 10,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#D9D8E2",
+    paddingBottom: 12,
+    paddingTop: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
 
-  createButtonText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#34345C",
+  emptyBrand: {
+    fontSize: 7,
+    fontWeight: "800",
+    letterSpacing: 1.4,
+    color: "#9A99A2",
+  },
+
+  emptyBarcode: {
+    height: 16,
+    flexDirection: "row",
+    alignItems: "stretch",
+    gap: 2,
+  },
+
+  emptyBar: {
+    height: "100%",
+    backgroundColor: "#34345C",
   },
 });

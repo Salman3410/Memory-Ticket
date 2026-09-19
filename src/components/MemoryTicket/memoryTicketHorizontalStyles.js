@@ -8,14 +8,17 @@ const styles = StyleSheet.create({
   ticket: {
     width: "100%",
     height: 175,
-
     flexDirection: "row",
-
     backgroundColor: "#F7B900",
-
     borderRadius: 5,
     overflow: "hidden",
     position: "relative",
+
+    // Keep the border width constant.
+    // This prevents the ticket layout from changing
+    // when selecting / unselecting it.
+    borderWidth: 2,
+    borderColor: "transparent",
 
     shadowColor: "#000",
     shadowOffset: {
@@ -34,10 +37,8 @@ const styles = StyleSheet.create({
   imageSection: {
     width: 125,
     height: "100%",
-
     position: "relative",
     overflow: "hidden",
-
     backgroundColor: "#EAAE00",
   },
 
@@ -48,49 +49,35 @@ const styles = StyleSheet.create({
 
   noImage: {
     flex: 1,
-
     alignItems: "center",
     justifyContent: "center",
-
     backgroundColor: "#EAAE00",
   },
 
   imageBadge: {
     position: "absolute",
-
     left: 8,
     top: 8,
-
     width: 25,
     height: 25,
-
     borderRadius: 7,
-
     backgroundColor: "#34345C",
-
     alignItems: "center",
     justifyContent: "center",
   },
 
   photoCountBadge: {
     position: "absolute",
-
     right: 7,
     bottom: 7,
-
     height: 22,
     minWidth: 27,
-
     paddingHorizontal: 6,
-
     borderRadius: 6,
-
     backgroundColor: "#34345C",
-
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-
     gap: 3,
   },
 
@@ -106,12 +93,9 @@ const styles = StyleSheet.create({
 
   ticketContent: {
     flex: 1,
-
     height: "100%",
-
     paddingHorizontal: 13,
     paddingVertical: 10,
-
     justifyContent: "space-between",
   },
 
@@ -121,7 +105,6 @@ const styles = StyleSheet.create({
 
   header: {
     height: 16,
-
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -129,11 +112,8 @@ const styles = StyleSheet.create({
 
   brandText: {
     fontSize: 7,
-
     fontWeight: "900",
-
     letterSpacing: 1.4,
-
     color: "#F0442C",
   },
 
@@ -143,17 +123,11 @@ const styles = StyleSheet.create({
 
   title: {
     fontSize: 17,
-
     lineHeight: 18,
-
     fontWeight: "900",
-
     textTransform: "uppercase",
-
     color: "#F0442C",
-
     letterSpacing: -0.3,
-
     marginTop: 2,
     marginBottom: 3,
   },
@@ -164,26 +138,18 @@ const styles = StyleSheet.create({
 
   infoRow: {
     height: 16,
-
     flexDirection: "row",
     alignItems: "center",
-
     gap: 5,
-
     marginBottom: 1,
   },
 
   infoText: {
     flex: 1,
-
     fontSize: 9,
-
     lineHeight: 11,
-
     fontWeight: "800",
-
     color: "#F0442C",
-
     textTransform: "uppercase",
   },
 
@@ -193,14 +159,11 @@ const styles = StyleSheet.create({
 
   footer: {
     minHeight: 35,
-
     flexDirection: "row",
     alignItems: "flex-end",
     justifyContent: "space-between",
-
     marginTop: 4,
     paddingTop: 6,
-
     borderTopWidth: 1,
     borderStyle: "dotted",
     borderColor: "#F0442C",
@@ -208,23 +171,16 @@ const styles = StyleSheet.create({
 
   ticketNumberLabel: {
     fontSize: 5,
-
     fontWeight: "900",
-
     letterSpacing: 0.7,
-
     color: "#F0442C",
-
     marginBottom: 2,
   },
 
   ticketNumber: {
     fontSize: 8,
-
     fontWeight: "900",
-
     letterSpacing: 0.8,
-
     color: "#F0442C",
   },
 
@@ -235,13 +191,10 @@ const styles = StyleSheet.create({
   barcode: {
     height: 24,
     width: 65,
-
     flexDirection: "row",
     alignItems: "stretch",
     justifyContent: "flex-end",
-
     gap: 1,
-
     overflow: "hidden",
   },
 
@@ -268,30 +221,58 @@ const styles = StyleSheet.create({
 
   topNotch: {
     position: "absolute",
-
     left: 117,
     top: -8,
-
     width: 16,
     height: 16,
-
     borderRadius: 8,
-
     backgroundColor: "#F1F0F6",
   },
 
   bottomNotch: {
     position: "absolute",
-
     left: 117,
     bottom: -8,
-
     width: 16,
     height: 16,
-
     borderRadius: 8,
-
     backgroundColor: "#F1F0F6",
+  },
+
+  // --------------------------------------------------
+  // SELECTION
+  // --------------------------------------------------
+
+  ticketSelected: {
+    borderColor: "#34345C",
+  },
+
+  ticketDisabled: {
+    opacity: 0.5,
+  },
+
+  selectionBadge: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1.5,
+    borderColor: "#D9D8E2",
+  },
+
+  selectionBadgeSelected: {
+    backgroundColor: "#34345C",
+    borderColor: "#34345C",
+  },
+
+  selectionBadgeDisabled: {
+    backgroundColor: "#F1F0F6",
+    borderColor: "#D9D8E2",
   },
 });
 

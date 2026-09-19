@@ -4,13 +4,13 @@ import { View, Text, Image, TouchableOpacity } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
 
-import styles from "./memoryTicketHorizontalStyles";
+import styles from "./collectionMemoryTicketStyles";
 
-function MemoryTicketHorizontal({
+function CollectionMemoryTicket({
   memory,
-  onPress,
   selected = false,
   alreadyAdded = false,
+  onPress,
 }) {
   if (!memory) {
     return null;
@@ -44,12 +44,10 @@ function MemoryTicketHorizontal({
     }
   }
 
+  const memoryId = memory._id || memory.id || "";
+
   const ticketNumber =
-    memory.ticketNumber ||
-    String(memory._id || memory.id || "")
-      .slice(-6)
-      .toUpperCase() ||
-    "000000";
+    memory.ticketNumber || String(memoryId).slice(-6).toUpperCase() || "000000";
 
   const isDisabled = alreadyAdded;
 
@@ -132,9 +130,7 @@ function MemoryTicketHorizontal({
 
           {/* MINI BARCODE */}
           <View style={styles.barcode}>
-            {Array.from({
-              length: 15,
-            }).map((_, index) => (
+            {Array.from({ length: 15 }).map((_, index) => (
               <View
                 key={index}
                 style={[
@@ -151,7 +147,7 @@ function MemoryTicketHorizontal({
         </View>
       </View>
 
-      {/* SELECTION */}
+      {/* SELECTION INDICATOR */}
       <View
         style={[
           styles.selectionBadge,
@@ -174,7 +170,7 @@ function MemoryTicketHorizontal({
     </View>
   );
 
-  if (onPress && !isDisabled) {
+  if (onPress && !alreadyAdded) {
     return (
       <TouchableOpacity activeOpacity={0.9} onPress={onPress}>
         {ticketContent}
@@ -185,4 +181,5 @@ function MemoryTicketHorizontal({
   return ticketContent;
 }
 
-export default memo(MemoryTicketHorizontal);
+export default memo(CollectionMemoryTicket);
+
