@@ -279,6 +279,33 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
 
+  // ==================================================
+  // TAGS
+  // ==================================================
+
+  tagsContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    marginTop: 9,
+    marginBottom: 4,
+  },
+
+  tagChip: {
+    backgroundColor: "#34345C",
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    maxWidth: "48%",
+  },
+
+  tagText: {
+    color: "#FFFFFF",
+    fontSize: 9,
+    fontWeight: "800",
+    letterSpacing: 0.2,
+  },
+
   ticketDivider: {
     height: 1,
     backgroundColor: "rgba(217, 47, 22, 0.35)",
@@ -506,6 +533,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1.4,
     color: "#FFFFFF",
   },
+
   saveButtonDisabled: {
     opacity: 0.7,
   },

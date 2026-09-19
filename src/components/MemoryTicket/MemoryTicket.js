@@ -60,6 +60,17 @@ function MemoryTicket({ memory, onPress, compact = false, image = null }) {
       ? [currentMemory.image]
       : [];
 
+  const tags = Array.isArray(currentMemory.tags)
+    ? [
+        ...new Set(
+          currentMemory.tags
+            .filter((tag) => typeof tag === "string")
+            .map((tag) => tag.trim().replace(/^#+/, "").toLowerCase())
+            .filter(Boolean),
+        ),
+      ]
+    : [];
+
   const isSingleImageMode = Boolean(image);
 
   const displayImages = isSingleImageMode ? [image] : images;
@@ -81,6 +92,7 @@ function MemoryTicket({ memory, onPress, compact = false, image = null }) {
   const ticketContent = (
     <View style={[styles.ticket, compact && styles.ticketCompact]}>
       {/* TOP PERFORATION */}
+
       <View style={styles.topPerforation}>
         {Array.from({
           length: 12,
@@ -90,8 +102,10 @@ function MemoryTicket({ memory, onPress, compact = false, image = null }) {
       </View>
 
       {/* MAIN TICKET */}
+
       <View style={styles.ticketBody}>
         {/* HEADER */}
+
         <View style={styles.header}>
           <Text style={styles.brandText}>MEMENTO</Text>
 
@@ -99,6 +113,7 @@ function MemoryTicket({ memory, onPress, compact = false, image = null }) {
         </View>
 
         {/* IMAGE */}
+
         <View
           style={styles.ticketImageContainer}
           onLayout={(event) => {
@@ -184,6 +199,7 @@ function MemoryTicket({ memory, onPress, compact = false, image = null }) {
           )}
 
           {/* IMAGE COUNTER */}
+
           {!isSingleImageMode && displayImages.length > 1 && (
             <View style={styles.imageCounter}>
               <Text style={styles.imageCounterText}>
@@ -193,6 +209,7 @@ function MemoryTicket({ memory, onPress, compact = false, image = null }) {
           )}
 
           {/* DOT INDICATORS */}
+
           {!isSingleImageMode && displayImages.length > 1 && (
             <View style={styles.imageDots}>
               {displayImages.map((_, index) => (
@@ -209,13 +226,29 @@ function MemoryTicket({ memory, onPress, compact = false, image = null }) {
         </View>
 
         {/* TITLE */}
+
         <View style={styles.titleContainer}>
           <Text style={styles.ticketTitle} numberOfLines={2}>
             {title}
           </Text>
         </View>
 
+        {/* TAGS */}
+
+        {tags.length > 0 && (
+          <View style={styles.tagsContainer}>
+            {tags.map((tag) => (
+              <View key={tag} style={styles.tagChip}>
+                <Text style={styles.tagText} numberOfLines={1}>
+                  #{tag}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
+
         {/* DESCRIPTION */}
+
         {description ? (
           <View style={styles.descriptionContainer}>
             <Text style={styles.descriptionLabel}>THE STORY</Text>
@@ -227,6 +260,7 @@ function MemoryTicket({ memory, onPress, compact = false, image = null }) {
         ) : null}
 
         {/* EVENT INFO */}
+
         <View style={styles.infoSection}>
           <View style={styles.infoRow}>
             <View style={styles.infoBlock}>
@@ -256,6 +290,7 @@ function MemoryTicket({ memory, onPress, compact = false, image = null }) {
         </View>
 
         {/* ADMISSION */}
+
         <View style={styles.admissionSection}>
           <Text style={styles.admissionLabel}>ADMISSION</Text>
 
@@ -265,6 +300,7 @@ function MemoryTicket({ memory, onPress, compact = false, image = null }) {
         </View>
 
         {/* DIVIDER */}
+
         <View style={styles.divider}>
           <View style={styles.dividerLine} />
 
@@ -274,6 +310,7 @@ function MemoryTicket({ memory, onPress, compact = false, image = null }) {
         </View>
 
         {/* FOOTER */}
+
         <View style={styles.ticketFooter}>
           <View style={styles.ticketNumberContainer}>
             <Text style={styles.ticketNumberLabel}>TICKET NO.</Text>
@@ -302,6 +339,7 @@ function MemoryTicket({ memory, onPress, compact = false, image = null }) {
       </View>
 
       {/* BOTTOM PERFORATION */}
+
       <View style={styles.bottomPerforation}>
         {Array.from({
           length: 12,

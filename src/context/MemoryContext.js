@@ -6,9 +6,13 @@ import {
   useRef,
   useState,
 } from "react";
+
 import { useAuth } from "../hooks/useAuth";
+
 import { getNetworkInfo, addNetworkListener } from "../services/networkService";
+
 import { getCurrentLocation } from "../services/locationService";
+
 import {
   getMemories as getMemoriesApi,
   createMemory as createMemoryApi,
@@ -17,6 +21,7 @@ import {
   deleteAllMemories as deleteAllMemoriesApi,
   toggleFavorite as toggleFavoriteApi,
 } from "../api/memoryApi";
+
 import {
   generateClientMemoryId,
   persistMemoryImages,
@@ -36,56 +41,58 @@ export function MemoryProvider({ children }) {
   const { token, loading: authLoading } = useAuth();
 
   const [memories, setMemories] = useState([]);
+
   const [loading, setLoading] = useState(true);
+
   const [syncing, setSyncing] = useState(false);
 
   const syncLock = useRef(false);
 
-const normalizeMemory = useCallback((memory) => {
-  if (!memory) {
-    return null;
-  }
+  const normalizeMemory = useCallback((memory) => {
+    if (!memory) {
+      return null;
+    }
 
-  const images = Array.isArray(memory.images) ? memory.images : [];
+    const images = Array.isArray(memory.images) ? memory.images : [];
 
-  const tags = Array.isArray(memory.tags)
-    ? [
-        ...new Set(
-          memory.tags
-            .filter((tag) => typeof tag === "string")
-            .map((tag) => tag.trim().replace(/^#+/, "").toLowerCase())
-            .filter(Boolean)
-            .slice(0, 20),
-        ),
-      ]
-    : [];
+    const tags = Array.isArray(memory.tags)
+      ? [
+          ...new Set(
+            memory.tags
+              .filter((tag) => typeof tag === "string")
+              .map((tag) => tag.trim().replace(/^#+/, "").toLowerCase())
+              .filter(Boolean)
+              .slice(0, 20),
+          ),
+        ]
+      : [];
 
-  return {
-    ...memory,
+    return {
+      ...memory,
 
-    id: memory._id || memory.id || memory.clientMemoryId,
+      id: memory._id || memory.id || memory.clientMemoryId,
 
-    images,
+      images,
 
-    image: images[0] || null,
+      image: images[0] || null,
 
-    tags,
+      tags,
 
-    favorite: memory.isFavorite === true,
+      favorite: memory.isFavorite === true,
 
-    locationData: memory.locationData || null,
+      locationData: memory.locationData || null,
 
-    environment: {
-      network: memory.network || null,
-    },
+      environment: {
+        network: memory.network || null,
+      },
 
-    imagePublicIds: Array.isArray(memory.imagePublicIds)
-      ? memory.imagePublicIds
-      : [],
+      imagePublicIds: Array.isArray(memory.imagePublicIds)
+        ? memory.imagePublicIds
+        : [],
 
-    syncStatus: memory.syncStatus || "synced",
-  };
-}, []);
+      syncStatus: memory.syncStatus || "synced",
+    };
+  }, []);
 
   const mergeMemories = useCallback(
     (serverMemories, localMemories, pendingMemories) => {
@@ -109,6 +116,16 @@ const normalizeMemory = useCallback((memory) => {
 
           if (local?.localImages?.length) {
             normalized.localImages = local.localImages;
+          }
+
+          // Preserve locally stored tags
+          // when the server response does
+          // not contain the tags field.
+          if (
+            !Object.prototype.hasOwnProperty.call(memory, "tags") &&
+            Array.isArray(local?.tags)
+          ) {
+            normalized.tags = local.tags;
           }
 
           return normalized;
@@ -181,87 +198,105 @@ const normalizeMemory = useCallback((memory) => {
     }
   }, [token, normalizeMemory]);
 
-const refreshServerMemories = useCallback(async () => {
-  if (!token) {
-    return false;
-  }
-
-  try {
-    const result = await getMemoriesApi(token);
-
-    if (!result.success) {
+  const refreshServerMemories = useCallback(async () => {
+    if (!token) {
       return false;
     }
 
-    const backendMemories = Array.isArray(result.data?.memories)
-      ? result.data.memories
-      : [];
+    try {
+      const result = await getMemoriesApi(token);
 
-    const [localMemories, pendingMemories] = await Promise.all([
-      import("../services/offlineMemoryService").then(({ getLocalMemories }) =>
-        getLocalMemories(),
-      ),
-
-      getPendingMemories(),
-    ]);
-
-    const normalizedServer = backendMemories
-      .map(normalizeMemory)
-      .filter(Boolean);
-
-    const localMemoryMap = new Map();
-
-    for (const memory of localMemories) {
-      const key = memory.clientMemoryId || memory.id;
-
-      if (key) {
-        localMemoryMap.set(key, memory);
+      if (!result.success) {
+        return false;
       }
-    }
 
-    const serverWithLocalImages = normalizedServer.map((memory) => {
-      const key = memory.clientMemoryId || memory.id;
+      const backendMemories = Array.isArray(result.data?.memories)
+        ? result.data.memories
+        : [];
 
-      const local = localMemoryMap.get(key);
+      const [localMemories, pendingMemories] = await Promise.all([
+        import("../services/offlineMemoryService").then(
+          ({ getLocalMemories }) => getLocalMemories(),
+        ),
+        getPendingMemories(),
+      ]);
 
-      if (local?.localImages?.length) {
-        return {
+      // Build the local map before
+      // normalizing server memories so
+      // local tags can be preserved.
+      const localMemoryMap = new Map();
+
+      for (const memory of localMemories) {
+        const key = memory.clientMemoryId || memory.id;
+
+        if (key) {
+          localMemoryMap.set(key, memory);
+        }
+      }
+
+      const normalizedServer = backendMemories
+        .map((memory) => {
+          const normalized = normalizeMemory(memory);
+
+          const key = memory.clientMemoryId || memory._id || memory.id;
+
+          const local = localMemoryMap.get(key);
+
+          if (
+            !Object.prototype.hasOwnProperty.call(memory, "tags") &&
+            Array.isArray(local?.tags)
+          ) {
+            normalized.tags = local.tags;
+          }
+
+          return normalized;
+        })
+        .filter(Boolean);
+
+      const serverWithLocalImages = normalizedServer.map((memory) => {
+        const key = memory.clientMemoryId || memory.id;
+
+        const local = localMemoryMap.get(key);
+
+        if (local?.localImages?.length) {
+          return {
+            ...memory,
+            localImages: local.localImages,
+          };
+        }
+
+        return memory;
+      });
+
+      const merged = mergeMemories(
+        serverWithLocalImages,
+        localMemories,
+        pendingMemories,
+      );
+
+      setMemories(merged);
+
+      await upsertLocalMemories(
+        serverWithLocalImages.map((memory) => ({
           ...memory,
-          localImages: local.localImages,
-        };
-      }
+          syncStatus: "synced",
+        })),
+      );
 
-      return memory;
-    });
+      return true;
+    } catch (error) {
+      console.error("Refresh server memories error:", error);
 
-    const merged = mergeMemories(
-      serverWithLocalImages,
-      localMemories,
-      pendingMemories,
-    );
-
-    setMemories(merged);
-
-
-    await upsertLocalMemories(
-      serverWithLocalImages.map((memory) => ({
-        ...memory,
-        syncStatus: "synced",
-      })),
-    );
-
-    return true;
-  } catch (error) {
-    console.error("Refresh server memories error:", error);
-
-    return false;
-  }
-}, [token, normalizeMemory, mergeMemories]);
+      return false;
+    }
+  }, [token, normalizeMemory, mergeMemories]);
 
   const loadMemories = useCallback(async () => {
     if (!token) {
       setMemories([]);
+
       setLoading(false);
+
       return;
     }
 
@@ -302,10 +337,24 @@ const refreshServerMemories = useCallback(async () => {
           return null;
         }
 
-        const savedMemory = normalizeMemory(result.data?.memory);
+        const serverMemory = result.data?.memory;
+
+        const savedMemory = normalizeMemory(serverMemory);
 
         if (!savedMemory) {
           return null;
+        }
+
+        // Preserve pending tags when the
+        // backend response does not contain
+        // the tags field.
+        if (
+          !Object.prototype.hasOwnProperty.call(serverMemory || {}, "tags") &&
+          Array.isArray(pendingMemory.tags)
+        ) {
+          savedMemory.tags = normalizeMemory({
+            tags: pendingMemory.tags,
+          }).tags;
         }
 
         const syncedMemory = {
@@ -364,6 +413,7 @@ const refreshServerMemories = useCallback(async () => {
       }
 
       syncLock.current = true;
+
       setSyncing(true);
 
       for (const pendingMemory of pending) {
@@ -377,6 +427,7 @@ const refreshServerMemories = useCallback(async () => {
       console.error("Sync pending memories error:", error);
     } finally {
       syncLock.current = false;
+
       setSyncing(false);
     }
   }, [token, syncMemory]);
@@ -400,6 +451,7 @@ const refreshServerMemories = useCallback(async () => {
 
         if (online) {
           syncPendingMemories();
+
           refreshServerMemories();
         }
       },
@@ -604,10 +656,25 @@ const refreshServerMemories = useCallback(async () => {
         throw new Error(result.message || "Unable to update memory.");
       }
 
-      const updatedMemory = normalizeMemory(result.data?.memory);
+      const serverMemory = result.data?.memory;
+
+      const updatedMemory = normalizeMemory(serverMemory);
 
       if (!updatedMemory) {
         throw new Error("Server returned invalid memory data.");
+      }
+
+      // Preserve existing/requested tags
+      // only when the backend response does
+      // not contain the tags field.
+      if (!Object.prototype.hasOwnProperty.call(serverMemory || {}, "tags")) {
+        if (Array.isArray(updatedData?.tags)) {
+          updatedMemory.tags = normalizeMemory({
+            tags: updatedData.tags,
+          }).tags;
+        } else if (Array.isArray(existingMemory.tags)) {
+          updatedMemory.tags = existingMemory.tags;
+        }
       }
 
       setMemories((currentMemories) =>
@@ -623,6 +690,7 @@ const refreshServerMemories = useCallback(async () => {
 
       await upsertLocalMemory({
         ...updatedMemory,
+
         localImages: existingMemory.localImages || [],
       });
 
@@ -744,10 +812,22 @@ const refreshServerMemories = useCallback(async () => {
           throw new Error(result.message || "Unable to update favorite.");
         }
 
-        const updatedMemory = normalizeMemory(result.data?.memory);
+        const serverMemory = result.data?.memory;
+
+        const updatedMemory = normalizeMemory(serverMemory);
 
         if (!updatedMemory) {
           throw new Error("Server returned invalid memory data.");
+        }
+
+        // Preserve existing tags when the
+        // server response does not include
+        // the tags field.
+        if (
+          !Object.prototype.hasOwnProperty.call(serverMemory || {}, "tags") &&
+          Array.isArray(existingMemory.tags)
+        ) {
+          updatedMemory.tags = existingMemory.tags;
         }
 
         const finalMemory = {
@@ -849,6 +929,7 @@ const refreshServerMemories = useCallback(async () => {
 
     return {
       success: true,
+
       deletedCount: result.data?.deletedCount || 0,
     };
   }, [token]);

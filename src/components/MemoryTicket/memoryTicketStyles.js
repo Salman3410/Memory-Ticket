@@ -3,13 +3,9 @@ import { StyleSheet } from "react-native";
 const styles = StyleSheet.create({
   ticket: {
     width: "100%",
-
     borderRadius: 4,
-
     overflow: "hidden",
-
     backgroundColor: "#F7B900",
-
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
@@ -17,7 +13,6 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.18,
     shadowRadius: 14,
-
     elevation: 7,
   },
 
@@ -31,32 +26,25 @@ const styles = StyleSheet.create({
 
   topPerforation: {
     height: 12,
-
     flexDirection: "row",
     justifyContent: "space-around",
     alignItems: "flex-start",
-
     backgroundColor: "#F7B900",
   },
 
   bottomPerforation: {
     height: 12,
-
     flexDirection: "row",
     justifyContent: "space-around",
     alignItems: "flex-end",
-
     backgroundColor: "#F7B900",
   },
 
   perforationDot: {
     width: 17,
     height: 17,
-
     borderRadius: 17 / 2,
-
     backgroundColor: "#F1F0F6",
-
     marginTop: -8,
   },
 
@@ -66,7 +54,6 @@ const styles = StyleSheet.create({
 
   ticketBody: {
     backgroundColor: "#F7B900",
-
     paddingHorizontal: 17,
     paddingBottom: 14,
   },
@@ -77,7 +64,6 @@ const styles = StyleSheet.create({
 
   header: {
     height: 34,
-
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -86,9 +72,7 @@ const styles = StyleSheet.create({
   brandText: {
     fontSize: 8,
     fontWeight: "900",
-
     letterSpacing: 2,
-
     color: "#F0442C",
   },
 
@@ -99,32 +83,24 @@ const styles = StyleSheet.create({
   ticketImage: {
     width: "100%",
     height: "100%",
-
     marginBottom: 14,
-
     backgroundColor: "#EAAE00",
   },
 
   imagePlaceholder: {
     width: "100%",
     height: 190,
-
     marginBottom: 14,
-
     alignItems: "center",
     justifyContent: "center",
-
     backgroundColor: "#EAAE00",
   },
 
   imagePlaceholderText: {
     marginTop: 7,
-
     fontSize: 8,
     fontWeight: "900",
-
     letterSpacing: 1,
-
     color: "#F0442C",
   },
 
@@ -139,14 +115,37 @@ const styles = StyleSheet.create({
   ticketTitle: {
     fontSize: 27,
     lineHeight: 27,
-
     fontWeight: "900",
-
     textTransform: "uppercase",
-
     color: "#F0442C",
-
     letterSpacing: -0.5,
+  },
+
+  // --------------------------------------------------
+  // TAGS
+  // --------------------------------------------------
+
+  tagsContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    marginBottom: 13,
+  },
+
+  tagChip: {
+    maxWidth: "48%",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+    backgroundColor: "#34345C",
+  },
+
+  tagText: {
+    fontSize: 8,
+    lineHeight: 11,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    letterSpacing: 0.2,
   },
 
   // --------------------------------------------------
@@ -159,7 +158,6 @@ const styles = StyleSheet.create({
 
   infoRow: {
     flexDirection: "row",
-
     gap: 14,
   },
 
@@ -170,20 +168,15 @@ const styles = StyleSheet.create({
   infoLabel: {
     fontSize: 7,
     fontWeight: "900",
-
     letterSpacing: 1,
-
     color: "#F0442C",
-
     marginBottom: 3,
   },
 
   infoValue: {
     fontSize: 11,
     fontWeight: "800",
-
     color: "#F0442C",
-
     textTransform: "uppercase",
   },
 
@@ -198,23 +191,19 @@ const styles = StyleSheet.create({
   admissionSection: {
     flexDirection: "row",
     alignItems: "center",
-
     gap: 7,
   },
 
   admissionLabel: {
     fontSize: 8,
     fontWeight: "900",
-
     color: "#F0442C",
-
     letterSpacing: 0.8,
   },
 
   admissionValue: {
     fontSize: 11,
     fontWeight: "900",
-
     color: "#F0442C",
   },
 
@@ -224,47 +213,33 @@ const styles = StyleSheet.create({
 
   divider: {
     height: 18,
-
     marginHorizontal: -17,
-
     position: "relative",
-
     justifyContent: "center",
   },
 
   dividerLine: {
     borderTopWidth: 2,
-
     borderStyle: "dotted",
-
     borderColor: "#F0442C",
-
     width: "100%",
   },
 
   dividerNotchLeft: {
     position: "absolute",
-
     left: -9,
-
     width: 18,
     height: 18,
-
     borderRadius: 9,
-
     backgroundColor: "#F1F0F6",
   },
 
   dividerNotchRight: {
     position: "absolute",
-
     right: -9,
-
     width: 18,
     height: 18,
-
     borderRadius: 9,
-
     backgroundColor: "#F1F0F6",
   },
 
@@ -275,9 +250,7 @@ const styles = StyleSheet.create({
   ticketFooter: {
     flexDirection: "row",
     alignItems: "flex-end",
-
     justifyContent: "space-between",
-
     minHeight: 52,
   },
 
@@ -288,20 +261,15 @@ const styles = StyleSheet.create({
   ticketNumberLabel: {
     fontSize: 6,
     fontWeight: "900",
-
     letterSpacing: 0.8,
-
     color: "#F0442C",
-
     marginBottom: 3,
   },
 
   ticketNumber: {
     fontSize: 10,
     fontWeight: "900",
-
     color: "#F0442C",
-
     letterSpacing: 1,
   },
 
@@ -311,21 +279,16 @@ const styles = StyleSheet.create({
 
   barcode: {
     height: 43,
-
     flex: 1,
-
     flexDirection: "row",
     alignItems: "stretch",
     justifyContent: "flex-end",
-
     gap: 2,
-
     overflow: "hidden",
   },
 
   bar: {
     height: "100%",
-
     backgroundColor: "#F0442C",
   },
 
@@ -340,6 +303,11 @@ const styles = StyleSheet.create({
   barWide: {
     width: 5,
   },
+
+  // --------------------------------------------------
+  // DESCRIPTION
+  // --------------------------------------------------
+
   descriptionContainer: {
     marginBottom: 13,
   },
@@ -347,22 +315,18 @@ const styles = StyleSheet.create({
   descriptionLabel: {
     fontSize: 7,
     fontWeight: "900",
-
     letterSpacing: 1,
-
     color: "#F0442C",
-
     marginBottom: 4,
   },
 
   descriptionText: {
     fontSize: 11,
     lineHeight: 16,
-
     fontWeight: "600",
-
     color: "#F0442C",
   },
+
   ticketImageContainer: {
     width: "100%",
     height: 220,
@@ -419,7 +383,6 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: "#FFFFFF",
   },
-  
 });
 
 export default styles;

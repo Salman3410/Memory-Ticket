@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+
 import {
   View,
   Text,
@@ -11,34 +12,50 @@ import {
   Modal,
   StyleSheet,
 } from "react-native";
+
 import { Ionicons } from "@expo/vector-icons";
+
 import { captureRef } from "react-native-view-shot";
+
 import * as Sharing from "expo-sharing";
+
 import * as Print from "expo-print";
+
 import * as FileSystem from "expo-file-system/legacy";
+
 import * as MediaLibrary from "expo-media-library";
+
 import { useMemory } from "../../hooks/useMemory";
+
 import MemoryTicket from "../../components/MemoryTicket/MemoryTicket";
+
 import ShareExportSheet from "../../components/ShareExportSheet/ShareExportSheet";
+
 import { getMemoryDetailUrl, getMemoryViewerUrl } from "../../utils/cloudinary";
+
 import styles from "./memoryDetailsStyles";
 
 function MemoryDetailsScreen({ navigation, route }) {
   const { getMemoryById, toggleFavorite, deleteMemory } = useMemory();
+
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
 
   const memoryId = route?.params?.memoryId;
 
   const [activeImage, setActiveImage] = useState(0);
+
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
+
   const [viewerImage, setViewerImage] = useState(0);
 
   const shareSheetRef = useRef(null);
 
   const [sharing, setSharing] = useState(false);
+
   const [savingImage, setSavingImage] = useState(false);
 
   const [generatingPdf, setGeneratingPdf] = useState(false);
+
   const [pdfOptionsVisible, setPdfOptionsVisible] = useState(false);
 
   const ticketRefs = useRef([]);
@@ -69,6 +86,21 @@ function MemoryDetailsScreen({ navigation, route }) {
       ? [memory.image]
       : [];
 
+  // --------------------------------------------------
+  // TAGS
+  // --------------------------------------------------
+
+  const tags = Array.isArray(memory?.tags)
+    ? [
+        ...new Set(
+          memory.tags
+            .filter((tag) => typeof tag === "string")
+            .map((tag) => tag.trim().replace(/^#+/, "").toLowerCase())
+            .filter(Boolean),
+        ),
+      ]
+    : [];
+
   const detailImages = images.map((image) => getMemoryDetailUrl(image));
 
   const viewerImages = images.map((image) => getMemoryViewerUrl(image));
@@ -79,6 +111,7 @@ function MemoryDetailsScreen({ navigation, route }) {
     }
 
     setViewerImage(index);
+
     setImageViewerVisible(true);
   };
 
@@ -90,6 +123,7 @@ function MemoryDetailsScreen({ navigation, route }) {
     const index = Math.round(event.nativeEvent.contentOffset.x / screenWidth);
 
     setViewerImage(index);
+
     setActiveImage(index);
   };
 
@@ -120,11 +154,9 @@ function MemoryDetailsScreen({ navigation, route }) {
           text: "CANCEL",
           style: "cancel",
         },
-
         {
           text: "DELETE",
           style: "destructive",
-
           onPress: async () => {
             try {
               await deleteMemory(memory.id);
@@ -185,9 +217,7 @@ function MemoryDetailsScreen({ navigation, route }) {
 
       await Sharing.shareAsync(imageUri, {
         mimeType: "image/png",
-
         dialogTitle: "Share Memory Ticket",
-
         UTI: "public.png",
       });
     } catch (error) {
@@ -264,78 +294,54 @@ function MemoryDetailsScreen({ navigation, route }) {
   const createStandardBackPage = () => {
     return `
         <section class="page back-page">
-
           <div class="back-ticket">
-
             <div class="back-top-line"></div>
-
             <div class="back-content">
-
               <div class="back-brand">
                 MEMENTO
               </div>
-
               <div class="back-tagline">
                 KEEP THE MOMENT. KEEP THE STORY.
               </div>
-
               <div class="back-divider"></div>
-
               <div class="back-title">
                 MEMORY ARCHIVE
               </div>
-
               <div class="back-description">
                 A small reminder that this moment
                 happened and is worth remembering.
               </div>
-
               <div class="back-divider"></div>
-
               <div class="back-info">
-
                 <div>
                   <div class="back-label">
                     TICKET
                   </div>
-
                   <div class="back-value">
                     #${escapeHtml(getTicketNumber())}
                   </div>
                 </div>
-
                 <div>
                   <div class="back-label">
                     MEMORY
                   </div>
-
                   <div class="back-value">
                     ${escapeHtml(memory?.title || "UNTITLED MEMORY")}
                   </div>
                 </div>
-
               </div>
-
               <div class="back-spacer"></div>
-
               <div class="back-footer">
-
                 <div class="back-small">
                   MEMENTO
                 </div>
-
                 <div class="back-small">
                   THE POWER OF THE MOMENT
                 </div>
-
               </div>
-
             </div>
-
             <div class="back-bottom-line"></div>
-
           </div>
-
         </section>
       `;
   };
@@ -383,13 +389,11 @@ function MemoryDetailsScreen({ navigation, route }) {
 
       const frontPage = `
           <section class="page">
-
             <img
               class="ticket"
               src="${ticketImage}"
               alt="Memento Front"
             />
-
           </section>
         `;
 
@@ -398,9 +402,7 @@ function MemoryDetailsScreen({ navigation, route }) {
       if (backType === "blank") {
         backPage = `
             <section class="page blank-back-page">
-
               <div class="blank-yellow"></div>
-
             </section>
           `;
       }
@@ -411,18 +413,13 @@ function MemoryDetailsScreen({ navigation, route }) {
 
       const html = `
           <!DOCTYPE html>
-
           <html>
-
           <head>
-
             <meta
               name="viewport"
               content="width=device-width, initial-scale=1.0"
             />
-
             <style>
-
               @page {
                 size: A4 portrait;
                 margin: 0;
@@ -449,20 +446,14 @@ function MemoryDetailsScreen({ navigation, route }) {
 
               .page {
                 position: relative;
-
                 width: 210mm;
                 height: 297mm;
-
                 display: flex;
-
                 align-items: center;
                 justify-content: center;
-
                 page-break-after:
                   always;
-
                 overflow: hidden;
-
                 margin: 0;
                 padding: 0;
               }
@@ -474,19 +465,13 @@ function MemoryDetailsScreen({ navigation, route }) {
 
               .ticket {
                 display: block;
-
                 width: 115mm;
-
                 height: auto;
-
                 max-width: 115mm;
                 max-height: 270mm;
-
                 object-fit: contain;
-
                 margin: 0;
                 padding: 0;
-
                 border: 0;
               }
 
@@ -496,13 +481,10 @@ function MemoryDetailsScreen({ navigation, route }) {
 
               .blank-yellow {
                 position: absolute;
-
                 top: 0;
                 left: 0;
-
                 width: 210mm;
                 height: 297mm;
-
                 background: #F0442C;
               }
 
@@ -512,34 +494,25 @@ function MemoryDetailsScreen({ navigation, route }) {
 
               .back-ticket {
                 position: relative;
-
                 width: 115mm;
                 height: 270mm;
-
                 background: #F0442C;
-
                 border-radius: 6px;
-
                 overflow: hidden;
-
                 display: flex;
                 flex-direction: column;
-
                 padding: 18mm 14mm;
               }
 
               .back-top-line {
                 width: 100%;
                 height: 2px;
-
                 background: #1D2528;
-
                 margin-bottom: 12mm;
               }
 
               .back-content {
                 flex: 1;
-
                 display: flex;
                 flex-direction: column;
               }
@@ -547,88 +520,62 @@ function MemoryDetailsScreen({ navigation, route }) {
               .back-brand {
                 font-size: 22px;
                 font-weight: 900;
-
                 letter-spacing: 1px;
-
                 color: #1D2528;
               }
 
               .back-tagline {
                 margin-top: 4px;
-
                 font-size: 9px;
                 font-weight: 800;
-
                 letter-spacing: 1.5px;
-
                 color: #1D2528;
               }
 
               .back-divider {
                 width: 100%;
                 height: 2px;
-
                 background: #1D2528;
-
                 margin-top: 18mm;
                 margin-bottom: 18mm;
               }
 
               .back-title {
                 font-size: 18px;
-
                 font-weight: 900;
-
                 letter-spacing: 1.5px;
-
                 color: #1D2528;
-
                 text-align: center;
               }
 
               .back-description {
                 margin-top: 10mm;
-
                 padding: 0 8mm;
-
                 font-size: 11px;
-
                 line-height: 17px;
-
                 font-weight: 700;
-
                 color: #1D2528;
-
                 text-align: center;
               }
 
               .back-info {
                 display: flex;
-
                 flex-direction: column;
-
                 gap: 12mm;
               }
 
               .back-label {
                 font-size: 8px;
-
                 font-weight: 900;
-
                 letter-spacing: 1.5px;
-
                 color: #1D2528;
-
                 margin-bottom: 3px;
               }
 
               .back-value {
                 font-size: 13px;
-
                 font-weight: 900;
-
                 color: #1D2528;
-
                 word-wrap: break-word;
               }
 
@@ -640,48 +587,32 @@ function MemoryDetailsScreen({ navigation, route }) {
                 border-top:
                   2px solid
                   #1D2528;
-
                 padding-top: 8mm;
-
                 display: flex;
-
                 justify-content:
                   space-between;
-
                 gap: 10mm;
               }
 
               .back-small {
                 font-size: 7px;
-
                 font-weight: 900;
-
                 letter-spacing: 1px;
-
                 color: #1D2528;
               }
 
               .back-bottom-line {
                 width: 100%;
                 height: 2px;
-
                 background: #1D2528;
-
                 margin-top: 12mm;
               }
-
             </style>
-
           </head>
-
           <body>
-
             ${frontPage}
-
             ${backPage}
-
           </body>
-
           </html>
         `;
 
@@ -695,9 +626,7 @@ function MemoryDetailsScreen({ navigation, route }) {
       if (available) {
         await Sharing.shareAsync(uri, {
           mimeType: "application/pdf",
-
           dialogTitle: "Export Memory Ticket",
-
           UTI: "com.adobe.pdf",
         });
       } else {
@@ -832,6 +761,22 @@ function MemoryDetailsScreen({ navigation, route }) {
           </View>
         )}
 
+        {/* TAGS */}
+
+        {tags.length > 0 && (
+          <View style={detailStyles.tagsSection}>
+            <Text style={detailStyles.tagsLabel}>TAGS</Text>
+
+            <View style={detailStyles.tagsContainer}>
+              {tags.map((tag) => (
+                <View key={tag} style={detailStyles.tagChip}>
+                  <Text style={detailStyles.tagText}>#{tag}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
         <TouchableOpacity
           style={detailStyles.shareButton}
           onPress={openShareSheet}
@@ -955,7 +900,6 @@ function MemoryDetailsScreen({ navigation, route }) {
                     pdfStyles.miniPage,
                     {
                       backgroundColor: "#F5C842",
-
                       padding: 5,
                     },
                   ]}
@@ -976,7 +920,6 @@ function MemoryDetailsScreen({ navigation, route }) {
                       pdfStyles.miniLine,
                       {
                         marginTop: 8,
-
                         width: "60%",
                       },
                     ]}
@@ -1103,33 +1046,58 @@ const detailStyles = StyleSheet.create({
     flex: 1,
   },
 
+  // --------------------------------------------------
+  // TAGS
+  // --------------------------------------------------
+
+  tagsSection: {
+    marginHorizontal: 22,
+    marginTop: 16,
+  },
+
+  tagsLabel: {
+    fontSize: 9,
+    fontWeight: "900",
+    letterSpacing: 1.5,
+    color: "#707080",
+    marginBottom: 8,
+  },
+
+  tagsContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 7,
+  },
+
+  tagChip: {
+    backgroundColor: "#34345C",
+    borderRadius: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+
+  tagText: {
+    color: "#FFFFFF",
+    fontSize: 11,
+    fontWeight: "700",
+  },
+
   shareButton: {
     height: 50,
-
     marginHorizontal: 22,
-
     marginTop: 20,
-
     borderRadius: 14,
-
     backgroundColor: "#34345C",
-
     flexDirection: "row",
-
     alignItems: "center",
-
     justifyContent: "center",
-
     gap: 9,
   },
 
   shareButtonText: {
     color: "#FFFFFF",
-
     fontSize: 11,
-
     fontWeight: "900",
-
     letterSpacing: 1,
   },
 });
@@ -1137,195 +1105,130 @@ const detailStyles = StyleSheet.create({
 const pdfStyles = StyleSheet.create({
   overlay: {
     flex: 1,
-
     backgroundColor: "rgba(20, 20, 20, 0.72)",
-
     justifyContent: "center",
-
     paddingHorizontal: 18,
   },
 
   modal: {
     width: "100%",
-
     backgroundColor: "#F4F1E8",
-
     borderRadius: 24,
-
     paddingBottom: 18,
-
     overflow: "hidden",
   },
 
   header: {
     minHeight: 76,
-
     paddingHorizontal: 20,
-
     paddingVertical: 14,
-
     flexDirection: "row",
-
     alignItems: "center",
-
     justifyContent: "space-between",
   },
 
   eyebrow: {
     fontSize: 9,
-
     fontWeight: "900",
-
     letterSpacing: 1.5,
-
     color: "#6A6A6A",
   },
 
   title: {
     marginTop: 4,
-
     fontSize: 19,
-
     fontWeight: "900",
-
     color: "#242424",
   },
 
   closeButton: {
     width: 40,
-
     height: 40,
-
     borderRadius: 20,
-
     backgroundColor: "#E8E4D8",
-
     alignItems: "center",
-
     justifyContent: "center",
   },
 
   description: {
     paddingHorizontal: 20,
-
     marginBottom: 16,
-
     fontSize: 11,
-
     lineHeight: 17,
-
     color: "#6A6A6A",
   },
 
   option: {
     marginHorizontal: 18,
-
     marginBottom: 10,
-
     padding: 13,
-
     minHeight: 94,
-
     borderRadius: 16,
-
     backgroundColor: "#FFFFFF",
-
     borderWidth: 1,
-
     borderColor: "#E2DED3",
-
     flexDirection: "row",
-
     alignItems: "center",
   },
 
   optionPreview: {
     width: 54,
-
     height: 68,
-
     borderRadius: 6,
-
     overflow: "hidden",
-
     backgroundColor: "#F5C842",
-
     alignItems: "center",
-
     justifyContent: "center",
   },
 
   miniPage: {
     width: 42,
-
     height: 60,
-
     borderRadius: 3,
-
     borderWidth: 1,
-
     borderColor: "#1D2528",
-
     alignItems: "center",
-
     justifyContent: "flex-start",
   },
 
   miniLine: {
     width: "75%",
-
     height: 2,
-
     marginTop: 10,
-
     backgroundColor: "#1D2528",
   },
 
   optionContent: {
     flex: 1,
-
     paddingHorizontal: 13,
   },
 
   optionTitle: {
     fontSize: 13,
-
     fontWeight: "900",
-
     color: "#242424",
   },
 
   optionText: {
     marginTop: 5,
-
     fontSize: 9,
-
     lineHeight: 14,
-
     color: "#777777",
   },
 
   cancelButton: {
     height: 46,
-
     marginHorizontal: 18,
-
     marginTop: 4,
-
     borderRadius: 13,
-
     alignItems: "center",
-
     justifyContent: "center",
   },
 
   cancelText: {
     fontSize: 10,
-
     fontWeight: "900",
-
     letterSpacing: 1.2,
-
     color: "#6A6A6A",
   },
 });
@@ -1335,6 +1238,7 @@ const imageViewerStyles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#0B0B0D",
   },
+
   topBar: {
     position: "absolute",
     top: 0,
@@ -1347,6 +1251,7 @@ const imageViewerStyles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
+
   closeButton: {
     position: "absolute",
     left: 18,
@@ -1360,10 +1265,12 @@ const imageViewerStyles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+
   counterWrapper: {
     flex: 1,
     alignItems: "center",
   },
+
   counter: {
     minWidth: 54,
     paddingHorizontal: 12,
@@ -1378,16 +1285,19 @@ const imageViewerStyles = StyleSheet.create({
     letterSpacing: 1,
     textAlign: "center",
   },
+
   imagePage: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#0B0B0D",
   },
+
   fullImage: {
     alignSelf: "center",
     backgroundColor: "transparent",
   },
+
   bottomHint: {
     position: "absolute",
     left: 18,
@@ -1404,6 +1314,7 @@ const imageViewerStyles = StyleSheet.create({
     justifyContent: "center",
     gap: 7,
   },
+
   bottomHintText: {
     color: "#C9C9CE",
     fontSize: 10,

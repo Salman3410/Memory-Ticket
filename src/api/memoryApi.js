@@ -1,9 +1,5 @@
 import { apiRequest } from "./apiClient";
 
-// --------------------------------------------------
-// APPEND JSON FIELD
-// --------------------------------------------------
-
 const appendJsonField = (
   formData,
   key,
@@ -171,6 +167,20 @@ export async function createMemory(
     network,
   );
 
+  // --------------------------------------------------
+  // TAGS
+  // --------------------------------------------------
+
+  const tags = Array.isArray(memory.tags)
+    ? memory.tags
+    : [];
+
+  appendJsonField(
+    formData,
+    "tags",
+    tags,
+  );
+
   formData.append(
     "isFavorite",
     String(
@@ -287,6 +297,20 @@ export async function updateMemory(
       formData,
       "network",
       memory.network,
+    );
+  }
+
+  // --------------------------------------------------
+  // TAGS
+  // --------------------------------------------------
+
+  if (memory.tags !== undefined) {
+    appendJsonField(
+      formData,
+      "tags",
+      Array.isArray(memory.tags)
+        ? memory.tags
+        : [],
     );
   }
 
@@ -431,4 +455,3 @@ export async function deleteAllMemories(
     },
   );
 }
-
