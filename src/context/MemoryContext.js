@@ -41,37 +41,51 @@ export function MemoryProvider({ children }) {
 
   const syncLock = useRef(false);
 
-  const normalizeMemory = useCallback((memory) => {
-    if (!memory) {
-      return null;
-    }
+const normalizeMemory = useCallback((memory) => {
+  if (!memory) {
+    return null;
+  }
 
-    const images = Array.isArray(memory.images) ? memory.images : [];
+  const images = Array.isArray(memory.images) ? memory.images : [];
 
-    return {
-      ...memory,
+  const tags = Array.isArray(memory.tags)
+    ? [
+        ...new Set(
+          memory.tags
+            .filter((tag) => typeof tag === "string")
+            .map((tag) => tag.trim().replace(/^#+/, "").toLowerCase())
+            .filter(Boolean)
+            .slice(0, 20),
+        ),
+      ]
+    : [];
 
-      id: memory._id || memory.id || memory.clientMemoryId,
+  return {
+    ...memory,
 
-      images,
+    id: memory._id || memory.id || memory.clientMemoryId,
 
-      image: images[0] || null,
+    images,
 
-      favorite: memory.isFavorite === true,
+    image: images[0] || null,
 
-      locationData: memory.locationData || null,
+    tags,
 
-      environment: {
-        network: memory.network || null,
-      },
+    favorite: memory.isFavorite === true,
 
-      imagePublicIds: Array.isArray(memory.imagePublicIds)
-        ? memory.imagePublicIds
-        : [],
+    locationData: memory.locationData || null,
 
-      syncStatus: memory.syncStatus || "synced",
-    };
-  }, []);
+    environment: {
+      network: memory.network || null,
+    },
+
+    imagePublicIds: Array.isArray(memory.imagePublicIds)
+      ? memory.imagePublicIds
+      : [],
+
+    syncStatus: memory.syncStatus || "synced",
+  };
+}, []);
 
   const mergeMemories = useCallback(
     (serverMemories, localMemories, pendingMemories) => {

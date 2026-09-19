@@ -1,14 +1,87 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { View, Text, TouchableOpacity, Alert, FlatList } from "react-native";
+
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Alert,
+  FlatList,
+  ScrollView,
+  StyleSheet,
+} from "react-native";
+
 import { Ionicons } from "@expo/vector-icons";
+
 import { useMemory } from "../../hooks/useMemory";
+
 import SearchBar from "../../components/Memories/SearchBar/SearchBar";
+
 import CollectionStats from "../../components/Memories/CollectionStats/CollectionStats";
+
 import MemoryFilters from "../../components/Memories/MemoryFilters/MemoryFilters";
+
 import EmptyMemoryState from "../../components/Memories/EmptyMemoryState/EmptyMemoryState";
+
 import MemoryTicketList from "../../components/Memories/MemoryTicketList/MemoryTicketList";
 
 import styles from "./memoriesStyles";
+
+const tagStyles = StyleSheet.create({
+  tagSection: {
+    marginTop: 14,
+    marginBottom: 4,
+  },
+
+  tagSectionLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#707080",
+    letterSpacing: 0.8,
+    marginBottom: 8,
+  },
+
+  tagScrollContent: {
+    paddingRight: 16,
+  },
+
+  tagChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#D9D8E2",
+    backgroundColor: "#FFFFFF",
+    marginRight: 8,
+  },
+
+  tagChipActive: {
+    backgroundColor: "#34345C",
+    borderColor: "#34345C",
+  },
+
+  tagChipText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#707080",
+  },
+
+  tagChipTextActive: {
+    color: "#FFFFFF",
+  },
+
+  tagCount: {
+    marginLeft: 5,
+    fontSize: 11,
+    color: "#A6A5AE",
+    fontWeight: "600",
+  },
+
+  tagCountActive: {
+    color: "#FFFFFF",
+  },
+});
 
 const MemoriesHeader = React.memo(function MemoriesHeader({
   navigation,
@@ -23,6 +96,9 @@ const MemoriesHeader = React.memo(function MemoriesHeader({
   showSortMenu,
   setShowSortMenu,
   displayedCount,
+  tags,
+  selectedTag,
+  setSelectedTag,
 }) {
   const getFilterLabel = () => {
     switch (filter) {
@@ -40,6 +116,7 @@ const MemoriesHeader = React.memo(function MemoriesHeader({
   return (
     <>
       {/* HEADER */}
+
       <View style={styles.header}>
         <View>
           <Text style={styles.headerEyebrow}>YOUR COLLECTION</Text>
@@ -57,6 +134,7 @@ const MemoriesHeader = React.memo(function MemoriesHeader({
       </View>
 
       {/* SEARCH */}
+
       <SearchBar
         value={searchQuery}
         onChangeText={setSearchQuery}
@@ -64,12 +142,14 @@ const MemoriesHeader = React.memo(function MemoriesHeader({
       />
 
       {/* COLLECTION STATS */}
+
       <CollectionStats
         memoryCount={memoriesCount}
         favoriteCount={favoriteCount}
       />
 
       {/* FILTERS */}
+
       <MemoryFilters
         filter={filter}
         setFilter={setFilter}
@@ -79,9 +159,79 @@ const MemoriesHeader = React.memo(function MemoriesHeader({
         setShowSortMenu={setShowSortMenu}
       />
 
+      {/* TAG FILTERS */}
+
+      {tags.length > 0 && (
+        <View style={tagStyles.tagSection}>
+          <Text style={tagStyles.tagSectionLabel}>TAGS</Text>
+
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={tagStyles.tagScrollContent}
+            keyboardShouldPersistTaps="handled"
+          >
+            <TouchableOpacity
+              style={[
+                tagStyles.tagChip,
+                !selectedTag && tagStyles.tagChipActive,
+              ]}
+              onPress={() => setSelectedTag(null)}
+              activeOpacity={0.8}
+            >
+              <Text
+                style={[
+                  tagStyles.tagChipText,
+                  !selectedTag && tagStyles.tagChipTextActive,
+                ]}
+              >
+                ALL TAGS
+              </Text>
+            </TouchableOpacity>
+
+            {tags.map(({ name, count }) => {
+              const isActive = selectedTag === name;
+
+              return (
+                <TouchableOpacity
+                  key={name}
+                  style={[
+                    tagStyles.tagChip,
+                    isActive && tagStyles.tagChipActive,
+                  ]}
+                  onPress={() => setSelectedTag(isActive ? null : name)}
+                  activeOpacity={0.8}
+                >
+                  <Text
+                    style={[
+                      tagStyles.tagChipText,
+                      isActive && tagStyles.tagChipTextActive,
+                    ]}
+                  >
+                    #{name}
+                  </Text>
+
+                  <Text
+                    style={[
+                      tagStyles.tagCount,
+                      isActive && tagStyles.tagCountActive,
+                    ]}
+                  >
+                    {count}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
+      )}
+
       {/* CURRENT VIEW */}
+
       <View style={styles.viewHeader}>
-        <Text style={styles.viewTitle}>{getFilterLabel()}</Text>
+        <Text style={styles.viewTitle}>
+          {selectedTag ? `#${selectedTag}` : getFilterLabel()}
+        </Text>
 
         <Text style={styles.viewCount}>
           {displayedCount} {displayedCount === 1 ? "TICKET" : "TICKETS"}
@@ -95,15 +245,34 @@ function MemoriesScreen({ navigation, route }) {
   const { memories, loading, toggleFavorite } = useMemory();
 
   const [filter, setFilter] = useState("all");
+
   const [sortOrder, setSortOrder] = useState("newest");
+
   const [showSortMenu, setShowSortMenu] = useState(false);
+
   const [searchQuery, setSearchQuery] = useState("");
+
+  const [selectedTag, setSelectedTag] = useState(null);
 
   useEffect(() => {
     if (route?.params?.filter) {
       setFilter(route.params.filter);
     }
   }, [route?.params?.filter]);
+
+  // --------------------------------------------------
+  // ROUTE TAG
+  // --------------------------------------------------
+
+  useEffect(() => {
+    const routeTag = route?.params?.tag;
+
+    if (typeof routeTag === "string" && routeTag.trim()) {
+      const normalizedTag = routeTag.trim().replace(/^#+/, "").toLowerCase();
+
+      setSelectedTag(normalizedTag);
+    }
+  }, [route?.params?.tag]);
 
   // --------------------------------------------------
   // MEMORY TIME
@@ -122,6 +291,61 @@ function MemoriesScreen({ navigation, route }) {
   }, []);
 
   // --------------------------------------------------
+  // AVAILABLE TAGS
+  // --------------------------------------------------
+
+  const availableTags = useMemo(() => {
+    const tagCounts = new Map();
+
+    for (const memory of memories) {
+      if (!Array.isArray(memory.tags)) {
+        continue;
+      }
+
+      const uniqueMemoryTags = new Set();
+
+      for (const tag of memory.tags) {
+        if (typeof tag !== "string") {
+          continue;
+        }
+
+        const normalizedTag = tag.trim().replace(/^#+/, "").toLowerCase();
+
+        if (!normalizedTag || uniqueMemoryTags.has(normalizedTag)) {
+          continue;
+        }
+
+        uniqueMemoryTags.add(normalizedTag);
+
+        tagCounts.set(normalizedTag, (tagCounts.get(normalizedTag) || 0) + 1);
+      }
+    }
+
+    return Array.from(tagCounts.entries())
+      .map(([name, count]) => ({
+        name,
+        count,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [memories]);
+
+  // --------------------------------------------------
+  // CLEAR INVALID TAG
+  // --------------------------------------------------
+
+  useEffect(() => {
+    if (!selectedTag) {
+      return;
+    }
+
+    const exists = availableTags.some((tag) => tag.name === selectedTag);
+
+    if (!exists) {
+      setSelectedTag(null);
+    }
+  }, [selectedTag, availableTags]);
+
+  // --------------------------------------------------
   // DISPLAYED MEMORIES
   // --------------------------------------------------
 
@@ -131,14 +355,18 @@ function MemoriesScreen({ navigation, route }) {
     const query = searchQuery.trim().toLowerCase();
 
     // SEARCH
+
     if (query) {
       filtered = filtered.filter((memory) => {
+        const memoryTags = Array.isArray(memory.tags) ? memory.tags : [];
+
         const searchableText = [
           memory.title,
           memory.description,
           memory.location,
           memory.category,
           memory.date,
+          ...memoryTags,
         ]
           .filter(Boolean)
           .join(" ")
@@ -148,12 +376,28 @@ function MemoriesScreen({ navigation, route }) {
       });
     }
 
+    // TAG FILTER
+
+    if (selectedTag) {
+      filtered = filtered.filter((memory) => {
+        const memoryTags = Array.isArray(memory.tags) ? memory.tags : [];
+
+        return memoryTags.some(
+          (tag) =>
+            typeof tag === "string" &&
+            tag.trim().replace(/^#+/, "").toLowerCase() === selectedTag,
+        );
+      });
+    }
+
     // FAVORITES
+
     if (filter === "favorites") {
       filtered = filtered.filter((memory) => memory.favorite === true);
     }
 
     // RECENT
+
     if (filter === "recent") {
       const now = Date.now();
 
@@ -165,6 +409,8 @@ function MemoriesScreen({ navigation, route }) {
         return memoryTime >= thirtyDaysAgo && memoryTime <= now;
       });
     }
+
+    // SORT
 
     const sorted = [...filtered];
 
@@ -181,12 +427,20 @@ function MemoriesScreen({ navigation, route }) {
     });
 
     return sorted;
-  }, [memories, filter, sortOrder, searchQuery, getMemoryTime]);
+  }, [memories, filter, sortOrder, searchQuery, selectedTag, getMemoryTime]);
+
+  // --------------------------------------------------
+  // FAVORITE COUNT
+  // --------------------------------------------------
 
   const favoriteCount = useMemo(
     () => memories.filter((memory) => memory.favorite === true).length,
     [memories],
   );
+
+  // --------------------------------------------------
+  // MEMORY PRESS
+  // --------------------------------------------------
 
   const handleMemoryPress = useCallback(
     (memoryId) => {
@@ -197,9 +451,17 @@ function MemoriesScreen({ navigation, route }) {
     [navigation],
   );
 
+  // --------------------------------------------------
+  // CREATE MEMORY
+  // --------------------------------------------------
+
   const handleCreateMemory = useCallback(() => {
     navigation.navigate("Create");
   }, [navigation]);
+
+  // --------------------------------------------------
+  // TOGGLE FAVORITE
+  // --------------------------------------------------
 
   const handleToggleFavorite = useCallback(
     async (memory) => {
@@ -228,6 +490,10 @@ function MemoriesScreen({ navigation, route }) {
     [toggleFavorite],
   );
 
+  // --------------------------------------------------
+  // HEADER
+  // --------------------------------------------------
+
   const headerComponent = useMemo(
     () => (
       <MemoriesHeader
@@ -243,6 +509,9 @@ function MemoriesScreen({ navigation, route }) {
         showSortMenu={showSortMenu}
         setShowSortMenu={setShowSortMenu}
         displayedCount={displayedMemories.length}
+        tags={availableTags}
+        selectedTag={selectedTag}
+        setSelectedTag={setSelectedTag}
       />
     ),
     [
@@ -254,8 +523,14 @@ function MemoriesScreen({ navigation, route }) {
       sortOrder,
       showSortMenu,
       displayedMemories.length,
+      availableTags,
+      selectedTag,
     ],
   );
+
+  // --------------------------------------------------
+  // RENDER ITEM
+  // --------------------------------------------------
 
   const renderItem = useCallback(
     ({ item }) => (
@@ -268,11 +543,19 @@ function MemoriesScreen({ navigation, route }) {
     [handleMemoryPress, handleToggleFavorite],
   );
 
+  // --------------------------------------------------
+  // KEY EXTRACTOR
+  // --------------------------------------------------
+
   const keyExtractor = useCallback(
     (item, index) =>
       String(item.id || item.clientMemoryId || `memory-${index}`),
     [],
   );
+
+  // --------------------------------------------------
+  // FOOTER
+  // --------------------------------------------------
 
   const renderFooter = useCallback(
     () => (
@@ -284,6 +567,10 @@ function MemoriesScreen({ navigation, route }) {
     ),
     [],
   );
+
+  // --------------------------------------------------
+  // LOADING
+  // --------------------------------------------------
 
   if (loading) {
     return (

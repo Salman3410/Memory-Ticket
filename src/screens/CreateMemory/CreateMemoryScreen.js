@@ -3,13 +3,20 @@ import { useEffect, useState } from "react";
 import { View, Text, Alert } from "react-native";
 
 import * as ImagePicker from "expo-image-picker";
+
 import * as Location from "expo-location";
 
 import CreateMemoryHeader from "./components/CreateMemoryHeader";
+
 import PhotoSection from "./components/PhotoSection";
+
 import MemoryForm from "./components/MemoryForm";
+
 import DescriptionInput from "./components/DescriptionInput";
+
 import PreviewButton from "./components/PreviewButton";
+
+import TagsInput from "../../components/TagsInput/TagsInput";
 
 import styles from "./createMemoryStyles";
 
@@ -21,13 +28,22 @@ const MAX_IMAGES = 5;
 
 function CreateMemoryScreen({ navigation, route }) {
   const [images, setImages] = useState([]);
+
   const [activeImage, setActiveImage] = useState(0);
+
   const [title, setTitle] = useState("");
+
   const [network, setNetwork] = useState(null);
+
   const [location, setLocation] = useState("");
+
   const [locationData, setLocationData] = useState(null);
+
   const [locationCaptured, setLocationCaptured] = useState(false);
+
   const [description, setDescription] = useState("");
+
+  const [tags, setTags] = useState([]);
 
   const editMemory = route?.params?.editMemory;
 
@@ -59,6 +75,8 @@ function CreateMemoryScreen({ navigation, route }) {
     setNetwork(editMemory.network || editMemory.environment?.network || null);
 
     setDescription(editMemory.description || "");
+
+    setTags(Array.isArray(editMemory.tags) ? editMemory.tags : []);
 
     navigation.setParams({
       editMemory: undefined,
@@ -163,6 +181,7 @@ function CreateMemoryScreen({ navigation, route }) {
           "Permission Required",
           "Please allow photo library access to select photos.",
         );
+
         return;
       }
 
@@ -170,6 +189,7 @@ function CreateMemoryScreen({ navigation, route }) {
 
       if (remainingSlots <= 0) {
         Alert.alert("Maximum Photos", "You can add up to 5 photos.");
+
         return;
       }
 
@@ -208,6 +228,7 @@ function CreateMemoryScreen({ navigation, route }) {
     try {
       if (images.length >= MAX_IMAGES) {
         Alert.alert("Maximum Photos", "You can add up to 5 photos.");
+
         return;
       }
 
@@ -218,6 +239,7 @@ function CreateMemoryScreen({ navigation, route }) {
           "Permission Required",
           "Please allow camera access to take a photo.",
         );
+
         return;
       }
 
@@ -360,39 +382,60 @@ function CreateMemoryScreen({ navigation, route }) {
 
   const resetForm = () => {
     setImages([]);
+
     setActiveImage(0);
+
     setTitle("");
+
     setNetwork(null);
+
     setLocation("");
+
     setLocationData(null);
+
     setDescription("");
+
+    setTags([]);
+
     setLocationCaptured(false);
   };
 
   const handleCreateMemory = () => {
     if (!images.length) {
       Alert.alert("Add Photos", "Please add at least one photo.");
+
       return;
     }
 
     if (!title.trim()) {
       Alert.alert("Memory Title", "Please give this memory a title.");
+
       return;
     }
 
     if (images.length > MAX_IMAGES) {
       Alert.alert("Maximum Photos", "You can add up to 5 photos.");
+
       return;
     }
 
     const draftMemory = {
       title: title.trim(),
+
       location: location.trim(),
+
       locationData,
+
       network,
+
       description: description.trim(),
+
+      tags: [...tags],
+
       image: images[0] || null,
+
       images: [...images],
+
       date: new Date().toISOString(),
     };
 
@@ -429,6 +472,8 @@ function CreateMemoryScreen({ navigation, route }) {
           setLocation={setLocation}
           onLocationPress={handleLocationPress}
         />
+
+        <TagsInput tags={tags} setTags={setTags} />
 
         <DescriptionInput
           description={description}
