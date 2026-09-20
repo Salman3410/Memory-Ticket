@@ -1,7 +1,6 @@
 import { createContext, useEffect, useState } from "react";
 
 import * as SecureStore from "expo-secure-store";
-import * as SplashScreen from "expo-splash-screen";
 
 import { getDeviceInfo } from "../utils/deviceInfo";
 
@@ -60,8 +59,6 @@ export function AuthProvider({ children }) {
         }
       } finally {
         setLoading(false);
-
-        await SplashScreen.hideAsync();
       }
     };
 
