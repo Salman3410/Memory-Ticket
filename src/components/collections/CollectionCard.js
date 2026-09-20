@@ -1,5 +1,4 @@
-import React, { useCallback } from "react";
-
+import { useCallback } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -10,22 +9,12 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-
 import { useFocusEffect } from "@react-navigation/native";
-
 import { useCollection } from "../../hooks/useCollection";
-
-import CollectionCard from "../../components/collections/CollectionCard";
 
 function CollectionsScreen({ navigation }) {
   const { collections, loading, refreshCollections } = useCollection();
 
-  /*
-   * Refresh whenever the screen becomes active again.
-   *
-   * Wait until navigation/interaction finishes so the refresh
-   * does not interfere with tapping a collection.
-   */
   useFocusEffect(
     useCallback(() => {
       const task = InteractionManager.runAfterInteractions(() => {
