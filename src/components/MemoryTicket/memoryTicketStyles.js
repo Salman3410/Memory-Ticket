@@ -1,19 +1,40 @@
 import { StyleSheet } from "react-native";
 
 const styles = StyleSheet.create({
+  // --------------------------------------------------
+  // OUTER FRAME
+  // --------------------------------------------------
+
+  ticketFrame: {
+    width: "100%",
+    position: "relative",
+    backgroundColor: "#F1F0F6",
+  },
+
+  // --------------------------------------------------
+  // TICKET
+  // --------------------------------------------------
+
   ticket: {
     width: "100%",
     borderRadius: 4,
     overflow: "hidden",
 
+    borderWidth: 0,
+
     shadowColor: "#000",
+
     shadowOffset: {
       width: 0,
       height: 8,
     },
+
     shadowOpacity: 0.18,
     shadowRadius: 14,
-    elevation: 7,
+
+    elevation: 0,
+
+    zIndex: 1,
   },
 
   ticketMinimal: {
@@ -22,7 +43,6 @@ const styles = StyleSheet.create({
 
     shadowOpacity: 0.08,
     shadowRadius: 10,
-    elevation: 3,
   },
 
   ticketVintage: {
@@ -31,7 +51,6 @@ const styles = StyleSheet.create({
 
     shadowOpacity: 0.12,
     shadowRadius: 12,
-    elevation: 5,
   },
 
   ticketCompact: {
@@ -43,36 +62,112 @@ const styles = StyleSheet.create({
   },
 
   // --------------------------------------------------
-  // EDGES
+  // CUTOUT LAYER
   // --------------------------------------------------
 
-  topPerforation: {
-    height: 12,
-
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "flex-start",
+  cutoutLayer: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 20,
+    elevation: 20,
   },
 
-  bottomPerforation: {
-    height: 12,
+  edgeCutout: {
+    position: "absolute",
 
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "flex-end",
+    width: 18,
+    height: 18,
+
+    borderRadius: 9,
+
+    backgroundColor: "#F1F0F6",
   },
 
-  perforationDot: {
-    width: 17,
-    height: 17,
-    borderRadius: 8.5,
+  // --------------------------------------------------
+  // TOP CUTOUTS
+  // --------------------------------------------------
 
-    marginTop: -8,
+  topCutout1: {
+    top: -9,
+    left: "10%",
   },
 
-  minimalRule: {
-    width: "100%",
-    height: 2,
+  topCutout2: {
+    top: -9,
+    left: "30%",
+  },
+
+  topCutout3: {
+    top: -9,
+    left: "50%",
+    marginLeft: -9,
+  },
+
+  topCutout4: {
+    top: -9,
+    right: "30%",
+  },
+
+  topCutout5: {
+    top: -9,
+    right: "10%",
+  },
+
+  // --------------------------------------------------
+  // BOTTOM CUTOUTS
+  // --------------------------------------------------
+
+  bottomCutout1: {
+    bottom: -9,
+    left: "10%",
+  },
+
+  bottomCutout2: {
+    bottom: -9,
+    left: "30%",
+  },
+
+  bottomCutout3: {
+    bottom: -9,
+    left: "50%",
+    marginLeft: -9,
+  },
+
+  bottomCutout4: {
+    bottom: -9,
+    right: "30%",
+  },
+
+  bottomCutout5: {
+    bottom: -9,
+    right: "10%",
+  },
+
+  // --------------------------------------------------
+  // LEFT CUTOUTS
+  // --------------------------------------------------
+
+  leftCutout1: {
+    left: -9,
+    top: "30%",
+  },
+
+  leftCutout2: {
+    left: -9,
+    bottom: "30%",
+  },
+
+  // --------------------------------------------------
+  // RIGHT CUTOUTS
+  // --------------------------------------------------
+
+  rightCutout1: {
+    right: -9,
+    top: "30%",
+  },
+
+  rightCutout2: {
+    right: -9,
+    bottom: "30%",
   },
 
   // --------------------------------------------------
@@ -111,7 +206,6 @@ const styles = StyleSheet.create({
     height: 220,
 
     overflow: "hidden",
-
     position: "relative",
   },
 
@@ -251,7 +345,6 @@ const styles = StyleSheet.create({
     lineHeight: 11,
 
     fontWeight: "800",
-
     letterSpacing: 0.2,
   },
 
@@ -265,6 +358,7 @@ const styles = StyleSheet.create({
 
   descriptionLabel: {
     fontSize: 7,
+
     fontWeight: "900",
 
     letterSpacing: 1,
@@ -274,6 +368,7 @@ const styles = StyleSheet.create({
 
   descriptionText: {
     fontSize: 11,
+
     lineHeight: 16,
 
     fontWeight: "600",
@@ -298,6 +393,7 @@ const styles = StyleSheet.create({
 
   infoLabel: {
     fontSize: 7,
+
     fontWeight: "900",
 
     letterSpacing: 1,
