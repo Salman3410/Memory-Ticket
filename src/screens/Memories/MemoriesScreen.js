@@ -5,20 +5,17 @@ import React, {
   useRef,
   useState,
 } from "react";
-
 import { View, Text, TouchableOpacity, Alert, FlatList } from "react-native";
-
 import { Ionicons } from "@expo/vector-icons";
-
 import { useMemory } from "../../hooks/useMemory";
-
+import { useCollection } from "../../hooks/useCollection";
 import SearchBar from "../../components/Memories/SearchBar/SearchBar";
 import CollectionStats from "../../components/Memories/CollectionStats/CollectionStats";
 import MemoryFilters from "../../components/Memories/MemoryFilters/MemoryFilters";
 import EmptyMemoryState from "../../components/Memories/EmptyMemoryState/EmptyMemoryState";
 import MemoryTicketList from "../../components/Memories/MemoryTicketList/MemoryTicketList";
 import TimelineBottomSheet from "../../components/Memories/TimelineBottomSheet/TimelineBottomSheet";
-
+import AdvancedSearch from "../../components/Memories/AdvancedSearch/AdvancedSearch";
 import styles from "./memoriesStyles";
 
 const MONTHS = [
@@ -36,6 +33,49 @@ const MONTHS = [
   "December",
 ];
 
+const DEFAULT_ADVANCED_FILTERS = {
+  favoriteOnly: false,
+  hasPhotos: false,
+  dateRange: "all",
+  tag: null,
+  collectionId: null,
+  searchIn: ["title", "description", "location", "tags", "category"],
+};
+
+const normalizeTag = (tag) => {
+  if (typeof tag !== "string") {
+    return "";
+  }
+
+  return tag.trim().replace(/^#+/, "").toLowerCase();
+};
+
+const getCollectionMemoryIds = (collection) => {
+  if (!collection) {
+    return new Set();
+  }
+
+  const collectionMemories = Array.isArray(collection.memories)
+    ? collection.memories
+    : Array.isArray(collection.memoryIds)
+      ? collection.memoryIds
+      : [];
+
+  return new Set(
+    collectionMemories
+      .map((memory) => {
+        if (typeof memory === "string") {
+          return String(memory);
+        }
+
+        return String(
+          memory?._id || memory?.id || memory?.clientMemoryId || "",
+        );
+      })
+      .filter(Boolean),
+  );
+};
+
 const MemoriesHeader = React.memo(function MemoriesHeader({
   navigation,
   searchQuery,
@@ -52,6 +92,8 @@ const MemoriesHeader = React.memo(function MemoriesHeader({
   selectedTag,
   timelineMonth,
   onOpenTimeline,
+  onOpenAdvancedSearch,
+  advancedFilterCount,
 }) {
   const getFilterLabel = () => {
     if (timelineMonth) {
@@ -73,7 +115,6 @@ const MemoriesHeader = React.memo(function MemoriesHeader({
   return (
     <>
       {/* HEADER */}
-
       <View style={styles.header}>
         <View>
           <Text style={styles.headerEyebrow}>YOUR COLLECTION</Text>
@@ -83,7 +124,6 @@ const MemoriesHeader = React.memo(function MemoriesHeader({
 
         <View style={styles.headerActions}>
           {/* TIMELINE */}
-
           <TouchableOpacity
             style={[
               styles.timelineButton,
@@ -111,7 +151,6 @@ const MemoriesHeader = React.memo(function MemoriesHeader({
           </TouchableOpacity>
 
           {/* ADD */}
-
           <TouchableOpacity
             style={styles.addButton}
             onPress={() => navigation.navigate("Create")}
@@ -123,22 +162,21 @@ const MemoriesHeader = React.memo(function MemoriesHeader({
       </View>
 
       {/* SEARCH */}
-
       <SearchBar
         value={searchQuery}
         onChangeText={setSearchQuery}
         placeholder="Search memories..."
+        onAdvancedPress={onOpenAdvancedSearch}
+        advancedFilterCount={advancedFilterCount}
       />
 
       {/* COLLECTION STATS */}
-
       <CollectionStats
         memoryCount={memoriesCount}
         favoriteCount={favoriteCount}
       />
 
       {/* FILTERS */}
-
       <MemoryFilters
         filter={filter}
         setFilter={setFilter}
@@ -149,7 +187,6 @@ const MemoriesHeader = React.memo(function MemoriesHeader({
       />
 
       {/* CURRENT VIEW */}
-
       <View style={styles.viewHeader}>
         <Text style={styles.viewTitle}>
           {selectedTag ? `#${selectedTag}` : getFilterLabel()}
@@ -165,6 +202,7 @@ const MemoriesHeader = React.memo(function MemoriesHeader({
 
 function MemoriesScreen({ navigation, route }) {
   const { memories, loading, toggleFavorite } = useMemory();
+  const { collections = [] } = useCollection();
 
   const [filter, setFilter] = useState("all");
   const [sortOrder, setSortOrder] = useState("newest");
@@ -172,17 +210,14 @@ function MemoriesScreen({ navigation, route }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTag, setSelectedTag] = useState(null);
 
-  // ------------------------------------------
-  // TIMELINE
-  // ------------------------------------------
+  const [advancedFilters, setAdvancedFilters] = useState(
+    DEFAULT_ADVANCED_FILTERS,
+  );
+
+  const advancedSearchRef = useRef(null);
 
   const [timelineMonth, setTimelineMonth] = useState(null);
-
   const timelineSheetRef = useRef(null);
-
-  // ------------------------------------------
-  // ROUTE FILTER
-  // ------------------------------------------
 
   useEffect(() => {
     if (route?.params?.filter) {
@@ -190,23 +225,15 @@ function MemoriesScreen({ navigation, route }) {
     }
   }, [route?.params?.filter]);
 
-  // ------------------------------------------
-  // ROUTE TAG
-  // ------------------------------------------
-
   useEffect(() => {
     const routeTag = route?.params?.tag;
 
     if (typeof routeTag === "string" && routeTag.trim()) {
-      const normalizedTag = routeTag.trim().replace(/^#+/, "").toLowerCase();
+      const normalizedTag = normalizeTag(routeTag);
 
       setSelectedTag(normalizedTag);
     }
   }, [route?.params?.tag]);
-
-  // ------------------------------------------
-  // MEMORY TIME
-  // ------------------------------------------
 
   const getMemoryTime = useCallback((memory) => {
     const dateValue = memory.createdAt || memory.date;
@@ -220,10 +247,6 @@ function MemoriesScreen({ navigation, route }) {
     return Number.isNaN(time) ? 0 : time;
   }, []);
 
-  // ------------------------------------------
-  // TIMELINE DATE
-  // ------------------------------------------
-
   const getTimelineTime = useCallback((memory) => {
     const dateValue = memory.date || memory.createdAt;
 
@@ -236,10 +259,6 @@ function MemoriesScreen({ navigation, route }) {
     return Number.isNaN(time) ? 0 : time;
   }, []);
 
-  // ------------------------------------------
-  // AVAILABLE TAGS
-  // ------------------------------------------
-
   const availableTags = useMemo(() => {
     const tagCounts = new Map();
 
@@ -251,11 +270,7 @@ function MemoriesScreen({ navigation, route }) {
       const uniqueMemoryTags = new Set();
 
       for (const tag of memory.tags) {
-        if (typeof tag !== "string") {
-          continue;
-        }
-
-        const normalizedTag = tag.trim().replace(/^#+/, "").toLowerCase();
+        const normalizedTag = normalizeTag(tag);
 
         if (!normalizedTag || uniqueMemoryTags.has(normalizedTag)) {
           continue;
@@ -275,10 +290,6 @@ function MemoriesScreen({ navigation, route }) {
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [memories]);
 
-  // ------------------------------------------
-  // VERIFY SELECTED TAG
-  // ------------------------------------------
-
   useEffect(() => {
     if (!selectedTag) {
       return;
@@ -291,29 +302,91 @@ function MemoriesScreen({ navigation, route }) {
     }
   }, [selectedTag, availableTags]);
 
-  // ------------------------------------------
-  // DISPLAYED MEMORIES
-  // ------------------------------------------
+  const advancedFilterCount = useMemo(() => {
+    let count = 0;
+
+    if (advancedFilters.favoriteOnly) {
+      count += 1;
+    }
+
+    if (advancedFilters.hasPhotos) {
+      count += 1;
+    }
+
+    if (advancedFilters.dateRange !== "all") {
+      count += 1;
+    }
+
+    if (advancedFilters.tag) {
+      count += 1;
+    }
+
+    if (advancedFilters.collectionId) {
+      count += 1;
+    }
+
+    const defaultSearchIn = DEFAULT_ADVANCED_FILTERS.searchIn;
+
+    const currentSearchIn = advancedFilters.searchIn || [];
+
+    const searchInChanged =
+      currentSearchIn.length !== defaultSearchIn.length ||
+      defaultSearchIn.some((field) => !currentSearchIn.includes(field));
+
+    if (searchInChanged) {
+      count += 1;
+    }
+
+    return count;
+  }, [advancedFilters]);
 
   const displayedMemories = useMemo(() => {
     let filtered = memories;
 
     const query = searchQuery.trim().toLowerCase();
 
-    // SEARCH
-
     if (query) {
       filtered = filtered.filter((memory) => {
         const memoryTags = Array.isArray(memory.tags) ? memory.tags : [];
 
-        const searchableText = [
-          memory.title,
-          memory.description,
-          memory.location,
-          memory.category,
-          memory.date,
-          ...memoryTags,
-        ]
+        const normalizedTags = memoryTags
+          .filter((tag) => typeof tag === "string")
+          .flatMap((tag) => {
+            const normalized = normalizeTag(tag);
+
+            return normalized ? [normalized, `#${normalized}`] : [];
+          });
+
+        const searchFields =
+          advancedFilters.searchIn?.length > 0
+            ? advancedFilters.searchIn
+            : DEFAULT_ADVANCED_FILTERS.searchIn;
+
+        const searchableParts = [];
+
+        if (searchFields.includes("title")) {
+          searchableParts.push(memory.title);
+        }
+
+        if (searchFields.includes("description")) {
+          searchableParts.push(memory.description);
+        }
+
+        if (searchFields.includes("location")) {
+          searchableParts.push(memory.location);
+        }
+
+        if (searchFields.includes("tags")) {
+          searchableParts.push(...normalizedTags);
+        }
+
+        if (searchFields.includes("category")) {
+          searchableParts.push(memory.category);
+        }
+
+        searchableParts.push(memory.date);
+
+        const searchableText = searchableParts
           .filter(Boolean)
           .join(" ")
           .toLowerCase();
@@ -322,27 +395,28 @@ function MemoriesScreen({ navigation, route }) {
       });
     }
 
-    // TAG FILTER
-
     if (selectedTag) {
       filtered = filtered.filter((memory) => {
         const memoryTags = Array.isArray(memory.tags) ? memory.tags : [];
 
+        return memoryTags.some((tag) => normalizeTag(tag) === selectedTag);
+      });
+    }
+
+    if (advancedFilters.tag) {
+      filtered = filtered.filter((memory) => {
+        const memoryTags = Array.isArray(memory.tags) ? memory.tags : [];
+
         return memoryTags.some(
-          (tag) =>
-            typeof tag === "string" &&
-            tag.trim().replace(/^#+/, "").toLowerCase() === selectedTag,
+          (tag) => normalizeTag(tag) === advancedFilters.tag,
         );
       });
     }
 
-    // FAVORITES
 
-    if (filter === "favorites") {
+    if (filter === "favorites" || advancedFilters.favoriteOnly) {
       filtered = filtered.filter((memory) => memory.favorite === true);
     }
-
-    // RECENT
 
     if (filter === "recent") {
       const now = Date.now();
@@ -356,7 +430,74 @@ function MemoriesScreen({ navigation, route }) {
       });
     }
 
-    // TIMELINE MONTH
+    if (advancedFilters.hasPhotos) {
+      filtered = filtered.filter((memory) => {
+        const images = Array.isArray(memory.images)
+          ? memory.images
+          : Array.isArray(memory.localImages)
+            ? memory.localImages
+            : memory.image
+              ? [memory.image]
+              : [];
+
+        return images.length > 0;
+      });
+    }
+
+    if (advancedFilters.dateRange !== "all") {
+      const now = Date.now();
+
+      let cutoff = null;
+
+      switch (advancedFilters.dateRange) {
+        case "7days":
+          cutoff = now - 7 * 24 * 60 * 60 * 1000;
+          break;
+
+        case "30days":
+          cutoff = now - 30 * 24 * 60 * 60 * 1000;
+          break;
+
+        case "90days":
+          cutoff = now - 90 * 24 * 60 * 60 * 1000;
+          break;
+
+        case "year": {
+          const startOfYear = new Date(new Date().getFullYear(), 0, 1);
+
+          cutoff = startOfYear.getTime();
+
+          break;
+        }
+
+        default:
+          cutoff = null;
+      }
+
+      if (cutoff !== null) {
+        filtered = filtered.filter((memory) => {
+          const memoryTime = getMemoryTime(memory);
+
+          return memoryTime >= cutoff && memoryTime <= now;
+        });
+      }
+    }
+
+    if (advancedFilters.collectionId) {
+      const selectedCollection = collections.find((collection) => {
+        const collectionId = collection?._id || collection?.id;
+
+        return String(collectionId) === String(advancedFilters.collectionId);
+      });
+
+      const collectionMemoryIds = getCollectionMemoryIds(selectedCollection);
+
+      filtered = filtered.filter((memory) => {
+        const memoryId = memory?.id || memory?._id || memory?.clientMemoryId;
+
+        return collectionMemoryIds.has(String(memoryId));
+      });
+    }
 
     if (timelineMonth) {
       const selectedYear = timelineMonth.getFullYear();
@@ -378,8 +519,6 @@ function MemoriesScreen({ navigation, route }) {
         );
       });
     }
-
-    // SORT
 
     const sorted = [...filtered];
 
@@ -403,22 +542,16 @@ function MemoriesScreen({ navigation, route }) {
     searchQuery,
     selectedTag,
     timelineMonth,
+    advancedFilters,
+    collections,
     getMemoryTime,
     getTimelineTime,
   ]);
-
-  // ------------------------------------------
-  // FAVORITE COUNT
-  // ------------------------------------------
 
   const favoriteCount = useMemo(
     () => memories.filter((memory) => memory.favorite === true).length,
     [memories],
   );
-
-  // ------------------------------------------
-  // MEMORY PRESS
-  // ------------------------------------------
 
   const handleMemoryPress = useCallback(
     (memoryId) => {
@@ -429,17 +562,9 @@ function MemoriesScreen({ navigation, route }) {
     [navigation],
   );
 
-  // ------------------------------------------
-  // CREATE MEMORY
-  // ------------------------------------------
-
   const handleCreateMemory = useCallback(() => {
     navigation.navigate("Create");
   }, [navigation]);
-
-  // ------------------------------------------
-  // TOGGLE FAVORITE
-  // ------------------------------------------
 
   const handleToggleFavorite = useCallback(
     async (memory) => {
@@ -468,42 +593,39 @@ function MemoriesScreen({ navigation, route }) {
     [toggleFavorite],
   );
 
-  // ------------------------------------------
-  // OPEN TIMELINE
-  // ------------------------------------------
+  const handleOpenAdvancedSearch = useCallback(() => {
+    advancedSearchRef.current?.open();
+  }, []);
+
+  const handleCloseAdvancedSearch = useCallback(() => {
+  }, []);
+
+  const handleApplyAdvancedSearch = useCallback((nextFilters) => {
+    setAdvancedFilters({
+      ...DEFAULT_ADVANCED_FILTERS,
+      ...nextFilters,
+      searchIn: Array.isArray(nextFilters?.searchIn)
+        ? [...nextFilters.searchIn]
+        : [...DEFAULT_ADVANCED_FILTERS.searchIn],
+    });
+
+    advancedSearchRef.current?.close();
+  }, []);
 
   const handleOpenTimeline = useCallback(() => {
     timelineSheetRef.current?.open();
   }, []);
 
-  // ------------------------------------------
-  // APPLY TIMELINE
-  // ------------------------------------------
-
   const handleApplyTimelineMonth = useCallback((month) => {
     setTimelineMonth(month);
   }, []);
-
-  // ------------------------------------------
-  // CLEAR TIMELINE
-  // ------------------------------------------
 
   const handleClearTimeline = useCallback(() => {
     setTimelineMonth(null);
   }, []);
 
-  // ------------------------------------------
-  // CLOSE TIMELINE
-  // ------------------------------------------
-
   const handleCloseTimeline = useCallback(() => {
-    // The BottomSheetModal has already
-    // been dismissed.
   }, []);
-
-  // ------------------------------------------
-  // HEADER
-  // ------------------------------------------
 
   const headerComponent = useMemo(
     () => (
@@ -523,6 +645,8 @@ function MemoriesScreen({ navigation, route }) {
         selectedTag={selectedTag}
         timelineMonth={timelineMonth}
         onOpenTimeline={handleOpenTimeline}
+        onOpenAdvancedSearch={handleOpenAdvancedSearch}
+        advancedFilterCount={advancedFilterCount}
       />
     ),
     [
@@ -537,12 +661,10 @@ function MemoriesScreen({ navigation, route }) {
       selectedTag,
       timelineMonth,
       handleOpenTimeline,
+      handleOpenAdvancedSearch,
+      advancedFilterCount,
     ],
   );
-
-  // ------------------------------------------
-  // RENDER ITEM
-  // ------------------------------------------
 
   const renderItem = useCallback(
     ({ item }) => (
@@ -555,19 +677,11 @@ function MemoriesScreen({ navigation, route }) {
     [handleMemoryPress, handleToggleFavorite],
   );
 
-  // ------------------------------------------
-  // KEY EXTRACTOR
-  // ------------------------------------------
-
   const keyExtractor = useCallback(
     (item, index) =>
       String(item.id || item.clientMemoryId || `memory-${index}`),
     [],
   );
-
-  // ------------------------------------------
-  // FOOTER
-  // ------------------------------------------
 
   const renderFooter = useCallback(
     () => (
@@ -579,10 +693,6 @@ function MemoriesScreen({ navigation, route }) {
     ),
     [],
   );
-
-  // ------------------------------------------
-  // EMPTY STATE
-  // ------------------------------------------
 
   const renderEmptyState = useCallback(() => {
     if (timelineMonth && !searchQuery.trim()) {
@@ -611,10 +721,6 @@ function MemoriesScreen({ navigation, route }) {
     );
   }, [timelineMonth, searchQuery, filter, handleCreateMemory]);
 
-  // ------------------------------------------
-  // LOADING
-  // ------------------------------------------
-
   if (loading) {
     return (
       <View style={styles.container}>
@@ -626,10 +732,6 @@ function MemoriesScreen({ navigation, route }) {
       </View>
     );
   }
-
-  // ------------------------------------------
-  // SCREEN
-  // ------------------------------------------
 
   return (
     <View style={styles.container}>
@@ -650,7 +752,14 @@ function MemoriesScreen({ navigation, route }) {
         updateCellsBatchingPeriod={50}
       />
 
-      {/* REUSABLE TIMELINE BOTTOM SHEET */}
+      <AdvancedSearch
+        ref={advancedSearchRef}
+        filters={advancedFilters}
+        onClose={handleCloseAdvancedSearch}
+        onApply={handleApplyAdvancedSearch}
+        availableTags={availableTags}
+        collections={collections}
+      />
 
       <TimelineBottomSheet
         ref={timelineSheetRef}
