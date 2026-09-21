@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import {
   ActivityIndicator,
   ScrollView,
@@ -13,7 +13,7 @@ import OnThisDayCard from "./components/OnThisDayCard";
 import DashboardSpotlightCard from "./components/DashboardSpotlightCard";
 import DashboardMemoryCard from "./components/DashboardMemoryCard";
 import DashboardSectionHeader from "./components/DashboardSectionHeader";
-import CollectionsPreview from "./components/CollectionsPreview";
+import HomeCollectionsSection from "../../components/collections/HomeCollectionsSection";
 import { styles } from "./dashboardStyles";
 
 function DashboardScreen({ navigation }) {
@@ -32,33 +32,46 @@ function DashboardScreen({ navigation }) {
     loading,
   } = useDashboard();
 
-  const openMemory = (memory) => {
-    if (!memory?.id) {
-      return;
-    }
+  const openMemory = useCallback(
+    (memory) => {
+      if (!memory?.id) {
+        return;
+      }
 
-    navigation.navigate("MemoryDetails", {
-      memoryId: memory.id,
-    });
-  };
+      navigation.navigate("MemoryDetails", {
+        memoryId: memory.id,
+      });
+    },
+    [navigation],
+  );
 
-  const openCollection = (collection) => {
-    const collectionId =
-      collection?.id || collection?._id;
+  const handleViewCollections = useCallback(() => {
+    navigation.navigate("Collections");
+  }, [navigation]);
 
-    if (!collectionId) {
-      navigation.navigate("Collections");
-      return;
-    }
+  const handleCreateCollection = useCallback(() => {
+    navigation.navigate("CreateCollection");
+  }, [navigation]);
 
-    navigation.navigate("CollectionDetails", {
-      collectionId,
-    });
-  };
+  const handleCollectionPress = useCallback(
+    (collection) => {
+      const collectionId =
+        collection?._id || collection?.id;
 
-  const openOnThisDay = () => {
+      if (!collectionId) {
+        return;
+      }
+
+      navigation.navigate("CollectionDetails", {
+        collectionId,
+      });
+    },
+    [navigation],
+  );
+
+  const openOnThisDay = useCallback(() => {
     navigation.navigate("OnThisDay");
-  };
+  }, [navigation]);
 
   if (loading && !stats.totalMemories) {
     return (
@@ -87,12 +100,16 @@ function DashboardScreen({ navigation }) {
           mostActiveMonth={mostActiveMonth}
         />
 
+        {/* ON THIS DAY */}
+
         <View style={styles.section}>
           <OnThisDayCard
             memories={onThisDay}
             onPress={openOnThisDay}
           />
         </View>
+
+        {/* MEMORY SPOTLIGHT */}
 
         {featuredMemory && (
           <View style={styles.section}>
@@ -112,6 +129,8 @@ function DashboardScreen({ navigation }) {
             />
           </View>
         )}
+
+        {/* FAVORITES */}
 
         {favoriteMemories.length > 0 && (
           <View style={styles.section}>
@@ -149,25 +168,24 @@ function DashboardScreen({ navigation }) {
           </View>
         )}
 
-        {recentCollections.length > 0 && (
-          <View style={styles.section}>
-            <DashboardSectionHeader
-              title="Your Collections"
-              actionLabel="See all"
-              onPress={() =>
-                navigation.navigate("Collections")
-              }
-            />
+        {/* COLLECTIONS */}
 
-            <CollectionsPreview
-              collections={recentCollections}
-              onPress={openCollection}
-            />
-          </View>
-        )}
+        <HomeCollectionsSection
+          collections={
+            Array.isArray(recentCollections)
+              ? recentCollections.slice(0, 3)
+              : []
+          }
+          onViewAll={handleViewCollections}
+          onCreate={handleCreateCollection}
+          onCollectionPress={
+            handleCollectionPress
+          }
+        />
       </ScrollView>
     </View>
   );
 }
 
 export default React.memo(DashboardScreen);
+

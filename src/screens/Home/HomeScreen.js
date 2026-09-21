@@ -1,19 +1,13 @@
-import React, { useCallback, useMemo } from "react";
-
+import { useCallback, useMemo } from "react";
 import { View, ScrollView, Text } from "react-native";
-
 import { useMemory } from "../../hooks/useMemory";
 import { useCollection } from "../../hooks/useCollection";
-
 import HomeHeader from "./components/HomeHeader";
 import CreateMemoryHero from "./components/CreateMemoryHero";
-import MemoryStats from "./components/MemoryStats";
 import LatestMemorySection from "./components/LatestMemorySection";
 import RecentMemoriesSection from "./components/RecentMemoriesSection";
 import FavoriteBanner from "./components/FavoriteBanner";
-
 import HomeCollectionsSection from "../../components/collections/HomeCollectionsSection";
-
 import styles from "./homeStyles";
 
 function HomeScreen({ navigation }) {
@@ -75,11 +69,6 @@ function HomeScreen({ navigation }) {
         <HomeHeader navigation={navigation} />
 
         <CreateMemoryHero navigation={navigation} />
-
-        <MemoryStats
-          memoriesCount={memories.length}
-          favoritesCount={favoriteMemories.length}
-        />
 
         <LatestMemorySection
           latestMemory={latestMemory}

@@ -1,5 +1,4 @@
-import React, { useCallback, useEffect } from "react";
-
+import { useCallback, useEffect } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -9,17 +8,25 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-
+import { Ionicons } from "@expo/vector-icons";
 import { useCollection } from "../../hooks/useCollection";
-import CollectionCard from "../../components/collections/CollectionCard";
+import CollectionCardComponent from "../../components/collections/CollectionCard";
 
 function CollectionsScreen({ navigation }) {
-  const { collections, loading, refreshCollections } = useCollection();
+  const {
+    collections,
+    loading,
+    refreshCollections,
+  } = useCollection();
 
   // Initial load only.
   useEffect(() => {
     refreshCollections();
   }, [refreshCollections]);
+
+  const handleGoBack = useCallback(() => {
+    navigation.goBack();
+  }, [navigation]);
 
   const handleCreateCollection = useCallback(() => {
     navigation.navigate("CreateCollection");
@@ -27,10 +34,14 @@ function CollectionsScreen({ navigation }) {
 
   const handleCollectionPress = useCallback(
     (collection) => {
-      const collectionId = collection?._id || collection?.id;
+      const collectionId =
+        collection?._id || collection?.id;
 
       if (!collectionId) {
-        console.warn("Collection ID missing:", collection);
+        console.warn(
+          "Collection ID missing:",
+          collection,
+        );
         return;
       }
 
@@ -42,17 +53,26 @@ function CollectionsScreen({ navigation }) {
   );
 
   const renderItem = useCallback(
-    ({ item }) => (
-      <CollectionCard
-        collection={item}
-        onPress={() => handleCollectionPress(item)}
-      />
-    ),
+    ({ item }) => {
+      return (
+        <CollectionCardComponent
+          collection={item}
+          onPress={() =>
+            handleCollectionPress(item)
+          }
+        />
+      );
+    },
     [handleCollectionPress],
   );
 
   const keyExtractor = useCallback(
-    (item, index) => String(item?._id || item?.id || index),
+    (item, index) =>
+      String(
+        item?._id ||
+          item?.id ||
+          index,
+      ),
     [],
   );
 
@@ -64,14 +84,19 @@ function CollectionsScreen({ navigation }) {
     return (
       <View style={styles.emptyState}>
         <View style={styles.emptyMark}>
-          <Text style={styles.emptyMarkText}>+</Text>
+          <Text style={styles.emptyMarkText}>
+            +
+          </Text>
         </View>
 
-        <Text style={styles.emptyTitle}>Give your memories a place</Text>
+        <Text style={styles.emptyTitle}>
+          Give your memories a place
+        </Text>
 
         <Text style={styles.emptyText}>
-          Create a collection for trips, people, events, or anything you want to
-          remember together.
+          Create a collection for trips,
+          people, events, or anything you want
+          to remember together.
         </Text>
 
         <TouchableOpacity
@@ -79,23 +104,47 @@ function CollectionsScreen({ navigation }) {
           onPress={handleCreateCollection}
           activeOpacity={0.85}
         >
-          <Text style={styles.emptyButtonText}>Create Collection</Text>
+          <Text style={styles.emptyButtonText}>
+            Create Collection
+          </Text>
         </TouchableOpacity>
       </View>
     );
-  }, [loading, handleCreateCollection]);
+  }, [
+    loading,
+    handleCreateCollection,
+  ]);
 
   return (
     <View style={styles.container}>
+      {/* HEADER */}
       <View style={styles.header}>
-        <View style={styles.headerContent}>
-          <Text style={styles.eyebrow}>YOUR STORIES</Text>
+        <View style={styles.headerLeft}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={handleGoBack}
+            activeOpacity={0.8}
+          >
+            <Ionicons
+              name="arrow-back"
+              size={20}
+              color="#34345C"
+            />
+          </TouchableOpacity>
 
-          <Text style={styles.title}>Collections</Text>
+          <View style={styles.headerContent}>
+            <Text style={styles.eyebrow}>
+              YOUR STORIES
+            </Text>
 
-          <Text style={styles.subtitle}>
-            Keep moments that belong together.
-          </Text>
+            <Text style={styles.title}>
+              Collections
+            </Text>
+
+            <Text style={styles.subtitle}>
+              Keep moments that belong together.
+            </Text>
+          </View>
         </View>
 
         <TouchableOpacity
@@ -103,7 +152,9 @@ function CollectionsScreen({ navigation }) {
           onPress={handleCreateCollection}
           activeOpacity={0.85}
         >
-          <Text style={styles.createButtonText}>+</Text>
+          <Text style={styles.createButtonText}>
+            +
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -111,18 +162,27 @@ function CollectionsScreen({ navigation }) {
         <View style={styles.summaryRow}>
           <Text style={styles.summaryText}>
             {collections.length}{" "}
-            {collections.length === 1 ? "collection" : "collections"}
+            {collections.length === 1
+              ? "collection"
+              : "collections"}
           </Text>
 
-          <Text style={styles.summaryHint}>Your memories, together</Text>
+          <Text style={styles.summaryHint}>
+            Your memories, together
+          </Text>
         </View>
       ) : null}
 
       {loading && collections.length === 0 ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#34345C" />
+          <ActivityIndicator
+            size="large"
+            color="#34345C"
+          />
 
-          <Text style={styles.loadingText}>Loading collections...</Text>
+          <Text style={styles.loadingText}>
+            Loading collections...
+          </Text>
         </View>
       ) : (
         <FlatList
@@ -131,16 +191,25 @@ function CollectionsScreen({ navigation }) {
           keyExtractor={keyExtractor}
           numColumns={2}
           columnWrapperStyle={
-            collections.length > 1 ? styles.columnWrapper : undefined
+            collections.length > 1
+              ? styles.columnWrapper
+              : undefined
           }
           contentContainerStyle={
-            collections.length === 0 ? styles.emptyList : styles.listContent
+            collections.length === 0
+              ? styles.emptyList
+              : styles.listContent
           }
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
-              refreshing={loading && collections.length > 0}
-              onRefresh={() => refreshCollections(true)}
+              refreshing={
+                loading &&
+                collections.length > 0
+              }
+              onRefresh={() =>
+                refreshCollections(true)
+              }
               tintColor="#34345C"
             />
           }
@@ -148,7 +217,6 @@ function CollectionsScreen({ navigation }) {
           initialNumToRender={6}
           maxToRenderPerBatch={6}
           windowSize={5}
-          removeClippedSubviews
         />
       )}
     </View>
@@ -172,16 +240,32 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
 
+  headerLeft: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  backButton: {
+    width: 38,
+    height: 38,
+    marginRight: 12,
+    borderRadius: 19,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFFFFF",
+  },
+
   headerContent: {
     flex: 1,
-    paddingRight: 18,
+    paddingRight: 14,
   },
 
   eyebrow: {
     fontSize: 10,
     fontWeight: "700",
     letterSpacing: 1.5,
-    color: "#34345C",
+    color: "#E76F51",
   },
 
   title: {
@@ -201,6 +285,7 @@ const styles = StyleSheet.create({
   createButton: {
     width: 46,
     height: 46,
+    marginLeft: 10,
     borderRadius: 23,
     alignItems: "center",
     justifyContent: "center",
