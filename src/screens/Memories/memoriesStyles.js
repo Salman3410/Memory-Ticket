@@ -120,6 +120,213 @@ const styles = StyleSheet.create({
     color: "#9A99A5",
     marginTop: 25,
   },
+
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  timelineButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 45,
+    paddingHorizontal: 11,
+    marginRight: 8,
+    borderRadius: 20,
+    // backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#D9D8E2",
+  },
+
+  timelineButtonActive: {
+    backgroundColor: "#34345C",
+    borderColor: "#34345C",
+  },
+
+  timelineButtonText: {
+    marginLeft: 6,
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#34345C",
+  },
+
+  timelineButtonTextActive: {
+    color: "#FFFFFF",
+  },
+
+  timelineEmptyState: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 30,
+    paddingVertical: 70,
+  },
+
+  timelineEmptyTitle: {
+    marginTop: 14,
+    textAlign: "center",
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#34345C",
+  },
+
+  timelineEmptyText: {
+    marginTop: 7,
+    textAlign: "center",
+    fontSize: 14,
+    lineHeight: 21,
+    color: "#77768A",
+  },
+
+  timelineModalOverlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(36, 36, 36, 0.35)",
+  },
+
+  timelineModal: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 16,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    backgroundColor: "#FFFFFF",
+  },
+
+  timelineModalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+
+  timelineModalTitle: {
+    fontSize: 21,
+    fontWeight: "800",
+    color: "#34345C",
+  },
+
+  timelineCloseButton: {
+    width: 36,
+    height: 36,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 18,
+    backgroundColor: "#F1F0F6",
+  },
+
+  timelineYearRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 18,
+    paddingHorizontal: 22,
+  },
+
+  timelineYearArrow: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 20,
+    backgroundColor: "#F1F0F6",
+  },
+
+  timelineYear: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#242424",
+  },
+
+  timelineMonthGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    marginTop: 18,
+  },
+
+  timelineMonthItem: {
+    width: "31.5%",
+    minHeight: 48,
+    marginBottom: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 12,
+    backgroundColor: "#F1F0F6",
+  },
+
+  timelineMonthItemSelected: {
+    backgroundColor: "#34345C",
+  },
+
+  timelineMonthText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#34345C",
+  },
+
+  timelineMonthTextSelected: {
+    color: "#FFFFFF",
+  },
+
+  timelineClearButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 44,
+    marginTop: 2,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#D9D8E2",
+  },
+
+  timelineClearText: {
+    marginLeft: 7,
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#34345C",
+  },
+
+  timelineActions: {
+    flexDirection: "row",
+    marginTop: 12,
+  },
+
+  timelineCancelButton: {
+    flex: 1,
+    minHeight: 48,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 6,
+    borderRadius: 12,
+    backgroundColor: "#F1F0F6",
+  },
+
+  timelineCancelText: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#34345C",
+  },
+
+  timelineDoneButton: {
+    flex: 1,
+    minHeight: 48,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 6,
+    borderRadius: 12,
+    backgroundColor: "#34345C",
+  },
+
+  timelineDoneText: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#FFFFFF",
+  },
 });
 
 export default styles;

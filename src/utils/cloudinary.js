@@ -19,7 +19,6 @@ const addTransformations = (uri, transformations) => {
 
   const insertPosition = uploadIndex + uploadMarker.length;
 
-  // Avoid applying transformations twice.
   const afterUpload = uri.slice(insertPosition);
 
   if (afterUpload.startsWith(transformations)) {
@@ -29,10 +28,6 @@ const addTransformations = (uri, transformations) => {
   return uri.slice(0, insertPosition) + transformations + "/" + afterUpload;
 };
 
-// --------------------------------------------------
-// MEMORY TICKET IMAGE
-// --------------------------------------------------
-
 export const getMemoryThumbnailUrl = (uri) => {
   if (!uri) {
     return uri;
@@ -41,10 +36,6 @@ export const getMemoryThumbnailUrl = (uri) => {
   return addTransformations(uri, "f_auto,q_auto,w_700");
 };
 
-// --------------------------------------------------
-// MEMORY DETAILS IMAGE
-// --------------------------------------------------
-
 export const getMemoryDetailUrl = (uri) => {
   if (!uri) {
     return uri;
@@ -52,10 +43,6 @@ export const getMemoryDetailUrl = (uri) => {
 
   return addTransformations(uri, "f_auto,q_auto,w_1200");
 };
-
-// --------------------------------------------------
-// FULLSCREEN IMAGE
-// --------------------------------------------------
 
 export const getMemoryViewerUrl = (uri) => {
   if (!uri) {
