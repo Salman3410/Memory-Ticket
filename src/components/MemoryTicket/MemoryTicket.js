@@ -6,10 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { getMemoryThumbnailUrl } from "../../utils/cloudinary";
 
-import {
-  normalizeTicketCustomization,
-  getTicketTheme,
-} from "../../utils/ticketCustomization";
+import { normalizeTicketCustomization } from "../../utils/ticketCustomization";
 
 import styles from "./memoryTicketStyles";
 
@@ -24,19 +21,22 @@ function MemoryTicket({
 
   const [activeImage, setActiveImage] = useState(0);
 
-  const normalizedCustomization = useMemo(
+  // --------------------------------------------------
+  // CUSTOMIZATION
+  // --------------------------------------------------
+
+  const customization = useMemo(
     () => normalizeTicketCustomization(memory || {}),
     [memory],
   );
 
-  const theme = useMemo(
-    () => getTicketTheme(normalizedCustomization),
-    [normalizedCustomization],
-  );
+  const ticketStyle =
+    customization.ticketStyle === "minimal" ||
+    customization.ticketStyle === "vintage"
+      ? customization.ticketStyle
+      : "classic";
 
-  const isMinimal = normalizedCustomization.ticketStyle === "minimal";
-
-  const isVintage = normalizedCustomization.ticketStyle === "vintage";
+  const ticketAccent = customization.ticketAccent;
 
   const {
     showLocation,
@@ -44,9 +44,76 @@ function MemoryTicket({
     showDescription,
     showAdmission,
     showTicketNumber,
-  } = normalizedCustomization.ticketOptions;
+  } = customization.ticketOptions;
 
-  const currentMemory = memory || {};
+  if (!memory) {
+    return null;
+  }
+
+  // --------------------------------------------------
+  // STYLE MODE
+  // --------------------------------------------------
+
+  const isMinimal = ticketStyle === "minimal";
+
+  const isVintage = ticketStyle === "vintage";
+
+  // --------------------------------------------------
+  // EXPLICIT COLORS
+  // --------------------------------------------------
+
+  const accentColors = {
+    coral: {
+      main: "#E76F51",
+      text: "#E76F51",
+    },
+
+    navy: {
+      main: "#34345C",
+      text: "#34345C",
+    },
+
+    yellow: {
+      main: "#F5C842",
+      text: "#8A6900",
+    },
+
+    green: {
+      main: "#6C8B74",
+      text: "#4F6756",
+    },
+  };
+
+  const selectedAccent = accentColors[ticketAccent] || accentColors.coral;
+
+  const accentColor = selectedAccent.main;
+
+  // --------------------------------------------------
+  // TICKET COLORS
+  // --------------------------------------------------
+
+  let ticketBackground = "#F7B900";
+  let ticketTextColor = "#F0442C";
+  let imageBackground = "#EAAE00";
+  let borderColor = "transparent";
+
+  if (isMinimal) {
+    ticketBackground = "#FFFFFF";
+    ticketTextColor = ticketAccent === "yellow" ? "#725900" : accentColor;
+    imageBackground = "#F1F0F6";
+    borderColor = "#D9D8E2";
+  }
+
+  if (isVintage) {
+    ticketBackground = "#F3E7CF";
+    ticketTextColor = ticketAccent === "yellow" ? "#745D20" : accentColor;
+    imageBackground = "#E4D2AD";
+    borderColor = "#C5A978";
+  }
+
+  // --------------------------------------------------
+  // MEMORY DATA
+  // --------------------------------------------------
 
   const formatDate = (value) => {
     if (!value) {
@@ -66,34 +133,34 @@ function MemoryTicket({
     });
   };
 
-  const title = currentMemory.title || "UNTITLED MEMORY";
+  const title = memory.title || "UNTITLED MEMORY";
 
-  const location = currentMemory.location?.trim() || "UNKNOWN";
+  const location = memory.location?.trim() || "UNKNOWN";
 
-  const date = formatDate(currentMemory.createdAt || currentMemory.date);
+  const date = formatDate(memory.createdAt || memory.date);
 
-  const time = currentMemory.time || "";
+  const time = memory.time || "";
 
-  const description = currentMemory.description?.trim() || "";
+  const description = memory.description?.trim() || "";
 
-  const admission = currentMemory.admission || "X1";
+  const admission = memory.admission || "X1";
 
   const resolvedTicketNumber =
     ticketNumber ||
-    currentMemory.ticketNumber ||
-    currentMemory.id?.toString().slice(-6) ||
+    memory.ticketNumber ||
+    memory.id?.toString().slice(-6) ||
     "000000";
 
-  const images = Array.isArray(currentMemory.images)
-    ? currentMemory.images
-    : currentMemory.image
-      ? [currentMemory.image]
+  const images = Array.isArray(memory.images)
+    ? memory.images
+    : memory.image
+      ? [memory.image]
       : [];
 
-  const tags = Array.isArray(currentMemory.tags)
+  const tags = Array.isArray(memory.tags)
     ? [
         ...new Set(
-          currentMemory.tags
+          memory.tags
             .filter((tag) => typeof tag === "string")
             .map((tag) => tag.trim().replace(/^#+/, "").toLowerCase())
             .filter(Boolean),
@@ -105,13 +172,10 @@ function MemoryTicket({
 
   const displayImages = isSingleImageMode ? [image] : images;
 
-  const displayImageSources = useMemo(() => {
-    return displayImages.map((imageUri) => getMemoryThumbnailUrl(imageUri));
-  }, [displayImages]);
-
-  if (!memory) {
-    return null;
-  }
+  const displayImageSources = useMemo(
+    () => displayImages.map((imageUri) => getMemoryThumbnailUrl(imageUri)),
+    [displayImages],
+  );
 
   const handleImagePress = () => {
     if (onPress) {
@@ -119,17 +183,24 @@ function MemoryTicket({
     }
   };
 
+  // --------------------------------------------------
+  // PERFORATION
+  // --------------------------------------------------
+
   const renderPerforation = (position) => {
     return (
       <View
         style={[
           position === "top" ? styles.topPerforation : styles.bottomPerforation,
+
           {
-            backgroundColor: theme.backgroundColor,
+            backgroundColor: ticketBackground,
           },
         ]}
       >
-        {Array.from({ length: 12 }).map((_, index) => (
+        {Array.from({
+          length: 12,
+        }).map((_, index) => (
           <View
             key={index}
             style={[
@@ -144,8 +215,13 @@ function MemoryTicket({
     );
   };
 
+  // --------------------------------------------------
+  // TICKET
+  // --------------------------------------------------
+
   const ticketContent = (
     <View
+      key={ticketStyle}
       style={[
         styles.ticket,
 
@@ -156,18 +232,20 @@ function MemoryTicket({
         isVintage && styles.ticketVintage,
 
         {
-          backgroundColor: theme.backgroundColor,
+          backgroundColor: ticketBackground,
 
-          borderColor: theme.borderColor,
+          borderColor: borderColor,
         },
       ]}
     >
+      {/* TOP EDGE */}
+
       {isMinimal ? (
         <View
           style={[
             styles.minimalRule,
             {
-              backgroundColor: theme.accentColor,
+              backgroundColor: accentColor,
             },
           ]}
         />
@@ -175,11 +253,13 @@ function MemoryTicket({
         renderPerforation("top")
       )}
 
+      {/* BODY */}
+
       <View
         style={[
           styles.ticketBody,
           {
-            backgroundColor: theme.backgroundColor,
+            backgroundColor: ticketBackground,
           },
         ]}
       >
@@ -190,14 +270,14 @@ function MemoryTicket({
             style={[
               styles.brandText,
               {
-                color: theme.accentColor,
+                color: accentColor,
               },
             ]}
           >
             MEMENTO
           </Text>
 
-          <Ionicons name="ticket-outline" size={18} color={theme.accentColor} />
+          <Ionicons name="ticket-outline" size={18} color={accentColor} />
         </View>
 
         {/* IMAGE */}
@@ -206,7 +286,7 @@ function MemoryTicket({
           style={[
             styles.ticketImageContainer,
             {
-              backgroundColor: theme.imagePlaceholderColor,
+              backgroundColor: imageBackground,
             },
           ]}
           onLayout={(event) => {
@@ -256,6 +336,7 @@ function MemoryTicket({
                     key={`${imageUri}-${index}`}
                     style={[
                       styles.ticketImageSlide,
+
                       imageWidth
                         ? {
                             width: imageWidth,
@@ -283,17 +364,13 @@ function MemoryTicket({
             )
           ) : (
             <View style={styles.noImage}>
-              <Ionicons
-                name="image-outline"
-                size={40}
-                color={theme.accentColor}
-              />
+              <Ionicons name="image-outline" size={40} color={accentColor} />
 
               <Text
                 style={[
                   styles.imagePlaceholderText,
                   {
-                    color: theme.accentColor,
+                    color: accentColor,
                   },
                 ]}
               >
@@ -317,6 +394,7 @@ function MemoryTicket({
                   key={index}
                   style={[
                     styles.imageDot,
+
                     index === activeImage && styles.imageDotActive,
                   ]}
                 />
@@ -331,10 +409,13 @@ function MemoryTicket({
           <Text
             style={[
               styles.ticketTitle,
+
               isMinimal && styles.minimalTitle,
+
               isVintage && styles.vintageTitle,
+
               {
-                color: theme.textColor,
+                color: ticketTextColor,
               },
             ]}
             numberOfLines={2}
@@ -353,7 +434,7 @@ function MemoryTicket({
                 style={[
                   styles.tagChip,
                   {
-                    borderBottomColor: theme.accentColor,
+                    borderBottomColor: accentColor,
                   },
                 ]}
               >
@@ -361,7 +442,7 @@ function MemoryTicket({
                   style={[
                     styles.tagText,
                     {
-                      color: theme.accentColor,
+                      color: accentColor,
                     },
                   ]}
                   numberOfLines={1}
@@ -381,7 +462,7 @@ function MemoryTicket({
               style={[
                 styles.descriptionLabel,
                 {
-                  color: theme.accentColor,
+                  color: accentColor,
                 },
               ]}
             >
@@ -392,7 +473,7 @@ function MemoryTicket({
               style={[
                 styles.descriptionText,
                 {
-                  color: theme.textColor,
+                  color: ticketTextColor,
                 },
               ]}
               numberOfLines={4}
@@ -413,7 +494,7 @@ function MemoryTicket({
                     style={[
                       styles.infoLabel,
                       {
-                        color: theme.accentColor,
+                        color: accentColor,
                       },
                     ]}
                   >
@@ -424,7 +505,7 @@ function MemoryTicket({
                     style={[
                       styles.infoValue,
                       {
-                        color: theme.textColor,
+                        color: ticketTextColor,
                       },
                     ]}
                     numberOfLines={1}
@@ -440,7 +521,7 @@ function MemoryTicket({
                     style={[
                       styles.infoLabel,
                       {
-                        color: theme.accentColor,
+                        color: accentColor,
                       },
                     ]}
                   >
@@ -451,7 +532,7 @@ function MemoryTicket({
                     style={[
                       styles.infoValue,
                       {
-                        color: theme.textColor,
+                        color: ticketTextColor,
                       },
                     ]}
                     numberOfLines={1}
@@ -468,7 +549,7 @@ function MemoryTicket({
                   style={[
                     styles.infoLabel,
                     {
-                      color: theme.accentColor,
+                      color: accentColor,
                     },
                   ]}
                 >
@@ -479,7 +560,7 @@ function MemoryTicket({
                   style={[
                     styles.infoValue,
                     {
-                      color: theme.textColor,
+                      color: ticketTextColor,
                     },
                   ]}
                 >
@@ -498,7 +579,7 @@ function MemoryTicket({
               style={[
                 styles.admissionLabel,
                 {
-                  color: theme.accentColor,
+                  color: accentColor,
                 },
               ]}
             >
@@ -509,7 +590,7 @@ function MemoryTicket({
               style={[
                 styles.admissionValue,
                 {
-                  color: theme.textColor,
+                  color: ticketTextColor,
                 },
               ]}
             >
@@ -525,7 +606,7 @@ function MemoryTicket({
             style={[
               styles.dividerLine,
               {
-                borderColor: theme.accentColor,
+                borderColor: accentColor,
               },
             ]}
           />
@@ -562,7 +643,7 @@ function MemoryTicket({
                 style={[
                   styles.ticketNumberLabel,
                   {
-                    color: theme.accentColor,
+                    color: accentColor,
                   },
                 ]}
               >
@@ -573,7 +654,7 @@ function MemoryTicket({
                 style={[
                   styles.ticketNumber,
                   {
-                    color: theme.textColor,
+                    color: ticketTextColor,
                   },
                 ]}
               >
@@ -585,13 +666,16 @@ function MemoryTicket({
           <View
             style={[styles.barcode, !showTicketNumber && styles.barcodeFull]}
           >
-            {Array.from({ length: 30 }).map((_, index) => (
+            {Array.from({
+              length: 30,
+            }).map((_, index) => (
               <View
                 key={index}
                 style={[
                   styles.bar,
+
                   {
-                    backgroundColor: theme.accentColor,
+                    backgroundColor: accentColor,
                   },
 
                   index % 4 === 0
@@ -606,12 +690,14 @@ function MemoryTicket({
         </View>
       </View>
 
+      {/* BOTTOM EDGE */}
+
       {isMinimal ? (
         <View
           style={[
             styles.minimalRule,
             {
-              backgroundColor: theme.accentColor,
+              backgroundColor: accentColor,
             },
           ]}
         />

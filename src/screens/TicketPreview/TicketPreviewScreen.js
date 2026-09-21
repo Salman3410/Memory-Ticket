@@ -215,7 +215,11 @@ function TicketPreviewScreen({ route, navigation }) {
         ]}
       >
         <View style={styles.ticketShadow}>
-          <MemoryTicket memory={previewMemory} image={image} />
+          <MemoryTicket
+            key={`preview-${index}-${previewMemory.ticketStyle}-${previewMemory.ticketAccent}`}
+            memory={previewMemory}
+            image={image}
+          />
         </View>
       </View>
     );

@@ -827,6 +827,7 @@ function MemoryDetailsScreen({ navigation, route }) {
           style={styles.ticketShadow}
         >
           <MemoryTicket
+            key={`${memory.id}-${ticketPreviewMemory.ticketStyle}-${ticketPreviewMemory.ticketAccent}`}
             memory={ticketPreviewMemory}
             image={detailImages[index] || image}
             ticketNumber={getTicketNumber()}

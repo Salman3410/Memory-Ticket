@@ -113,9 +113,13 @@ export const getTicketTheme = (customization = {}) => {
   if (normalized.ticketStyle === "minimal") {
     return {
       accentColor: accent.color,
-      textColor: accent.textColor,
+
+      textColor: accent.id === "yellow" ? "#725900" : accent.color,
+
       backgroundColor: "#FFFFFF",
+
       imagePlaceholderColor: "#F1F0F6",
+
       borderColor: "#D9D8E2",
     };
   }
@@ -123,18 +127,26 @@ export const getTicketTheme = (customization = {}) => {
   if (normalized.ticketStyle === "vintage") {
     return {
       accentColor: accent.color,
-      textColor: accent.textColor,
+
+      textColor: accent.id === "yellow" ? "#745D20" : accent.color,
+
       backgroundColor: "#F3E7CF",
-      imagePlaceholderColor: "#E8D6B2",
+
+      imagePlaceholderColor: "#E4D2AD",
+
       borderColor: "#C5A978",
     };
   }
 
   return {
     accentColor: accent.color,
-    textColor: accent.textColor,
+
+    textColor: accent.color,
+
     backgroundColor: "#F7B900",
+
     imagePlaceholderColor: "#EAAE00",
+
     borderColor: "transparent",
   };
 };

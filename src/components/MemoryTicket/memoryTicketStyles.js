@@ -18,7 +18,8 @@ const styles = StyleSheet.create({
 
   ticketMinimal: {
     borderWidth: 1,
-    borderRadius: 16,
+    borderRadius: 14,
+
     shadowOpacity: 0.08,
     shadowRadius: 10,
     elevation: 3,
@@ -27,21 +28,27 @@ const styles = StyleSheet.create({
   ticketVintage: {
     borderWidth: 1,
     borderRadius: 6,
+
     shadowOpacity: 0.12,
     shadowRadius: 12,
     elevation: 5,
   },
 
   ticketCompact: {
-    transform: [{ scale: 0.96 }],
+    transform: [
+      {
+        scale: 0.96,
+      },
+    ],
   },
 
   // --------------------------------------------------
-  // PERFORATION
+  // EDGES
   // --------------------------------------------------
 
   topPerforation: {
     height: 12,
+
     flexDirection: "row",
     justifyContent: "space-around",
     alignItems: "flex-start",
@@ -49,6 +56,7 @@ const styles = StyleSheet.create({
 
   bottomPerforation: {
     height: 12,
+
     flexDirection: "row",
     justifyContent: "space-around",
     alignItems: "flex-end",
@@ -58,6 +66,7 @@ const styles = StyleSheet.create({
     width: 17,
     height: 17,
     borderRadius: 8.5,
+
     marginTop: -8,
   },
 
@@ -81,6 +90,7 @@ const styles = StyleSheet.create({
 
   header: {
     height: 34,
+
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -99,7 +109,9 @@ const styles = StyleSheet.create({
   ticketImageContainer: {
     width: "100%",
     height: 220,
+
     overflow: "hidden",
+
     position: "relative",
   },
 
@@ -118,12 +130,14 @@ const styles = StyleSheet.create({
 
   noImage: {
     flex: 1,
+
     alignItems: "center",
     justifyContent: "center",
   },
 
   imagePlaceholderText: {
     marginTop: 7,
+
     fontSize: 8,
     fontWeight: "900",
     letterSpacing: 1,
@@ -131,11 +145,15 @@ const styles = StyleSheet.create({
 
   imageCounter: {
     position: "absolute",
+
     top: 10,
     right: 10,
+
     backgroundColor: "rgba(0, 0, 0, 0.65)",
+
     paddingHorizontal: 9,
     paddingVertical: 5,
+
     borderRadius: 12,
   },
 
@@ -147,12 +165,15 @@ const styles = StyleSheet.create({
 
   imageDots: {
     position: "absolute",
+
     bottom: 10,
     left: 0,
     right: 0,
+
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
+
     gap: 5,
   },
 
@@ -160,6 +181,7 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
+
     backgroundColor: "rgba(255, 255, 255, 0.55)",
   },
 
@@ -167,6 +189,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
+
     backgroundColor: "#FFFFFF",
   },
 
@@ -181,20 +204,25 @@ const styles = StyleSheet.create({
   ticketTitle: {
     fontSize: 27,
     lineHeight: 27,
+
     fontWeight: "900",
+
     textTransform: "uppercase",
+
     letterSpacing: -0.5,
   },
 
   minimalTitle: {
     fontSize: 24,
     lineHeight: 27,
+
     letterSpacing: 0,
   },
 
   vintageTitle: {
     fontSize: 25,
     lineHeight: 28,
+
     letterSpacing: -0.2,
   },
 
@@ -205,20 +233,25 @@ const styles = StyleSheet.create({
   tagsContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
+
     gap: 7,
+
     marginBottom: 13,
   },
 
   tagChip: {
     paddingHorizontal: 0,
     paddingVertical: 2,
+
     borderBottomWidth: 1,
   },
 
   tagText: {
     fontSize: 8,
     lineHeight: 11,
+
     fontWeight: "800",
+
     letterSpacing: 0.2,
   },
 
@@ -233,13 +266,16 @@ const styles = StyleSheet.create({
   descriptionLabel: {
     fontSize: 7,
     fontWeight: "900",
+
     letterSpacing: 1,
+
     marginBottom: 4,
   },
 
   descriptionText: {
     fontSize: 11,
     lineHeight: 16,
+
     fontWeight: "600",
   },
 
@@ -263,13 +299,17 @@ const styles = StyleSheet.create({
   infoLabel: {
     fontSize: 7,
     fontWeight: "900",
+
     letterSpacing: 1,
+
     marginBottom: 3,
   },
 
   infoValue: {
     fontSize: 11,
+
     fontWeight: "800",
+
     textTransform: "uppercase",
   },
 
@@ -283,18 +323,23 @@ const styles = StyleSheet.create({
 
   admissionSection: {
     flexDirection: "row",
+
     alignItems: "center",
+
     gap: 7,
   },
 
   admissionLabel: {
     fontSize: 8,
+
     fontWeight: "900",
+
     letterSpacing: 0.8,
   },
 
   admissionValue: {
     fontSize: 11,
+
     fontWeight: "900",
   },
 
@@ -304,30 +349,41 @@ const styles = StyleSheet.create({
 
   divider: {
     height: 18,
+
     marginHorizontal: -17,
+
     position: "relative",
+
     justifyContent: "center",
   },
 
   dividerLine: {
     borderTopWidth: 2,
+
     borderStyle: "dotted",
+
     width: "100%",
   },
 
   dividerNotchLeft: {
     position: "absolute",
+
     left: -9,
+
     width: 18,
     height: 18,
+
     borderRadius: 9,
   },
 
   dividerNotchRight: {
     position: "absolute",
+
     right: -9,
+
     width: 18,
     height: 18,
+
     borderRadius: 9,
   },
 
@@ -337,8 +393,11 @@ const styles = StyleSheet.create({
 
   ticketFooter: {
     flexDirection: "row",
+
     alignItems: "flex-end",
+
     justifyContent: "space-between",
+
     minHeight: 52,
   },
 
@@ -348,14 +407,19 @@ const styles = StyleSheet.create({
 
   ticketNumberLabel: {
     fontSize: 6,
+
     fontWeight: "900",
+
     letterSpacing: 0.8,
+
     marginBottom: 3,
   },
 
   ticketNumber: {
     fontSize: 10,
+
     fontWeight: "900",
+
     letterSpacing: 1,
   },
 
@@ -365,11 +429,17 @@ const styles = StyleSheet.create({
 
   barcode: {
     height: 43,
+
     flex: 1,
+
     flexDirection: "row",
+
     alignItems: "stretch",
+
     justifyContent: "flex-end",
+
     gap: 2,
+
     overflow: "hidden",
   },
 
