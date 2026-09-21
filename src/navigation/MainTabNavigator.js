@@ -1,6 +1,6 @@
-import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 
+import DashboardScreen from "../screens/Dashboard/DashboardScreen";
 import HomeScreen from "../screens/Home/HomeScreen";
 import MemoriesScreen from "../screens/Memories/MemoriesScreen";
 import CreateMemoryScreen from "../screens/CreateMemory/CreateMemoryScreen";
@@ -13,7 +13,7 @@ const Tab = createBottomTabNavigator();
 function MainTabNavigator() {
   return (
     <Tab.Navigator
-      initialRouteName="Home"
+      initialRouteName="Dashboard"
       tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{
         headerShown: false,
@@ -34,13 +34,20 @@ function MainTabNavigator() {
           tabBarLabel: "MEMORIES",
         }}
       />
-      
 
       <Tab.Screen
         name="Create"
         component={CreateMemoryScreen}
         options={{
           tabBarLabel: "CREATE",
+        }}
+      />
+
+      <Tab.Screen
+        name="Dashboard"
+        component={DashboardScreen}
+        options={{
+          tabBarLabel: "DASHBOARD",
         }}
       />
 
