@@ -31,12 +31,17 @@ import MemoryTicket from "../../components/MemoryTicket/MemoryTicket";
 
 import ShareExportSheet from "../../components/ShareExportSheet/ShareExportSheet";
 
+import TicketCustomizationSheet from "../../components/TicketCustomization/TicketCustomizationSheet";
+
+import { normalizeTicketCustomization } from "../../utils/ticketCustomization";
+
 import { getMemoryDetailUrl, getMemoryViewerUrl } from "../../utils/cloudinary";
 
 import styles from "./memoryDetailsStyles";
 
 function MemoryDetailsScreen({ navigation, route }) {
-  const { getMemoryById, toggleFavorite, deleteMemory } = useMemory();
+  const { getMemoryById, toggleFavorite, deleteMemory, updateMemory } =
+    useMemory();
 
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
 
@@ -59,6 +64,16 @@ function MemoryDetailsScreen({ navigation, route }) {
   const [pdfOptionsVisible, setPdfOptionsVisible] = useState(false);
 
   const ticketRefs = useRef([]);
+
+  // --------------------------------------------------
+  // TICKET CUSTOMIZATION
+  // --------------------------------------------------
+
+  const [customizationVisible, setCustomizationVisible] = useState(false);
+
+  const [customizationSaving, setCustomizationSaving] = useState(false);
+
+  const [draftCustomization, setDraftCustomization] = useState(null);
 
   const memory = getMemoryById(memoryId);
 
@@ -101,9 +116,28 @@ function MemoryDetailsScreen({ navigation, route }) {
       ]
     : [];
 
+  // --------------------------------------------------
+  // CLOUDINARY IMAGES
+  // --------------------------------------------------
+
   const detailImages = images.map((image) => getMemoryDetailUrl(image));
 
   const viewerImages = images.map((image) => getMemoryViewerUrl(image));
+
+  // --------------------------------------------------
+  // TICKET CUSTOMIZATION PREVIEW
+  // --------------------------------------------------
+
+  const ticketPreviewMemory = draftCustomization
+    ? {
+        ...memory,
+        ...draftCustomization,
+      }
+    : memory;
+
+  // --------------------------------------------------
+  // IMAGE VIEWER
+  // --------------------------------------------------
 
   const openImageViewer = (index) => {
     if (!images[index]) {
@@ -127,6 +161,10 @@ function MemoryDetailsScreen({ navigation, route }) {
     setActiveImage(index);
   };
 
+  // --------------------------------------------------
+  // TICKET NUMBER
+  // --------------------------------------------------
+
   const getTicketNumber = () => {
     if (memory?.id) {
       return memory.id.slice(-5).toUpperCase();
@@ -135,15 +173,21 @@ function MemoryDetailsScreen({ navigation, route }) {
     return "00001";
   };
 
+  // --------------------------------------------------
+  // FAVORITE
+  // --------------------------------------------------
+
   const handleFavorite = async () => {
     try {
-      await toggleFavorite(memory.id, {
-        favorite: !memory.favorite,
-      });
+      await toggleFavorite(memory.id);
     } catch (error) {
       console.log("Favorite update error:", error);
     }
   };
+
+  // --------------------------------------------------
+  // DELETE
+  // --------------------------------------------------
 
   const handleDelete = () => {
     Alert.alert(
@@ -154,9 +198,11 @@ function MemoryDetailsScreen({ navigation, route }) {
           text: "CANCEL",
           style: "cancel",
         },
+
         {
           text: "DELETE",
           style: "destructive",
+
           onPress: async () => {
             try {
               await deleteMemory(memory.id);
@@ -173,9 +219,75 @@ function MemoryDetailsScreen({ navigation, route }) {
     );
   };
 
+  // --------------------------------------------------
+  // SHARE SHEET
+  // --------------------------------------------------
+
   const openShareSheet = () => {
     shareSheetRef.current?.present();
   };
+
+  // --------------------------------------------------
+  // TICKET CUSTOMIZATION
+  // --------------------------------------------------
+
+  const openCustomization = () => {
+    setDraftCustomization(normalizeTicketCustomization(memory));
+
+    setCustomizationVisible(true);
+  };
+
+  const closeCustomization = () => {
+    if (customizationSaving) {
+      return;
+    }
+
+    setCustomizationVisible(false);
+
+    setDraftCustomization(null);
+  };
+
+  const handleSaveCustomization = async () => {
+    if (customizationSaving || !draftCustomization) {
+      return;
+    }
+
+    try {
+      setCustomizationSaving(true);
+
+      await updateMemory(memory.id, {
+        ticketStyle: draftCustomization.ticketStyle,
+
+        ticketAccent: draftCustomization.ticketAccent,
+
+        ticketOptions: {
+          ...draftCustomization.ticketOptions,
+        },
+      });
+
+      setCustomizationVisible(false);
+
+      setDraftCustomization(null);
+
+      Alert.alert(
+        "Ticket Updated",
+        "Your ticket customization has been saved.",
+      );
+    } catch (error) {
+      console.error("Ticket customization update error:", error);
+
+      Alert.alert(
+        "Update Failed",
+        error?.message || "Unable to save ticket customization.",
+      );
+    } finally {
+      setCustomizationSaving(false);
+    }
+  };
+
+  // --------------------------------------------------
+  // CAPTURE CURRENT TICKET
+  // --------------------------------------------------
 
   const captureCurrentTicket = async () => {
     const safeIndex =
@@ -193,6 +305,10 @@ function MemoryDetailsScreen({ navigation, route }) {
       result: "tmpfile",
     });
   };
+
+  // --------------------------------------------------
+  // SHARE
+  // --------------------------------------------------
 
   const handleMore = async () => {
     try {
@@ -228,6 +344,10 @@ function MemoryDetailsScreen({ navigation, route }) {
       setSharing(false);
     }
   };
+
+  // --------------------------------------------------
+  // SAVE IMAGE
+  // --------------------------------------------------
 
   const handleSaveImage = async () => {
     try {
@@ -270,6 +390,10 @@ function MemoryDetailsScreen({ navigation, route }) {
     }
   };
 
+  // --------------------------------------------------
+  // IMAGE -> BASE64
+  // --------------------------------------------------
+
   const imageToBase64 = async (uri) => {
     const base64 = await FileSystem.readAsStringAsync(uri, {
       encoding: FileSystem.EncodingType.Base64,
@@ -277,6 +401,10 @@ function MemoryDetailsScreen({ navigation, route }) {
 
     return `data:image/png;base64,${base64}`;
   };
+
+  // --------------------------------------------------
+  // ESCAPE HTML
+  // --------------------------------------------------
 
   const escapeHtml = (text) => {
     if (!text) {
@@ -291,60 +419,82 @@ function MemoryDetailsScreen({ navigation, route }) {
       .replace(/'/g, "&#039;");
   };
 
+  // --------------------------------------------------
+  // PDF BACK PAGE
+  // --------------------------------------------------
+
   const createStandardBackPage = () => {
     return `
         <section class="page back-page">
           <div class="back-ticket">
             <div class="back-top-line"></div>
+
             <div class="back-content">
               <div class="back-brand">
                 MEMENTO
               </div>
+
               <div class="back-tagline">
                 KEEP THE MOMENT. KEEP THE STORY.
               </div>
+
               <div class="back-divider"></div>
+
               <div class="back-title">
                 MEMORY ARCHIVE
               </div>
+
               <div class="back-description">
                 A small reminder that this moment
                 happened and is worth remembering.
               </div>
+
               <div class="back-divider"></div>
+
               <div class="back-info">
                 <div>
                   <div class="back-label">
                     TICKET
                   </div>
+
                   <div class="back-value">
                     #${escapeHtml(getTicketNumber())}
                   </div>
                 </div>
+
                 <div>
                   <div class="back-label">
                     MEMORY
                   </div>
+
                   <div class="back-value">
                     ${escapeHtml(memory?.title || "UNTITLED MEMORY")}
                   </div>
                 </div>
               </div>
+
               <div class="back-spacer"></div>
+
               <div class="back-footer">
                 <div class="back-small">
                   MEMENTO
                 </div>
+
                 <div class="back-small">
                   THE POWER OF THE MOMENT
                 </div>
               </div>
             </div>
+
             <div class="back-bottom-line"></div>
           </div>
         </section>
       `;
   };
+
+  // --------------------------------------------------
+  // EXPORT PDF
+  // --------------------------------------------------
 
   const handleExportPdf = async (backType) => {
     try {
@@ -413,12 +563,14 @@ function MemoryDetailsScreen({ navigation, route }) {
 
       const html = `
           <!DOCTYPE html>
+
           <html>
           <head>
             <meta
               name="viewport"
               content="width=device-width, initial-scale=1.0"
             />
+
             <style>
               @page {
                 size: A4 portrait;
@@ -609,10 +761,12 @@ function MemoryDetailsScreen({ navigation, route }) {
               }
             </style>
           </head>
+
           <body>
             ${frontPage}
             ${backPage}
           </body>
+
           </html>
         `;
 
@@ -626,7 +780,9 @@ function MemoryDetailsScreen({ navigation, route }) {
       if (available) {
         await Sharing.shareAsync(uri, {
           mimeType: "application/pdf",
+
           dialogTitle: "Export Memory Ticket",
+
           UTI: "com.adobe.pdf",
         });
       } else {
@@ -648,6 +804,10 @@ function MemoryDetailsScreen({ navigation, route }) {
     }
   };
 
+  // --------------------------------------------------
+  // RENDER TICKET
+  // --------------------------------------------------
+
   const renderTicket = ({ item: image, index }) => {
     return (
       <View
@@ -667,10 +827,9 @@ function MemoryDetailsScreen({ navigation, route }) {
           style={styles.ticketShadow}
         >
           <MemoryTicket
-            memory={memory}
+            memory={ticketPreviewMemory}
             image={detailImages[index] || image}
             ticketNumber={getTicketNumber()}
-            imageIndex={index}
             onPress={() => openImageViewer(index)}
           />
         </View>
@@ -687,6 +846,8 @@ function MemoryDetailsScreen({ navigation, route }) {
         nestedScrollEnabled
         keyboardShouldPersistTaps="handled"
       >
+        {/* HEADER */}
+
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
@@ -714,6 +875,8 @@ function MemoryDetailsScreen({ navigation, route }) {
           </TouchableOpacity>
         </View>
 
+        {/* TICKET CAROUSEL */}
+
         <FlatList
           horizontal
           data={images.length > 0 ? images : [null]}
@@ -731,7 +894,9 @@ function MemoryDetailsScreen({ navigation, route }) {
           removeClippedSubviews={true}
           getItemLayout={(_, index) => ({
             length: screenWidth - 44 + 12,
+
             offset: (screenWidth - 44 + 12) * index,
+
             index,
           })}
           onMomentumScrollEnd={(event) => {
@@ -744,6 +909,8 @@ function MemoryDetailsScreen({ navigation, route }) {
             }
           }}
         />
+
+        {/* SWIPE HINT */}
 
         {images.length > 1 && (
           <View style={styles.swipeHint}>
@@ -777,6 +944,20 @@ function MemoryDetailsScreen({ navigation, route }) {
           </View>
         )}
 
+        {/* CUSTOMIZE TICKET */}
+
+        <TouchableOpacity
+          style={detailStyles.customizeButton}
+          onPress={openCustomization}
+          activeOpacity={0.85}
+        >
+          <Ionicons name="color-palette-outline" size={19} color="#34345C" />
+
+          <Text style={detailStyles.customizeButtonText}>CUSTOMIZE TICKET</Text>
+        </TouchableOpacity>
+
+        {/* SHARE */}
+
         <TouchableOpacity
           style={detailStyles.shareButton}
           onPress={openShareSheet}
@@ -786,6 +967,8 @@ function MemoryDetailsScreen({ navigation, route }) {
 
           <Text style={detailStyles.shareButtonText}>SHARE MEMORY</Text>
         </TouchableOpacity>
+
+        {/* EDIT MEMORY */}
 
         <TouchableOpacity
           style={styles.editButton}
@@ -801,6 +984,8 @@ function MemoryDetailsScreen({ navigation, route }) {
           <Text style={styles.editText}>EDIT MEMORY</Text>
         </TouchableOpacity>
 
+        {/* DELETE MEMORY */}
+
         <TouchableOpacity
           style={styles.deleteButton}
           onPress={handleDelete}
@@ -813,6 +998,8 @@ function MemoryDetailsScreen({ navigation, route }) {
 
         <Text style={styles.footerText}>KEEP THE MOMENT. KEEP THE STORY.</Text>
       </ScrollView>
+
+      {/* SHARE / EXPORT SHEET */}
 
       <ShareExportSheet
         ref={shareSheetRef}
@@ -829,6 +1016,19 @@ function MemoryDetailsScreen({ navigation, route }) {
         generatingPdf={generatingPdf}
         sharing={sharing}
       />
+
+      {/* TICKET CUSTOMIZATION */}
+
+      <TicketCustomizationSheet
+        visible={customizationVisible}
+        value={draftCustomization || normalizeTicketCustomization(memory)}
+        onChange={setDraftCustomization}
+        onClose={closeCustomization}
+        onSave={handleSaveCustomization}
+        saving={customizationSaving}
+      />
+
+      {/* PDF OPTIONS */}
 
       <Modal
         visible={pdfOptionsVisible}
@@ -952,6 +1152,8 @@ function MemoryDetailsScreen({ navigation, route }) {
         </View>
       </Modal>
 
+      {/* FULLSCREEN IMAGE VIEWER */}
+
       <Modal
         visible={imageViewerVisible}
         transparent={false}
@@ -990,7 +1192,9 @@ function MemoryDetailsScreen({ navigation, route }) {
             removeClippedSubviews={true}
             getItemLayout={(_, index) => ({
               length: screenWidth,
+
               offset: screenWidth * index,
+
               index,
             })}
             keyExtractor={(item, index) => `${item}-viewer-${index}`}
@@ -1000,6 +1204,7 @@ function MemoryDetailsScreen({ navigation, route }) {
                   imageViewerStyles.imagePage,
                   {
                     width: screenWidth,
+
                     height: screenHeight,
                   },
                 ]}
@@ -1012,6 +1217,7 @@ function MemoryDetailsScreen({ navigation, route }) {
                     imageViewerStyles.fullImage,
                     {
                       width: screenWidth,
+
                       height: screenHeight,
                     },
                   ]}
@@ -1070,22 +1276,52 @@ const detailStyles = StyleSheet.create({
   },
 
   tagChip: {
-    backgroundColor: "#34345C",
-    borderRadius: 14,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    backgroundColor: "transparent",
+    paddingHorizontal: 0,
+    paddingVertical: 2,
+    borderBottomWidth: 1,
+    borderBottomColor: "#34345C",
   },
 
   tagText: {
-    color: "#FFFFFF",
+    color: "#34345C",
     fontSize: 11,
     fontWeight: "700",
   },
 
-  shareButton: {
+  // --------------------------------------------------
+  // CUSTOMIZE
+  // --------------------------------------------------
+
+  customizeButton: {
     height: 50,
     marginHorizontal: 22,
     marginTop: 20,
+    borderRadius: 14,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#D9D8E2",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 9,
+  },
+
+  customizeButtonText: {
+    color: "#34345C",
+    fontSize: 11,
+    fontWeight: "900",
+    letterSpacing: 1,
+  },
+
+  // --------------------------------------------------
+  // SHARE
+  // --------------------------------------------------
+
+  shareButton: {
+    height: 50,
+    marginHorizontal: 22,
+    marginTop: 12,
     borderRadius: 14,
     backgroundColor: "#34345C",
     flexDirection: "row",

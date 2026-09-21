@@ -35,6 +35,8 @@ import {
   clearLocalMemories,
 } from "../services/offlineMemoryService";
 
+import { normalizeTicketCustomization } from "../utils/ticketCustomization";
+
 export const MemoryContext = createContext(null);
 
 export function MemoryProvider({ children }) {
@@ -47,6 +49,10 @@ export function MemoryProvider({ children }) {
   const [syncing, setSyncing] = useState(false);
 
   const syncLock = useRef(false);
+
+  // --------------------------------------------------
+  // NORMALIZE MEMORY
+  // --------------------------------------------------
 
   const normalizeMemory = useCallback((memory) => {
     if (!memory) {
@@ -67,6 +73,12 @@ export function MemoryProvider({ children }) {
         ]
       : [];
 
+    // ------------------------------------------------
+    // TICKET CUSTOMIZATION
+    // ------------------------------------------------
+
+    const ticketCustomization = normalizeTicketCustomization(memory);
+
     return {
       ...memory,
 
@@ -86,6 +98,18 @@ export function MemoryProvider({ children }) {
         network: memory.network || null,
       },
 
+      // ----------------------------------------------
+      // TICKET CUSTOMIZATION
+      // ----------------------------------------------
+
+      ticketStyle: ticketCustomization.ticketStyle,
+
+      ticketAccent: ticketCustomization.ticketAccent,
+
+      ticketOptions: {
+        ...ticketCustomization.ticketOptions,
+      },
+
       imagePublicIds: Array.isArray(memory.imagePublicIds)
         ? memory.imagePublicIds
         : [],
@@ -93,6 +117,10 @@ export function MemoryProvider({ children }) {
       syncStatus: memory.syncStatus || "synced",
     };
   }, []);
+
+  // --------------------------------------------------
+  // MERGE MEMORIES
+  // --------------------------------------------------
 
   const mergeMemories = useCallback(
     (serverMemories, localMemories, pendingMemories) => {
@@ -114,18 +142,54 @@ export function MemoryProvider({ children }) {
 
           const normalized = normalizeMemory(memory);
 
+          if (!normalized) {
+            return null;
+          }
+
+          // ------------------------------------------
+          // LOCAL IMAGES
+          // ------------------------------------------
+
           if (local?.localImages?.length) {
             normalized.localImages = local.localImages;
           }
 
-          // Preserve locally stored tags
-          // when the server response does
-          // not contain the tags field.
+          // ------------------------------------------
+          // LOCAL TAGS
+          // ------------------------------------------
+
           if (
             !Object.prototype.hasOwnProperty.call(memory, "tags") &&
             Array.isArray(local?.tags)
           ) {
             normalized.tags = local.tags;
+          }
+
+          // ------------------------------------------
+          // LOCAL TICKET CUSTOMIZATION
+          // ------------------------------------------
+
+          if (
+            !Object.prototype.hasOwnProperty.call(memory, "ticketStyle") &&
+            local?.ticketStyle
+          ) {
+            normalized.ticketStyle = local.ticketStyle;
+          }
+
+          if (
+            !Object.prototype.hasOwnProperty.call(memory, "ticketAccent") &&
+            local?.ticketAccent
+          ) {
+            normalized.ticketAccent = local.ticketAccent;
+          }
+
+          if (
+            !Object.prototype.hasOwnProperty.call(memory, "ticketOptions") &&
+            local?.ticketOptions
+          ) {
+            normalized.ticketOptions = {
+              ...local.ticketOptions,
+            };
           }
 
           return normalized;
@@ -145,6 +209,14 @@ export function MemoryProvider({ children }) {
         .map((memory) => {
           const normalized = normalizeMemory(memory);
 
+          if (!normalized) {
+            return null;
+          }
+
+          // ------------------------------------------
+          // LOCAL IMAGES FOR PENDING MEMORY
+          // ------------------------------------------
+
           if (memory.localImages?.length) {
             normalized.images = memory.localImages;
 
@@ -161,6 +233,10 @@ export function MemoryProvider({ children }) {
     },
     [normalizeMemory],
   );
+
+  // --------------------------------------------------
+  // LOAD LOCAL MEMORIES
+  // --------------------------------------------------
 
   const loadLocalMemories = useCallback(async () => {
     if (!token) {
@@ -198,6 +274,10 @@ export function MemoryProvider({ children }) {
     }
   }, [token, normalizeMemory]);
 
+  // --------------------------------------------------
+  // REFRESH SERVER MEMORIES
+  // --------------------------------------------------
+
   const refreshServerMemories = useCallback(async () => {
     if (!token) {
       return false;
@@ -218,12 +298,14 @@ export function MemoryProvider({ children }) {
         import("../services/offlineMemoryService").then(
           ({ getLocalMemories }) => getLocalMemories(),
         ),
+
         getPendingMemories(),
       ]);
 
-      // Build the local map before
-      // normalizing server memories so
-      // local tags can be preserved.
+      // ----------------------------------------------
+      // LOCAL MEMORY MAP
+      // ----------------------------------------------
+
       const localMemoryMap = new Map();
 
       for (const memory of localMemories) {
@@ -234,13 +316,25 @@ export function MemoryProvider({ children }) {
         }
       }
 
+      // ----------------------------------------------
+      // NORMALIZE SERVER MEMORIES
+      // ----------------------------------------------
+
       const normalizedServer = backendMemories
         .map((memory) => {
           const normalized = normalizeMemory(memory);
 
+          if (!normalized) {
+            return null;
+          }
+
           const key = memory.clientMemoryId || memory._id || memory.id;
 
           const local = localMemoryMap.get(key);
+
+          // ----------------------------------------
+          // PRESERVE LOCAL TAGS
+          // ----------------------------------------
 
           if (
             !Object.prototype.hasOwnProperty.call(memory, "tags") &&
@@ -249,9 +343,40 @@ export function MemoryProvider({ children }) {
             normalized.tags = local.tags;
           }
 
+          // ----------------------------------------
+          // PRESERVE LOCAL TICKET CUSTOMIZATION
+          // ----------------------------------------
+
+          if (
+            !Object.prototype.hasOwnProperty.call(memory, "ticketStyle") &&
+            local?.ticketStyle
+          ) {
+            normalized.ticketStyle = local.ticketStyle;
+          }
+
+          if (
+            !Object.prototype.hasOwnProperty.call(memory, "ticketAccent") &&
+            local?.ticketAccent
+          ) {
+            normalized.ticketAccent = local.ticketAccent;
+          }
+
+          if (
+            !Object.prototype.hasOwnProperty.call(memory, "ticketOptions") &&
+            local?.ticketOptions
+          ) {
+            normalized.ticketOptions = {
+              ...local.ticketOptions,
+            };
+          }
+
           return normalized;
         })
         .filter(Boolean);
+
+      // ----------------------------------------------
+      // PRESERVE LOCAL IMAGES
+      // ----------------------------------------------
 
       const serverWithLocalImages = normalizedServer.map((memory) => {
         const key = memory.clientMemoryId || memory.id;
@@ -261,12 +386,17 @@ export function MemoryProvider({ children }) {
         if (local?.localImages?.length) {
           return {
             ...memory,
+
             localImages: local.localImages,
           };
         }
 
         return memory;
       });
+
+      // ----------------------------------------------
+      // MERGE
+      // ----------------------------------------------
 
       const merged = mergeMemories(
         serverWithLocalImages,
@@ -276,9 +406,14 @@ export function MemoryProvider({ children }) {
 
       setMemories(merged);
 
+      // ----------------------------------------------
+      // UPDATE LOCAL CACHE
+      // ----------------------------------------------
+
       await upsertLocalMemories(
         serverWithLocalImages.map((memory) => ({
           ...memory,
+
           syncStatus: "synced",
         })),
       );
@@ -290,6 +425,10 @@ export function MemoryProvider({ children }) {
       return false;
     }
   }, [token, normalizeMemory, mergeMemories]);
+
+  // --------------------------------------------------
+  // LOAD MEMORIES
+  // --------------------------------------------------
 
   const loadMemories = useCallback(async () => {
     if (!token) {
@@ -322,6 +461,10 @@ export function MemoryProvider({ children }) {
     }
   }, [token, loadLocalMemories, refreshServerMemories]);
 
+  // --------------------------------------------------
+  // SYNC SINGLE MEMORY
+  // --------------------------------------------------
+
   const syncMemory = useCallback(
     async (pendingMemory) => {
       if (!token || !pendingMemory) {
@@ -345,9 +488,10 @@ export function MemoryProvider({ children }) {
           return null;
         }
 
-        // Preserve pending tags when the
-        // backend response does not contain
-        // the tags field.
+        // ------------------------------------------
+        // PRESERVE TAGS
+        // ------------------------------------------
+
         if (
           !Object.prototype.hasOwnProperty.call(serverMemory || {}, "tags") &&
           Array.isArray(pendingMemory.tags)
@@ -356,6 +500,46 @@ export function MemoryProvider({ children }) {
             tags: pendingMemory.tags,
           }).tags;
         }
+
+        // ------------------------------------------
+        // PRESERVE TICKET CUSTOMIZATION
+        // ------------------------------------------
+
+        const pendingCustomization =
+          normalizeTicketCustomization(pendingMemory);
+
+        if (
+          !Object.prototype.hasOwnProperty.call(
+            serverMemory || {},
+            "ticketStyle",
+          )
+        ) {
+          savedMemory.ticketStyle = pendingCustomization.ticketStyle;
+        }
+
+        if (
+          !Object.prototype.hasOwnProperty.call(
+            serverMemory || {},
+            "ticketAccent",
+          )
+        ) {
+          savedMemory.ticketAccent = pendingCustomization.ticketAccent;
+        }
+
+        if (
+          !Object.prototype.hasOwnProperty.call(
+            serverMemory || {},
+            "ticketOptions",
+          )
+        ) {
+          savedMemory.ticketOptions = {
+            ...pendingCustomization.ticketOptions,
+          };
+        }
+
+        // ------------------------------------------
+        // FINAL SYNCED MEMORY
+        // ------------------------------------------
 
         const syncedMemory = {
           ...savedMemory,
@@ -390,6 +574,10 @@ export function MemoryProvider({ children }) {
     },
     [token, normalizeMemory],
   );
+
+  // --------------------------------------------------
+  // SYNC PENDING MEMORIES
+  // --------------------------------------------------
 
   const syncPendingMemories = useCallback(async () => {
     if (!token || syncLock.current) {
@@ -432,6 +620,10 @@ export function MemoryProvider({ children }) {
     }
   }, [token, syncMemory]);
 
+  // --------------------------------------------------
+  // AUTH / INITIAL LOAD
+  // --------------------------------------------------
+
   useEffect(() => {
     if (authLoading) {
       return;
@@ -439,6 +631,10 @@ export function MemoryProvider({ children }) {
 
     loadMemories();
   }, [authLoading, token, loadMemories]);
+
+  // --------------------------------------------------
+  // NETWORK LISTENER
+  // --------------------------------------------------
 
   useEffect(() => {
     if (authLoading || !token) {
@@ -464,6 +660,10 @@ export function MemoryProvider({ children }) {
     };
   }, [authLoading, token, syncPendingMemories, refreshServerMemories]);
 
+  // --------------------------------------------------
+  // ADD MEMORY
+  // --------------------------------------------------
+
   const addMemory = useCallback(
     async (memory) => {
       if (!token) {
@@ -474,9 +674,9 @@ export function MemoryProvider({ children }) {
         const clientMemoryId =
           memory?.clientMemoryId || generateClientMemoryId();
 
-        // --------------------------------------------------
+        // ------------------------------------------
         // NETWORK INFO
-        // --------------------------------------------------
+        // ------------------------------------------
 
         const networkPromise = getNetworkInfo().catch((error) => {
           console.error("Network info error:", error);
@@ -484,9 +684,9 @@ export function MemoryProvider({ children }) {
           return null;
         });
 
-        // --------------------------------------------------
+        // ------------------------------------------
         // LOCATION INFO
-        // --------------------------------------------------
+        // ------------------------------------------
 
         const locationPromise = memory?.locationData
           ? Promise.resolve(memory.locationData)
@@ -522,6 +722,16 @@ export function MemoryProvider({ children }) {
           throw new Error("At least one image is required.");
         }
 
+        // ------------------------------------------
+        // NORMALIZE CUSTOMIZATION
+        // ------------------------------------------
+
+        const ticketCustomization = normalizeTicketCustomization(memory);
+
+        // ------------------------------------------
+        // LOCAL MEMORY DATA
+        // ------------------------------------------
+
         const localMemoryData = {
           ...memory,
 
@@ -538,6 +748,18 @@ export function MemoryProvider({ children }) {
           localImages: originalImages,
 
           syncStatus: "pending",
+
+          // ----------------------------------------
+          // TICKET CUSTOMIZATION
+          // ----------------------------------------
+
+          ticketStyle: ticketCustomization.ticketStyle,
+
+          ticketAccent: ticketCustomization.ticketAccent,
+
+          ticketOptions: {
+            ...ticketCustomization.ticketOptions,
+          },
         };
 
         const localMemory = normalizeMemory(localMemoryData);
@@ -546,9 +768,9 @@ export function MemoryProvider({ children }) {
           throw new Error("Unable to prepare local memory.");
         }
 
-        // --------------------------------------------------
+        // ------------------------------------------
         // SHOW IMMEDIATELY
-        // --------------------------------------------------
+        // ------------------------------------------
 
         setMemories((current) => [localMemory, ...current]);
 
@@ -558,9 +780,9 @@ export function MemoryProvider({ children }) {
           addPendingMemory(localMemoryData),
         ]);
 
-        // --------------------------------------------------
+        // ------------------------------------------
         // BACKGROUND IMAGE PERSISTENCE + SYNC
-        // --------------------------------------------------
+        // ------------------------------------------
 
         (async () => {
           try {
@@ -631,6 +853,10 @@ export function MemoryProvider({ children }) {
     [token, normalizeMemory, syncMemory],
   );
 
+  // --------------------------------------------------
+  // UPDATE MEMORY
+  // --------------------------------------------------
+
   const updateMemory = useCallback(
     async (memoryId, updatedData) => {
       if (!token) {
@@ -650,7 +876,29 @@ export function MemoryProvider({ children }) {
         throw new Error("Memory not found.");
       }
 
-      const result = await updateMemoryApi(token, memoryId, updatedData);
+      // ------------------------------------------
+      // NORMALIZE CUSTOMIZATION
+      // ------------------------------------------
+
+      const nextCustomization = normalizeTicketCustomization({
+        ...existingMemory,
+
+        ...updatedData,
+      });
+
+      const finalUpdatedData = {
+        ...updatedData,
+
+        ticketStyle: nextCustomization.ticketStyle,
+
+        ticketAccent: nextCustomization.ticketAccent,
+
+        ticketOptions: {
+          ...nextCustomization.ticketOptions,
+        },
+      };
+
+      const result = await updateMemoryApi(token, memoryId, finalUpdatedData);
 
       if (!result.success) {
         throw new Error(result.message || "Unable to update memory.");
@@ -664,17 +912,48 @@ export function MemoryProvider({ children }) {
         throw new Error("Server returned invalid memory data.");
       }
 
-      // Preserve existing/requested tags
-      // only when the backend response does
-      // not contain the tags field.
+      // ------------------------------------------
+      // PRESERVE TAGS
+      // ------------------------------------------
+
       if (!Object.prototype.hasOwnProperty.call(serverMemory || {}, "tags")) {
-        if (Array.isArray(updatedData?.tags)) {
+        if (Array.isArray(finalUpdatedData?.tags)) {
           updatedMemory.tags = normalizeMemory({
-            tags: updatedData.tags,
+            tags: finalUpdatedData.tags,
           }).tags;
         } else if (Array.isArray(existingMemory.tags)) {
           updatedMemory.tags = existingMemory.tags;
         }
+      }
+
+      // ------------------------------------------
+      // PRESERVE CUSTOMIZATION
+      // ------------------------------------------
+
+      if (
+        !Object.prototype.hasOwnProperty.call(serverMemory || {}, "ticketStyle")
+      ) {
+        updatedMemory.ticketStyle = nextCustomization.ticketStyle;
+      }
+
+      if (
+        !Object.prototype.hasOwnProperty.call(
+          serverMemory || {},
+          "ticketAccent",
+        )
+      ) {
+        updatedMemory.ticketAccent = nextCustomization.ticketAccent;
+      }
+
+      if (
+        !Object.prototype.hasOwnProperty.call(
+          serverMemory || {},
+          "ticketOptions",
+        )
+      ) {
+        updatedMemory.ticketOptions = {
+          ...nextCustomization.ticketOptions,
+        };
       }
 
       setMemories((currentMemories) =>
@@ -682,6 +961,7 @@ export function MemoryProvider({ children }) {
           memory.id === memoryId
             ? {
                 ...updatedMemory,
+
                 localImages: memory.localImages || [],
               }
             : memory,
@@ -698,6 +978,10 @@ export function MemoryProvider({ children }) {
     },
     [token, memories, normalizeMemory],
   );
+
+  // --------------------------------------------------
+  // DELETE MEMORY
+  // --------------------------------------------------
 
   const deleteMemory = useCallback(
     async (memoryId) => {
@@ -750,6 +1034,10 @@ export function MemoryProvider({ children }) {
     [token, memories],
   );
 
+  // --------------------------------------------------
+  // TOGGLE FAVORITE
+  // --------------------------------------------------
+
   const toggleFavorite = useCallback(
     async (memoryId) => {
       if (!token) {
@@ -775,7 +1063,10 @@ export function MemoryProvider({ children }) {
         isFavorite: nextFavorite,
       };
 
-      // Immediate UI update.
+      // ------------------------------------------
+      // IMMEDIATE UI UPDATE
+      // ------------------------------------------
+
       setMemories((currentMemories) =>
         currentMemories.map((memory) =>
           memory.id === memoryId || memory.clientMemoryId === memoryId
@@ -784,9 +1075,14 @@ export function MemoryProvider({ children }) {
         ),
       );
 
+      // ------------------------------------------
+      // PENDING MEMORY
+      // ------------------------------------------
+
       if (existingMemory.syncStatus === "pending") {
         const pendingMemory = {
           ...optimisticMemory,
+
           syncStatus: "pending",
         };
 
@@ -799,11 +1095,19 @@ export function MemoryProvider({ children }) {
         return pendingMemory;
       }
 
+      // ------------------------------------------
+      // SAVE LOCALLY
+      // ------------------------------------------
+
       try {
         await upsertLocalMemory(optimisticMemory);
       } catch (error) {
         console.error("Local favorite save error:", error);
       }
+
+      // ------------------------------------------
+      // BACKEND SYNC
+      // ------------------------------------------
 
       try {
         const result = await toggleFavoriteApi(token, memoryId);
@@ -820,14 +1124,48 @@ export function MemoryProvider({ children }) {
           throw new Error("Server returned invalid memory data.");
         }
 
-        // Preserve existing tags when the
-        // server response does not include
-        // the tags field.
+        // ----------------------------------------
+        // PRESERVE TAGS
+        // ----------------------------------------
+
         if (
           !Object.prototype.hasOwnProperty.call(serverMemory || {}, "tags") &&
           Array.isArray(existingMemory.tags)
         ) {
           updatedMemory.tags = existingMemory.tags;
+        }
+
+        // ----------------------------------------
+        // PRESERVE CUSTOMIZATION
+        // ----------------------------------------
+
+        if (
+          !Object.prototype.hasOwnProperty.call(
+            serverMemory || {},
+            "ticketStyle",
+          )
+        ) {
+          updatedMemory.ticketStyle = existingMemory.ticketStyle;
+        }
+
+        if (
+          !Object.prototype.hasOwnProperty.call(
+            serverMemory || {},
+            "ticketAccent",
+          )
+        ) {
+          updatedMemory.ticketAccent = existingMemory.ticketAccent;
+        }
+
+        if (
+          !Object.prototype.hasOwnProperty.call(
+            serverMemory || {},
+            "ticketOptions",
+          )
+        ) {
+          updatedMemory.ticketOptions = {
+            ...existingMemory.ticketOptions,
+          };
         }
 
         const finalMemory = {
@@ -851,6 +1189,10 @@ export function MemoryProvider({ children }) {
         return finalMemory;
       } catch (error) {
         console.error("Favorite sync error:", error);
+
+        // ----------------------------------------
+        // ROLLBACK
+        // ----------------------------------------
 
         const rollbackMemory = {
           ...existingMemory,
@@ -882,6 +1224,10 @@ export function MemoryProvider({ children }) {
     [token, memories, normalizeMemory],
   );
 
+  // --------------------------------------------------
+  // GET MEMORY BY ID
+  // --------------------------------------------------
+
   const getMemoryById = useCallback(
     (memoryId) => {
       return memories.find(
@@ -892,9 +1238,17 @@ export function MemoryProvider({ children }) {
     [memories],
   );
 
+  // --------------------------------------------------
+  // SYNC NOW
+  // --------------------------------------------------
+
   const syncNow = useCallback(async () => {
     await syncPendingMemories();
   }, [syncPendingMemories]);
+
+  // --------------------------------------------------
+  // CLEAR MEMORIES
+  // --------------------------------------------------
 
   const clearMemories = useCallback(async () => {
     if (!token) {
@@ -934,19 +1288,34 @@ export function MemoryProvider({ children }) {
     };
   }, [token]);
 
+  // --------------------------------------------------
+  // CONTEXT VALUE
+  // --------------------------------------------------
+
   const contextValue = useMemo(
     () => ({
       memories,
+
       loading,
+
       syncing,
+
       addMemory,
+
       updateMemory,
+
       deleteMemory,
+
       toggleFavorite,
+
       getMemoryById,
+
       loadMemories,
+
       refreshMemories: loadMemories,
+
       syncNow,
+
       clearMemories,
     }),
     [

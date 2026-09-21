@@ -5,7 +5,7 @@ const styles = StyleSheet.create({
     width: "100%",
     borderRadius: 4,
     overflow: "hidden",
-    backgroundColor: "#F7B900",
+
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
@@ -14,6 +14,22 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.18,
     shadowRadius: 14,
     elevation: 7,
+  },
+
+  ticketMinimal: {
+    borderWidth: 1,
+    borderRadius: 16,
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+
+  ticketVintage: {
+    borderWidth: 1,
+    borderRadius: 6,
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 5,
   },
 
   ticketCompact: {
@@ -29,7 +45,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-around",
     alignItems: "flex-start",
-    backgroundColor: "#F7B900",
   },
 
   bottomPerforation: {
@@ -37,15 +52,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-around",
     alignItems: "flex-end",
-    backgroundColor: "#F7B900",
   },
 
   perforationDot: {
     width: 17,
     height: 17,
-    borderRadius: 17 / 2,
-    backgroundColor: "#F1F0F6",
+    borderRadius: 8.5,
     marginTop: -8,
+  },
+
+  minimalRule: {
+    width: "100%",
+    height: 2,
   },
 
   // --------------------------------------------------
@@ -53,7 +71,6 @@ const styles = StyleSheet.create({
   // --------------------------------------------------
 
   ticketBody: {
-    backgroundColor: "#F7B900",
     paddingHorizontal: 17,
     paddingBottom: 14,
   },
@@ -73,265 +90,21 @@ const styles = StyleSheet.create({
     fontSize: 8,
     fontWeight: "900",
     letterSpacing: 2,
-    color: "#F0442C",
   },
 
   // --------------------------------------------------
   // IMAGE
   // --------------------------------------------------
 
-  ticketImage: {
-    width: "100%",
-    height: "100%",
-    marginBottom: 14,
-    backgroundColor: "#EAAE00",
-  },
-
-  imagePlaceholder: {
-    width: "100%",
-    height: 190,
-    marginBottom: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#EAAE00",
-  },
-
-  imagePlaceholderText: {
-    marginTop: 7,
-    fontSize: 8,
-    fontWeight: "900",
-    letterSpacing: 1,
-    color: "#F0442C",
-  },
-
-  // --------------------------------------------------
-  // TITLE
-  // --------------------------------------------------
-
-  titleContainer: {
-    marginBottom: 13,
-  },
-
-  ticketTitle: {
-    fontSize: 27,
-    lineHeight: 27,
-    fontWeight: "900",
-    textTransform: "uppercase",
-    color: "#F0442C",
-    letterSpacing: -0.5,
-  },
-
-  // --------------------------------------------------
-  // TAGS
-  // --------------------------------------------------
-
-  tagsContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 6,
-    marginBottom: 13,
-  },
-
-  tagChip: {
-    maxWidth: "48%",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 10,
-    backgroundColor: "#34345C",
-  },
-
-  tagText: {
-    fontSize: 8,
-    lineHeight: 11,
-    fontWeight: "800",
-    color: "#FFFFFF",
-    letterSpacing: 0.2,
-  },
-
-  // --------------------------------------------------
-  // INFO
-  // --------------------------------------------------
-
-  infoSection: {
-    marginBottom: 12,
-  },
-
-  infoRow: {
-    flexDirection: "row",
-    gap: 14,
-  },
-
-  infoBlock: {
-    flex: 1,
-  },
-
-  infoLabel: {
-    fontSize: 7,
-    fontWeight: "900",
-    letterSpacing: 1,
-    color: "#F0442C",
-    marginBottom: 3,
-  },
-
-  infoValue: {
-    fontSize: 11,
-    fontWeight: "800",
-    color: "#F0442C",
-    textTransform: "uppercase",
-  },
-
-  timeRow: {
-    marginTop: 9,
-  },
-
-  // --------------------------------------------------
-  // ADMISSION
-  // --------------------------------------------------
-
-  admissionSection: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 7,
-  },
-
-  admissionLabel: {
-    fontSize: 8,
-    fontWeight: "900",
-    color: "#F0442C",
-    letterSpacing: 0.8,
-  },
-
-  admissionValue: {
-    fontSize: 11,
-    fontWeight: "900",
-    color: "#F0442C",
-  },
-
-  // --------------------------------------------------
-  // DIVIDER
-  // --------------------------------------------------
-
-  divider: {
-    height: 18,
-    marginHorizontal: -17,
-    position: "relative",
-    justifyContent: "center",
-  },
-
-  dividerLine: {
-    borderTopWidth: 2,
-    borderStyle: "dotted",
-    borderColor: "#F0442C",
-    width: "100%",
-  },
-
-  dividerNotchLeft: {
-    position: "absolute",
-    left: -9,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: "#F1F0F6",
-  },
-
-  dividerNotchRight: {
-    position: "absolute",
-    right: -9,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: "#F1F0F6",
-  },
-
-  // --------------------------------------------------
-  // FOOTER
-  // --------------------------------------------------
-
-  ticketFooter: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    justifyContent: "space-between",
-    minHeight: 52,
-  },
-
-  ticketNumberContainer: {
-    width: 65,
-  },
-
-  ticketNumberLabel: {
-    fontSize: 6,
-    fontWeight: "900",
-    letterSpacing: 0.8,
-    color: "#F0442C",
-    marginBottom: 3,
-  },
-
-  ticketNumber: {
-    fontSize: 10,
-    fontWeight: "900",
-    color: "#F0442C",
-    letterSpacing: 1,
-  },
-
-  // --------------------------------------------------
-  // BARCODE
-  // --------------------------------------------------
-
-  barcode: {
-    height: 43,
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "stretch",
-    justifyContent: "flex-end",
-    gap: 2,
-    overflow: "hidden",
-  },
-
-  bar: {
-    height: "100%",
-    backgroundColor: "#F0442C",
-  },
-
-  barSmall: {
-    width: 2,
-  },
-
-  barMedium: {
-    width: 3,
-  },
-
-  barWide: {
-    width: 5,
-  },
-
-  // --------------------------------------------------
-  // DESCRIPTION
-  // --------------------------------------------------
-
-  descriptionContainer: {
-    marginBottom: 13,
-  },
-
-  descriptionLabel: {
-    fontSize: 7,
-    fontWeight: "900",
-    letterSpacing: 1,
-    color: "#F0442C",
-    marginBottom: 4,
-  },
-
-  descriptionText: {
-    fontSize: 11,
-    lineHeight: 16,
-    fontWeight: "600",
-    color: "#F0442C",
-  },
-
   ticketImageContainer: {
     width: "100%",
     height: 220,
     overflow: "hidden",
     position: "relative",
+  },
+
+  imageTouchable: {
+    flex: 1,
   },
 
   ticketImageSlide: {
@@ -341,6 +114,19 @@ const styles = StyleSheet.create({
   ticketImage: {
     width: "100%",
     height: "100%",
+  },
+
+  noImage: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  imagePlaceholderText: {
+    marginTop: 7,
+    fontSize: 8,
+    fontWeight: "900",
+    letterSpacing: 1,
   },
 
   imageCounter: {
@@ -382,6 +168,229 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: "#FFFFFF",
+  },
+
+  // --------------------------------------------------
+  // TITLE
+  // --------------------------------------------------
+
+  titleContainer: {
+    marginBottom: 13,
+  },
+
+  ticketTitle: {
+    fontSize: 27,
+    lineHeight: 27,
+    fontWeight: "900",
+    textTransform: "uppercase",
+    letterSpacing: -0.5,
+  },
+
+  minimalTitle: {
+    fontSize: 24,
+    lineHeight: 27,
+    letterSpacing: 0,
+  },
+
+  vintageTitle: {
+    fontSize: 25,
+    lineHeight: 28,
+    letterSpacing: -0.2,
+  },
+
+  // --------------------------------------------------
+  // TAGS
+  // --------------------------------------------------
+
+  tagsContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 7,
+    marginBottom: 13,
+  },
+
+  tagChip: {
+    paddingHorizontal: 0,
+    paddingVertical: 2,
+    borderBottomWidth: 1,
+  },
+
+  tagText: {
+    fontSize: 8,
+    lineHeight: 11,
+    fontWeight: "800",
+    letterSpacing: 0.2,
+  },
+
+  // --------------------------------------------------
+  // DESCRIPTION
+  // --------------------------------------------------
+
+  descriptionContainer: {
+    marginBottom: 13,
+  },
+
+  descriptionLabel: {
+    fontSize: 7,
+    fontWeight: "900",
+    letterSpacing: 1,
+    marginBottom: 4,
+  },
+
+  descriptionText: {
+    fontSize: 11,
+    lineHeight: 16,
+    fontWeight: "600",
+  },
+
+  // --------------------------------------------------
+  // INFO
+  // --------------------------------------------------
+
+  infoSection: {
+    marginBottom: 12,
+  },
+
+  infoRow: {
+    flexDirection: "row",
+    gap: 14,
+  },
+
+  infoBlock: {
+    flex: 1,
+  },
+
+  infoLabel: {
+    fontSize: 7,
+    fontWeight: "900",
+    letterSpacing: 1,
+    marginBottom: 3,
+  },
+
+  infoValue: {
+    fontSize: 11,
+    fontWeight: "800",
+    textTransform: "uppercase",
+  },
+
+  timeRow: {
+    marginTop: 9,
+  },
+
+  // --------------------------------------------------
+  // ADMISSION
+  // --------------------------------------------------
+
+  admissionSection: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+  },
+
+  admissionLabel: {
+    fontSize: 8,
+    fontWeight: "900",
+    letterSpacing: 0.8,
+  },
+
+  admissionValue: {
+    fontSize: 11,
+    fontWeight: "900",
+  },
+
+  // --------------------------------------------------
+  // DIVIDER
+  // --------------------------------------------------
+
+  divider: {
+    height: 18,
+    marginHorizontal: -17,
+    position: "relative",
+    justifyContent: "center",
+  },
+
+  dividerLine: {
+    borderTopWidth: 2,
+    borderStyle: "dotted",
+    width: "100%",
+  },
+
+  dividerNotchLeft: {
+    position: "absolute",
+    left: -9,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+  },
+
+  dividerNotchRight: {
+    position: "absolute",
+    right: -9,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+  },
+
+  // --------------------------------------------------
+  // FOOTER
+  // --------------------------------------------------
+
+  ticketFooter: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    minHeight: 52,
+  },
+
+  ticketNumberContainer: {
+    width: 65,
+  },
+
+  ticketNumberLabel: {
+    fontSize: 6,
+    fontWeight: "900",
+    letterSpacing: 0.8,
+    marginBottom: 3,
+  },
+
+  ticketNumber: {
+    fontSize: 10,
+    fontWeight: "900",
+    letterSpacing: 1,
+  },
+
+  // --------------------------------------------------
+  // BARCODE
+  // --------------------------------------------------
+
+  barcode: {
+    height: 43,
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "stretch",
+    justifyContent: "flex-end",
+    gap: 2,
+    overflow: "hidden",
+  },
+
+  barcodeFull: {
+    marginLeft: 0,
+  },
+
+  bar: {
+    height: "100%",
+  },
+
+  barSmall: {
+    width: 2,
+  },
+
+  barMedium: {
+    width: 3,
+  },
+
+  barWide: {
+    width: 5,
   },
 });
 

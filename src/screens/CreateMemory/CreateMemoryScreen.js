@@ -24,6 +24,8 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 
 import { getNetworkInfo } from "../../services/networkService";
 
+import { normalizeTicketCustomization } from "../../utils/ticketCustomization";
+
 const MAX_IMAGES = 5;
 
 function CreateMemoryScreen({ navigation, route }) {
@@ -45,7 +47,19 @@ function CreateMemoryScreen({ navigation, route }) {
 
   const [tags, setTags] = useState([]);
 
+  // --------------------------------------------------
+  // TICKET CUSTOMIZATION
+  // --------------------------------------------------
+
+  const [ticketCustomization, setTicketCustomization] = useState(() =>
+    normalizeTicketCustomization(),
+  );
+
   const editMemory = route?.params?.editMemory;
+
+  // --------------------------------------------------
+  // LOAD EDIT MEMORY
+  // --------------------------------------------------
 
   useEffect(() => {
     if (!editMemory) {
@@ -64,31 +78,41 @@ function CreateMemoryScreen({ navigation, route }) {
 
     setTitle(editMemory.title || "");
 
-    // Keep the user's original manual location
+    // Keep the existing manual location.
     setLocation(editMemory.location || "");
 
-    // Keep the existing GPS data
+    // Keep existing GPS data.
     setLocationData(editMemory.locationData || null);
 
     setLocationCaptured(!!editMemory.locationData);
 
+    // Keep existing network information.
     setNetwork(editMemory.network || editMemory.environment?.network || null);
 
     setDescription(editMemory.description || "");
 
     setTags(Array.isArray(editMemory.tags) ? editMemory.tags : []);
 
+    // Keep existing ticket customization.
+    setTicketCustomization(normalizeTicketCustomization(editMemory));
+
     navigation.setParams({
       editMemory: undefined,
     });
   }, [editMemory, navigation]);
 
-  // Automatically capture network and location
+  // --------------------------------------------------
+  // AUTOMATIC NETWORK + LOCATION
+  // --------------------------------------------------
+
   useEffect(() => {
     let cancelled = false;
 
     const captureMemoryEnvironment = async () => {
-      // Network does not require permission
+      // ------------------------------------------
+      // NETWORK
+      // ------------------------------------------
+
       try {
         const networkInfo = await getNetworkInfo();
 
@@ -99,11 +123,17 @@ function CreateMemoryScreen({ navigation, route }) {
         console.warn("Network info capture failed:", error);
       }
 
-      // If editing and location already exists,
-      // keep the existing location.
+      // ------------------------------------------
+      // EXISTING LOCATION
+      // ------------------------------------------
+
       if (editMemory?.locationData) {
         return;
       }
+
+      // ------------------------------------------
+      // LOCATION PERMISSION
+      // ------------------------------------------
 
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
@@ -111,6 +141,10 @@ function CreateMemoryScreen({ navigation, route }) {
         if (status !== "granted" || cancelled) {
           return;
         }
+
+        // ----------------------------------------
+        // CURRENT GPS LOCATION
+        // ----------------------------------------
 
         const currentLocation = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
@@ -123,6 +157,10 @@ function CreateMemoryScreen({ navigation, route }) {
         const { latitude, longitude } = currentLocation.coords;
 
         let addressData = null;
+
+        // ----------------------------------------
+        // REVERSE GEOCODING
+        // ----------------------------------------
 
         try {
           const addresses = await Location.reverseGeocodeAsync({
@@ -139,16 +177,28 @@ function CreateMemoryScreen({ navigation, route }) {
           return;
         }
 
+        // ----------------------------------------
+        // SAVE LOCATION DATA
+        // ----------------------------------------
+
         setLocationData({
           latitude,
           longitude,
+
           address: addressData?.formattedAddress || null,
+
           name: addressData?.name || null,
+
           district: addressData?.district || null,
+
           city: addressData?.city || null,
+
           region: addressData?.region || null,
+
           country: addressData?.country || null,
+
           postalCode: addressData?.postalCode || null,
+
           isoCountryCode: addressData?.isoCountryCode || null,
         });
 
@@ -170,6 +220,10 @@ function CreateMemoryScreen({ navigation, route }) {
       cancelled = true;
     };
   }, [editMemory]);
+
+  // --------------------------------------------------
+  // PICK IMAGES
+  // --------------------------------------------------
 
   const pickImages = async () => {
     try {
@@ -224,6 +278,10 @@ function CreateMemoryScreen({ navigation, route }) {
     }
   };
 
+  // --------------------------------------------------
+  // TAKE PHOTO
+  // --------------------------------------------------
+
   const takePhoto = async () => {
     try {
       if (images.length >= MAX_IMAGES) {
@@ -272,16 +330,19 @@ function CreateMemoryScreen({ navigation, route }) {
     }
   };
 
+  // --------------------------------------------------
+  // MANUAL LOCATION
+  // --------------------------------------------------
+
   const handleLocationPress = async () => {
     try {
-      // Already captured for this memory.
+      // Already captured.
       if (locationCaptured) {
         return;
       }
 
       setLocationCaptured(true);
 
-      // Ask for foreground location permission
       const { status } = await Location.requestForegroundPermissionsAsync();
 
       if (status !== "granted") {
@@ -295,7 +356,6 @@ function CreateMemoryScreen({ navigation, route }) {
         return;
       }
 
-      // Get current device GPS location
       const currentLocation = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
       });
@@ -318,13 +378,21 @@ function CreateMemoryScreen({ navigation, route }) {
       setLocationData({
         latitude,
         longitude,
+
         address: addressData?.formattedAddress || null,
+
         name: addressData?.name || null,
+
         district: addressData?.district || null,
+
         city: addressData?.city || null,
+
         region: addressData?.region || null,
+
         country: addressData?.country || null,
+
         postalCode: addressData?.postalCode || null,
+
         isoCountryCode: addressData?.isoCountryCode || null,
       });
 
@@ -336,7 +404,6 @@ function CreateMemoryScreen({ navigation, route }) {
     } catch (error) {
       console.error("Location error:", error);
 
-      // Allow another attempt after an error
       setLocationCaptured(false);
 
       Alert.alert(
@@ -345,6 +412,10 @@ function CreateMemoryScreen({ navigation, route }) {
       );
     }
   };
+
+  // --------------------------------------------------
+  // REMOVE IMAGE
+  // --------------------------------------------------
 
   const removeImage = (index) => {
     setImages((currentImages) =>
@@ -366,6 +437,10 @@ function CreateMemoryScreen({ navigation, route }) {
     });
   };
 
+  // --------------------------------------------------
+  // IMAGE SCROLL
+  // --------------------------------------------------
+
   const handleImageScroll = (event) => {
     const offsetX = event.nativeEvent.contentOffset.x;
 
@@ -379,6 +454,10 @@ function CreateMemoryScreen({ navigation, route }) {
 
     setActiveImage(Math.max(0, Math.min(index, images.length - 1)));
   };
+
+  // --------------------------------------------------
+  // RESET FORM
+  // --------------------------------------------------
 
   const resetForm = () => {
     setImages([]);
@@ -398,7 +477,13 @@ function CreateMemoryScreen({ navigation, route }) {
     setTags([]);
 
     setLocationCaptured(false);
+
+    setTicketCustomization(normalizeTicketCustomization());
   };
+
+  // --------------------------------------------------
+  // CREATE / PREVIEW MEMORY
+  // --------------------------------------------------
 
   const handleCreateMemory = () => {
     if (!images.length) {
@@ -437,6 +522,18 @@ function CreateMemoryScreen({ navigation, route }) {
       images: [...images],
 
       date: new Date().toISOString(),
+
+      // ------------------------------------------------
+      // TICKET CUSTOMIZATION
+      // ------------------------------------------------
+
+      ticketStyle: ticketCustomization.ticketStyle,
+
+      ticketAccent: ticketCustomization.ticketAccent,
+
+      ticketOptions: {
+        ...ticketCustomization.ticketOptions,
+      },
     };
 
     resetForm();

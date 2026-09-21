@@ -5,7 +5,6 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
-  Image,
   useWindowDimensions,
   Alert,
   ActivityIndicator,
@@ -14,6 +13,12 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 
 import { useMemory } from "../../hooks/useMemory";
+
+import MemoryTicket from "../../components/MemoryTicket/MemoryTicket";
+
+import TicketCustomizationSheet from "../../components/TicketCustomization/TicketCustomizationSheet";
+
+import { normalizeTicketCustomization } from "../../utils/ticketCustomization";
 
 import styles from "./ticketPreviewStyles";
 
@@ -27,6 +32,12 @@ function TicketPreviewScreen({ route, navigation }) {
   const [activeImage, setActiveImage] = useState(0);
 
   const [saving, setSaving] = useState(false);
+
+  const [customization, setCustomization] = useState(() =>
+    normalizeTicketCustomization(memory || {}),
+  );
+
+  const [customizationVisible, setCustomizationVisible] = useState(false);
 
   if (!memory) {
     return (
@@ -90,45 +101,9 @@ function TicketPreviewScreen({ route, navigation }) {
       ? [memory.image]
       : [];
 
-  // --------------------------------------------------
-  // TAGS
-  // --------------------------------------------------
-
-  const tags = Array.isArray(memory.tags)
-    ? [
-        ...new Set(
-          memory.tags
-            .filter((tag) => typeof tag === "string")
-            .map((tag) => tag.trim().replace(/^#+/, "").toLowerCase())
-            .filter(Boolean),
-        ),
-      ]
-    : [];
-
-  const formatDate = (date) => {
-    if (!date) {
-      return "DATE UNKNOWN";
-    }
-
-    const parsedDate = new Date(date);
-
-    if (Number.isNaN(parsedDate.getTime())) {
-      return "DATE UNKNOWN";
-    }
-
-    return parsedDate.toLocaleDateString("en-US", {
-      month: "short",
-      day: "2-digit",
-      year: "numeric",
-    });
-  };
-
-  const getTicketNumber = () => {
-    if (memory?.id) {
-      return memory.id.slice(-5).toUpperCase();
-    }
-
-    return "00001";
+  const previewMemory = {
+    ...memory,
+    ...customization,
   };
 
   const handleSave = async () => {
@@ -152,9 +127,11 @@ function TicketPreviewScreen({ route, navigation }) {
 
         locationData: memory.locationData || null,
 
+        network: memory.network || memory.environment?.network || null,
+
         description: memory.description || "",
 
-        tags: [...tags],
+        tags: Array.isArray(memory.tags) ? [...memory.tags] : [],
 
         images: [...images],
 
@@ -163,6 +140,14 @@ function TicketPreviewScreen({ route, navigation }) {
         favorite: false,
 
         environment: memory.environment || null,
+
+        ticketStyle: customization.ticketStyle,
+
+        ticketAccent: customization.ticketAccent,
+
+        ticketOptions: {
+          ...customization.ticketOptions,
+        },
       });
 
       if (!savedMemory) {
@@ -175,7 +160,10 @@ function TicketPreviewScreen({ route, navigation }) {
     } catch (error) {
       console.error("Error saving memory:", error);
 
-      Alert.alert("Save Failed", error?.message || "Unable to save memory.");
+      Alert.alert(
+        "Save Failed",
+        error?.message || "Unable to save the memory.",
+      );
     } finally {
       setSaving(false);
     }
@@ -200,7 +188,15 @@ function TicketPreviewScreen({ route, navigation }) {
 
           locationData: memory.locationData || null,
 
-          tags: [...tags],
+          tags: Array.isArray(memory.tags) ? [...memory.tags] : [],
+
+          ticketStyle: customization.ticketStyle,
+
+          ticketAccent: customization.ticketAccent,
+
+          ticketOptions: {
+            ...customization.ticketOptions,
+          },
         },
       },
     });
@@ -219,202 +215,7 @@ function TicketPreviewScreen({ route, navigation }) {
         ]}
       >
         <View style={styles.ticketShadow}>
-          <View style={styles.ticket}>
-            {/* TOP PERFORATION */}
-
-            <View style={styles.topPerforation}>
-              {Array.from({
-                length: 15,
-              }).map((_, holeIndex) => (
-                <View key={holeIndex} style={styles.perforationHole} />
-              ))}
-            </View>
-
-            {/* HEADER */}
-
-            <View style={styles.ticketHeader}>
-              <View>
-                <Text style={styles.ticketBrand}>MEMENTO</Text>
-
-                <Text style={styles.ticketSubBrand}>
-                  THE POWER OF THE MOMENT
-                </Text>
-              </View>
-
-              <Text style={styles.ticketNumber}>#{getTicketNumber()}</Text>
-            </View>
-
-            {/* IMAGE */}
-
-            <View style={styles.ticketImageContainer}>
-              {image ? (
-                <Image
-                  source={{
-                    uri: image,
-                  }}
-                  style={styles.ticketImage}
-                  resizeMode="cover"
-                />
-              ) : (
-                <View style={styles.noImage}>
-                  <Ionicons name="image-outline" size={42} color="#D94D28" />
-
-                  <Text style={styles.noImageText}>NO IMAGE</Text>
-                </View>
-              )}
-
-              {images.length > 1 && (
-                <View style={styles.imageCounter}>
-                  <Text style={styles.imageCounterText}>
-                    {index + 1}/{images.length}
-                  </Text>
-                </View>
-              )}
-
-              {images.length > 1 && (
-                <View style={styles.imageDots}>
-                  {images.map((_, dotIndex) => (
-                    <View
-                      key={dotIndex}
-                      style={[
-                        styles.imageDot,
-                        dotIndex === activeImage && styles.imageDotActive,
-                      ]}
-                    />
-                  ))}
-                </View>
-              )}
-            </View>
-
-            {/* INFORMATION */}
-
-            <View style={styles.ticketInfo}>
-              <Text style={styles.memoryLabel}>MEMORY</Text>
-
-              <Text style={styles.ticketTitle} numberOfLines={2}>
-                {memory.title || "UNTITLED MEMORY"}
-              </Text>
-
-              {/* TAGS */}
-
-              {tags.length > 0 && (
-                <View
-                  style={{
-                    flexDirection: "row",
-                    flexWrap: "wrap",
-                    gap: 6,
-                    marginTop: 9,
-                    marginBottom: 4,
-                  }}
-                >
-                  {tags.map((tag) => (
-                    <View
-                      key={tag}
-                      style={{
-                        backgroundColor: "#34345C",
-                        borderRadius: 12,
-                        paddingHorizontal: 8,
-                        paddingVertical: 4,
-                        maxWidth: "48%",
-                      }}
-                    >
-                      <Text
-                        style={{
-                          color: "#FFFFFF",
-                          fontSize: 9,
-                          fontWeight: "800",
-                          letterSpacing: 0.2,
-                        }}
-                        numberOfLines={1}
-                      >
-                        #{tag}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              )}
-
-              <View style={styles.ticketDivider} />
-
-              <View style={styles.infoRow}>
-                <View style={styles.infoItem}>
-                  <Text style={styles.infoLabel}>DATE</Text>
-
-                  <Text style={styles.infoValue}>
-                    {formatDate(memory.date)}
-                  </Text>
-                </View>
-
-                <View style={styles.infoItem}>
-                  <Text style={styles.infoLabel}>LOCATION</Text>
-
-                  <Text style={styles.infoValue} numberOfLines={2}>
-                    {memory.location || "UNKNOWN"}
-                  </Text>
-                </View>
-              </View>
-
-              {memory.description ? (
-                <View style={styles.descriptionContainer}>
-                  <Text style={styles.description}>{memory.description}</Text>
-                </View>
-              ) : null}
-            </View>
-
-            {/* MIDDLE PERFORATION */}
-
-            <View style={styles.middlePerforation}>
-              <View style={styles.sideCutoutLeft} />
-
-              <View style={styles.middleDashedLine} />
-
-              <View style={styles.sideCutoutRight} />
-            </View>
-
-            {/* FOOTER */}
-
-            <View style={styles.ticketFooter}>
-              <View>
-                <Text style={styles.admitText}>ADMISSION X1</Text>
-
-                <Text style={styles.footerSmallText}>MEMORY ARCHIVE</Text>
-              </View>
-
-              <View style={styles.barcode}>
-                {Array.from({
-                  length: 28,
-                }).map((_, barIndex) => (
-                  <View
-                    key={barIndex}
-                    style={[
-                      styles.bar,
-                      barIndex % 5 === 0
-                        ? styles.barWide
-                        : barIndex % 3 === 0
-                          ? styles.barMedium
-                          : styles.barSmall,
-                    ]}
-                  />
-                ))}
-              </View>
-            </View>
-
-            {/* SERIAL */}
-
-            <View style={styles.serialContainer}>
-              <Text style={styles.serialText}>MT • {getTicketNumber()}</Text>
-            </View>
-
-            {/* BOTTOM PERFORATION */}
-
-            <View style={styles.bottomPerforation}>
-              {Array.from({
-                length: 15,
-              }).map((_, holeIndex) => (
-                <View key={holeIndex} style={styles.perforationHole} />
-              ))}
-            </View>
-          </View>
+          <MemoryTicket memory={previewMemory} image={image} />
         </View>
       </View>
     );
@@ -477,9 +278,7 @@ function TicketPreviewScreen({ route, navigation }) {
             setActiveImage(index);
           }}
         >
-          {images.length > 0
-            ? images.map((image, index) => renderTicket(image, index))
-            : renderTicket(null, 0)}
+          {images.length > 0 ? images.map(renderTicket) : renderTicket(null, 0)}
         </ScrollView>
 
         {/* SWIPE HINT */}
@@ -495,6 +294,25 @@ function TicketPreviewScreen({ route, navigation }) {
             <Text style={styles.swipeHintText}>SWIPE TO VIEW MORE PHOTOS</Text>
           </View>
         )}
+
+        {/* CUSTOMIZE */}
+
+        <TouchableOpacity
+          style={[
+            styles.editButton,
+            {
+              marginTop: 12,
+              marginBottom: 10,
+            },
+          ]}
+          onPress={() => setCustomizationVisible(true)}
+          disabled={saving}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="color-palette-outline" size={19} color="#34345C" />
+
+          <Text style={styles.editButtonText}>CUSTOMIZE TICKET</Text>
+        </TouchableOpacity>
 
         {/* ACTIONS */}
 
@@ -534,6 +352,13 @@ function TicketPreviewScreen({ route, navigation }) {
 
         <Text style={styles.footerText}>Every moment deserves a ticket.</Text>
       </ScrollView>
+
+      <TicketCustomizationSheet
+        visible={customizationVisible}
+        value={customization}
+        onChange={setCustomization}
+        onClose={() => setCustomizationVisible(false)}
+      />
     </View>
   );
 }

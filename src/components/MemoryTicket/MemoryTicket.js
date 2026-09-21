@@ -6,18 +6,47 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { getMemoryThumbnailUrl } from "../../utils/cloudinary";
 
+import {
+  normalizeTicketCustomization,
+  getTicketTheme,
+} from "../../utils/ticketCustomization";
+
 import styles from "./memoryTicketStyles";
 
-function MemoryTicket({ memory, onPress, compact = false, image = null }) {
+function MemoryTicket({
+  memory,
+  onPress,
+  compact = false,
+  image = null,
+  ticketNumber = null,
+}) {
   const [imageWidth, setImageWidth] = useState(0);
 
   const [activeImage, setActiveImage] = useState(0);
 
-  if (!memory) {
-    return null;
-  }
+  const normalizedCustomization = useMemo(
+    () => normalizeTicketCustomization(memory || {}),
+    [memory],
+  );
 
-  const currentMemory = memory;
+  const theme = useMemo(
+    () => getTicketTheme(normalizedCustomization),
+    [normalizedCustomization],
+  );
+
+  const isMinimal = normalizedCustomization.ticketStyle === "minimal";
+
+  const isVintage = normalizedCustomization.ticketStyle === "vintage";
+
+  const {
+    showLocation,
+    showDate,
+    showDescription,
+    showAdmission,
+    showTicketNumber,
+  } = normalizedCustomization.ticketOptions;
+
+  const currentMemory = memory || {};
 
   const formatDate = (value) => {
     if (!value) {
@@ -49,7 +78,8 @@ function MemoryTicket({ memory, onPress, compact = false, image = null }) {
 
   const admission = currentMemory.admission || "X1";
 
-  const ticketNumber =
+  const resolvedTicketNumber =
+    ticketNumber ||
     currentMemory.ticketNumber ||
     currentMemory.id?.toString().slice(-6) ||
     "000000";
@@ -75,13 +105,13 @@ function MemoryTicket({ memory, onPress, compact = false, image = null }) {
 
   const displayImages = isSingleImageMode ? [image] : images;
 
-  // --------------------------------------------------
-  // OPTIMIZED CLOUDINARY IMAGES
-  // --------------------------------------------------
-
   const displayImageSources = useMemo(() => {
     return displayImages.map((imageUri) => getMemoryThumbnailUrl(imageUri));
   }, [displayImages]);
+
+  if (!memory) {
+    return null;
+  }
 
   const handleImagePress = () => {
     if (onPress) {
@@ -89,33 +119,96 @@ function MemoryTicket({ memory, onPress, compact = false, image = null }) {
     }
   };
 
-  const ticketContent = (
-    <View style={[styles.ticket, compact && styles.ticketCompact]}>
-      {/* TOP PERFORATION */}
-
-      <View style={styles.topPerforation}>
-        {Array.from({
-          length: 12,
-        }).map((_, index) => (
-          <View key={index} style={styles.perforationDot} />
+  const renderPerforation = (position) => {
+    return (
+      <View
+        style={[
+          position === "top" ? styles.topPerforation : styles.bottomPerforation,
+          {
+            backgroundColor: theme.backgroundColor,
+          },
+        ]}
+      >
+        {Array.from({ length: 12 }).map((_, index) => (
+          <View
+            key={index}
+            style={[
+              styles.perforationDot,
+              {
+                backgroundColor: "#F1F0F6",
+              },
+            ]}
+          />
         ))}
       </View>
+    );
+  };
 
-      {/* MAIN TICKET */}
+  const ticketContent = (
+    <View
+      style={[
+        styles.ticket,
 
-      <View style={styles.ticketBody}>
+        compact && styles.ticketCompact,
+
+        isMinimal && styles.ticketMinimal,
+
+        isVintage && styles.ticketVintage,
+
+        {
+          backgroundColor: theme.backgroundColor,
+
+          borderColor: theme.borderColor,
+        },
+      ]}
+    >
+      {isMinimal ? (
+        <View
+          style={[
+            styles.minimalRule,
+            {
+              backgroundColor: theme.accentColor,
+            },
+          ]}
+        />
+      ) : (
+        renderPerforation("top")
+      )}
+
+      <View
+        style={[
+          styles.ticketBody,
+          {
+            backgroundColor: theme.backgroundColor,
+          },
+        ]}
+      >
         {/* HEADER */}
 
         <View style={styles.header}>
-          <Text style={styles.brandText}>MEMENTO</Text>
+          <Text
+            style={[
+              styles.brandText,
+              {
+                color: theme.accentColor,
+              },
+            ]}
+          >
+            MEMENTO
+          </Text>
 
-          <Ionicons name="ticket-outline" size={18} color="#F0442C" />
+          <Ionicons name="ticket-outline" size={18} color={theme.accentColor} />
         </View>
 
         {/* IMAGE */}
 
         <View
-          style={styles.ticketImageContainer}
+          style={[
+            styles.ticketImageContainer,
+            {
+              backgroundColor: theme.imagePlaceholderColor,
+            },
+          ]}
           onLayout={(event) => {
             const width = event.nativeEvent.layout.width;
 
@@ -130,9 +223,7 @@ function MemoryTicket({ memory, onPress, compact = false, image = null }) {
                 activeOpacity={0.95}
                 onPress={handleImagePress}
                 disabled={!onPress}
-                style={{
-                  flex: 1,
-                }}
+                style={styles.imageTouchable}
               >
                 <Image
                   source={{
@@ -176,9 +267,7 @@ function MemoryTicket({ memory, onPress, compact = false, image = null }) {
                       activeOpacity={0.95}
                       onPress={handleImagePress}
                       disabled={!onPress}
-                      style={{
-                        flex: 1,
-                      }}
+                      style={styles.imageTouchable}
                     >
                       <Image
                         source={{
@@ -194,11 +283,24 @@ function MemoryTicket({ memory, onPress, compact = false, image = null }) {
             )
           ) : (
             <View style={styles.noImage}>
-              <Ionicons name="image-outline" size={40} color="#707080" />
+              <Ionicons
+                name="image-outline"
+                size={40}
+                color={theme.accentColor}
+              />
+
+              <Text
+                style={[
+                  styles.imagePlaceholderText,
+                  {
+                    color: theme.accentColor,
+                  },
+                ]}
+              >
+                NO IMAGE
+              </Text>
             </View>
           )}
-
-          {/* IMAGE COUNTER */}
 
           {!isSingleImageMode && displayImages.length > 1 && (
             <View style={styles.imageCounter}>
@@ -207,8 +309,6 @@ function MemoryTicket({ memory, onPress, compact = false, image = null }) {
               </Text>
             </View>
           )}
-
-          {/* DOT INDICATORS */}
 
           {!isSingleImageMode && displayImages.length > 1 && (
             <View style={styles.imageDots}>
@@ -228,7 +328,17 @@ function MemoryTicket({ memory, onPress, compact = false, image = null }) {
         {/* TITLE */}
 
         <View style={styles.titleContainer}>
-          <Text style={styles.ticketTitle} numberOfLines={2}>
+          <Text
+            style={[
+              styles.ticketTitle,
+              isMinimal && styles.minimalTitle,
+              isVintage && styles.vintageTitle,
+              {
+                color: theme.textColor,
+              },
+            ]}
+            numberOfLines={2}
+          >
             {title}
           </Text>
         </View>
@@ -238,8 +348,24 @@ function MemoryTicket({ memory, onPress, compact = false, image = null }) {
         {tags.length > 0 && (
           <View style={styles.tagsContainer}>
             {tags.map((tag) => (
-              <View key={tag} style={styles.tagChip}>
-                <Text style={styles.tagText} numberOfLines={1}>
+              <View
+                key={tag}
+                style={[
+                  styles.tagChip,
+                  {
+                    borderBottomColor: theme.accentColor,
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.tagText,
+                    {
+                      color: theme.accentColor,
+                    },
+                  ]}
+                  numberOfLines={1}
+                >
                   #{tag}
                 </Text>
               </View>
@@ -249,11 +375,28 @@ function MemoryTicket({ memory, onPress, compact = false, image = null }) {
 
         {/* DESCRIPTION */}
 
-        {description ? (
+        {showDescription && description ? (
           <View style={styles.descriptionContainer}>
-            <Text style={styles.descriptionLabel}>THE STORY</Text>
+            <Text
+              style={[
+                styles.descriptionLabel,
+                {
+                  color: theme.accentColor,
+                },
+              ]}
+            >
+              THE STORY
+            </Text>
 
-            <Text style={styles.descriptionText} numberOfLines={4}>
+            <Text
+              style={[
+                styles.descriptionText,
+                {
+                  color: theme.textColor,
+                },
+              ]}
+              numberOfLines={4}
+            >
               {description}
             </Text>
           </View>
@@ -261,71 +404,196 @@ function MemoryTicket({ memory, onPress, compact = false, image = null }) {
 
         {/* EVENT INFO */}
 
-        <View style={styles.infoSection}>
-          <View style={styles.infoRow}>
-            <View style={styles.infoBlock}>
-              <Text style={styles.infoLabel}>LOCATION</Text>
+        {(showLocation || showDate) && (
+          <View style={styles.infoSection}>
+            <View style={styles.infoRow}>
+              {showLocation && (
+                <View style={styles.infoBlock}>
+                  <Text
+                    style={[
+                      styles.infoLabel,
+                      {
+                        color: theme.accentColor,
+                      },
+                    ]}
+                  >
+                    LOCATION
+                  </Text>
 
-              <Text style={styles.infoValue} numberOfLines={1}>
-                {location}
-              </Text>
+                  <Text
+                    style={[
+                      styles.infoValue,
+                      {
+                        color: theme.textColor,
+                      },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {location}
+                  </Text>
+                </View>
+              )}
+
+              {showDate && (
+                <View style={styles.infoBlock}>
+                  <Text
+                    style={[
+                      styles.infoLabel,
+                      {
+                        color: theme.accentColor,
+                      },
+                    ]}
+                  >
+                    DATE
+                  </Text>
+
+                  <Text
+                    style={[
+                      styles.infoValue,
+                      {
+                        color: theme.textColor,
+                      },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {date}
+                  </Text>
+                </View>
+              )}
             </View>
 
-            <View style={styles.infoBlock}>
-              <Text style={styles.infoLabel}>DATE</Text>
+            {showDate && time ? (
+              <View style={styles.timeRow}>
+                <Text
+                  style={[
+                    styles.infoLabel,
+                    {
+                      color: theme.accentColor,
+                    },
+                  ]}
+                >
+                  TIME
+                </Text>
 
-              <Text style={styles.infoValue} numberOfLines={1}>
-                {date}
-              </Text>
-            </View>
+                <Text
+                  style={[
+                    styles.infoValue,
+                    {
+                      color: theme.textColor,
+                    },
+                  ]}
+                >
+                  {time}
+                </Text>
+              </View>
+            ) : null}
           </View>
-
-          {time ? (
-            <View style={styles.timeRow}>
-              <Text style={styles.infoLabel}>TIME</Text>
-
-              <Text style={styles.infoValue}>{time}</Text>
-            </View>
-          ) : null}
-        </View>
+        )}
 
         {/* ADMISSION */}
 
-        <View style={styles.admissionSection}>
-          <Text style={styles.admissionLabel}>ADMISSION</Text>
+        {showAdmission && (
+          <View style={styles.admissionSection}>
+            <Text
+              style={[
+                styles.admissionLabel,
+                {
+                  color: theme.accentColor,
+                },
+              ]}
+            >
+              ADMISSION
+            </Text>
 
-          <Text style={styles.admissionValue}>
-            X{admission.toString().replace(/^X/, "")}
-          </Text>
-        </View>
+            <Text
+              style={[
+                styles.admissionValue,
+                {
+                  color: theme.textColor,
+                },
+              ]}
+            >
+              X{admission.toString().replace(/^X/, "")}
+            </Text>
+          </View>
+        )}
 
         {/* DIVIDER */}
 
         <View style={styles.divider}>
-          <View style={styles.dividerLine} />
+          <View
+            style={[
+              styles.dividerLine,
+              {
+                borderColor: theme.accentColor,
+              },
+            ]}
+          />
 
-          <View style={styles.dividerNotchLeft} />
+          {!isMinimal && (
+            <>
+              <View
+                style={[
+                  styles.dividerNotchLeft,
+                  {
+                    backgroundColor: "#F1F0F6",
+                  },
+                ]}
+              />
 
-          <View style={styles.dividerNotchRight} />
+              <View
+                style={[
+                  styles.dividerNotchRight,
+                  {
+                    backgroundColor: "#F1F0F6",
+                  },
+                ]}
+              />
+            </>
+          )}
         </View>
 
         {/* FOOTER */}
 
         <View style={styles.ticketFooter}>
-          <View style={styles.ticketNumberContainer}>
-            <Text style={styles.ticketNumberLabel}>TICKET NO.</Text>
+          {showTicketNumber && (
+            <View style={styles.ticketNumberContainer}>
+              <Text
+                style={[
+                  styles.ticketNumberLabel,
+                  {
+                    color: theme.accentColor,
+                  },
+                ]}
+              >
+                TICKET NO.
+              </Text>
 
-            <Text style={styles.ticketNumber}>{ticketNumber}</Text>
-          </View>
+              <Text
+                style={[
+                  styles.ticketNumber,
+                  {
+                    color: theme.textColor,
+                  },
+                ]}
+              >
+                {resolvedTicketNumber}
+              </Text>
+            </View>
+          )}
 
-          <View style={styles.barcode}>
-            {Array.from({
-              length: 30,
-            }).map((_, index) => (
+          <View
+            style={[styles.barcode, !showTicketNumber && styles.barcodeFull]}
+          >
+            {Array.from({ length: 30 }).map((_, index) => (
               <View
                 key={index}
                 style={[
                   styles.bar,
+                  {
+                    backgroundColor: theme.accentColor,
+                  },
+
                   index % 4 === 0
                     ? styles.barWide
                     : index % 3 === 0
@@ -338,15 +606,18 @@ function MemoryTicket({ memory, onPress, compact = false, image = null }) {
         </View>
       </View>
 
-      {/* BOTTOM PERFORATION */}
-
-      <View style={styles.bottomPerforation}>
-        {Array.from({
-          length: 12,
-        }).map((_, index) => (
-          <View key={index} style={styles.perforationDot} />
-        ))}
-      </View>
+      {isMinimal ? (
+        <View
+          style={[
+            styles.minimalRule,
+            {
+              backgroundColor: theme.accentColor,
+            },
+          ]}
+        />
+      ) : (
+        renderPerforation("bottom")
+      )}
     </View>
   );
 
