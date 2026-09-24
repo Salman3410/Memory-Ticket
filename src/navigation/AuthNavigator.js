@@ -1,7 +1,5 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-
-import LoginScreen from "../screens/Auth/LoginScreen";
-import SignupScreen from "../screens/Auth/SignupScreen";
+import AuthTabs from "./AuthTabs";
 import ForgotPasswordScreen from "../screens/Auth/ForgotPasswordScreen/ForgotPasswordScreen";
 import VerifySignupOtpScreen from "../screens/Auth/VerifySignupOtpScreen";
 
@@ -10,22 +8,14 @@ const Stack = createNativeStackNavigator();
 function AuthNavigator() {
   return (
     <Stack.Navigator
-      initialRouteName="Login"
+      initialRouteName="AuthTabs"
       screenOptions={{
         headerShown: false,
       }}
     >
-      <Stack.Screen name="Login" component={LoginScreen} />
-
-      <Stack.Screen name="Signup" component={SignupScreen} />
+      <Stack.Screen name="AuthTabs" component={AuthTabs} />
       <Stack.Screen name="VerifySignupOtp" component={VerifySignupOtpScreen} />
-      <Stack.Screen
-        name="ForgotPassword"
-        component={ForgotPasswordScreen}
-        options={{
-          headerShown: false,
-        }}
-      />
+      <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
     </Stack.Navigator>
   );
 }

@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
-  Image
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import styles from "./authStyles";
@@ -18,7 +17,9 @@ function LoginScreen({ navigation }) {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
   const [showPassword, setShowPassword] = useState(false);
+
   const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async () => {
@@ -35,20 +36,29 @@ function LoginScreen({ navigation }) {
     setIsLoading(true);
 
     try {
-      const result = await login(normalizedEmail, password);
+      const result = await login(
+        normalizedEmail,
+        password,
+      );
 
       if (!result.success) {
-        Alert.alert("Login Failed", result.message || "Unable to login.");
+        Alert.alert(
+          "Login Failed",
+          result.message || "Unable to login.",
+        );
         return;
       }
 
-      // Do NOT navigate manually.
+      // Do not navigate manually.
       // AuthContext updates the authenticated user.
-      // RootNavigator should switch to the authenticated app automatically.
+      // RootNavigator switches to AppNavigator automatically.
     } catch (error) {
       console.error("Login screen error:", error);
 
-      Alert.alert("Login Failed", "Something went wrong. Please try again.");
+      Alert.alert(
+        "Login Failed",
+        "Something went wrong. Please try again.",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -62,19 +72,6 @@ function LoginScreen({ navigation }) {
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.container}>
-        {/* Brand */}
-        <View style={styles.brandContainer}>
-          <View style={styles.brandIcon}>
-            <Image
-              source={require("../../../assets/icon.png")}
-              style={styles.logoImage}
-              resizeMode="contain"
-            />
-          </View>
-
-          <Text style={styles.brandText}>MEMENTO</Text>
-        </View>
-
         {/* Heading */}
         <View style={styles.headingContainer}>
           <Text style={styles.title}>Welcome Back</Text>
@@ -141,12 +138,18 @@ function LoginScreen({ navigation }) {
 
               <TouchableOpacity
                 style={styles.passwordButton}
-                onPress={() => setShowPassword((prev) => !prev)}
+                onPress={() =>
+                  setShowPassword((prev) => !prev)
+                }
                 activeOpacity={0.7}
                 disabled={isLoading}
               >
                 <Ionicons
-                  name={showPassword ? "eye-off-outline" : "eye-outline"}
+                  name={
+                    showPassword
+                      ? "eye-off-outline"
+                      : "eye-outline"
+                  }
                   size={20}
                   color="#707080"
                 />
@@ -159,59 +162,54 @@ function LoginScreen({ navigation }) {
             style={styles.forgotButton}
             activeOpacity={0.7}
             disabled={isLoading}
-            onPress={() => navigation.navigate("ForgotPassword")}
+            onPress={() =>
+              navigation.navigate("ForgotPassword")
+            }
           >
-            <Text style={styles.forgotText}>Forgot password?</Text>
+            <Text style={styles.forgotText}>
+              Forgot password?
+            </Text>
           </TouchableOpacity>
 
-          {/* Login */}
+          {/* Login Button */}
           <TouchableOpacity
-            style={[styles.loginButton, isLoading && { opacity: 0.7 }]}
+            style={[
+              styles.loginButton,
+              isLoading && { opacity: 0.7 },
+            ]}
             onPress={handleLogin}
             activeOpacity={0.85}
             disabled={isLoading}
           >
             {isLoading ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
+              <ActivityIndicator
+                size="small"
+                color="#FFFFFF"
+              />
             ) : (
               <>
-                <Text style={styles.loginButtonText}>LOGIN</Text>
+                <Text style={styles.loginButtonText}>
+                  LOGIN
+                </Text>
 
-                <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
+                <Ionicons
+                  name="arrow-forward"
+                  size={20}
+                  color="#FFFFFF"
+                />
               </>
             )}
           </TouchableOpacity>
         </View>
 
-        {/* Divider */}
-        <View style={styles.dividerContainer}>
-          <View style={styles.dividerLine} />
-
-          <View style={styles.dividerIcon}>
-            <Text style={styles.dividerStar}>✦</Text>
-          </View>
-
-          <View style={styles.dividerLine} />
-        </View>
-
-        {/* Signup */}
-        <View style={styles.signupContainer}>
-          <Text style={styles.signupText}>Don't have an account?</Text>
-
-          <TouchableOpacity
-            onPress={() => navigation.navigate("Signup")}
-            activeOpacity={0.7}
-            disabled={isLoading}
-          >
-            <Text style={styles.signupLink}>Sign Up</Text>
-          </TouchableOpacity>
-        </View>
-
         {/* Tagline */}
-        <Text style={styles.tagline}>KEEP YOUR MEMORIES CLOSE</Text>
+        <Text style={styles.tagline}>
+          KEEP YOUR MEMORIES CLOSE
+        </Text>
       </View>
     </KeyboardAwareScrollView>
   );
 }
 
 export default LoginScreen;
+

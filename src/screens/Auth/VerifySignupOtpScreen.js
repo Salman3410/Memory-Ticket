@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
-  Image
+  Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import styles from "./authStyles";
@@ -39,21 +39,29 @@ function VerifySignupOtpScreen({ navigation, route }) {
     const cleanedOtp = otp.trim();
 
     if (!/^\d{6}$/.test(cleanedOtp)) {
-      Alert.alert("Invalid OTP", "Please enter the 6-digit verification code.");
+      Alert.alert(
+        "Invalid OTP",
+        "Please enter the 6-digit verification code.",
+      );
       return;
     }
 
     setIsLoading(true);
 
     try {
-      const result = await verifySignupOtp(email, otp);
+      const result = await verifySignupOtp(email, cleanedOtp);
 
       if (!result.success) {
-        Alert.alert("Verification Failed", result.message);
+        Alert.alert(
+          "Verification Failed",
+          result.message || "Unable to verify your email.",
+        );
         return;
       }
 
-      navigation.replace("Login");
+      navigation.popTo("AuthTabs", {
+        screen: "Login",
+      });
     } catch (error) {
       console.error("Signup OTP verification error:", error);
 
@@ -77,7 +85,10 @@ function VerifySignupOtpScreen({ navigation, route }) {
       const result = await resendSignupOtp(email);
 
       if (!result.success) {
-        Alert.alert("Unable to Resend", result.message || "Please try again.");
+        Alert.alert(
+          "Unable to Resend",
+          result.message || "Please try again.",
+        );
         return;
       }
 
@@ -108,16 +119,23 @@ function VerifySignupOtpScreen({ navigation, route }) {
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.container}>
+        {/* Back Button */}
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
           disabled={isLoading || resending}
+          activeOpacity={0.7}
         >
-          <Ionicons name="arrow-back" size={22} color="#242424" />
+          <Ionicons
+            name="arrow-back"
+            size={22}
+            color="#242424"
+          />
 
           <Text style={styles.backText}>Back</Text>
         </TouchableOpacity>
 
+        {/* Brand */}
         <View style={styles.signupBrandContainer}>
           <View style={styles.brandIcon}>
             <Image
@@ -130,6 +148,7 @@ function VerifySignupOtpScreen({ navigation, route }) {
           <Text style={styles.brandText}>MEMENTO</Text>
         </View>
 
+        {/* Heading */}
         <View style={styles.headingContainer}>
           <Text style={styles.title}>Verify Your Email</Text>
 
@@ -150,7 +169,9 @@ function VerifySignupOtpScreen({ navigation, route }) {
           </Text>
         </View>
 
+        {/* Form */}
         <View style={styles.formContainer}>
+          {/* OTP */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>VERIFICATION CODE</Text>
 
@@ -168,7 +189,9 @@ function VerifySignupOtpScreen({ navigation, route }) {
                 placeholderTextColor="#A39C92"
                 value={otp}
                 onChangeText={(text) =>
-                  setOtp(text.replace(/\D/g, "").slice(0, 6))
+                  setOtp(
+                    text.replace(/\D/g, "").slice(0, 6),
+                  )
                 }
                 keyboardType="number-pad"
                 maxLength={6}
@@ -180,6 +203,7 @@ function VerifySignupOtpScreen({ navigation, route }) {
             </View>
           </View>
 
+          {/* Verify Button */}
           <TouchableOpacity
             style={[
               styles.loginButton,
@@ -192,26 +216,42 @@ function VerifySignupOtpScreen({ navigation, route }) {
             activeOpacity={0.85}
           >
             {isLoading ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
+              <ActivityIndicator
+                size="small"
+                color="#FFFFFF"
+              />
             ) : (
               <>
-                <Text style={styles.loginButtonText}>VERIFY EMAIL</Text>
+                <Text style={styles.loginButtonText}>
+                  VERIFY EMAIL
+                </Text>
 
-                <Ionicons name="checkmark" size={20} color="#FFFFFF" />
+                <Ionicons
+                  name="checkmark"
+                  size={20}
+                  color="#FFFFFF"
+                />
               </>
             )}
           </TouchableOpacity>
 
+          {/* Resend */}
           <View style={styles.resendSection}>
             <TouchableOpacity
               onPress={handleResend}
-              disabled={countdown > 0 || resending || isLoading}
+              disabled={
+                countdown > 0 ||
+                resending ||
+                isLoading
+              }
               activeOpacity={0.7}
             >
               <Text
                 style={[
                   styles.resendText,
-                  (countdown > 0 || resending || isLoading) &&
+                  (countdown > 0 ||
+                    resending ||
+                    isLoading) &&
                     styles.resendDisabled,
                 ]}
               >
@@ -224,7 +264,8 @@ function VerifySignupOtpScreen({ navigation, route }) {
             </TouchableOpacity>
 
             <Text style={styles.spamCheck}>
-              Didn't receive the code? Check your spam folder.
+              Didn't receive the code? Check your spam
+              folder.
             </Text>
           </View>
         </View>

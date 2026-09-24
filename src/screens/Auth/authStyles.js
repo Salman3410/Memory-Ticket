@@ -5,206 +5,229 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#F1F0F6",
   },
+
   scrollContainer: {
     flexGrow: 1,
   },
+
   container: {
     flex: 1,
     paddingHorizontal: 28,
-    paddingTop: 55,
-    paddingBottom: 30,
-  },
-  brandContainer: {
-    alignItems: "center",
-    marginBottom: 48,
+    paddingTop: 20,
+    paddingBottom: 24,
   },
 
-  brandIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: "#34345C",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 14,
-    overflow: "hidden",
-  },
-
-  logoImage: {
-    width: 62,
-    height: 62,
-    resizeMode: "contain",
-  },
-
-  brandText: {
-    fontSize: 25,
-    fontWeight: "800",
-    letterSpacing: 5,
-    color: "#242424",
-  },
   headingContainer: {
-    marginBottom: 34,
+    marginBottom: 24,
   },
+
   title: {
-    fontSize: 34,
-    fontWeight: "800",
-    color: "#242424",
-    letterSpacing: -0.8,
-    marginBottom: 8,
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#29293D",
+    letterSpacing: -0.5,
+    marginBottom: 6,
   },
+
   subtitle: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: "#707080",
+    fontSize: 14,
+    lineHeight: 20,
+    color: "#858494",
+    maxWidth: 320,
   },
+
   formContainer: {
     width: "100%",
   },
+
   inputGroup: {
-    marginBottom: 20,
+    marginBottom: 14,
   },
+
   label: {
-    fontSize: 11,
-    fontWeight: "800",
-    letterSpacing: 1.5,
-    color: "#242424",
-    marginBottom: 8,
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 1.3,
+    color: "#5F5E6D",
+    marginBottom: 7,
   },
+
   inputWrapper: {
-    height: 56,
-    borderWidth: 1,
-    borderColor: "#D9D8E2",
-    borderRadius: 14,
-    backgroundColor: "#FFFFFF",
+    height: 54,
+
     flexDirection: "row",
     alignItems: "center",
+
+    backgroundColor: "#F9F8FB",
+
+    borderWidth: 1,
+    borderColor: "#DDDCE5",
+
+    borderRadius: 15,
   },
+
   inputIcon: {
     marginLeft: 16,
     marginRight: 10,
   },
+
   input: {
     flex: 1,
+
     height: "100%",
+
     fontSize: 15,
-    color: "#242424",
+    color: "#29293D",
+
     paddingVertical: 0,
+    paddingRight: 12,
   },
+
   passwordButton: {
-    width: 50,
+    width: 48,
     height: "100%",
+
     alignItems: "center",
     justifyContent: "center",
   },
+
   forgotButton: {
     alignSelf: "flex-end",
-    marginTop: -4,
-    marginBottom: 14,
+
+    marginTop: -1,
+    marginBottom: 16,
+
+    paddingVertical: 2,
+    paddingLeft: 8,
   },
+
   forgotText: {
     fontSize: 13,
-    fontWeight: "700",
+    fontWeight: "600",
     color: "#34345C",
   },
+
   loginButton: {
-    height: 58,
-    borderRadius: 14,
-    backgroundColor: "#34345C",
+    height: 54,
+
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 10,
-    shadowColor: "#242440",
-    shadowOffset: {
-      width: 0,
-      height: 5,
-    },
-    shadowOpacity: 0.18,
-    shadowRadius: 8,
-    elevation: 4,
+
+    backgroundColor: "#34345C",
+
+    borderRadius: 15,
+
+    gap: 9,
   },
+
   loginButtonText: {
     color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "800",
-    letterSpacing: 2,
+
+    fontSize: 13,
+    fontWeight: "700",
+
+    letterSpacing: 1.5,
   },
+
+  tagline: {
+    textAlign: "center",
+
+    fontSize: 9,
+    fontWeight: "700",
+
+    letterSpacing: 2,
+
+    color: "#A6A4AE",
+
+    marginTop: 20,
+  },
+
+  backButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+
+    marginBottom: 18,
+  },
+
+  backText: {
+    fontSize: 14,
+    fontWeight: "600",
+
+    color: "#555462",
+
+    marginLeft: 6,
+  },
+
+  signupBrandContainer: {
+    alignItems: "center",
+    marginBottom: 28,
+  },
+
+  resendSection: {
+    alignItems: "center",
+    marginTop: 18,
+  },
+
+  resendText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#34345C",
+  },
+
+  resendDisabled: {
+    color: "#A2A1AA",
+  },
+
+  spamCheck: {
+    marginTop: 7,
+
+    fontSize: 12,
+    lineHeight: 18,
+
+    color: "#AAA8B2",
+
+    textAlign: "center",
+  },
+
   dividerContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: 20,
+    marginVertical: 18,
   },
+
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: "#D9D8E2",
+    backgroundColor: "#DDDCE5",
   },
+
   dividerIcon: {
     paddingHorizontal: 14,
   },
+
   dividerStar: {
     fontSize: 14,
     color: "#F2C14E",
   },
+
   signupContainer: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
   },
+
   signupText: {
     fontSize: 14,
-    color: "#707080",
+    color: "#858494",
   },
-  backButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    alignSelf: "flex-start",
-    marginBottom: 24,
-  },
-  backText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#242424",
-    marginLeft: 6,
-  },
-  signupBrandContainer: {
-    alignItems: "center",
-    marginBottom: 32,
-  },
+
   signupLink: {
     fontSize: 14,
-    fontWeight: "800",
-    color: "#34345C",
-    marginLeft: 5,
-  },
-  tagline: {
-    textAlign: "center",
-    fontSize: 9,
-    fontWeight: "800",
-    letterSpacing: 2.5,
-    color: "#A39C92",
-    marginTop: 25,
-  },
-  resendSection: {
-    alignItems: "center",
-    marginTop: 22,
-  },
-
-  resendText: {
-    fontSize: 15,
     fontWeight: "700",
     color: "#34345C",
-  },
-
-  resendDisabled: {
-    color: "#999999",
-  },
-
-  spamCheck: {
-    marginTop: 8,
-    fontSize: 12,
-    color: "#A39C92",
-    textAlign: "center",
+    marginLeft: 5,
   },
 });
 
