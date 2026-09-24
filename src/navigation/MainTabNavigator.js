@@ -1,11 +1,9 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-
 import DashboardScreen from "../screens/Dashboard/DashboardScreen";
 import HomeScreen from "../screens/Home/HomeScreen";
 import MemoriesScreen from "../screens/Memories/MemoriesScreen";
 import CreateMemoryScreen from "../screens/CreateMemory/CreateMemoryScreen";
 import ProfileScreen from "../screens/Profile/ProfileScreen";
-
 import CustomTabBar from "./CustomTabBar";
 
 const Tab = createBottomTabNavigator();
