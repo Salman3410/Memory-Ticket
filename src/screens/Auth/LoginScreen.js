@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -8,9 +8,19 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from "react-native-reanimated";
 import styles from "./authStyles";
 import { useAuth } from "../../hooks/useAuth";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+
+const AnimatedView =
+  Animated.createAnimatedComponent(View);
 
 function LoginScreen({ navigation }) {
   const { login } = useAuth();
@@ -18,12 +28,99 @@ function LoginScreen({ navigation }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const [showPassword, setShowPassword] = useState(false);
+  const [showPassword, setShowPassword] =
+    useState(false);
 
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] =
+    useState(false);
+
+  // =========================
+  // Entrance Animation
+  // =========================
+
+  const entranceOpacity =
+    useSharedValue(0);
+
+  const entranceY =
+    useSharedValue(12);
+
+  // =========================
+  // Button Animation
+  // =========================
+
+  const buttonScale =
+    useSharedValue(1);
+
+  useEffect(() => {
+    entranceOpacity.value =
+      withTiming(1, {
+        duration: 400,
+        easing: Easing.out(
+          Easing.cubic,
+        ),
+      });
+
+    entranceY.value =
+      withTiming(0, {
+        duration: 400,
+        easing: Easing.out(
+          Easing.cubic,
+        ),
+      });
+  }, []);
+
+  const contentAnimatedStyle =
+    useAnimatedStyle(() => {
+      return {
+        opacity:
+          entranceOpacity.value,
+
+        transform: [
+          {
+            translateY:
+              entranceY.value,
+          },
+        ],
+      };
+    });
+
+  const buttonAnimatedStyle =
+    useAnimatedStyle(() => {
+      return {
+        transform: [
+          {
+            scale:
+              buttonScale.value,
+          },
+        ],
+      };
+    });
+
+  const handleButtonPressIn = () => {
+    buttonScale.value =
+      withSpring(0.97, {
+        damping: 14,
+        stiffness: 280,
+        mass: 0.4,
+      });
+  };
+
+  const handleButtonPressOut = () => {
+    buttonScale.value =
+      withSpring(1, {
+        damping: 14,
+        stiffness: 240,
+        mass: 0.4,
+      });
+  };
+
+  // =========================
+  // Login
+  // =========================
 
   const handleLogin = async () => {
-    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedEmail =
+      email.trim().toLowerCase();
 
     if (!normalizedEmail || !password) {
       Alert.alert(
@@ -44,7 +141,8 @@ function LoginScreen({ navigation }) {
       if (!result.success) {
         Alert.alert(
           "Login Failed",
-          result.message || "Unable to login.",
+          result.message ||
+            "Unable to login.",
         );
         return;
       }
@@ -53,7 +151,10 @@ function LoginScreen({ navigation }) {
       // AuthContext updates the authenticated user.
       // RootNavigator switches to AppNavigator automatically.
     } catch (error) {
-      console.error("Login screen error:", error);
+      console.error(
+        "Login screen error:",
+        error,
+      );
 
       Alert.alert(
         "Login Failed",
@@ -67,14 +168,23 @@ function LoginScreen({ navigation }) {
   return (
     <KeyboardAwareScrollView
       bottomOffset={20}
-      contentContainerStyle={styles.scrollContainer}
+      contentContainerStyle={
+        styles.scrollContainer
+      }
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
     >
-      <View style={styles.container}>
+      <AnimatedView
+        style={[
+          styles.container,
+          contentAnimatedStyle,
+        ]}
+      >
         {/* Heading */}
         <View style={styles.headingContainer}>
-          <Text style={styles.title}>Welcome Back</Text>
+          <Text style={styles.title}>
+            Welcome Back
+          </Text>
 
           <Text style={styles.subtitle}>
             Your memories are waiting for you.
@@ -85,7 +195,9 @@ function LoginScreen({ navigation }) {
         <View style={styles.formContainer}>
           {/* Email */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>EMAIL</Text>
+            <Text style={styles.label}>
+              EMAIL
+            </Text>
 
             <View style={styles.inputWrapper}>
               <Ionicons
@@ -112,7 +224,9 @@ function LoginScreen({ navigation }) {
 
           {/* Password */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>PASSWORD</Text>
+            <Text style={styles.label}>
+              PASSWORD
+            </Text>
 
             <View style={styles.inputWrapper}>
               <Ionicons
@@ -139,7 +253,9 @@ function LoginScreen({ navigation }) {
               <TouchableOpacity
                 style={styles.passwordButton}
                 onPress={() =>
-                  setShowPassword((prev) => !prev)
+                  setShowPassword(
+                    (prev) => !prev,
+                  )
                 }
                 activeOpacity={0.7}
                 disabled={isLoading}
@@ -163,7 +279,9 @@ function LoginScreen({ navigation }) {
             activeOpacity={0.7}
             disabled={isLoading}
             onPress={() =>
-              navigation.navigate("ForgotPassword")
+              navigation.navigate(
+                "ForgotPassword",
+              )
             }
           >
             <Text style={styles.forgotText}>
@@ -172,44 +290,59 @@ function LoginScreen({ navigation }) {
           </TouchableOpacity>
 
           {/* Login Button */}
-          <TouchableOpacity
-            style={[
-              styles.loginButton,
-              isLoading && { opacity: 0.7 },
-            ]}
-            onPress={handleLogin}
-            activeOpacity={0.85}
-            disabled={isLoading}
+          <AnimatedView
+            style={buttonAnimatedStyle}
           >
-            {isLoading ? (
-              <ActivityIndicator
-                size="small"
-                color="#FFFFFF"
-              />
-            ) : (
-              <>
-                <Text style={styles.loginButtonText}>
-                  LOGIN
-                </Text>
-
-                <Ionicons
-                  name="arrow-forward"
-                  size={20}
+            <TouchableOpacity
+              style={[
+                styles.loginButton,
+                isLoading && {
+                  opacity: 0.7,
+                },
+              ]}
+              onPress={handleLogin}
+              onPressIn={
+                handleButtonPressIn
+              }
+              onPressOut={
+                handleButtonPressOut
+              }
+              activeOpacity={1}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator
+                  size="small"
                   color="#FFFFFF"
                 />
-              </>
-            )}
-          </TouchableOpacity>
+              ) : (
+                <>
+                  <Text
+                    style={
+                      styles.loginButtonText
+                    }
+                  >
+                    LOGIN
+                  </Text>
+
+                  <Ionicons
+                    name="arrow-forward"
+                    size={20}
+                    color="#FFFFFF"
+                  />
+                </>
+              )}
+            </TouchableOpacity>
+          </AnimatedView>
         </View>
 
         {/* Tagline */}
         <Text style={styles.tagline}>
           KEEP YOUR MEMORIES CLOSE
         </Text>
-      </View>
+      </AnimatedView>
     </KeyboardAwareScrollView>
   );
 }
 
 export default LoginScreen;
-

@@ -1,11 +1,18 @@
 import React, { useCallback } from "react";
+
 import {
   ActivityIndicator,
+  RefreshControl,
   ScrollView,
   View,
 } from "react-native";
+
 import { useAuth } from "../../hooks/useAuth";
 import useDashboard from "../../hooks/useDashboard";
+import useRefresh from "../../hooks/useRefresh";
+import { useMemory } from "../../hooks/useMemory";
+import { useCollection } from "../../hooks/useCollection";
+
 import DashboardHeader from "./components/DashboardHeader";
 import DashboardHero from "./components/DashboardHero";
 import MemoryPulseCard from "./components/MemoryPulseCard";
@@ -14,10 +21,15 @@ import DashboardSpotlightCard from "./components/DashboardSpotlightCard";
 import DashboardMemoryCard from "./components/DashboardMemoryCard";
 import DashboardSectionHeader from "./components/DashboardSectionHeader";
 import HomeCollectionsSection from "../../components/collections/HomeCollectionsSection";
+
 import { styles } from "./dashboardStyles";
 
 function DashboardScreen({ navigation }) {
   const { user } = useAuth();
+
+  const { refreshMemories } = useMemory();
+
+  const { refreshCollections } = useCollection();
 
   const {
     stats,
@@ -32,6 +44,20 @@ function DashboardScreen({ navigation }) {
     loading,
   } = useDashboard();
 
+  // --------------------------------------------------
+  // REFRESH DASHBOARD
+  // --------------------------------------------------
+
+  const refreshDashboard = useCallback(async () => {
+    await Promise.all([refreshMemories(), refreshCollections()]);
+  }, [refreshMemories, refreshCollections]);
+
+  const { refreshing, onRefresh } = useRefresh(refreshDashboard);
+
+  // --------------------------------------------------
+  // OPEN MEMORY
+  // --------------------------------------------------
+
   const openMemory = useCallback(
     (memory) => {
       if (!memory?.id) {
@@ -45,6 +71,10 @@ function DashboardScreen({ navigation }) {
     [navigation],
   );
 
+  // --------------------------------------------------
+  // COLLECTIONS
+  // --------------------------------------------------
+
   const handleViewCollections = useCallback(() => {
     navigation.navigate("Collections");
   }, [navigation]);
@@ -55,8 +85,7 @@ function DashboardScreen({ navigation }) {
 
   const handleCollectionPress = useCallback(
     (collection) => {
-      const collectionId =
-        collection?._id || collection?.id;
+      const collectionId = collection?._id || collection?.id;
 
       if (!collectionId) {
         return;
@@ -69,26 +98,44 @@ function DashboardScreen({ navigation }) {
     [navigation],
   );
 
+  // --------------------------------------------------
+  // ON THIS DAY
+  // --------------------------------------------------
+
   const openOnThisDay = useCallback(() => {
     navigation.navigate("OnThisDay");
   }, [navigation]);
 
+  // --------------------------------------------------
+  // INITIAL LOADING
+  // --------------------------------------------------
+
   if (loading && !stats.totalMemories) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator
-          size="small"
-          color="#34345C"
-        />
+        <ActivityIndicator size="small" color="#34345C" />
       </View>
     );
   }
+
+  // --------------------------------------------------
+  // SCREEN
+  // --------------------------------------------------
 
   return (
     <View style={styles.container}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#34345C"
+            colors={["#34345C"]}
+            progressBackgroundColor="#FFFFFF"
+          />
+        }
       >
         <DashboardHeader name={user?.name} />
 
@@ -103,10 +150,7 @@ function DashboardScreen({ navigation }) {
         {/* ON THIS DAY */}
 
         <View style={styles.section}>
-          <OnThisDayCard
-            memories={onThisDay}
-            onPress={openOnThisDay}
-          />
+          <OnThisDayCard memories={onThisDay} onPress={openOnThisDay} />
         </View>
 
         {/* MEMORY SPOTLIGHT */}
@@ -116,16 +160,12 @@ function DashboardScreen({ navigation }) {
             <DashboardSectionHeader
               title="Memory Spotlight"
               actionLabel="Open"
-              onPress={() =>
-                openMemory(featuredMemory)
-              }
+              onPress={() => openMemory(featuredMemory)}
             />
 
             <DashboardSpotlightCard
               memory={featuredMemory}
-              onPress={() =>
-                openMemory(featuredMemory)
-              }
+              onPress={() => openMemory(featuredMemory)}
             />
           </View>
         )}
@@ -147,21 +187,13 @@ function DashboardScreen({ navigation }) {
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={
-                styles.horizontalContent
-              }
+              contentContainerStyle={styles.horizontalContent}
             >
               {favoriteMemories.map((memory) => (
                 <DashboardMemoryCard
-                  key={
-                    memory?.id ||
-                    memory?._id ||
-                    memory?.clientMemoryId
-                  }
+                  key={memory?.id || memory?._id || memory?.clientMemoryId}
                   memory={memory}
-                  onPress={() =>
-                    openMemory(memory)
-                  }
+                  onPress={() => openMemory(memory)}
                 />
               ))}
             </ScrollView>
@@ -178,9 +210,7 @@ function DashboardScreen({ navigation }) {
           }
           onViewAll={handleViewCollections}
           onCreate={handleCreateCollection}
-          onCollectionPress={
-            handleCollectionPress
-          }
+          onCollectionPress={handleCollectionPress}
         />
       </ScrollView>
     </View>
@@ -188,4 +218,3 @@ function DashboardScreen({ navigation }) {
 }
 
 export default React.memo(DashboardScreen);
-

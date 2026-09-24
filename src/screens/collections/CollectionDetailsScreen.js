@@ -4,6 +4,7 @@ import {
   useMemo,
   useState,
 } from "react";
+
 import {
   ActivityIndicator,
   Alert,
@@ -15,12 +16,20 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+
 import { Ionicons } from "@expo/vector-icons";
+
 import { useCollection } from "../../hooks/useCollection";
+import useRefresh from "../../hooks/useRefresh";
+
 import { getMemoryDetailUrl } from "../../utils/cloudinary";
+
 import MemoryTicketHorizontal from "../../components/MemoryTicket/MemoryTicketHorizontal";
 
-function CollectionDetailsScreen({ navigation, route }) {
+function CollectionDetailsScreen({
+  navigation,
+  route,
+}) {
   const {
     getCollectionById,
     removeMemoryFromCollection,
@@ -31,10 +40,14 @@ function CollectionDetailsScreen({ navigation, route }) {
     route?.params?.collectionId ||
     route?.params?.id;
 
-  const [collection, setCollection] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  const [collection, setCollection] =
+    useState(null);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [deleting, setDeleting] =
+    useState(false);
 
   // --------------------------------------------------
   // LOAD COLLECTION
@@ -53,26 +66,30 @@ function CollectionDetailsScreen({ navigation, route }) {
         }
 
         const result =
-          await getCollectionById(collectionId);
+          await getCollectionById(
+            collectionId
+          );
 
         setCollection(result);
       } catch (error) {
         console.error(
           "Failed to load collection details:",
-          error,
+          error
         );
 
         Alert.alert(
           "Unable to load collection",
           error?.message ||
-            "Something went wrong while loading this collection.",
+            "Something went wrong while loading this collection."
         );
       } finally {
         setLoading(false);
-        setRefreshing(false);
       }
     },
-    [collectionId, getCollectionById],
+    [
+      collectionId,
+      getCollectionById,
+    ]
   );
 
   // --------------------------------------------------
@@ -87,232 +104,266 @@ function CollectionDetailsScreen({ navigation, route }) {
   // REFRESH
   // --------------------------------------------------
 
-  const handleRefresh = useCallback(() => {
-    setRefreshing(true);
-    loadCollection(false);
-  }, [loadCollection]);
+  const refreshCollectionDetails =
+    useCallback(async () => {
+      await loadCollection(false);
+    }, [loadCollection]);
+
+  const {
+    refreshing,
+    onRefresh,
+  } = useRefresh(
+    refreshCollectionDetails
+  );
 
   // --------------------------------------------------
   // ADD MEMORIES
   // --------------------------------------------------
 
-  const handleAddMemories = useCallback(() => {
-    if (!collectionId) {
-      return;
-    }
+  const handleAddMemories =
+    useCallback(() => {
+      if (!collectionId) {
+        return;
+      }
 
-    navigation.navigate(
-      "CollectionMemorySelector",
-      {
-        collectionId,
-      },
-    );
-  }, [navigation, collectionId]);
+      navigation.navigate(
+        "CollectionMemorySelector",
+        {
+          collectionId,
+        }
+      );
+    }, [
+      navigation,
+      collectionId,
+    ]);
 
   // --------------------------------------------------
   // EDIT COLLECTION
   // --------------------------------------------------
 
-  const handleEdit = useCallback(() => {
-    if (!collection || !collectionId) {
-      return;
-    }
+  const handleEdit =
+    useCallback(() => {
+      if (!collection || !collectionId) {
+        return;
+      }
 
-    navigation.navigate("EditCollection", {
+      navigation.navigate(
+        "EditCollection",
+        {
+          collection,
+          collectionId,
+        }
+      );
+    }, [
+      navigation,
       collection,
       collectionId,
-    });
-  }, [
-    navigation,
-    collection,
-    collectionId,
-  ]);
+    ]);
 
   // --------------------------------------------------
   // DELETE COLLECTION
   // --------------------------------------------------
 
-  const handleDelete = useCallback(() => {
-    if (!collectionId || deleting) {
-      return;
-    }
-
-    Alert.alert(
-      "Delete Collection",
-      `Are you sure you want to delete "${
-        collection?.name || "this collection"
-      }"? Memories will not be deleted.`,
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              setDeleting(true);
-
-              await deleteCollection(
-                collectionId,
-              );
-
-              navigation.goBack();
-            } catch (error) {
-              console.error(
-                "Failed to delete collection:",
-                error,
-              );
-
-              Alert.alert(
-                "Delete failed",
-                error?.message ||
-                  "Unable to delete this collection.",
-              );
-            } finally {
-              setDeleting(false);
-            }
-          },
-        },
-      ],
-    );
-  }, [
-    collectionId,
-    collection,
-    deleting,
-    deleteCollection,
-    navigation,
-  ]);
-
-  // --------------------------------------------------
-  // MORE MENU
-  // --------------------------------------------------
-
-  const handleMore = useCallback(() => {
-    if (!collection) {
-      return;
-    }
-
-    Alert.alert(
-      collection.name || "Collection",
-      "Choose an action",
-      [
-        {
-          text: "Edit Collection",
-          onPress: handleEdit,
-        },
-        {
-          text: "Delete Collection",
-          style: "destructive",
-          onPress: handleDelete,
-        },
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
-      ],
-    );
-  }, [
-    collection,
-    handleEdit,
-    handleDelete,
-  ]);
-
-  // --------------------------------------------------
-  // REMOVE MEMORY
-  // --------------------------------------------------
-
-  const handleRemoveMemory = useCallback(
-    (memory) => {
-      const memoryId =
-        memory?._id ||
-        memory?.id;
-
-      if (!memoryId || !collectionId) {
+  const handleDelete =
+    useCallback(() => {
+      if (!collectionId || deleting) {
         return;
       }
 
       Alert.alert(
-        "Remove Memory",
-        "Remove this memory from the collection?",
+        "Delete Collection",
+        `Are you sure you want to delete "${
+          collection?.name ||
+          "this collection"
+        }"? Memories will not be deleted.`,
         [
           {
             text: "Cancel",
             style: "cancel",
           },
           {
-            text: "Remove",
+            text: "Delete",
             style: "destructive",
             onPress: async () => {
               try {
-                await removeMemoryFromCollection(
-                  collectionId,
-                  memoryId,
+                setDeleting(true);
+
+                await deleteCollection(
+                  collectionId
                 );
 
-                setCollection((prev) => {
-                  if (!prev) {
-                    return prev;
-                  }
-
-                  const currentMemories =
-                    Array.isArray(
-                      prev.memories,
-                    )
-                      ? prev.memories
-                      : [];
-
-                  const nextMemories =
-                    currentMemories.filter(
-                      (item) => {
-                        const id =
-                          item?._id ||
-                          item?.id;
-
-                        return (
-                          String(id) !==
-                          String(memoryId)
-                        );
-                      },
-                    );
-
-                  return {
-                    ...prev,
-                    memories: nextMemories,
-                    memoryCount:
-                      nextMemories.length,
-                  };
-                });
+                navigation.goBack();
               } catch (error) {
                 console.error(
-                  "Failed to remove memory:",
-                  error,
+                  "Failed to delete collection:",
+                  error
                 );
 
                 Alert.alert(
-                  "Unable to remove",
+                  "Delete failed",
                   error?.message ||
-                    "Something went wrong while removing the memory.",
+                    "Unable to delete this collection."
                 );
+              } finally {
+                setDeleting(false);
               }
             },
           },
-        ],
+        ]
       );
-    },
-    [
+    }, [
       collectionId,
-      removeMemoryFromCollection,
-    ],
-  );
+      collection,
+      deleting,
+      deleteCollection,
+      navigation,
+    ]);
+
+  // --------------------------------------------------
+  // MORE MENU
+  // --------------------------------------------------
+
+  const handleMore =
+    useCallback(() => {
+      if (!collection) {
+        return;
+      }
+
+      Alert.alert(
+        collection.name ||
+          "Collection",
+        "Choose an action",
+        [
+          {
+            text: "Edit Collection",
+            onPress: handleEdit,
+          },
+          {
+            text: "Delete Collection",
+            style: "destructive",
+            onPress: handleDelete,
+          },
+          {
+            text: "Cancel",
+            style: "cancel",
+          },
+        ]
+      );
+    }, [
+      collection,
+      handleEdit,
+      handleDelete,
+    ]);
+
+  // --------------------------------------------------
+  // REMOVE MEMORY
+  // --------------------------------------------------
+
+  const handleRemoveMemory =
+    useCallback(
+      (memory) => {
+        const memoryId =
+          memory?._id ||
+          memory?.id;
+
+        if (
+          !memoryId ||
+          !collectionId
+        ) {
+          return;
+        }
+
+        Alert.alert(
+          "Remove Memory",
+          "Remove this memory from the collection?",
+          [
+            {
+              text: "Cancel",
+              style: "cancel",
+            },
+            {
+              text: "Remove",
+              style: "destructive",
+              onPress: async () => {
+                try {
+                  await removeMemoryFromCollection(
+                    collectionId,
+                    memoryId
+                  );
+
+                  setCollection(
+                    (prev) => {
+                      if (!prev) {
+                        return prev;
+                      }
+
+                      const currentMemories =
+                        Array.isArray(
+                          prev.memories
+                        )
+                          ? prev.memories
+                          : [];
+
+                      const nextMemories =
+                        currentMemories.filter(
+                          (item) => {
+                            const id =
+                              item?._id ||
+                              item?.id;
+
+                            return (
+                              String(
+                                id
+                              ) !==
+                              String(
+                                memoryId
+                              )
+                            );
+                          }
+                        );
+
+                      return {
+                        ...prev,
+                        memories:
+                          nextMemories,
+                        memoryCount:
+                          nextMemories.length,
+                      };
+                    }
+                  );
+                } catch (error) {
+                  console.error(
+                    "Failed to remove memory:",
+                    error
+                  );
+
+                  Alert.alert(
+                    "Unable to remove",
+                    error?.message ||
+                      "Something went wrong while removing the memory."
+                  );
+                }
+              },
+            },
+          ]
+        );
+      },
+      [
+        collectionId,
+        removeMemoryFromCollection,
+      ]
+    );
 
   // --------------------------------------------------
   // MEMORY DATA
   // --------------------------------------------------
 
   const memories = useMemo(() => {
-    if (!Array.isArray(collection?.memories)) {
+    if (
+      !Array.isArray(
+        collection?.memories
+      )
+    ) {
       return [];
     }
 
@@ -328,85 +379,104 @@ function CollectionDetailsScreen({ navigation, route }) {
   // --------------------------------------------------
 
   const coverImage =
-    collection?.coverMemoryId?.images?.[0] ||
-    collection?.coverMemoryId?.image ||
+    collection?.coverMemoryId
+      ?.images?.[0] ||
+    collection?.coverMemoryId
+      ?.image ||
     null;
 
-  const coverImageUrl = useMemo(() => {
-    if (!coverImage) {
-      return null;
-    }
+  const coverImageUrl =
+    useMemo(() => {
+      if (!coverImage) {
+        return null;
+      }
 
-    return getMemoryDetailUrl(coverImage);
-  }, [coverImage]);
+      return getMemoryDetailUrl(
+        coverImage
+      );
+    }, [coverImage]);
 
   // --------------------------------------------------
   // MEMORY RENDER
   // --------------------------------------------------
 
-  const renderMemory = useCallback(
-    ({ item }) => {
-      const memoryId =
-        item?._id ||
-        item?.id;
+  const renderMemory =
+    useCallback(
+      ({ item }) => {
+        const memoryId =
+          item?._id ||
+          item?.id;
 
-      return (
-        <View style={styles.memoryItem}>
-          <MemoryTicketHorizontal
-            memory={item}
-            onPress={() => {
-              if (!memoryId) {
-                return;
-              }
-
-              navigation.navigate(
-                "MemoryDetails",
-                {
-                  memoryId,
-                },
-              );
-            }}
-          />
-
-          <TouchableOpacity
-            style={styles.removeButton}
-            onPress={() =>
-              handleRemoveMemory(item)
+        return (
+          <View
+            style={
+              styles.memoryItem
             }
-            activeOpacity={0.8}
           >
-            <Ionicons
-              name="remove-circle-outline"
-              size={15}
-              color="#E76F51"
+            <MemoryTicketHorizontal
+              memory={item}
+              onPress={() => {
+                if (!memoryId) {
+                  return;
+                }
+
+                navigation.navigate(
+                  "MemoryDetails",
+                  {
+                    memoryId,
+                  }
+                );
+              }}
             />
 
-            <Text
+            <TouchableOpacity
               style={
-                styles.removeButtonText
+                styles.removeButton
               }
+              onPress={() =>
+                handleRemoveMemory(
+                  item
+                )
+              }
+              activeOpacity={0.8}
             >
-              Remove
-            </Text>
-          </TouchableOpacity>
-        </View>
-      );
-    },
-    [
-      navigation,
-      handleRemoveMemory,
-    ],
-  );
+              <Ionicons
+                name="remove-circle-outline"
+                size={15}
+                color="#E76F51"
+              />
 
-  const memoryKeyExtractor = useCallback(
-    (item, index) =>
-      String(
-        item?._id ||
-          item?.id ||
-          `memory-${index}`,
-      ),
-    [],
-  );
+              <Text
+                style={
+                  styles.removeButtonText
+                }
+              >
+                Remove
+              </Text>
+            </TouchableOpacity>
+          </View>
+        );
+      },
+      [
+        navigation,
+        handleRemoveMemory,
+      ]
+    );
+
+  // --------------------------------------------------
+  // MEMORY KEY
+  // --------------------------------------------------
+
+  const memoryKeyExtractor =
+    useCallback(
+      (item, index) =>
+        String(
+          item?._id ||
+            item?.id ||
+            `memory-${index}`
+        ),
+      []
+    );
 
   // --------------------------------------------------
   // LOADING
@@ -414,13 +484,21 @@ function CollectionDetailsScreen({ navigation, route }) {
 
   if (loading && !collection) {
     return (
-      <View style={styles.loadingScreen}>
+      <View
+        style={
+          styles.loadingScreen
+        }
+      >
         <ActivityIndicator
           size="large"
           color="#34345C"
         />
 
-        <Text style={styles.loadingText}>
+        <Text
+          style={
+            styles.loadingText
+          }
+        >
           Loading collection...
         </Text>
       </View>
@@ -433,19 +511,32 @@ function CollectionDetailsScreen({ navigation, route }) {
 
   if (!collection) {
     return (
-      <View style={styles.errorScreen}>
-        <View style={styles.errorMark}>
-          <Text style={styles.errorMarkText}>
+      <View
+        style={styles.errorScreen}
+      >
+        <View
+          style={styles.errorMark}
+        >
+          <Text
+            style={
+              styles.errorMarkText
+            }
+          >
             M
           </Text>
         </View>
 
-        <Text style={styles.errorTitle}>
+        <Text
+          style={styles.errorTitle}
+        >
           Collection not found
         </Text>
 
-        <Text style={styles.errorText}>
-          This collection could not be loaded.
+        <Text
+          style={styles.errorText}
+        >
+          This collection could not
+          be loaded.
         </Text>
 
         <TouchableOpacity
@@ -461,7 +552,11 @@ function CollectionDetailsScreen({ navigation, route }) {
             color="#FFFFFF"
           />
 
-          <Text style={styles.backButtonText}>
+          <Text
+            style={
+              styles.backButtonText
+            }
+          >
             Go Back
           </Text>
         </TouchableOpacity>
@@ -469,31 +564,56 @@ function CollectionDetailsScreen({ navigation, route }) {
     );
   }
 
+  // --------------------------------------------------
+  // SCREEN
+  // --------------------------------------------------
+
   return (
     <View style={styles.container}>
       <FlatList
         data={memories}
         renderItem={renderMemory}
-        keyExtractor={memoryKeyExtractor}
-        showsVerticalScrollIndicator={false}
+        keyExtractor={
+          memoryKeyExtractor
+        }
+        showsVerticalScrollIndicator={
+          false
+        }
         contentContainerStyle={
           memories.length === 0
             ? styles.emptyMemoryList
             : styles.memoryList
         }
+
+        // ------------------------------------------------
+        // PULL TO REFRESH
+        // ------------------------------------------------
+
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            onRefresh={handleRefresh}
+            onRefresh={onRefresh}
             tintColor="#34345C"
+            colors={["#34345C"]}
+            progressBackgroundColor="#FFFFFF"
           />
         }
+
+        // ------------------------------------------------
+        // HEADER
+        // ------------------------------------------------
+
         ListHeaderComponent={
           <View>
             {/* TOP BAR */}
-            <View style={styles.topBar}>
+
+            <View
+              style={styles.topBar}
+            >
               <TouchableOpacity
-                style={styles.topBarButton}
+                style={
+                  styles.topBarButton
+                }
                 onPress={() =>
                   navigation.goBack()
                 }
@@ -507,16 +627,24 @@ function CollectionDetailsScreen({ navigation, route }) {
               </TouchableOpacity>
 
               <Text
-                style={styles.topBarTitle}
+                style={
+                  styles.topBarTitle
+                }
               >
                 COLLECTION
               </Text>
 
               <TouchableOpacity
-                style={styles.topBarButton}
-                onPress={handleMore}
+                style={
+                  styles.topBarButton
+                }
+                onPress={
+                  handleMore
+                }
                 activeOpacity={0.8}
-                disabled={deleting}
+                disabled={
+                  deleting
+                }
               >
                 <Ionicons
                   name="ellipsis-horizontal"
@@ -527,14 +655,18 @@ function CollectionDetailsScreen({ navigation, route }) {
             </View>
 
             {/* COLLECTION TICKET */}
+
             <View
               style={
                 styles.collectionTicket
               }
             >
               {/* COVER */}
+
               <View
-                style={styles.ticketCover}
+                style={
+                  styles.ticketCover
+                }
               >
                 {coverImageUrl ? (
                   <Image
@@ -553,10 +685,14 @@ function CollectionDetailsScreen({ navigation, route }) {
                     }
                   >
                     <View
-                      style={styles.logoCircle}
+                      style={
+                        styles.logoCircle
+                      }
                     >
                       <Text
-                        style={styles.logoText}
+                        style={
+                          styles.logoText
+                        }
                       >
                         M
                       </Text>
@@ -579,7 +715,9 @@ function CollectionDetailsScreen({ navigation, route }) {
                 />
 
                 <View
-                  style={styles.ticketTopRow}
+                  style={
+                    styles.ticketTopRow
+                  }
                 >
                   <Text
                     style={
@@ -590,7 +728,9 @@ function CollectionDetailsScreen({ navigation, route }) {
                   </Text>
 
                   <View
-                    style={styles.countBadge}
+                    style={
+                      styles.countBadge
+                    }
                   >
                     <Text
                       style={
@@ -618,23 +758,33 @@ function CollectionDetailsScreen({ navigation, route }) {
               </View>
 
               {/* PERFORATION */}
+
               <View
-                style={styles.perforation}
+                style={
+                  styles.perforation
+                }
               >
                 <View
-                  style={styles.leftNotch}
+                  style={
+                    styles.leftNotch
+                  }
                 />
 
                 <View
-                  style={styles.dashedLine}
+                  style={
+                    styles.dashedLine
+                  }
                 />
 
                 <View
-                  style={styles.rightNotch}
+                  style={
+                    styles.rightNotch
+                  }
                 />
               </View>
 
               {/* TICKET CONTENT */}
+
               <View
                 style={
                   styles.ticketContent
@@ -646,7 +796,9 @@ function CollectionDetailsScreen({ navigation, route }) {
                   }
                 >
                   <View
-                    style={styles.logoCircleSmall}
+                    style={
+                      styles.logoCircleSmall
+                    }
                   >
                     <Text
                       style={
@@ -658,7 +810,9 @@ function CollectionDetailsScreen({ navigation, route }) {
                   </View>
 
                   <View
-                    style={styles.headingText}
+                    style={
+                      styles.headingText
+                    }
                   >
                     <Text
                       style={
@@ -682,7 +836,9 @@ function CollectionDetailsScreen({ navigation, route }) {
 
                 {collection.description ? (
                   <Text
-                    style={styles.description}
+                    style={
+                      styles.description
+                    }
                     numberOfLines={4}
                   >
                     {collection.description}
@@ -696,20 +852,26 @@ function CollectionDetailsScreen({ navigation, route }) {
                 >
                   <View>
                     <Text
-                      style={styles.infoLabel}
+                      style={
+                        styles.infoLabel
+                      }
                     >
                       MEMORIES
                     </Text>
 
                     <Text
-                      style={styles.infoValue}
+                      style={
+                        styles.infoValue
+                      }
                     >
                       {memoryCount}
                     </Text>
                   </View>
 
                   <View
-                    style={styles.barcode}
+                    style={
+                      styles.barcode
+                    }
                   >
                     {[
                       4,
@@ -722,21 +884,30 @@ function CollectionDetailsScreen({ navigation, route }) {
                       3,
                       5,
                     ].map(
-                      (width, index) => (
+                      (
+                        width,
+                        index
+                      ) => (
                         <View
-                          key={index}
+                          key={
+                            index
+                          }
                           style={[
                             styles.bar,
-                            { width },
+                            {
+                              width,
+                            },
                           ]}
                         />
-                      ),
+                      )
                     )}
                   </View>
                 </View>
 
                 <TouchableOpacity
-                  style={styles.addButton}
+                  style={
+                    styles.addButton
+                  }
                   onPress={
                     handleAddMemories
                   }
@@ -760,8 +931,11 @@ function CollectionDetailsScreen({ navigation, route }) {
             </View>
 
             {/* MEMORY HEADER */}
+
             <View
-              style={styles.sectionHeader}
+              style={
+                styles.sectionHeader
+              }
             >
               <View>
                 <Text
@@ -782,7 +956,9 @@ function CollectionDetailsScreen({ navigation, route }) {
               </View>
 
               <View
-                style={styles.sectionCount}
+                style={
+                  styles.sectionCount
+                }
               >
                 <Text
                   style={
@@ -795,8 +971,13 @@ function CollectionDetailsScreen({ navigation, route }) {
             </View>
           </View>
         }
+
         ListEmptyComponent={
-          <View style={styles.emptyMemories}>
+          <View
+            style={
+              styles.emptyMemories
+            }
+          >
             <Ionicons
               name="images-outline"
               size={38}
@@ -804,16 +985,20 @@ function CollectionDetailsScreen({ navigation, route }) {
             />
 
             <Text
-              style={styles.emptyTitle}
+              style={
+                styles.emptyTitle
+              }
             >
               No memories yet
             </Text>
 
             <Text
-              style={styles.emptyText}
+              style={
+                styles.emptyText
+              }
             >
-              Add memories to start building
-              this collection.
+              Add memories to start
+              building this collection.
             </Text>
 
             <TouchableOpacity
@@ -1292,4 +1477,3 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
   },
 });
-

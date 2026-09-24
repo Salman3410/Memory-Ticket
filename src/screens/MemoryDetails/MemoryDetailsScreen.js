@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 import {
   View,
@@ -11,6 +11,7 @@ import {
   Alert,
   Modal,
   StyleSheet,
+  RefreshControl,
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
@@ -18,19 +19,15 @@ import { Ionicons } from "@expo/vector-icons";
 import { captureRef } from "react-native-view-shot";
 
 import * as Sharing from "expo-sharing";
-
 import * as Print from "expo-print";
-
 import * as FileSystem from "expo-file-system/legacy";
-
 import * as MediaLibrary from "expo-media-library";
 
 import { useMemory } from "../../hooks/useMemory";
+import useRefresh from "../../hooks/useRefresh";
 
 import MemoryTicket from "../../components/MemoryTicket/MemoryTicket";
-
 import ShareExportSheet from "../../components/ShareExportSheet/ShareExportSheet";
-
 import TicketCustomizationSheet from "../../components/TicketCustomization/TicketCustomizationSheet";
 
 import { normalizeTicketCustomization } from "../../utils/ticketCustomization";
@@ -40,8 +37,23 @@ import { getMemoryDetailUrl, getMemoryViewerUrl } from "../../utils/cloudinary";
 import styles from "./memoryDetailsStyles";
 
 function MemoryDetailsScreen({ navigation, route }) {
-  const { getMemoryById, toggleFavorite, deleteMemory, updateMemory } =
-    useMemory();
+  const {
+    getMemoryById,
+    toggleFavorite,
+    deleteMemory,
+    updateMemory,
+    refreshMemories,
+  } = useMemory();
+
+  // --------------------------------------------------
+  // REFRESH
+  // --------------------------------------------------
+
+  const refreshMemoryDetails = useCallback(async () => {
+    await refreshMemories();
+  }, [refreshMemories]);
+
+  const { refreshing, onRefresh } = useRefresh(refreshMemoryDetails);
 
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
 
@@ -145,7 +157,6 @@ function MemoryDetailsScreen({ navigation, route }) {
     }
 
     setViewerImage(index);
-
     setImageViewerVisible(true);
   };
 
@@ -157,7 +168,6 @@ function MemoryDetailsScreen({ navigation, route }) {
     const index = Math.round(event.nativeEvent.contentOffset.x / screenWidth);
 
     setViewerImage(index);
-
     setActiveImage(index);
   };
 
@@ -198,11 +208,9 @@ function MemoryDetailsScreen({ navigation, route }) {
           text: "CANCEL",
           style: "cancel",
         },
-
         {
           text: "DELETE",
           style: "destructive",
-
           onPress: async () => {
             try {
               await deleteMemory(memory.id);
@@ -766,7 +774,6 @@ function MemoryDetailsScreen({ navigation, route }) {
             ${frontPage}
             ${backPage}
           </body>
-
           </html>
         `;
 
@@ -780,9 +787,7 @@ function MemoryDetailsScreen({ navigation, route }) {
       if (available) {
         await Sharing.shareAsync(uri, {
           mimeType: "application/pdf",
-
           dialogTitle: "Export Memory Ticket",
-
           UTI: "com.adobe.pdf",
         });
       } else {
@@ -846,6 +851,15 @@ function MemoryDetailsScreen({ navigation, route }) {
         showsVerticalScrollIndicator={false}
         nestedScrollEnabled
         keyboardShouldPersistTaps="handled"
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#34345C"
+            colors={["#34345C"]}
+            progressBackgroundColor="#FFFFFF"
+          />
+        }
       >
         {/* HEADER */}
 
@@ -895,9 +909,7 @@ function MemoryDetailsScreen({ navigation, route }) {
           removeClippedSubviews={true}
           getItemLayout={(_, index) => ({
             length: screenWidth - 44 + 12,
-
             offset: (screenWidth - 44 + 12) * index,
-
             index,
           })}
           onMomentumScrollEnd={(event) => {
@@ -1082,7 +1094,8 @@ function MemoryDetailsScreen({ navigation, route }) {
                 <Text style={pdfStyles.optionTitle}>Yellow Blank Back</Text>
 
                 <Text style={pdfStyles.optionText}>
-                  Page 1 → Ticket Front{"\n"}
+                  Page 1 → Ticket Front
+                  {"\n"}
                   Page 2 → Same yellow background
                 </Text>
               </View>
@@ -1132,7 +1145,8 @@ function MemoryDetailsScreen({ navigation, route }) {
                 <Text style={pdfStyles.optionTitle}>Standard Ticket Back</Text>
 
                 <Text style={pdfStyles.optionText}>
-                  Page 1 → Ticket Front{"\n"}
+                  Page 1 → Ticket Front
+                  {"\n"}
                   Page 2 → Memory Ticket Back
                 </Text>
               </View>
@@ -1193,9 +1207,7 @@ function MemoryDetailsScreen({ navigation, route }) {
             removeClippedSubviews={true}
             getItemLayout={(_, index) => ({
               length: screenWidth,
-
               offset: screenWidth * index,
-
               index,
             })}
             keyExtractor={(item, index) => `${item}-viewer-${index}`}
@@ -1205,7 +1217,6 @@ function MemoryDetailsScreen({ navigation, route }) {
                   imageViewerStyles.imagePage,
                   {
                     width: screenWidth,
-
                     height: screenHeight,
                   },
                 ]}
@@ -1218,7 +1229,6 @@ function MemoryDetailsScreen({ navigation, route }) {
                     imageViewerStyles.fullImage,
                     {
                       width: screenWidth,
-
                       height: screenHeight,
                     },
                   ]}

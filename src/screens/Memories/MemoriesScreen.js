@@ -5,10 +5,22 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { View, Text, TouchableOpacity, Alert, FlatList } from "react-native";
+
+import {
+  Alert,
+  FlatList,
+  RefreshControl,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+
 import { Ionicons } from "@expo/vector-icons";
+
 import { useMemory } from "../../hooks/useMemory";
 import { useCollection } from "../../hooks/useCollection";
+import useRefresh from "../../hooks/useRefresh";
+
 import SearchBar from "../../components/Memories/SearchBar/SearchBar";
 import CollectionStats from "../../components/Memories/CollectionStats/CollectionStats";
 import MemoryFilters from "../../components/Memories/MemoryFilters/MemoryFilters";
@@ -16,6 +28,7 @@ import EmptyMemoryState from "../../components/Memories/EmptyMemoryState/EmptyMe
 import MemoryTicketList from "../../components/Memories/MemoryTicketList/MemoryTicketList";
 import TimelineBottomSheet from "../../components/Memories/TimelineBottomSheet/TimelineBottomSheet";
 import AdvancedSearch from "../../components/Memories/AdvancedSearch/AdvancedSearch";
+
 import styles from "./memoriesStyles";
 
 const MONTHS = [
@@ -115,6 +128,7 @@ const MemoriesHeader = React.memo(function MemoriesHeader({
   return (
     <>
       {/* HEADER */}
+
       <View style={styles.header}>
         <View>
           <Text style={styles.headerEyebrow}>YOUR COLLECTION</Text>
@@ -124,6 +138,7 @@ const MemoriesHeader = React.memo(function MemoriesHeader({
 
         <View style={styles.headerActions}>
           {/* TIMELINE */}
+
           <TouchableOpacity
             style={[
               styles.timelineButton,
@@ -151,6 +166,7 @@ const MemoriesHeader = React.memo(function MemoriesHeader({
           </TouchableOpacity>
 
           {/* ADD */}
+
           <TouchableOpacity
             style={styles.addButton}
             onPress={() => navigation.navigate("Create")}
@@ -162,6 +178,7 @@ const MemoriesHeader = React.memo(function MemoriesHeader({
       </View>
 
       {/* SEARCH */}
+
       <SearchBar
         value={searchQuery}
         onChangeText={setSearchQuery}
@@ -171,12 +188,14 @@ const MemoriesHeader = React.memo(function MemoriesHeader({
       />
 
       {/* COLLECTION STATS */}
+
       <CollectionStats
         memoryCount={memoriesCount}
         favoriteCount={favoriteCount}
       />
 
       {/* FILTERS */}
+
       <MemoryFilters
         filter={filter}
         setFilter={setFilter}
@@ -187,6 +206,7 @@ const MemoriesHeader = React.memo(function MemoriesHeader({
       />
 
       {/* CURRENT VIEW */}
+
       <View style={styles.viewHeader}>
         <Text style={styles.viewTitle}>
           {selectedTag ? `#${selectedTag}` : getFilterLabel()}
@@ -201,13 +221,17 @@ const MemoriesHeader = React.memo(function MemoriesHeader({
 });
 
 function MemoriesScreen({ navigation, route }) {
-  const { memories, loading, toggleFavorite } = useMemory();
-  const { collections = [] } = useCollection();
+  const { memories, loading, toggleFavorite, refreshMemories } = useMemory();
+
+  const { collections = [], refreshCollections } = useCollection();
 
   const [filter, setFilter] = useState("all");
   const [sortOrder, setSortOrder] = useState("newest");
+
   const [showSortMenu, setShowSortMenu] = useState(false);
+
   const [searchQuery, setSearchQuery] = useState("");
+
   const [selectedTag, setSelectedTag] = useState(null);
 
   const [advancedFilters, setAdvancedFilters] = useState(
@@ -217,13 +241,32 @@ function MemoriesScreen({ navigation, route }) {
   const advancedSearchRef = useRef(null);
 
   const [timelineMonth, setTimelineMonth] = useState(null);
+
   const timelineSheetRef = useRef(null);
+
+  // --------------------------------------------------
+  // REFRESH
+  // --------------------------------------------------
+
+  const refreshMemoriesScreen = useCallback(async () => {
+    await Promise.all([refreshMemories(), refreshCollections()]);
+  }, [refreshMemories, refreshCollections]);
+
+  const { refreshing, onRefresh } = useRefresh(refreshMemoriesScreen);
+
+  // --------------------------------------------------
+  // ROUTE FILTER
+  // --------------------------------------------------
 
   useEffect(() => {
     if (route?.params?.filter) {
       setFilter(route.params.filter);
     }
   }, [route?.params?.filter]);
+
+  // --------------------------------------------------
+  // ROUTE TAG
+  // --------------------------------------------------
 
   useEffect(() => {
     const routeTag = route?.params?.tag;
@@ -234,6 +277,10 @@ function MemoriesScreen({ navigation, route }) {
       setSelectedTag(normalizedTag);
     }
   }, [route?.params?.tag]);
+
+  // --------------------------------------------------
+  // MEMORY TIME
+  // --------------------------------------------------
 
   const getMemoryTime = useCallback((memory) => {
     const dateValue = memory.createdAt || memory.date;
@@ -247,6 +294,10 @@ function MemoriesScreen({ navigation, route }) {
     return Number.isNaN(time) ? 0 : time;
   }, []);
 
+  // --------------------------------------------------
+  // TIMELINE TIME
+  // --------------------------------------------------
+
   const getTimelineTime = useCallback((memory) => {
     const dateValue = memory.date || memory.createdAt;
 
@@ -258,6 +309,10 @@ function MemoriesScreen({ navigation, route }) {
 
     return Number.isNaN(time) ? 0 : time;
   }, []);
+
+  // --------------------------------------------------
+  // AVAILABLE TAGS
+  // --------------------------------------------------
 
   const availableTags = useMemo(() => {
     const tagCounts = new Map();
@@ -290,6 +345,10 @@ function MemoriesScreen({ navigation, route }) {
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [memories]);
 
+  // --------------------------------------------------
+  // VALIDATE SELECTED TAG
+  // --------------------------------------------------
+
   useEffect(() => {
     if (!selectedTag) {
       return;
@@ -301,6 +360,10 @@ function MemoriesScreen({ navigation, route }) {
       setSelectedTag(null);
     }
   }, [selectedTag, availableTags]);
+
+  // --------------------------------------------------
+  // ADVANCED FILTER COUNT
+  // --------------------------------------------------
 
   const advancedFilterCount = useMemo(() => {
     let count = 0;
@@ -339,6 +402,10 @@ function MemoriesScreen({ navigation, route }) {
 
     return count;
   }, [advancedFilters]);
+
+  // --------------------------------------------------
+  // DISPLAYED MEMORIES
+  // --------------------------------------------------
 
   const displayedMemories = useMemo(() => {
     let filtered = memories;
@@ -395,6 +462,10 @@ function MemoriesScreen({ navigation, route }) {
       });
     }
 
+    // --------------------------------------------------
+    // SELECTED TAG
+    // --------------------------------------------------
+
     if (selectedTag) {
       filtered = filtered.filter((memory) => {
         const memoryTags = Array.isArray(memory.tags) ? memory.tags : [];
@@ -402,6 +473,10 @@ function MemoriesScreen({ navigation, route }) {
         return memoryTags.some((tag) => normalizeTag(tag) === selectedTag);
       });
     }
+
+    // --------------------------------------------------
+    // ADVANCED TAG
+    // --------------------------------------------------
 
     if (advancedFilters.tag) {
       filtered = filtered.filter((memory) => {
@@ -413,10 +488,17 @@ function MemoriesScreen({ navigation, route }) {
       });
     }
 
+    // --------------------------------------------------
+    // FAVORITES
+    // --------------------------------------------------
 
     if (filter === "favorites" || advancedFilters.favoriteOnly) {
       filtered = filtered.filter((memory) => memory.favorite === true);
     }
+
+    // --------------------------------------------------
+    // RECENT
+    // --------------------------------------------------
 
     if (filter === "recent") {
       const now = Date.now();
@@ -429,6 +511,10 @@ function MemoriesScreen({ navigation, route }) {
         return memoryTime >= thirtyDaysAgo && memoryTime <= now;
       });
     }
+
+    // --------------------------------------------------
+    // HAS PHOTOS
+    // --------------------------------------------------
 
     if (advancedFilters.hasPhotos) {
       filtered = filtered.filter((memory) => {
@@ -443,6 +529,10 @@ function MemoriesScreen({ navigation, route }) {
         return images.length > 0;
       });
     }
+
+    // --------------------------------------------------
+    // DATE RANGE
+    // --------------------------------------------------
 
     if (advancedFilters.dateRange !== "all") {
       const now = Date.now();
@@ -483,6 +573,10 @@ function MemoriesScreen({ navigation, route }) {
       }
     }
 
+    // --------------------------------------------------
+    // COLLECTION
+    // --------------------------------------------------
+
     if (advancedFilters.collectionId) {
       const selectedCollection = collections.find((collection) => {
         const collectionId = collection?._id || collection?.id;
@@ -498,6 +592,10 @@ function MemoriesScreen({ navigation, route }) {
         return collectionMemoryIds.has(String(memoryId));
       });
     }
+
+    // --------------------------------------------------
+    // TIMELINE
+    // --------------------------------------------------
 
     if (timelineMonth) {
       const selectedYear = timelineMonth.getFullYear();
@@ -519,6 +617,10 @@ function MemoriesScreen({ navigation, route }) {
         );
       });
     }
+
+    // --------------------------------------------------
+    // SORT
+    // --------------------------------------------------
 
     const sorted = [...filtered];
 
@@ -548,10 +650,18 @@ function MemoriesScreen({ navigation, route }) {
     getTimelineTime,
   ]);
 
+  // --------------------------------------------------
+  // FAVORITE COUNT
+  // --------------------------------------------------
+
   const favoriteCount = useMemo(
     () => memories.filter((memory) => memory.favorite === true).length,
     [memories],
   );
+
+  // --------------------------------------------------
+  // MEMORY PRESS
+  // --------------------------------------------------
 
   const handleMemoryPress = useCallback(
     (memoryId) => {
@@ -562,9 +672,17 @@ function MemoriesScreen({ navigation, route }) {
     [navigation],
   );
 
+  // --------------------------------------------------
+  // CREATE MEMORY
+  // --------------------------------------------------
+
   const handleCreateMemory = useCallback(() => {
     navigation.navigate("Create");
   }, [navigation]);
+
+  // --------------------------------------------------
+  // TOGGLE FAVORITE
+  // --------------------------------------------------
 
   const handleToggleFavorite = useCallback(
     async (memory) => {
@@ -593,12 +711,15 @@ function MemoriesScreen({ navigation, route }) {
     [toggleFavorite],
   );
 
+  // --------------------------------------------------
+  // ADVANCED SEARCH
+  // --------------------------------------------------
+
   const handleOpenAdvancedSearch = useCallback(() => {
     advancedSearchRef.current?.open();
   }, []);
 
-  const handleCloseAdvancedSearch = useCallback(() => {
-  }, []);
+  const handleCloseAdvancedSearch = useCallback(() => {}, []);
 
   const handleApplyAdvancedSearch = useCallback((nextFilters) => {
     setAdvancedFilters({
@@ -612,6 +733,10 @@ function MemoriesScreen({ navigation, route }) {
     advancedSearchRef.current?.close();
   }, []);
 
+  // --------------------------------------------------
+  // TIMELINE
+  // --------------------------------------------------
+
   const handleOpenTimeline = useCallback(() => {
     timelineSheetRef.current?.open();
   }, []);
@@ -624,8 +749,11 @@ function MemoriesScreen({ navigation, route }) {
     setTimelineMonth(null);
   }, []);
 
-  const handleCloseTimeline = useCallback(() => {
-  }, []);
+  const handleCloseTimeline = useCallback(() => {}, []);
+
+  // --------------------------------------------------
+  // HEADER
+  // --------------------------------------------------
 
   const headerComponent = useMemo(
     () => (
@@ -666,6 +794,10 @@ function MemoriesScreen({ navigation, route }) {
     ],
   );
 
+  // --------------------------------------------------
+  // RENDER ITEM
+  // --------------------------------------------------
+
   const renderItem = useCallback(
     ({ item }) => (
       <MemoryTicketList
@@ -677,11 +809,19 @@ function MemoriesScreen({ navigation, route }) {
     [handleMemoryPress, handleToggleFavorite],
   );
 
+  // --------------------------------------------------
+  // KEY
+  // --------------------------------------------------
+
   const keyExtractor = useCallback(
     (item, index) =>
       String(item.id || item.clientMemoryId || `memory-${index}`),
     [],
   );
+
+  // --------------------------------------------------
+  // FOOTER
+  // --------------------------------------------------
 
   const renderFooter = useCallback(
     () => (
@@ -693,6 +833,10 @@ function MemoriesScreen({ navigation, route }) {
     ),
     [],
   );
+
+  // --------------------------------------------------
+  // EMPTY STATE
+  // --------------------------------------------------
 
   const renderEmptyState = useCallback(() => {
     if (timelineMonth && !searchQuery.trim()) {
@@ -721,6 +865,10 @@ function MemoriesScreen({ navigation, route }) {
     );
   }, [timelineMonth, searchQuery, filter, handleCreateMemory]);
 
+  // --------------------------------------------------
+  // INITIAL LOADING
+  // --------------------------------------------------
+
   if (loading) {
     return (
       <View style={styles.container}>
@@ -732,6 +880,10 @@ function MemoriesScreen({ navigation, route }) {
       </View>
     );
   }
+
+  // --------------------------------------------------
+  // SCREEN
+  // --------------------------------------------------
 
   return (
     <View style={styles.container}>
@@ -750,6 +902,17 @@ function MemoriesScreen({ navigation, route }) {
         windowSize={5}
         removeClippedSubviews={true}
         updateCellsBatchingPeriod={50}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#34345C"
+            colors={["#34345C"]}
+            progressBackgroundColor="#FFFFFF"
+          />
+        }
       />
 
       <AdvancedSearch

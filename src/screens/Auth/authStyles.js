@@ -77,6 +77,7 @@ const styles = StyleSheet.create({
     height: "100%",
 
     fontSize: 15,
+
     color: "#29293D",
 
     paddingVertical: 0,
@@ -167,12 +168,14 @@ const styles = StyleSheet.create({
 
   resendSection: {
     alignItems: "center",
+
     marginTop: 18,
   },
 
   resendText: {
     fontSize: 14,
     fontWeight: "600",
+
     color: "#34345C",
   },
 
@@ -194,12 +197,15 @@ const styles = StyleSheet.create({
   dividerContainer: {
     flexDirection: "row",
     alignItems: "center",
+
     marginVertical: 18,
   },
 
   dividerLine: {
     flex: 1,
+
     height: 1,
+
     backgroundColor: "#DDDCE5",
   },
 
@@ -209,24 +215,30 @@ const styles = StyleSheet.create({
 
   dividerStar: {
     fontSize: 14,
+
     color: "#F2C14E",
   },
 
   signupContainer: {
     flexDirection: "row",
+
     justifyContent: "center",
     alignItems: "center",
   },
 
   signupText: {
     fontSize: 14,
+
     color: "#858494",
   },
 
   signupLink: {
     fontSize: 14,
+
     fontWeight: "700",
+
     color: "#34345C",
+
     marginLeft: 5,
   },
 });

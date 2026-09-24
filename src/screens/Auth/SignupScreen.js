@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import {
   View,
@@ -11,11 +11,22 @@ import {
 
 import { Ionicons } from "@expo/vector-icons";
 
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from "react-native-reanimated";
+
 import styles from "./authStyles";
 
 import { useAuth } from "../../hooks/useAuth";
 
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+
+const AnimatedView =
+  Animated.createAnimatedComponent(View);
 
 function SignupScreen({ navigation }) {
   const { signup } = useAuth();
@@ -24,17 +35,108 @@ function SignupScreen({ navigation }) {
   const [email, setEmail] = useState("");
 
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] =
+    useState("");
 
-  const [showPassword, setShowPassword] = useState(false);
+  const [showPassword, setShowPassword] =
+    useState(false);
+
   const [showConfirmPassword, setShowConfirmPassword] =
     useState(false);
 
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] =
+    useState(false);
+
+  // =========================
+  // Entrance Animation
+  // =========================
+
+  const entranceOpacity =
+    useSharedValue(0);
+
+  const entranceY =
+    useSharedValue(12);
+
+  // =========================
+  // Button Animation
+  // =========================
+
+  const buttonScale =
+    useSharedValue(1);
+
+  useEffect(() => {
+    entranceOpacity.value =
+      withTiming(1, {
+        duration: 400,
+        easing: Easing.out(
+          Easing.cubic,
+        ),
+      });
+
+    entranceY.value =
+      withTiming(0, {
+        duration: 400,
+        easing: Easing.out(
+          Easing.cubic,
+        ),
+      });
+  }, []);
+
+  const contentAnimatedStyle =
+    useAnimatedStyle(() => {
+      return {
+        opacity:
+          entranceOpacity.value,
+
+        transform: [
+          {
+            translateY:
+              entranceY.value,
+          },
+        ],
+      };
+    });
+
+  const buttonAnimatedStyle =
+    useAnimatedStyle(() => {
+      return {
+        transform: [
+          {
+            scale:
+              buttonScale.value,
+          },
+        ],
+      };
+    });
+
+  const handleButtonPressIn = () => {
+    buttonScale.value =
+      withSpring(0.97, {
+        damping: 14,
+        stiffness: 280,
+        mass: 0.4,
+      });
+  };
+
+  const handleButtonPressOut = () => {
+    buttonScale.value =
+      withSpring(1, {
+        damping: 14,
+        stiffness: 240,
+        mass: 0.4,
+      });
+  };
+
+  // =========================
+  // Signup
+  // =========================
 
   const handleSignup = async () => {
-    const trimmedName = name.trim();
-    const normalizedEmail = email.trim().toLowerCase();
+    const trimmedName =
+      name.trim();
+
+    const normalizedEmail =
+      email.trim().toLowerCase();
 
     // Name
     if (!trimmedName) {
@@ -55,7 +157,8 @@ function SignupScreen({ navigation }) {
     }
 
     // Basic email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailRegex =
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     if (!emailRegex.test(normalizedEmail)) {
       Alert.alert(
@@ -117,11 +220,17 @@ function SignupScreen({ navigation }) {
         return;
       }
 
-      navigation.navigate("VerifySignupOtp", {
-        email: normalizedEmail,
-      });
+      navigation.navigate(
+        "VerifySignupOtp",
+        {
+          email: normalizedEmail,
+        },
+      );
     } catch (error) {
-      console.error("Signup screen error:", error);
+      console.error(
+        "Signup screen error:",
+        error,
+      );
 
       Alert.alert(
         "Signup Failed",
@@ -135,11 +244,18 @@ function SignupScreen({ navigation }) {
   return (
     <KeyboardAwareScrollView
       bottomOffset={20}
-      contentContainerStyle={styles.scrollContainer}
+      contentContainerStyle={
+        styles.scrollContainer
+      }
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
     >
-      <View style={styles.container}>
+      <AnimatedView
+        style={[
+          styles.container,
+          contentAnimatedStyle,
+        ]}
+      >
         {/* Heading */}
         <View style={styles.headingContainer}>
           <Text style={styles.title}>
@@ -155,7 +271,9 @@ function SignupScreen({ navigation }) {
         <View style={styles.formContainer}>
           {/* Name */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>NAME</Text>
+            <Text style={styles.label}>
+              NAME
+            </Text>
 
             <View style={styles.inputWrapper}>
               <Ionicons
@@ -181,7 +299,9 @@ function SignupScreen({ navigation }) {
 
           {/* Email */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>EMAIL</Text>
+            <Text style={styles.label}>
+              EMAIL
+            </Text>
 
             <View style={styles.inputWrapper}>
               <Ionicons
@@ -208,7 +328,9 @@ function SignupScreen({ navigation }) {
 
           {/* Password */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>PASSWORD</Text>
+            <Text style={styles.label}>
+              PASSWORD
+            </Text>
 
             <View style={styles.inputWrapper}>
               <Ionicons
@@ -224,7 +346,9 @@ function SignupScreen({ navigation }) {
                 placeholderTextColor="#A39C92"
                 value={password}
                 onChangeText={setPassword}
-                secureTextEntry={!showPassword}
+                secureTextEntry={
+                  !showPassword
+                }
                 autoCapitalize="none"
                 autoCorrect={false}
                 editable={!isLoading}
@@ -232,9 +356,13 @@ function SignupScreen({ navigation }) {
               />
 
               <TouchableOpacity
-                style={styles.passwordButton}
+                style={
+                  styles.passwordButton
+                }
                 onPress={() =>
-                  setShowPassword((prev) => !prev)
+                  setShowPassword(
+                    (prev) => !prev,
+                  )
                 }
                 activeOpacity={0.7}
                 disabled={isLoading}
@@ -271,19 +399,29 @@ function SignupScreen({ navigation }) {
                 placeholder="Confirm your password"
                 placeholderTextColor="#A39C92"
                 value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                secureTextEntry={!showConfirmPassword}
+                onChangeText={
+                  setConfirmPassword
+                }
+                secureTextEntry={
+                  !showConfirmPassword
+                }
                 autoCapitalize="none"
                 autoCorrect={false}
                 editable={!isLoading}
                 returnKeyType="done"
-                onSubmitEditing={handleSignup}
+                onSubmitEditing={
+                  handleSignup
+                }
               />
 
               <TouchableOpacity
-                style={styles.passwordButton}
+                style={
+                  styles.passwordButton
+                }
                 onPress={() =>
-                  setShowConfirmPassword((prev) => !prev)
+                  setShowConfirmPassword(
+                    (prev) => !prev,
+                  )
                 }
                 activeOpacity={0.7}
                 disabled={isLoading}
@@ -302,41 +440,57 @@ function SignupScreen({ navigation }) {
           </View>
 
           {/* Signup Button */}
-          <TouchableOpacity
-            style={[
-              styles.loginButton,
-              isLoading && { opacity: 0.7 },
-            ]}
-            onPress={handleSignup}
-            activeOpacity={0.85}
-            disabled={isLoading}
+          <AnimatedView
+            style={buttonAnimatedStyle}
           >
-            {isLoading ? (
-              <ActivityIndicator
-                size="small"
-                color="#FFFFFF"
-              />
-            ) : (
-              <>
-                <Text style={styles.loginButtonText}>
-                  CREATE ACCOUNT
-                </Text>
-
-                <Ionicons
-                  name="arrow-forward"
-                  size={20}
+            <TouchableOpacity
+              style={[
+                styles.loginButton,
+                isLoading && {
+                  opacity: 0.7,
+                },
+              ]}
+              onPress={handleSignup}
+              onPressIn={
+                handleButtonPressIn
+              }
+              onPressOut={
+                handleButtonPressOut
+              }
+              activeOpacity={1}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator
+                  size="small"
                   color="#FFFFFF"
                 />
-              </>
-            )}
-          </TouchableOpacity>
+              ) : (
+                <>
+                  <Text
+                    style={
+                      styles.loginButtonText
+                    }
+                  >
+                    CREATE ACCOUNT
+                  </Text>
+
+                  <Ionicons
+                    name="arrow-forward"
+                    size={20}
+                    color="#FFFFFF"
+                  />
+                </>
+              )}
+            </TouchableOpacity>
+          </AnimatedView>
         </View>
 
         {/* Tagline */}
         <Text style={styles.tagline}>
           YOUR STORY STARTS HERE
         </Text>
-      </View>
+      </AnimatedView>
     </KeyboardAwareScrollView>
   );
 }
