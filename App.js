@@ -10,6 +10,7 @@ import * as ExpoSplashScreen from "expo-splash-screen";
 import { AuthProvider } from "./src/context/AuthContext";
 import { MemoryProvider } from "./src/context/MemoryContext";
 import { CollectionProvider } from "./src/context/CollectionContext";
+import AlertProvider from "./context/AlertContext";
 
 import { useAuth } from "./src/hooks/useAuth";
 
@@ -58,17 +59,19 @@ function AppContent() {
 function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <KeyboardProvider>
-        <AuthProvider>
-          <MemoryProvider>
-            <CollectionProvider>
-              <BottomSheetModalProvider>
-                <AppContent />
-              </BottomSheetModalProvider>
-            </CollectionProvider>
-          </MemoryProvider>
-        </AuthProvider>
-      </KeyboardProvider>
+       <AlertProvider>
+        <KeyboardProvider>
+          <AuthProvider>
+            <MemoryProvider>
+              <CollectionProvider>
+                <BottomSheetModalProvider>
+                  <AppContent />
+                </BottomSheetModalProvider>
+              </CollectionProvider>
+            </MemoryProvider>
+          </AuthProvider>
+        </KeyboardProvider>
+      </AlertProvider>
     </GestureHandlerRootView>
   );
 }
