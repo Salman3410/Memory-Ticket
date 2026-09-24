@@ -10,12 +10,13 @@ import * as ExpoSplashScreen from "expo-splash-screen";
 import { AuthProvider } from "./src/context/AuthContext";
 import { MemoryProvider } from "./src/context/MemoryContext";
 import { CollectionProvider } from "./src/context/CollectionContext";
-import AlertProvider from "./context/AlertContext";
+
 
 import { useAuth } from "./src/hooks/useAuth";
 
 import RootNavigator from "./src/navigation/RootNavigator";
 import MementoSplashScreen from "./src/components/Splash/SplashScreen";
+import AlertProvider from "./src/context/AlertContext";
 
 ExpoSplashScreen.preventAutoHideAsync();
 
