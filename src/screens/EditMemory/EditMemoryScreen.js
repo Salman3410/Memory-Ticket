@@ -1,93 +1,179 @@
-import { useState } from "react";
-
-import { View, Alert } from "react-native";
-
+import {
+  useState,
+} from "react";
+import {
+  View,
+} from "react-native";
 import * as ImagePicker from "expo-image-picker";
-
 import { useMemory } from "../../hooks/useMemory";
-
+import { useAppAlert } from "../../context/AlertContext";
 import styles from "./editMemoryStyles";
-
 import EditMemoryHeader from "../../components/EditScreen/EditMemoryHeader/EditMemoryHeader";
-
 import EditMemoryPhotos from "../../components/EditScreen/EditMemoryPhotos/EditMemoryPhotos";
-
 import EditMemoryDetails from "../../components/EditScreen/EditMemoryDetails/EditMemoryDetails";
-
 import EditMemoryActions from "../../components/EditScreen/EditMemoryActions/EditMemoryActions";
-
 import EditMemoryNotFound from "../../components/EditScreen/EditMemoryNotFound/EditMemoryNotFound";
-
 import TagsInput from "../../components/TagsInput/TagsInput";
-
-import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import {
+  KeyboardAwareScrollView,
+} from "react-native-keyboard-controller";
 
 const MAX_IMAGES = 5;
 
-function EditMemoryScreen({ navigation, route }) {
-  const { getMemoryById, updateMemory } = useMemory();
+function EditMemoryScreen({
+  navigation,
+  route,
+}) {
+  const {
+    getMemoryById,
+    updateMemory,
+  } = useMemory();
 
-  const { memoryId } = route.params;
+  const { showAlert } =
+    useAppAlert();
 
-  const memory = getMemoryById(memoryId);
+  const { memoryId } =
+    route.params;
 
-  const [images, setImages] = useState(
-    Array.isArray(memory?.images)
-      ? memory.images
-      : memory?.image
-        ? [memory.image]
+  const memory =
+    getMemoryById(memoryId);
+
+  const [images, setImages] =
+    useState(
+      Array.isArray(
+        memory?.images,
+      )
+        ? memory.images
+        : memory?.image
+          ? [memory.image]
+          : [],
+    );
+
+  const [title, setTitle] =
+    useState(
+      memory?.title || "",
+    );
+
+  const [location, setLocation] =
+    useState(
+      memory?.location || "",
+    );
+
+  const [
+    description,
+    setDescription,
+  ] = useState(
+    memory?.description || "",
+  );
+
+  const [tags, setTags] =
+    useState(
+      Array.isArray(
+        memory?.tags,
+      )
+        ? memory.tags
         : [],
-  );
+    );
 
-  const [title, setTitle] = useState(memory?.title || "");
-
-  const [location, setLocation] = useState(memory?.location || "");
-
-  const [description, setDescription] = useState(memory?.description || "");
-
-  const [tags, setTags] = useState(
-    Array.isArray(memory?.tags) ? memory.tags : [],
-  );
-
-  const [saving, setSaving] = useState(false);
+  const [saving, setSaving] =
+    useState(false);
 
   if (!memory) {
-    return <EditMemoryNotFound onBack={() => navigation.goBack()} />;
+    return (
+      <EditMemoryNotFound
+        onBack={() =>
+          navigation.goBack()
+        }
+      />
+    );
   }
 
-  const isLocalImage = (uri) => {
+  const isLocalImage = (
+    uri,
+  ) => {
     if (!uri) {
       return false;
     }
 
-    return uri.startsWith("file://") || uri.startsWith("content://");
+    return (
+      uri.startsWith(
+        "file://",
+      ) ||
+      uri.startsWith(
+        "content://",
+      )
+    );
   };
 
-  const addImages = async (newImages) => {
+  const addImages = async (
+    newImages,
+  ) => {
     try {
-      const availableSlots = MAX_IMAGES - images.length;
+      const availableSlots =
+        MAX_IMAGES -
+        images.length;
 
-      if (availableSlots <= 0) {
-        Alert.alert("Maximum Photos", "You can have up to 5 photos.");
+      if (
+        availableSlots <= 0
+      ) {
+        showAlert({
+          type: "warning",
+          icon:
+            "images-outline",
+          title: "Maximum Photos",
+          message:
+            "You can have up to 5 photos.",
+          confirmText: "OK",
+        });
 
         return;
       }
 
-      const selectedImages = newImages
-        .slice(0, availableSlots)
-        .filter((item) => item?.uri);
+      const selectedImages =
+        newImages
+          .slice(
+            0,
+            availableSlots,
+          )
+          .filter(
+            (item) =>
+              item?.uri,
+          );
 
-      if (!selectedImages.length) {
+      if (
+        !selectedImages.length
+      ) {
         return;
       }
 
-      const newUris = selectedImages.map((item) => item.uri);
+      const newUris =
+        selectedImages.map(
+          (item) => item.uri,
+        );
 
-      setImages((currentImages) => [...currentImages, ...newUris]);
+      setImages(
+        (
+          currentImages,
+        ) => [
+          ...currentImages,
+          ...newUris,
+        ],
+      );
     } catch (error) {
-      console.error("Error adding images:", error);
+      console.error(
+        "Error adding images:",
+        error,
+      );
 
-      Alert.alert("Error", "Unable to add the selected photos.");
+      showAlert({
+        type: "danger",
+        icon:
+          "close-circle-outline",
+        title: "Unable to Add Photos",
+        message:
+          "Unable to add the selected photos.",
+        confirmText: "OK",
+      });
     }
   };
 
@@ -97,78 +183,164 @@ function EditMemoryScreen({ navigation, route }) {
         await ImagePicker.requestMediaLibraryPermissionsAsync();
 
       if (!permission.granted) {
-        Alert.alert(
-          "Permission Required",
-          "Please allow photo library access to choose photos.",
+        showAlert({
+          type: "warning",
+          icon:
+            "images-outline",
+          title: "Permission Required",
+          message:
+            "Please allow photo library access to choose photos.",
+          confirmText: "OK",
+        });
+
+        return;
+      }
+
+      if (
+        images.length >=
+        MAX_IMAGES
+      ) {
+        showAlert({
+          type: "warning",
+          icon:
+            "images-outline",
+          title: "Maximum Photos",
+          message:
+            "You can have up to 5 photos.",
+          confirmText: "OK",
+        });
+
+        return;
+      }
+
+      const remainingSlots =
+        MAX_IMAGES -
+        images.length;
+
+      const result =
+        await ImagePicker.launchImageLibraryAsync(
+          {
+            mediaTypes: [
+              "images",
+            ],
+            allowsMultipleSelection:
+              true,
+            selectionLimit:
+              remainingSlots,
+            quality: 0.8,
+          },
         );
 
-        return;
-      }
-
-      if (images.length >= MAX_IMAGES) {
-        Alert.alert("Maximum Photos", "You can have up to 5 photos.");
-
-        return;
-      }
-
-      const remainingSlots = MAX_IMAGES - images.length;
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ["images"],
-        allowsMultipleSelection: true,
-        selectionLimit: remainingSlots,
-        quality: 0.8,
-      });
-
-      if (!result.canceled && result.assets?.length) {
-        await addImages(result.assets);
+      if (
+        !result.canceled &&
+        result.assets?.length
+      ) {
+        await addImages(
+          result.assets,
+        );
       }
     } catch (error) {
-      console.error("Gallery error:", error);
+      console.error(
+        "Gallery error:",
+        error,
+      );
 
-      Alert.alert("Error", "Unable to select photos.");
+      showAlert({
+        type: "danger",
+        icon:
+          "close-circle-outline",
+        title: "Unable to Select Photos",
+        message:
+          "Unable to select photos.",
+        confirmText: "OK",
+      });
     }
   };
 
   const takePhoto = async () => {
     try {
-      if (images.length >= MAX_IMAGES) {
-        Alert.alert("Maximum Photos", "You can have up to 5 photos.");
+      if (
+        images.length >=
+        MAX_IMAGES
+      ) {
+        showAlert({
+          type: "warning",
+          icon:
+            "images-outline",
+          title: "Maximum Photos",
+          message:
+            "You can have up to 5 photos.",
+          confirmText: "OK",
+        });
 
         return;
       }
 
-      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      const permission =
+        await ImagePicker.requestCameraPermissionsAsync();
 
       if (!permission.granted) {
-        Alert.alert(
-          "Permission Required",
-          "Please allow camera access to capture a photo.",
-        );
+        showAlert({
+          type: "warning",
+          icon:
+            "camera-outline",
+          title: "Permission Required",
+          message:
+            "Please allow camera access to capture a photo.",
+          confirmText: "OK",
+        });
 
         return;
       }
 
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ["images"],
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 0.8,
-      });
+      const result =
+        await ImagePicker.launchCameraAsync(
+          {
+            mediaTypes: [
+              "images",
+            ],
+            allowsEditing: true,
+            aspect: [4, 3],
+            quality: 0.8,
+          },
+        );
 
-      if (!result.canceled && result.assets?.length) {
-        await addImages(result.assets);
+      if (
+        !result.canceled &&
+        result.assets?.length
+      ) {
+        await addImages(
+          result.assets,
+        );
       }
     } catch (error) {
-      console.error("Camera error:", error);
+      console.error(
+        "Camera error:",
+        error,
+      );
 
-      Alert.alert("Error", "Unable to take photo.");
+      showAlert({
+        type: "danger",
+        icon:
+          "close-circle-outline",
+        title: "Unable to Take Photo",
+        message:
+          "Unable to take photo.",
+        confirmText: "OK",
+      });
     }
   };
 
-  const removeImage = (indexToRemove) => {
-    setImages((currentImages) =>
-      currentImages.filter((_, index) => index !== indexToRemove),
+  const removeImage = (
+    indexToRemove,
+  ) => {
+    setImages(
+      (currentImages) =>
+        currentImages.filter(
+          (_, index) =>
+            index !==
+            indexToRemove,
+        ),
     );
   };
 
@@ -178,19 +350,46 @@ function EditMemoryScreen({ navigation, route }) {
     }
 
     if (!title.trim()) {
-      Alert.alert("Title Required", "Give your memory a title.");
+      showAlert({
+        type: "warning",
+        icon:
+          "text-outline",
+        title: "Title Required",
+        message:
+          "Give your memory a title.",
+        confirmText: "OK",
+      });
 
       return;
     }
 
     if (images.length === 0) {
-      Alert.alert("Photo Required", "Your memory needs at least one photo.");
+      showAlert({
+        type: "warning",
+        icon:
+          "image-outline",
+        title: "Photo Required",
+        message:
+          "Your memory needs at least one photo.",
+        confirmText: "OK",
+      });
 
       return;
     }
 
-    if (images.length > MAX_IMAGES) {
-      Alert.alert("Maximum Photos", "A memory can contain up to 5 photos.");
+    if (
+      images.length >
+      MAX_IMAGES
+    ) {
+      showAlert({
+        type: "warning",
+        icon:
+          "images-outline",
+        title: "Maximum Photos",
+        message:
+          "A memory can contain up to 5 photos.",
+        confirmText: "OK",
+      });
 
       return;
     }
@@ -198,94 +397,159 @@ function EditMemoryScreen({ navigation, route }) {
     setSaving(true);
 
     try {
-      const existingImages = [];
+      const existingImages =
+        [];
 
-      const existingImagePublicIds = [];
+      const existingImagePublicIds =
+        [];
 
       const newImages = [];
 
-      const originalImages = Array.isArray(memory.images)
-        ? memory.images
-        : memory.image
-          ? [memory.image]
+      const originalImages =
+        Array.isArray(
+          memory.images,
+        )
+          ? memory.images
+          : memory.image
+            ? [memory.image]
+            : [];
+
+      const originalPublicIds =
+        Array.isArray(
+          memory.imagePublicIds,
+        )
+          ? memory.imagePublicIds
           : [];
 
-      const originalPublicIds = Array.isArray(memory.imagePublicIds)
-        ? memory.imagePublicIds
-        : [];
+      images.forEach(
+        (uri) => {
+          if (
+            isLocalImage(
+              uri,
+            )
+          ) {
+            newImages.push(
+              uri,
+            );
 
-      images.forEach((uri) => {
-        if (isLocalImage(uri)) {
-          newImages.push(uri);
-
-          return;
-        }
-
-        const originalIndex = originalImages.indexOf(uri);
-
-        if (originalIndex !== -1) {
-          existingImages.push(uri);
-
-          const publicId = originalPublicIds[originalIndex];
-
-          if (publicId) {
-            existingImagePublicIds.push(publicId);
+            return;
           }
-        }
-      });
 
-      const updatedMemory = await updateMemory(memory.id, {
-        title: title.trim(),
+          const originalIndex =
+            originalImages.indexOf(
+              uri,
+            );
 
-        location: location.trim(),
+          if (
+            originalIndex !==
+            -1
+          ) {
+            existingImages.push(
+              uri,
+            );
 
-        description: description.trim(),
+            const publicId =
+              originalPublicIds[
+                originalIndex
+              ];
 
-        tags: [...tags],
+            if (publicId) {
+              existingImagePublicIds.push(
+                publicId,
+              );
+            }
+          }
+        },
+      );
 
-        existingImages,
+      const updatedMemory =
+        await updateMemory(
+          memory.id,
+          {
+            title:
+              title.trim(),
 
-        existingImagePublicIds,
+            location:
+              location.trim(),
 
-        newImages,
-      });
+            description:
+              description.trim(),
+
+            tags: [...tags],
+
+            existingImages,
+
+            existingImagePublicIds,
+
+            newImages,
+          },
+        );
 
       if (!updatedMemory) {
-        throw new Error("Memory was not updated.");
+        throw new Error(
+          "Memory was not updated.",
+        );
       }
 
       navigation.goBack();
     } catch (error) {
-      console.error("Error updating memory:", error);
-
-      Alert.alert(
-        "Update Failed",
-        error?.message || "Unable to save your changes.",
+      console.error(
+        "Error updating memory:",
+        error,
       );
+
+      showAlert({
+        type: "danger",
+        icon:
+          "close-circle-outline",
+        title: "Update Failed",
+        message:
+          error?.message ||
+          "Unable to save your changes.",
+        confirmText: "OK",
+      });
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <View style={styles.container}>
+    <View
+      style={
+        styles.container
+      }
+    >
       <KeyboardAwareScrollView
         bottomOffset={30}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={
+          false
+        }
+        contentContainerStyle={
+          styles.scrollContent
+        }
         keyboardShouldPersistTaps="handled"
       >
         {/* HEADER */}
 
-        <EditMemoryHeader onBack={() => navigation.goBack()} />
+        <EditMemoryHeader
+          onBack={() =>
+            navigation.goBack()
+          }
+        />
 
         {/* PHOTOS */}
 
         <EditMemoryPhotos
           images={images}
-          onPickImages={pickImage}
-          onTakePhoto={takePhoto}
-          onRemoveImage={removeImage}
+          onPickImages={
+            pickImage
+          }
+          onTakePhoto={
+            takePhoto
+          }
+          onRemoveImage={
+            removeImage
+          }
         />
 
         {/* DETAILS */}
@@ -294,20 +558,31 @@ function EditMemoryScreen({ navigation, route }) {
           title={title}
           setTitle={setTitle}
           location={location}
-          setLocation={setLocation}
-          description={description}
-          setDescription={setDescription}
+          setLocation={
+            setLocation
+          }
+          description={
+            description
+          }
+          setDescription={
+            setDescription
+          }
         />
 
         {/* TAGS */}
 
-        <TagsInput tags={tags} setTags={setTags} />
+        <TagsInput
+          tags={tags}
+          setTags={setTags}
+        />
 
         {/* ACTIONS */}
 
         <EditMemoryActions
           onSave={handleSave}
-          onCancel={() => navigation.goBack()}
+          onCancel={() =>
+            navigation.goBack()
+          }
           loading={saving}
         />
       </KeyboardAwareScrollView>

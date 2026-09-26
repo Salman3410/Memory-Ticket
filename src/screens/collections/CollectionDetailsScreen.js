@@ -4,10 +4,8 @@ import {
   useMemo,
   useState,
 } from "react";
-
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Image,
   RefreshControl,
@@ -16,15 +14,12 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-
 import { Ionicons } from "@expo/vector-icons";
-
 import { useCollection } from "../../hooks/useCollection";
 import useRefresh from "../../hooks/useRefresh";
-
 import { getMemoryDetailUrl } from "../../utils/cloudinary";
-
 import MemoryTicketHorizontal from "../../components/MemoryTicket/MemoryTicketHorizontal";
+import { useAppAlert } from "../../context/AlertContext";
 
 function CollectionDetailsScreen({
   navigation,
@@ -35,6 +30,8 @@ function CollectionDetailsScreen({
     removeMemoryFromCollection,
     deleteCollection,
   } = useCollection();
+
+  const { showAlert } = useAppAlert();
 
   const collectionId =
     route?.params?.collectionId ||
@@ -52,7 +49,6 @@ function CollectionDetailsScreen({
   // --------------------------------------------------
   // LOAD COLLECTION
   // --------------------------------------------------
-
   const loadCollection = useCallback(
     async (showLoader = true) => {
       if (!collectionId) {
@@ -67,21 +63,25 @@ function CollectionDetailsScreen({
 
         const result =
           await getCollectionById(
-            collectionId
+            collectionId,
           );
 
         setCollection(result);
       } catch (error) {
         console.error(
           "Failed to load collection details:",
-          error
+          error,
         );
 
-        Alert.alert(
-          "Unable to load collection",
-          error?.message ||
-            "Something went wrong while loading this collection."
-        );
+        showAlert({
+          type: "danger",
+          icon: "close-circle-outline",
+          title: "Unable to Load Collection",
+          message:
+            error?.message ||
+            "Something went wrong while loading this collection.",
+          confirmText: "OK",
+        });
       } finally {
         setLoading(false);
       }
@@ -89,13 +89,13 @@ function CollectionDetailsScreen({
     [
       collectionId,
       getCollectionById,
-    ]
+      showAlert,
+    ],
   );
 
   // --------------------------------------------------
   // INITIAL LOAD
   // --------------------------------------------------
-
   useEffect(() => {
     loadCollection();
   }, [loadCollection]);
@@ -103,7 +103,6 @@ function CollectionDetailsScreen({
   // --------------------------------------------------
   // REFRESH
   // --------------------------------------------------
-
   const refreshCollectionDetails =
     useCallback(async () => {
       await loadCollection(false);
@@ -113,13 +112,12 @@ function CollectionDetailsScreen({
     refreshing,
     onRefresh,
   } = useRefresh(
-    refreshCollectionDetails
+    refreshCollectionDetails,
   );
 
   // --------------------------------------------------
   // ADD MEMORIES
   // --------------------------------------------------
-
   const handleAddMemories =
     useCallback(() => {
       if (!collectionId) {
@@ -130,7 +128,7 @@ function CollectionDetailsScreen({
         "CollectionMemorySelector",
         {
           collectionId,
-        }
+        },
       );
     }, [
       navigation,
@@ -140,7 +138,6 @@ function CollectionDetailsScreen({
   // --------------------------------------------------
   // EDIT COLLECTION
   // --------------------------------------------------
-
   const handleEdit =
     useCallback(() => {
       if (!collection || !collectionId) {
@@ -152,7 +149,7 @@ function CollectionDetailsScreen({
         {
           collection,
           collectionId,
-        }
+        },
       );
     }, [
       navigation,
@@ -163,102 +160,94 @@ function CollectionDetailsScreen({
   // --------------------------------------------------
   // DELETE COLLECTION
   // --------------------------------------------------
-
   const handleDelete =
     useCallback(() => {
       if (!collectionId || deleting) {
         return;
       }
 
-      Alert.alert(
-        "Delete Collection",
-        `Are you sure you want to delete "${
+      showAlert({
+        type: "danger",
+        icon: "trash-outline",
+        title: "Delete Collection",
+        message: `Are you sure you want to delete "${
           collection?.name ||
           "this collection"
         }"? Memories will not be deleted.`,
-        [
-          {
-            text: "Cancel",
-            style: "cancel",
-          },
-          {
-            text: "Delete",
-            style: "destructive",
-            onPress: async () => {
-              try {
-                setDeleting(true);
+        cancelText: "Cancel",
+        confirmText: "Delete",
+        showCancel: true,
+        onConfirm: async () => {
+          try {
+            setDeleting(true);
 
-                await deleteCollection(
-                  collectionId
-                );
+            await deleteCollection(
+              collectionId,
+            );
 
-                navigation.goBack();
-              } catch (error) {
-                console.error(
-                  "Failed to delete collection:",
-                  error
-                );
+            navigation.goBack();
+          } catch (error) {
+            console.error(
+              "Failed to delete collection:",
+              error,
+            );
 
-                Alert.alert(
-                  "Delete failed",
-                  error?.message ||
-                    "Unable to delete this collection."
-                );
-              } finally {
-                setDeleting(false);
-              }
-            },
-          },
-        ]
-      );
+            showAlert({
+              type: "danger",
+              icon: "close-circle-outline",
+              title: "Delete Failed",
+              message:
+                error?.message ||
+                "Unable to delete this collection.",
+              confirmText: "OK",
+            });
+          } finally {
+            setDeleting(false);
+          }
+        },
+      });
     }, [
       collectionId,
       collection,
       deleting,
       deleteCollection,
       navigation,
+      showAlert,
     ]);
 
   // --------------------------------------------------
   // MORE MENU
   // --------------------------------------------------
-
   const handleMore =
     useCallback(() => {
-      if (!collection) {
+      if (!collection || deleting) {
         return;
       }
 
-      Alert.alert(
-        collection.name ||
+      showAlert({
+        type: "info",
+        icon: "ellipsis-horizontal-circle-outline",
+        title:
+          collection.name ||
           "Collection",
-        "Choose an action",
-        [
-          {
-            text: "Edit Collection",
-            onPress: handleEdit,
-          },
-          {
-            text: "Delete Collection",
-            style: "destructive",
-            onPress: handleDelete,
-          },
-          {
-            text: "Cancel",
-            style: "cancel",
-          },
-        ]
-      );
+        message: "Choose an action for this collection.",
+        cancelText: "Delete Collection",
+        confirmText: "Edit Collection",
+        showCancel: true,
+        onConfirm: handleEdit,
+        onCancel: handleDelete,
+      });
     }, [
       collection,
+      deleting,
       handleEdit,
       handleDelete,
+      showAlert,
     ]);
 
   // --------------------------------------------------
   // REMOVE MEMORY
   // --------------------------------------------------
-
   const handleRemoveMemory =
     useCallback(
       (memory) => {
@@ -273,95 +262,91 @@ function CollectionDetailsScreen({
           return;
         }
 
-        Alert.alert(
-          "Remove Memory",
-          "Remove this memory from the collection?",
-          [
-            {
-              text: "Cancel",
-              style: "cancel",
-            },
-            {
-              text: "Remove",
-              style: "destructive",
-              onPress: async () => {
-                try {
-                  await removeMemoryFromCollection(
-                    collectionId,
-                    memoryId
-                  );
+        showAlert({
+          type: "warning",
+          icon: "remove-circle-outline",
+          title: "Remove Memory",
+          message:
+            "Remove this memory from the collection?",
+          cancelText: "Cancel",
+          confirmText: "Remove",
+          showCancel: true,
+          onConfirm: async () => {
+            try {
+              await removeMemoryFromCollection(
+                collectionId,
+                memoryId,
+              );
 
-                  setCollection(
-                    (prev) => {
-                      if (!prev) {
-                        return prev;
-                      }
+              setCollection(
+                (prev) => {
+                  if (!prev) {
+                    return prev;
+                  }
 
-                      const currentMemories =
-                        Array.isArray(
-                          prev.memories
-                        )
-                          ? prev.memories
-                          : [];
+                  const currentMemories =
+                    Array.isArray(
+                      prev.memories,
+                    )
+                      ? prev.memories
+                      : [];
 
-                      const nextMemories =
-                        currentMemories.filter(
-                          (item) => {
-                            const id =
-                              item?._id ||
-                              item?.id;
+                  const nextMemories =
+                    currentMemories.filter(
+                      (item) => {
+                        const id =
+                          item?._id ||
+                          item?.id;
 
-                            return (
-                              String(
-                                id
-                              ) !==
-                              String(
-                                memoryId
-                              )
-                            );
-                          }
+                        return (
+                          String(id) !==
+                          String(memoryId)
                         );
+                      },
+                    );
 
-                      return {
-                        ...prev,
-                        memories:
-                          nextMemories,
-                        memoryCount:
-                          nextMemories.length,
-                      };
-                    }
-                  );
-                } catch (error) {
-                  console.error(
-                    "Failed to remove memory:",
-                    error
-                  );
+                  return {
+                    ...prev,
+                    memories:
+                      nextMemories,
+                    memoryCount:
+                      nextMemories.length,
+                  };
+                },
+              );
+            } catch (error) {
+              console.error(
+                "Failed to remove memory:",
+                error,
+              );
 
-                  Alert.alert(
-                    "Unable to remove",
-                    error?.message ||
-                      "Something went wrong while removing the memory."
-                  );
-                }
-              },
-            },
-          ]
-        );
+              showAlert({
+                type: "danger",
+                icon: "close-circle-outline",
+                title: "Unable to Remove",
+                message:
+                  error?.message ||
+                  "Something went wrong while removing the memory.",
+                confirmText: "OK",
+              });
+            }
+          },
+        });
       },
       [
         collectionId,
         removeMemoryFromCollection,
-      ]
+        showAlert,
+      ],
     );
 
   // --------------------------------------------------
   // MEMORY DATA
   // --------------------------------------------------
-
   const memories = useMemo(() => {
     if (
       !Array.isArray(
-        collection?.memories
+        collection?.memories,
       )
     ) {
       return [];
@@ -377,7 +362,6 @@ function CollectionDetailsScreen({
   // --------------------------------------------------
   // COVER IMAGE
   // --------------------------------------------------
-
   const coverImage =
     collection?.coverMemoryId
       ?.images?.[0] ||
@@ -392,14 +376,13 @@ function CollectionDetailsScreen({
       }
 
       return getMemoryDetailUrl(
-        coverImage
+        coverImage,
       );
     }, [coverImage]);
 
   // --------------------------------------------------
   // MEMORY RENDER
   // --------------------------------------------------
-
   const renderMemory =
     useCallback(
       ({ item }) => {
@@ -424,7 +407,7 @@ function CollectionDetailsScreen({
                   "MemoryDetails",
                   {
                     memoryId,
-                  }
+                  },
                 );
               }}
             />
@@ -435,7 +418,7 @@ function CollectionDetailsScreen({
               }
               onPress={() =>
                 handleRemoveMemory(
-                  item
+                  item,
                 )
               }
               activeOpacity={0.8}
@@ -460,28 +443,26 @@ function CollectionDetailsScreen({
       [
         navigation,
         handleRemoveMemory,
-      ]
+      ],
     );
 
   // --------------------------------------------------
   // MEMORY KEY
   // --------------------------------------------------
-
   const memoryKeyExtractor =
     useCallback(
       (item, index) =>
         String(
           item?._id ||
             item?.id ||
-            `memory-${index}`
+            `memory-${index}`,
         ),
-      []
+      [],
     );
 
   // --------------------------------------------------
   // LOADING
   // --------------------------------------------------
-
   if (loading && !collection) {
     return (
       <View
@@ -508,7 +489,6 @@ function CollectionDetailsScreen({
   // --------------------------------------------------
   // INVALID COLLECTION
   // --------------------------------------------------
-
   if (!collection) {
     return (
       <View
@@ -567,7 +547,6 @@ function CollectionDetailsScreen({
   // --------------------------------------------------
   // SCREEN
   // --------------------------------------------------
-
   return (
     <View style={styles.container}>
       <FlatList
@@ -584,11 +563,9 @@ function CollectionDetailsScreen({
             ? styles.emptyMemoryList
             : styles.memoryList
         }
-
         // ------------------------------------------------
         // PULL TO REFRESH
         // ------------------------------------------------
-
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -598,15 +575,12 @@ function CollectionDetailsScreen({
             progressBackgroundColor="#FFFFFF"
           />
         }
-
         // ------------------------------------------------
         // HEADER
         // ------------------------------------------------
-
         ListHeaderComponent={
           <View>
             {/* TOP BAR */}
-
             <View
               style={styles.topBar}
             >
@@ -655,14 +629,12 @@ function CollectionDetailsScreen({
             </View>
 
             {/* COLLECTION TICKET */}
-
             <View
               style={
                 styles.collectionTicket
               }
             >
               {/* COVER */}
-
               <View
                 style={
                   styles.ticketCover
@@ -758,7 +730,6 @@ function CollectionDetailsScreen({
               </View>
 
               {/* PERFORATION */}
-
               <View
                 style={
                   styles.perforation
@@ -784,7 +755,6 @@ function CollectionDetailsScreen({
               </View>
 
               {/* TICKET CONTENT */}
-
               <View
                 style={
                   styles.ticketContent
@@ -886,7 +856,7 @@ function CollectionDetailsScreen({
                     ].map(
                       (
                         width,
-                        index
+                        index,
                       ) => (
                         <View
                           key={
@@ -899,7 +869,7 @@ function CollectionDetailsScreen({
                             },
                           ]}
                         />
-                      )
+                      ),
                     )}
                   </View>
                 </View>
@@ -931,7 +901,6 @@ function CollectionDetailsScreen({
             </View>
 
             {/* MEMORY HEADER */}
-
             <View
               style={
                 styles.sectionHeader
@@ -971,7 +940,6 @@ function CollectionDetailsScreen({
             </View>
           </View>
         }
-
         ListEmptyComponent={
           <View
             style={

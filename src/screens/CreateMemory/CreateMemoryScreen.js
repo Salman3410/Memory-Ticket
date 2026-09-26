@@ -1,65 +1,39 @@
 import { useEffect, useState } from "react";
-
-import { View, Text, Alert } from "react-native";
-
+import { View, Text } from "react-native";
 import * as ImagePicker from "expo-image-picker";
-
 import * as Location from "expo-location";
-
 import CreateMemoryHeader from "./components/CreateMemoryHeader";
-
 import PhotoSection from "./components/PhotoSection";
-
 import MemoryForm from "./components/MemoryForm";
-
 import DescriptionInput from "./components/DescriptionInput";
-
 import PreviewButton from "./components/PreviewButton";
-
 import TagsInput from "../../components/TagsInput/TagsInput";
-
 import styles from "./createMemoryStyles";
-
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
-
 import { getNetworkInfo } from "../../services/networkService";
-
 import { normalizeTicketCustomization } from "../../utils/ticketCustomization";
+import { useAppAlert } from "../../context/AlertContext";
 
 const MAX_IMAGES = 5;
 
 function CreateMemoryScreen({ navigation, route }) {
+  const { showAlert } = useAppAlert();
+
   const [images, setImages] = useState([]);
-
   const [activeImage, setActiveImage] = useState(0);
-
   const [title, setTitle] = useState("");
-
   const [network, setNetwork] = useState(null);
-
   const [location, setLocation] = useState("");
-
   const [locationData, setLocationData] = useState(null);
-
   const [locationCaptured, setLocationCaptured] = useState(false);
-
   const [description, setDescription] = useState("");
-
   const [tags, setTags] = useState([]);
-
-  // --------------------------------------------------
-  // TICKET CUSTOMIZATION
-  // --------------------------------------------------
 
   const [ticketCustomization, setTicketCustomization] = useState(() =>
     normalizeTicketCustomization(),
   );
 
   const editMemory = route?.params?.editMemory;
-
-  // --------------------------------------------------
-  // LOAD EDIT MEMORY
-  // --------------------------------------------------
 
   useEffect(() => {
     if (!editMemory) {
@@ -73,9 +47,7 @@ function CreateMemoryScreen({ navigation, route }) {
         : [];
 
     setImages(existingImages.slice(0, MAX_IMAGES));
-
     setActiveImage(0);
-
     setTitle(editMemory.title || "");
 
     // Keep the existing manual location.
@@ -101,17 +73,10 @@ function CreateMemoryScreen({ navigation, route }) {
     });
   }, [editMemory, navigation]);
 
-  // --------------------------------------------------
-  // AUTOMATIC NETWORK + LOCATION
-  // --------------------------------------------------
-
   useEffect(() => {
     let cancelled = false;
 
     const captureMemoryEnvironment = async () => {
-      // ------------------------------------------
-      // NETWORK
-      // ------------------------------------------
 
       try {
         const networkInfo = await getNetworkInfo();
@@ -123,28 +88,17 @@ function CreateMemoryScreen({ navigation, route }) {
         console.warn("Network info capture failed:", error);
       }
 
-      // ------------------------------------------
-      // EXISTING LOCATION
-      // ------------------------------------------
-
       if (editMemory?.locationData) {
         return;
       }
 
-      // ------------------------------------------
-      // LOCATION PERMISSION
-      // ------------------------------------------
-
       try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
+        const { status } =
+          await Location.requestForegroundPermissionsAsync();
 
         if (status !== "granted" || cancelled) {
           return;
         }
-
-        // ----------------------------------------
-        // CURRENT GPS LOCATION
-        // ----------------------------------------
 
         const currentLocation = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
@@ -157,10 +111,6 @@ function CreateMemoryScreen({ navigation, route }) {
         const { latitude, longitude } = currentLocation.coords;
 
         let addressData = null;
-
-        // ----------------------------------------
-        // REVERSE GEOCODING
-        // ----------------------------------------
 
         try {
           const addresses = await Location.reverseGeocodeAsync({
@@ -177,28 +127,16 @@ function CreateMemoryScreen({ navigation, route }) {
           return;
         }
 
-        // ----------------------------------------
-        // SAVE LOCATION DATA
-        // ----------------------------------------
-
         setLocationData({
           latitude,
           longitude,
-
           address: addressData?.formattedAddress || null,
-
           name: addressData?.name || null,
-
           district: addressData?.district || null,
-
           city: addressData?.city || null,
-
           region: addressData?.region || null,
-
           country: addressData?.country || null,
-
           postalCode: addressData?.postalCode || null,
-
           isoCountryCode: addressData?.isoCountryCode || null,
         });
 
@@ -221,29 +159,32 @@ function CreateMemoryScreen({ navigation, route }) {
     };
   }, [editMemory]);
 
-  // --------------------------------------------------
-  // PICK IMAGES
-  // --------------------------------------------------
-
   const pickImages = async () => {
     try {
       const permission =
         await ImagePicker.requestMediaLibraryPermissionsAsync();
 
       if (!permission.granted) {
-        Alert.alert(
-          "Permission Required",
-          "Please allow photo library access to select photos.",
-        );
-
+        showAlert({
+          type: "warning",
+          icon: "images-outline",
+          title: "Permission Required",
+          message: "Please allow photo library access to select photos.",
+          confirmText: "OK",
+        });
         return;
       }
 
       const remainingSlots = MAX_IMAGES - images.length;
 
       if (remainingSlots <= 0) {
-        Alert.alert("Maximum Photos", "You can add up to 5 photos.");
-
+        showAlert({
+          type: "warning",
+          icon: "images-outline",
+          title: "Maximum Photos",
+          message: "You can add up to 5 photos.",
+          confirmText: "OK",
+        });
         return;
       }
 
@@ -274,30 +215,39 @@ function CreateMemoryScreen({ navigation, route }) {
     } catch (error) {
       console.error("Gallery error:", error);
 
-      Alert.alert("Error", "Unable to select photos.");
+      showAlert({
+        type: "danger",
+        icon: "close-circle-outline",
+        title: "Gallery Error",
+        message: "Unable to select photos.",
+        confirmText: "OK",
+      });
     }
   };
-
-  // --------------------------------------------------
-  // TAKE PHOTO
-  // --------------------------------------------------
 
   const takePhoto = async () => {
     try {
       if (images.length >= MAX_IMAGES) {
-        Alert.alert("Maximum Photos", "You can add up to 5 photos.");
-
+        showAlert({
+          type: "warning",
+          icon: "camera-outline",
+          title: "Maximum Photos",
+          message: "You can add up to 5 photos.",
+          confirmText: "OK",
+        });
         return;
       }
 
       const permission = await ImagePicker.requestCameraPermissionsAsync();
 
       if (!permission.granted) {
-        Alert.alert(
-          "Permission Required",
-          "Please allow camera access to take a photo.",
-        );
-
+        showAlert({
+          type: "warning",
+          icon: "camera-outline",
+          title: "Permission Required",
+          message: "Please allow camera access to take a photo.",
+          confirmText: "OK",
+        });
         return;
       }
 
@@ -326,13 +276,15 @@ function CreateMemoryScreen({ navigation, route }) {
     } catch (error) {
       console.error("Camera error:", error);
 
-      Alert.alert("Error", "Unable to take a photo.");
+      showAlert({
+        type: "danger",
+        icon: "close-circle-outline",
+        title: "Camera Error",
+        message: "Unable to take a photo.",
+        confirmText: "OK",
+      });
     }
   };
-
-  // --------------------------------------------------
-  // MANUAL LOCATION
-  // --------------------------------------------------
 
   const handleLocationPress = async () => {
     try {
@@ -343,15 +295,20 @@ function CreateMemoryScreen({ navigation, route }) {
 
       setLocationCaptured(true);
 
-      const { status } = await Location.requestForegroundPermissionsAsync();
+      const { status } =
+        await Location.requestForegroundPermissionsAsync();
 
       if (status !== "granted") {
         setLocationCaptured(false);
 
-        Alert.alert(
-          "Location Permission",
-          "Location permission was not granted. You can still enter your location manually.",
-        );
+        showAlert({
+          type: "warning",
+          icon: "location-outline",
+          title: "Location Permission",
+          message:
+            "Location permission was not granted. You can still enter your location manually.",
+          confirmText: "OK",
+        });
 
         return;
       }
@@ -378,21 +335,13 @@ function CreateMemoryScreen({ navigation, route }) {
       setLocationData({
         latitude,
         longitude,
-
         address: addressData?.formattedAddress || null,
-
         name: addressData?.name || null,
-
         district: addressData?.district || null,
-
         city: addressData?.city || null,
-
         region: addressData?.region || null,
-
         country: addressData?.country || null,
-
         postalCode: addressData?.postalCode || null,
-
         isoCountryCode: addressData?.isoCountryCode || null,
       });
 
@@ -406,16 +355,16 @@ function CreateMemoryScreen({ navigation, route }) {
 
       setLocationCaptured(false);
 
-      Alert.alert(
-        "Location Error",
-        "Unable to capture your current location. You can still enter your location manually.",
-      );
+      showAlert({
+        type: "danger",
+        icon: "location-outline",
+        title: "Location Error",
+        message:
+          "Unable to capture your current location. You can still enter your location manually.",
+        confirmText: "OK",
+      });
     }
   };
-
-  // --------------------------------------------------
-  // REMOVE IMAGE
-  // --------------------------------------------------
 
   const removeImage = (index) => {
     setImages((currentImages) =>
@@ -437,10 +386,6 @@ function CreateMemoryScreen({ navigation, route }) {
     });
   };
 
-  // --------------------------------------------------
-  // IMAGE SCROLL
-  // --------------------------------------------------
-
   const handleImageScroll = (event) => {
     const offsetX = event.nativeEvent.contentOffset.x;
 
@@ -452,12 +397,10 @@ function CreateMemoryScreen({ navigation, route }) {
 
     const index = Math.round(offsetX / pageWidth);
 
-    setActiveImage(Math.max(0, Math.min(index, images.length - 1)));
+    setActiveImage(
+      Math.max(0, Math.min(index, images.length - 1)),
+    );
   };
-
-  // --------------------------------------------------
-  // RESET FORM
-  // --------------------------------------------------
 
   const resetForm = () => {
     setImages([]);
@@ -481,25 +424,39 @@ function CreateMemoryScreen({ navigation, route }) {
     setTicketCustomization(normalizeTicketCustomization());
   };
 
-  // --------------------------------------------------
-  // CREATE / PREVIEW MEMORY
-  // --------------------------------------------------
-
   const handleCreateMemory = () => {
     if (!images.length) {
-      Alert.alert("Add Photos", "Please add at least one photo.");
+      showAlert({
+        type: "warning",
+        icon: "images-outline",
+        title: "Add Photos",
+        message: "Please add at least one photo.",
+        confirmText: "OK",
+      });
 
       return;
     }
 
     if (!title.trim()) {
-      Alert.alert("Memory Title", "Please give this memory a title.");
+      showAlert({
+        type: "warning",
+        icon: "text-outline",
+        title: "Memory Title",
+        message: "Please give this memory a title.",
+        confirmText: "OK",
+      });
 
       return;
     }
 
     if (images.length > MAX_IMAGES) {
-      Alert.alert("Maximum Photos", "You can add up to 5 photos.");
+      showAlert({
+        type: "warning",
+        icon: "images-outline",
+        title: "Maximum Photos",
+        message: "You can add up to 5 photos.",
+        confirmText: "OK",
+      });
 
       return;
     }
@@ -526,7 +483,6 @@ function CreateMemoryScreen({ navigation, route }) {
       // ------------------------------------------------
       // TICKET CUSTOMIZATION
       // ------------------------------------------------
-
       ticketStyle: ticketCustomization.ticketStyle,
 
       ticketAccent: ticketCustomization.ticketAccent,

@@ -2,31 +2,41 @@ import {
   View,
   Text,
   ScrollView,
-  Alert,
 } from "react-native";
-
 import { useMemory } from "../../hooks/useMemory";
 import { useAuth } from "../../hooks/useAuth";
-
+import { useRewards } from "../../hooks/useRewards";
+import { useAppAlert } from "../../context/AlertContext";
 import ProfileCard from "../../components/Profile/Card/ProfileCard";
 import ProfileStats from "../../components/Profile/Stats/ProfileStats";
 import ProfileMenu from "../../components/Profile/Menu/ProfileMenu";
 import LogoutButton from "../../components/Profile/Logout/LogoutButton";
-
 import styles from "./profileStyles";
 
 function ProfileScreen({ navigation }) {
   const { memories } = useMemory();
   const { user, logout } = useAuth();
+  const { coins } = useRewards();
+  const { showAlert } = useAppAlert();
 
   const stats = {
     memories: memories.length,
+
     tickets: memories.length,
-    favorites: memories.filter((memory) => memory.favorite).length,
+
+    favorites: memories.filter(
+      (memory) => memory.favorite,
+    ).length,
   };
 
   const handleEditProfile = () => {
-    navigation.getParent()?.navigate("EditProfile");
+    navigation.getParent()?.navigate(
+      "EditProfile",
+    );
+  };
+
+  const handleRewards = () => {
+    navigation.navigate("Rewards");
   };
 
   const handleSettings = () => {
@@ -38,39 +48,67 @@ function ProfileScreen({ navigation }) {
   };
 
   const handleLogout = () => {
-    Alert.alert(
-      "Log Out",
-      "Are you sure you want to log out?",
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
-        {
-          text: "Log Out",
-          style: "destructive",
-          onPress: logout,
-        },
-      ]
-    );
+    showAlert({
+      type: "warning",
+      icon: "log-out-outline",
+      title: "Log Out?",
+      message:
+        "Are you sure you want to log out of Memento?",
+      cancelText: "Cancel",
+      confirmText: "Log Out",
+      showCancel: true,
+
+      onConfirm: async () => {
+        try {
+          await logout();
+        } catch (error) {
+          console.error(
+            "Logout error:",
+            error,
+          );
+
+          showAlert({
+            type: "danger",
+            icon: "close-circle-outline",
+            title: "Logout Failed",
+            message:
+              "Unable to log out. Please try again.",
+            confirmText: "OK",
+          });
+        }
+      },
+    });
   };
 
   const accountMenuItems = [
     {
       title: "Edit Profile",
-      subtitle: "Change your name or profile photo",
+      subtitle:
+        "Change your name or profile photo",
       icon: "person-outline",
       onPress: handleEditProfile,
     },
+
+    {
+      title: "Memento Rewards",
+      subtitle:
+        `${coins} Coins • Earn and redeem rewards`,
+      icon: "gift-outline",
+      onPress: handleRewards,
+    },
+
     {
       title: "Settings",
-      subtitle: "Manage your app preferences",
+      subtitle:
+        "Manage your app preferences",
       icon: "options-outline",
       onPress: handleSettings,
     },
+
     {
       title: "About Memento",
-      subtitle: "Learn more about the app",
+      subtitle:
+        "Learn more about the app",
       icon: "information-circle-outline",
       onPress: handleAbout,
     },
@@ -79,12 +117,17 @@ function ProfileScreen({ navigation }) {
   const appMenuItems = [
     {
       title: "Your Favorites",
-      subtitle: "Memories you don't want to forget",
+      subtitle:
+        "Memories you don't want to forget",
       icon: "heart-outline",
+
       onPress: () =>
-        navigation.navigate("Memories", {
-          filter: "favorites",
-        }),
+        navigation.navigate(
+          "Memories",
+          {
+            filter: "favorites",
+          },
+        ),
     },
   ];
 
@@ -92,45 +135,79 @@ function ProfileScreen({ navigation }) {
     <View style={styles.container}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={
+          styles.scrollContent
+        }
       >
         {/* HEADER */}
 
         <View style={styles.header}>
           <View>
-            <Text style={styles.headerEyebrow}>YOUR SPACE</Text>
+            <Text
+              style={
+                styles.headerEyebrow
+              }
+            >
+              YOUR SPACE
+            </Text>
 
-            <Text style={styles.headerTitle}>Profile</Text>
+            <Text
+              style={
+                styles.headerTitle
+              }
+            >
+              Profile
+            </Text>
           </View>
         </View>
 
         {/* PROFILE CARD */}
 
-        <ProfileCard user={user} onEditProfile={handleEditProfile} />
+        <ProfileCard
+          user={user}
+          onEditProfile={
+            handleEditProfile
+          }
+        />
 
         {/* STATS */}
 
-        <ProfileStats stats={stats} />
+        <ProfileStats
+          stats={stats}
+        />
 
         {/* ACCOUNT */}
 
-        <ProfileMenu title="ACCOUNT" items={accountMenuItems} />
+        <ProfileMenu
+          title="ACCOUNT"
+          items={accountMenuItems}
+        />
 
         {/* APP */}
 
-        <ProfileMenu title="APP" items={appMenuItems} />
+        <ProfileMenu
+          title="APP"
+          items={appMenuItems}
+        />
 
         {/* LOGOUT */}
 
-        <LogoutButton onPress={handleLogout} />
+        <LogoutButton
+          onPress={handleLogout}
+        />
 
         {/* VERSION */}
 
-        <Text style={styles.versionText}>MEMENTO • VERSION 1.0.0</Text>
+        <Text
+          style={
+            styles.versionText
+          }
+        >
+          MEMENTO • VERSION 1.0.0
+        </Text>
       </ScrollView>
     </View>
   );
 }
 
 export default ProfileScreen;
-

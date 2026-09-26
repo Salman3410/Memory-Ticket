@@ -4,17 +4,18 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import styles from "./authStyles";
 import { useAuth } from "../../hooks/useAuth";
+import { useAppAlert } from "../../context/AlertContext";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 
 function VerifySignupOtpScreen({ navigation, route }) {
   const { verifySignupOtp, resendSignupOtp } = useAuth();
+  const { showAlert } = useAppAlert();
 
   const email = route.params?.email;
 
@@ -39,10 +40,13 @@ function VerifySignupOtpScreen({ navigation, route }) {
     const cleanedOtp = otp.trim();
 
     if (!/^\d{6}$/.test(cleanedOtp)) {
-      Alert.alert(
-        "Invalid OTP",
-        "Please enter the 6-digit verification code.",
-      );
+      showAlert({
+        type: "warning",
+        icon: "shield-checkmark-outline",
+        title: "Invalid OTP",
+        message: "Please enter the 6-digit verification code.",
+        confirmText: "OK",
+      });
       return;
     }
 
@@ -52,10 +56,14 @@ function VerifySignupOtpScreen({ navigation, route }) {
       const result = await verifySignupOtp(email, cleanedOtp);
 
       if (!result.success) {
-        Alert.alert(
-          "Verification Failed",
-          result.message || "Unable to verify your email.",
-        );
+        showAlert({
+          type: "danger",
+          icon: "close-circle-outline",
+          title: "Verification Failed",
+          message:
+            result.message || "Unable to verify your email.",
+          confirmText: "OK",
+        });
         return;
       }
 
@@ -65,10 +73,14 @@ function VerifySignupOtpScreen({ navigation, route }) {
     } catch (error) {
       console.error("Signup OTP verification error:", error);
 
-      Alert.alert(
-        "Verification Failed",
-        "Something went wrong. Please try again.",
-      );
+      showAlert({
+        type: "danger",
+        icon: "close-circle-outline",
+        title: "Verification Failed",
+        message:
+          "Something went wrong. Please try again.",
+        confirmText: "OK",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -85,27 +97,39 @@ function VerifySignupOtpScreen({ navigation, route }) {
       const result = await resendSignupOtp(email);
 
       if (!result.success) {
-        Alert.alert(
-          "Unable to Resend",
-          result.message || "Please try again.",
-        );
+        showAlert({
+          type: "danger",
+          icon: "refresh-outline",
+          title: "Unable to Resend",
+          message:
+            result.message || "Please try again.",
+          confirmText: "OK",
+        });
         return;
       }
 
       setOtp("");
       setCountdown(60);
 
-      Alert.alert(
-        "OTP Sent",
-        "A new verification code has been sent to your email.",
-      );
+      showAlert({
+        type: "success",
+        icon: "mail-outline",
+        title: "OTP Sent",
+        message:
+          "A new verification code has been sent to your email.",
+        confirmText: "OK",
+      });
     } catch (error) {
       console.error("Resend OTP error:", error);
 
-      Alert.alert(
-        "Unable to Resend",
-        "Something went wrong. Please try again.",
-      );
+      showAlert({
+        type: "danger",
+        icon: "close-circle-outline",
+        title: "Unable to Resend",
+        message:
+          "Something went wrong. Please try again.",
+        confirmText: "OK",
+      });
     } finally {
       setResending(false);
     }
@@ -132,7 +156,9 @@ function VerifySignupOtpScreen({ navigation, route }) {
             color="#242424"
           />
 
-          <Text style={styles.backText}>Back</Text>
+          <Text style={styles.backText}>
+            Back
+          </Text>
         </TouchableOpacity>
 
         {/* Brand */}
@@ -145,12 +171,16 @@ function VerifySignupOtpScreen({ navigation, route }) {
             />
           </View>
 
-          <Text style={styles.brandText}>MEMENTO</Text>
+          <Text style={styles.brandText}>
+            MEMENTO
+          </Text>
         </View>
 
         {/* Heading */}
         <View style={styles.headingContainer}>
-          <Text style={styles.title}>Verify Your Email</Text>
+          <Text style={styles.title}>
+            Verify Your Email
+          </Text>
 
           <Text style={styles.subtitle}>
             We sent a 6-digit verification code to
@@ -173,7 +203,9 @@ function VerifySignupOtpScreen({ navigation, route }) {
         <View style={styles.formContainer}>
           {/* OTP */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>VERIFICATION CODE</Text>
+            <Text style={styles.label}>
+              VERIFICATION CODE
+            </Text>
 
             <View style={styles.inputWrapper}>
               <Ionicons

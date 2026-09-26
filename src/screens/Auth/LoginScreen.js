@@ -4,7 +4,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -17,6 +16,7 @@ import Animated, {
 } from "react-native-reanimated";
 import styles from "./authStyles";
 import { useAuth } from "../../hooks/useAuth";
+import { useAppAlert } from "../../context/AlertContext";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 
 const AnimatedView =
@@ -24,6 +24,7 @@ const AnimatedView =
 
 function LoginScreen({ navigation }) {
   const { login } = useAuth();
+  const { showAlert } = useAppAlert();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -37,7 +38,6 @@ function LoginScreen({ navigation }) {
   // =========================
   // Entrance Animation
   // =========================
-
   const entranceOpacity =
     useSharedValue(0);
 
@@ -47,7 +47,6 @@ function LoginScreen({ navigation }) {
   // =========================
   // Button Animation
   // =========================
-
   const buttonScale =
     useSharedValue(1);
 
@@ -74,7 +73,6 @@ function LoginScreen({ navigation }) {
       return {
         opacity:
           entranceOpacity.value,
-
         transform: [
           {
             translateY:
@@ -117,16 +115,19 @@ function LoginScreen({ navigation }) {
   // =========================
   // Login
   // =========================
-
   const handleLogin = async () => {
     const normalizedEmail =
       email.trim().toLowerCase();
 
     if (!normalizedEmail || !password) {
-      Alert.alert(
-        "Missing Information",
-        "Please enter your email and password.",
-      );
+      showAlert({
+        type: "warning",
+        icon: "information-circle-outline",
+        title: "Missing Information",
+        message:
+          "Please enter your email and password.",
+        confirmText: "OK",
+      });
       return;
     }
 
@@ -139,11 +140,15 @@ function LoginScreen({ navigation }) {
       );
 
       if (!result.success) {
-        Alert.alert(
-          "Login Failed",
-          result.message ||
+        showAlert({
+          type: "danger",
+          icon: "close-circle-outline",
+          title: "Login Failed",
+          message:
+            result.message ||
             "Unable to login.",
-        );
+          confirmText: "OK",
+        });
         return;
       }
 
@@ -156,10 +161,14 @@ function LoginScreen({ navigation }) {
         error,
       );
 
-      Alert.alert(
-        "Login Failed",
-        "Something went wrong. Please try again.",
-      );
+      showAlert({
+        type: "danger",
+        icon: "close-circle-outline",
+        title: "Login Failed",
+        message:
+          "Something went wrong. Please try again.",
+        confirmText: "OK",
+      });
     } finally {
       setIsLoading(false);
     }

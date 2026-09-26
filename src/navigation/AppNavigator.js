@@ -14,6 +14,7 @@ import CollectionDetailsScreen from "../screens/collections/CollectionDetailsScr
 import CollectionMemorySelector from "../screens/collections/CollectionMemorySelector";
 import EditCollectionScreen from "../screens/collections/EditCollectionScreen";
 import OnThisDayScreen from "../screens/OnThisDay/OnThisDayScreen";
+import RewardsScreen from "../screens/rewards/RewardsScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -53,6 +54,7 @@ function AppNavigator() {
       />
       <Stack.Screen name="EditCollection" component={EditCollectionScreen} />
       <Stack.Screen name="OnThisDay" component={OnThisDayScreen} />
+      <Stack.Screen name="Rewards" component={RewardsScreen} />
     </Stack.Navigator>
   );
 }

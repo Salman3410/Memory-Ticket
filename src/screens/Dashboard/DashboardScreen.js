@@ -1,18 +1,15 @@
 import React, { useCallback } from "react";
-
 import {
   ActivityIndicator,
   RefreshControl,
   ScrollView,
   View,
 } from "react-native";
-
 import { useAuth } from "../../hooks/useAuth";
 import useDashboard from "../../hooks/useDashboard";
 import useRefresh from "../../hooks/useRefresh";
 import { useMemory } from "../../hooks/useMemory";
 import { useCollection } from "../../hooks/useCollection";
-
 import DashboardHeader from "./components/DashboardHeader";
 import DashboardHero from "./components/DashboardHero";
 import MemoryPulseCard from "./components/MemoryPulseCard";
@@ -21,7 +18,6 @@ import DashboardSpotlightCard from "./components/DashboardSpotlightCard";
 import DashboardMemoryCard from "./components/DashboardMemoryCard";
 import DashboardSectionHeader from "./components/DashboardSectionHeader";
 import HomeCollectionsSection from "../../components/collections/HomeCollectionsSection";
-
 import { styles } from "./dashboardStyles";
 
 function DashboardScreen({ navigation }) {
@@ -44,19 +40,11 @@ function DashboardScreen({ navigation }) {
     loading,
   } = useDashboard();
 
-  // --------------------------------------------------
-  // REFRESH DASHBOARD
-  // --------------------------------------------------
-
   const refreshDashboard = useCallback(async () => {
     await Promise.all([refreshMemories(), refreshCollections()]);
   }, [refreshMemories, refreshCollections]);
 
   const { refreshing, onRefresh } = useRefresh(refreshDashboard);
-
-  // --------------------------------------------------
-  // OPEN MEMORY
-  // --------------------------------------------------
 
   const openMemory = useCallback(
     (memory) => {
@@ -70,10 +58,6 @@ function DashboardScreen({ navigation }) {
     },
     [navigation],
   );
-
-  // --------------------------------------------------
-  // COLLECTIONS
-  // --------------------------------------------------
 
   const handleViewCollections = useCallback(() => {
     navigation.navigate("Collections");
@@ -98,17 +82,9 @@ function DashboardScreen({ navigation }) {
     [navigation],
   );
 
-  // --------------------------------------------------
-  // ON THIS DAY
-  // --------------------------------------------------
-
   const openOnThisDay = useCallback(() => {
     navigation.navigate("OnThisDay");
   }, [navigation]);
-
-  // --------------------------------------------------
-  // INITIAL LOADING
-  // --------------------------------------------------
 
   if (loading && !stats.totalMemories) {
     return (
@@ -117,10 +93,6 @@ function DashboardScreen({ navigation }) {
       </View>
     );
   }
-
-  // --------------------------------------------------
-  // SCREEN
-  // --------------------------------------------------
 
   return (
     <View style={styles.container}>

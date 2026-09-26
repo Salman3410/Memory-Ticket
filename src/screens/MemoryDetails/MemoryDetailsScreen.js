@@ -1,5 +1,8 @@
-import { useCallback, useRef, useState } from "react";
-
+import {
+  useCallback,
+  useRef,
+  useState,
+} from "react";
 import {
   View,
   Text,
@@ -8,35 +11,33 @@ import {
   FlatList,
   Image,
   useWindowDimensions,
-  Alert,
   Modal,
   StyleSheet,
   RefreshControl,
 } from "react-native";
-
 import { Ionicons } from "@expo/vector-icons";
-
 import { captureRef } from "react-native-view-shot";
-
 import * as Sharing from "expo-sharing";
 import * as Print from "expo-print";
 import * as FileSystem from "expo-file-system/legacy";
 import * as MediaLibrary from "expo-media-library";
-
 import { useMemory } from "../../hooks/useMemory";
 import useRefresh from "../../hooks/useRefresh";
-
+import { useAppAlert } from "../../context/AlertContext";
 import MemoryTicket from "../../components/MemoryTicket/MemoryTicket";
 import ShareExportSheet from "../../components/ShareExportSheet/ShareExportSheet";
 import TicketCustomizationSheet from "../../components/TicketCustomization/TicketCustomizationSheet";
-
 import { normalizeTicketCustomization } from "../../utils/ticketCustomization";
-
-import { getMemoryDetailUrl, getMemoryViewerUrl } from "../../utils/cloudinary";
-
+import {
+  getMemoryDetailUrl,
+  getMemoryViewerUrl,
+} from "../../utils/cloudinary";
 import styles from "./memoryDetailsStyles";
 
-function MemoryDetailsScreen({ navigation, route }) {
+function MemoryDetailsScreen({
+  navigation,
+  route,
+}) {
   const {
     getMemoryById,
     toggleFavorite,
@@ -45,113 +46,169 @@ function MemoryDetailsScreen({ navigation, route }) {
     refreshMemories,
   } = useMemory();
 
-  // --------------------------------------------------
-  // REFRESH
-  // --------------------------------------------------
+  const { showAlert } = useAppAlert();
 
-  const refreshMemoryDetails = useCallback(async () => {
-    await refreshMemories();
-  }, [refreshMemories]);
+  const refreshMemoryDetails = useCallback(
+    async () => {
+      await refreshMemories();
+    },
+    [refreshMemories],
+  );
 
-  const { refreshing, onRefresh } = useRefresh(refreshMemoryDetails);
+  const { refreshing, onRefresh } =
+    useRefresh(refreshMemoryDetails);
 
-  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const {
+    width: screenWidth,
+    height: screenHeight,
+  } = useWindowDimensions();
 
-  const memoryId = route?.params?.memoryId;
+  const memoryId =
+    route?.params?.memoryId;
 
-  const [activeImage, setActiveImage] = useState(0);
+  const [activeImage, setActiveImage] =
+    useState(0);
 
-  const [imageViewerVisible, setImageViewerVisible] = useState(false);
+  const [
+    imageViewerVisible,
+    setImageViewerVisible,
+  ] = useState(false);
 
-  const [viewerImage, setViewerImage] = useState(0);
+  const [viewerImage, setViewerImage] =
+    useState(0);
 
   const shareSheetRef = useRef(null);
 
-  const [sharing, setSharing] = useState(false);
+  const [sharing, setSharing] =
+    useState(false);
 
-  const [savingImage, setSavingImage] = useState(false);
+  const [savingImage, setSavingImage] =
+    useState(false);
 
-  const [generatingPdf, setGeneratingPdf] = useState(false);
+  const [generatingPdf, setGeneratingPdf] =
+    useState(false);
 
-  const [pdfOptionsVisible, setPdfOptionsVisible] = useState(false);
+  const [
+    pdfOptionsVisible,
+    setPdfOptionsVisible,
+  ] = useState(false);
 
   const ticketRefs = useRef([]);
 
-  // --------------------------------------------------
-  // TICKET CUSTOMIZATION
-  // --------------------------------------------------
+  const [
+    customizationVisible,
+    setCustomizationVisible,
+  ] = useState(false);
 
-  const [customizationVisible, setCustomizationVisible] = useState(false);
+  const [
+    customizationSaving,
+    setCustomizationSaving,
+  ] = useState(false);
 
-  const [customizationSaving, setCustomizationSaving] = useState(false);
+  const [
+    draftCustomization,
+    setDraftCustomization,
+  ] = useState(null);
 
-  const [draftCustomization, setDraftCustomization] = useState(null);
-
-  const memory = getMemoryById(memoryId);
+  const memory =
+    getMemoryById(memoryId);
 
   if (!memory) {
     return (
-      <View style={styles.notFoundContainer}>
-        <Ionicons name="sad-outline" size={45} color="#34345C" />
+      <View
+        style={
+          styles.notFoundContainer
+        }
+      >
+        <Ionicons
+          name="sad-outline"
+          size={45}
+          color="#34345C"
+        />
 
-        <Text style={styles.notFoundTitle}>Memory not found</Text>
+        <Text
+          style={
+            styles.notFoundTitle
+          }
+        >
+          Memory not found
+        </Text>
 
         <TouchableOpacity
-          style={styles.backToMemoriesButton}
-          onPress={() => navigation.goBack()}
+          style={
+            styles.backToMemoriesButton
+          }
+          onPress={() =>
+            navigation.goBack()
+          }
           activeOpacity={0.8}
         >
-          <Text style={styles.backToMemoriesText}>GO BACK</Text>
+          <Text
+            style={
+              styles.backToMemoriesText
+            }
+          >
+            GO BACK
+          </Text>
         </TouchableOpacity>
       </View>
     );
   }
 
-  const images = Array.isArray(memory?.images)
+  const images = Array.isArray(
+    memory?.images,
+  )
     ? memory.images
     : memory?.image
       ? [memory.image]
       : [];
 
-  // --------------------------------------------------
-  // TAGS
-  // --------------------------------------------------
-
-  const tags = Array.isArray(memory?.tags)
+  const tags = Array.isArray(
+    memory?.tags,
+  )
     ? [
         ...new Set(
           memory.tags
-            .filter((tag) => typeof tag === "string")
-            .map((tag) => tag.trim().replace(/^#+/, "").toLowerCase())
+            .filter(
+              (tag) =>
+                typeof tag ===
+                "string",
+            )
+            .map((tag) =>
+              tag
+                .trim()
+                .replace(
+                  /^#+/,
+                  "",
+                )
+                .toLowerCase(),
+            )
             .filter(Boolean),
         ),
       ]
     : [];
 
-  // --------------------------------------------------
-  // CLOUDINARY IMAGES
-  // --------------------------------------------------
+  const detailImages = images.map(
+    (image) =>
+      getMemoryDetailUrl(image),
+  );
 
-  const detailImages = images.map((image) => getMemoryDetailUrl(image));
+  const viewerImages = images.map(
+    (image) =>
+      getMemoryViewerUrl(image),
+  );
 
-  const viewerImages = images.map((image) => getMemoryViewerUrl(image));
+  const ticketPreviewMemory =
+    draftCustomization
+      ? {
+          ...memory,
+          ...draftCustomization,
+        }
+      : memory;
 
-  // --------------------------------------------------
-  // TICKET CUSTOMIZATION PREVIEW
-  // --------------------------------------------------
-
-  const ticketPreviewMemory = draftCustomization
-    ? {
-        ...memory,
-        ...draftCustomization,
-      }
-    : memory;
-
-  // --------------------------------------------------
-  // IMAGE VIEWER
-  // --------------------------------------------------
-
-  const openImageViewer = (index) => {
+  const openImageViewer = (
+    index,
+  ) => {
     if (!images[index]) {
       return;
     }
@@ -164,83 +221,89 @@ function MemoryDetailsScreen({ navigation, route }) {
     setImageViewerVisible(false);
   };
 
-  const handleViewerScroll = (event) => {
-    const index = Math.round(event.nativeEvent.contentOffset.x / screenWidth);
+  const handleViewerScroll = (
+    event,
+  ) => {
+    const index = Math.round(
+      event.nativeEvent.contentOffset
+        .x / screenWidth,
+    );
 
     setViewerImage(index);
     setActiveImage(index);
   };
 
-  // --------------------------------------------------
-  // TICKET NUMBER
-  // --------------------------------------------------
-
   const getTicketNumber = () => {
     if (memory?.id) {
-      return memory.id.slice(-5).toUpperCase();
+      return memory.id
+        .slice(-5)
+        .toUpperCase();
     }
 
     return "00001";
   };
 
-  // --------------------------------------------------
-  // FAVORITE
-  // --------------------------------------------------
-
-  const handleFavorite = async () => {
-    try {
-      await toggleFavorite(memory.id);
-    } catch (error) {
-      console.log("Favorite update error:", error);
-    }
-  };
+  const handleFavorite =
+    async () => {
+      try {
+        await toggleFavorite(
+          memory.id,
+        );
+      } catch (error) {
+        console.log(
+          "Favorite update error:",
+          error,
+        );
+      }
+    };
 
   // --------------------------------------------------
   // DELETE
   // --------------------------------------------------
 
   const handleDelete = () => {
-    Alert.alert(
-      "Delete Memory?",
-      "This memory will be permanently removed from your collection.",
-      [
-        {
-          text: "CANCEL",
-          style: "cancel",
-        },
-        {
-          text: "DELETE",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await deleteMemory(memory.id);
+    showAlert({
+      type: "danger",
+      icon: "trash-outline",
+      title: "Delete Memory?",
+      message:
+        "This memory will be permanently removed from your collection. This action cannot be undone.",
+      cancelText: "Cancel",
+      confirmText: "Delete",
+      showCancel: true,
 
-              navigation.navigate("MainTabs", {
-                screen: "Memories",
-              });
-            } catch (error) {
-              console.log("Delete error:", error);
-            }
-          },
-        },
-      ],
-    );
+      onConfirm: async () => {
+        try {
+          await deleteMemory(
+            memory.id,
+          );
+
+          navigation.navigate(
+            "MainTabs",
+            {
+              screen: "Memories",
+            },
+          );
+        } catch (error) {
+          console.log(
+            "Delete error:",
+            error,
+          );
+        }
+      },
+    });
   };
-
-  // --------------------------------------------------
-  // SHARE SHEET
-  // --------------------------------------------------
 
   const openShareSheet = () => {
     shareSheetRef.current?.present();
   };
 
-  // --------------------------------------------------
-  // TICKET CUSTOMIZATION
-  // --------------------------------------------------
-
   const openCustomization = () => {
-    setDraftCustomization(normalizeTicketCustomization(memory));
+    setDraftCustomization(
+      normalizeTicketCustomization(
+        memory,
+      ),
+    );
 
     setCustomizationVisible(true);
   };
@@ -251,72 +314,106 @@ function MemoryDetailsScreen({ navigation, route }) {
     }
 
     setCustomizationVisible(false);
-
     setDraftCustomization(null);
   };
 
-  const handleSaveCustomization = async () => {
-    if (customizationSaving || !draftCustomization) {
-      return;
-    }
+  const handleSaveCustomization =
+    async () => {
+      if (
+        customizationSaving ||
+        !draftCustomization
+      ) {
+        return;
+      }
 
-    try {
-      setCustomizationSaving(true);
+      try {
+        setCustomizationSaving(
+          true,
+        );
 
-      await updateMemory(memory.id, {
-        ticketStyle: draftCustomization.ticketStyle,
+        await updateMemory(
+          memory.id,
+          {
+            ticketStyle:
+              draftCustomization.ticketStyle,
 
-        ticketAccent: draftCustomization.ticketAccent,
+            ticketAccent:
+              draftCustomization.ticketAccent,
 
-        ticketOptions: {
-          ...draftCustomization.ticketOptions,
+            ticketOptions: {
+              ...draftCustomization.ticketOptions,
+            },
+          },
+        );
+
+        setCustomizationVisible(
+          false,
+        );
+
+        setDraftCustomization(
+          null,
+        );
+
+        showAlert({
+          type: "success",
+          icon:
+            "checkmark-circle-outline",
+          title: "Ticket Updated",
+          message:
+            "Your ticket customization has been saved.",
+          confirmText: "Done",
+        });
+      } catch (error) {
+        console.error(
+          "Ticket customization update error:",
+          error,
+        );
+
+        showAlert({
+          type: "danger",
+          icon:
+            "close-circle-outline",
+          title: "Update Failed",
+          message:
+            error?.message ||
+            "Unable to save ticket customization.",
+          confirmText: "OK",
+        });
+      } finally {
+        setCustomizationSaving(
+          false,
+        );
+      }
+    };
+
+  const captureCurrentTicket =
+    async () => {
+      const safeIndex =
+        activeImage >= 0 &&
+        activeImage < images.length
+          ? activeImage
+          : 0;
+
+      const ticketRef =
+        ticketRefs.current[
+          safeIndex
+        ];
+
+      if (!ticketRef) {
+        throw new Error(
+          "Memory Ticket is still rendering.",
+        );
+      }
+
+      return await captureRef(
+        ticketRef,
+        {
+          format: "png",
+          quality: 1,
+          result: "tmpfile",
         },
-      });
-
-      setCustomizationVisible(false);
-
-      setDraftCustomization(null);
-
-      Alert.alert(
-        "Ticket Updated",
-        "Your ticket customization has been saved.",
       );
-    } catch (error) {
-      console.error("Ticket customization update error:", error);
-
-      Alert.alert(
-        "Update Failed",
-        error?.message || "Unable to save ticket customization.",
-      );
-    } finally {
-      setCustomizationSaving(false);
-    }
-  };
-
-  // --------------------------------------------------
-  // CAPTURE CURRENT TICKET
-  // --------------------------------------------------
-
-  const captureCurrentTicket = async () => {
-    const safeIndex =
-      activeImage >= 0 && activeImage < images.length ? activeImage : 0;
-
-    const ticketRef = ticketRefs.current[safeIndex];
-
-    if (!ticketRef) {
-      throw new Error("Memory Ticket is still rendering.");
-    }
-
-    return await captureRef(ticketRef, {
-      format: "png",
-      quality: 1,
-      result: "tmpfile",
-    });
-  };
-
-  // --------------------------------------------------
-  // SHARE
-  // --------------------------------------------------
+    };
 
   const handleMore = async () => {
     try {
@@ -326,93 +423,136 @@ function MemoryDetailsScreen({ navigation, route }) {
 
       setSharing(true);
 
-      const available = await Sharing.isAvailableAsync();
+      const available =
+        await Sharing.isAvailableAsync();
 
       if (!available) {
-        Alert.alert(
-          "Sharing unavailable",
-          "Sharing is not available on this device.",
-        );
+        showAlert({
+          type: "warning",
+          icon:
+            "share-social-outline",
+          title: "Sharing Unavailable",
+          message:
+            "Sharing is not available on this device.",
+          confirmText: "OK",
+        });
 
         return;
       }
 
-      const imageUri = await captureCurrentTicket();
+      const imageUri =
+        await captureCurrentTicket();
 
-      await Sharing.shareAsync(imageUri, {
-        mimeType: "image/png",
-        dialogTitle: "Share Memory Ticket",
-        UTI: "public.png",
-      });
+      await Sharing.shareAsync(
+        imageUri,
+        {
+          mimeType:
+            "image/png",
+
+          dialogTitle:
+            "Share Memory Ticket",
+
+          UTI: "public.png",
+        },
+      );
     } catch (error) {
-      console.log("Share error:", error);
+      console.log(
+        "Share error:",
+        error,
+      );
 
-      Alert.alert("Share Failed", "Unable to share the Memory Ticket.");
+      showAlert({
+        type: "danger",
+        icon:
+          "close-circle-outline",
+        title: "Share Failed",
+        message:
+          "Unable to share the Memory Ticket.",
+        confirmText: "OK",
+      });
     } finally {
       setSharing(false);
     }
   };
 
-  // --------------------------------------------------
-  // SAVE IMAGE
-  // --------------------------------------------------
+  const handleSaveImage =
+    async () => {
+      try {
+        if (savingImage) {
+          return;
+        }
 
-  const handleSaveImage = async () => {
-    try {
-      if (savingImage) {
-        return;
-      }
+        setSavingImage(true);
 
-      setSavingImage(true);
+        const permission =
+          await MediaLibrary.requestPermissionsAsync();
 
-      const permission = await MediaLibrary.requestPermissionsAsync();
+        if (!permission.granted) {
+          showAlert({
+            type: "warning",
+            icon:
+              "images-outline",
+            title: "Permission Required",
+            message:
+              "Allow photo access so Memory Ticket can save the image to your device.",
+            confirmText: "OK",
+          });
 
-      if (!permission.granted) {
-        Alert.alert(
-          "Permission Required",
-          "Allow photo access so Memory Ticket can save the image to your device.",
+          return;
+        }
+
+        const imageUri =
+          await captureCurrentTicket();
+
+        await MediaLibrary.saveToLibraryAsync(
+          imageUri,
         );
 
-        return;
+        shareSheetRef.current?.close();
+
+        showAlert({
+          type: "success",
+          icon:
+            "checkmark-circle-outline",
+          title: "Saved",
+          message:
+            "Your Memory Ticket has been saved to your gallery.",
+          confirmText: "Done",
+        });
+      } catch (error) {
+        console.log(
+          "Save image error:",
+          error,
+        );
+
+        showAlert({
+          type: "danger",
+          icon:
+            "close-circle-outline",
+          title: "Save Failed",
+          message:
+            "Something went wrong while saving your Memory Ticket.",
+          confirmText: "OK",
+        });
+      } finally {
+        setSavingImage(false);
       }
+    };
 
-      const imageUri = await captureCurrentTicket();
+  const imageToBase64 =
+    async (uri) => {
+      const base64 =
+        await FileSystem.readAsStringAsync(
+          uri,
+          {
+            encoding:
+              FileSystem.EncodingType
+                .Base64,
+          },
+        );
 
-      await MediaLibrary.saveToLibraryAsync(imageUri);
-
-      shareSheetRef.current?.close();
-
-      Alert.alert(
-        "Saved",
-        "Your Memory Ticket has been saved to your gallery.",
-      );
-    } catch (error) {
-      console.log("Save image error:", error);
-
-      Alert.alert(
-        "Save Failed",
-        "Something went wrong while saving your Memory Ticket.",
-      );
-    } finally {
-      setSavingImage(false);
-    }
-  };
-
-  // --------------------------------------------------
-  // IMAGE -> BASE64
-  // --------------------------------------------------
-
-  const imageToBase64 = async (uri) => {
-    const base64 = await FileSystem.readAsStringAsync(uri, {
-      encoding: FileSystem.EncodingType.Base64,
-    });
-
-    return `data:image/png;base64,${base64}`;
-  };
-
-  // --------------------------------------------------
-  // ESCAPE HTML
-  // --------------------------------------------------
+      return `data:image/png;base64,${base64}`;
+    };
 
   const escapeHtml = (text) => {
     if (!text) {
@@ -420,19 +560,31 @@ function MemoryDetailsScreen({ navigation, route }) {
     }
 
     return String(text)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
+      .replace(
+        /&/g,
+        "&amp;",
+      )
+      .replace(
+        /</g,
+        "&lt;",
+      )
+      .replace(
+        />/g,
+        "&gt;",
+      )
+      .replace(
+        /"/g,
+        "&quot;",
+      )
+      .replace(
+        /'/g,
+        "&#039;",
+      );
   };
 
-  // --------------------------------------------------
-  // PDF BACK PAGE
-  // --------------------------------------------------
-
-  const createStandardBackPage = () => {
-    return `
+  const createStandardBackPage =
+    () => {
+      return `
         <section class="page back-page">
           <div class="back-ticket">
             <div class="back-top-line"></div>
@@ -466,7 +618,9 @@ function MemoryDetailsScreen({ navigation, route }) {
                   </div>
 
                   <div class="back-value">
-                    #${escapeHtml(getTicketNumber())}
+                    #${escapeHtml(
+                      getTicketNumber(),
+                    )}
                   </div>
                 </div>
 
@@ -476,7 +630,10 @@ function MemoryDetailsScreen({ navigation, route }) {
                   </div>
 
                   <div class="back-value">
-                    ${escapeHtml(memory?.title || "UNTITLED MEMORY")}
+                    ${escapeHtml(
+                      memory?.title ||
+                        "UNTITLED MEMORY",
+                    )}
                   </div>
                 </div>
               </div>
@@ -498,54 +655,78 @@ function MemoryDetailsScreen({ navigation, route }) {
           </div>
         </section>
       `;
-  };
+    };
 
-  // --------------------------------------------------
-  // EXPORT PDF
-  // --------------------------------------------------
+  const handleExportPdf =
+    async (backType) => {
+      try {
+        if (generatingPdf) {
+          return;
+        }
 
-  const handleExportPdf = async (backType) => {
-    try {
-      if (generatingPdf) {
-        return;
-      }
-
-      setPdfOptionsVisible(false);
-
-      setGeneratingPdf(true);
-
-      if (!images.length) {
-        Alert.alert(
-          "No Images",
-          "This memory does not contain any images to export.",
+        setPdfOptionsVisible(
+          false,
         );
 
-        return;
-      }
+        setGeneratingPdf(true);
 
-      const selectedImageIndex =
-        activeImage >= 0 && activeImage < images.length ? activeImage : 0;
+        if (!images.length) {
+          showAlert({
+            type: "info",
+            icon:
+              "images-outline",
+            title: "No Images",
+            message:
+              "This memory does not contain any images to export.",
+            confirmText: "OK",
+          });
 
-      const ticketRef = ticketRefs.current[selectedImageIndex];
+          return;
+        }
 
-      if (!ticketRef) {
-        Alert.alert(
-          "PDF Export Failed",
-          "The ticket is still rendering. Please wait a moment and try again.",
-        );
+        const selectedImageIndex =
+          activeImage >= 0 &&
+          activeImage <
+            images.length
+            ? activeImage
+            : 0;
 
-        return;
-      }
+        const ticketRef =
+          ticketRefs.current[
+            selectedImageIndex
+          ];
 
-      const ticketUri = await captureRef(ticketRef, {
-        format: "png",
-        quality: 1,
-        result: "tmpfile",
-      });
+        if (!ticketRef) {
+          showAlert({
+            type: "danger",
+            icon:
+              "document-text-outline",
+            title:
+              "PDF Export Failed",
+            message:
+              "The ticket is still rendering. Please wait a moment and try again.",
+            confirmText: "OK",
+          });
 
-      const ticketImage = await imageToBase64(ticketUri);
+          return;
+        }
 
-      const frontPage = `
+        const ticketUri =
+          await captureRef(
+            ticketRef,
+            {
+              format: "png",
+              quality: 1,
+              result: "tmpfile",
+            },
+          );
+
+        const ticketImage =
+          await imageToBase64(
+            ticketUri,
+          );
+
+        const frontPage = `
           <section class="page">
             <img
               class="ticket"
@@ -555,24 +736,28 @@ function MemoryDetailsScreen({ navigation, route }) {
           </section>
         `;
 
-      let backPage = "";
+        let backPage = "";
 
-      if (backType === "blank") {
-        backPage = `
+        if (backType === "blank") {
+          backPage = `
             <section class="page blank-back-page">
               <div class="blank-yellow"></div>
             </section>
           `;
-      }
+        }
 
-      if (backType === "standard") {
-        backPage = createStandardBackPage();
-      }
+        if (
+          backType === "standard"
+        ) {
+          backPage =
+            createStandardBackPage();
+        }
 
-      const html = `
+        const html = `
           <!DOCTYPE html>
 
           <html>
+
           <head>
             <meta
               name="viewport"
@@ -777,66 +962,105 @@ function MemoryDetailsScreen({ navigation, route }) {
           </html>
         `;
 
-      const { uri } = await Print.printToFileAsync({
-        html,
-        base64: false,
-      });
+        const { uri } =
+          await Print.printToFileAsync(
+            {
+              html,
+              base64: false,
+            },
+          );
 
-      const available = await Sharing.isAvailableAsync();
+        const available =
+          await Sharing.isAvailableAsync();
 
-      if (available) {
-        await Sharing.shareAsync(uri, {
-          mimeType: "application/pdf",
-          dialogTitle: "Export Memory Ticket",
-          UTI: "com.adobe.pdf",
-        });
-      } else {
-        Alert.alert(
-          "PDF Created",
-          "Your 2-page Memory Ticket PDF was created successfully.",
+        if (available) {
+          await Sharing.shareAsync(
+            uri,
+            {
+              mimeType:
+                "application/pdf",
+
+              dialogTitle:
+                "Export Memory Ticket",
+
+              UTI: "com.adobe.pdf",
+            },
+          );
+        } else {
+          showAlert({
+            type: "success",
+            icon:
+              "document-text-outline",
+            title: "PDF Created",
+            message:
+              "Your 2-page Memory Ticket PDF was created successfully.",
+            confirmText: "Done",
+          });
+        }
+      } catch (error) {
+        console.log(
+          "PDF export error:",
+          error,
         );
+
+        showAlert({
+          type: "danger",
+          icon:
+            "close-circle-outline",
+          title: "PDF Export Failed",
+          message:
+            error?.message ||
+            "Something went wrong while creating your Memory Ticket PDF.",
+          confirmText: "OK",
+        });
+      } finally {
+        setGeneratingPdf(false);
       }
-    } catch (error) {
-      console.log("PDF export error:", error);
+    };
 
-      Alert.alert(
-        "PDF Export Failed",
-        error?.message ||
-          "Something went wrong while creating your Memory Ticket PDF.",
-      );
-    } finally {
-      setGeneratingPdf(false);
-    }
-  };
-
-  // --------------------------------------------------
-  // RENDER TICKET
-  // --------------------------------------------------
-
-  const renderTicket = ({ item: image, index }) => {
+  const renderTicket = ({
+    item: image,
+    index,
+  }) => {
     return (
       <View
         style={[
           styles.ticketSlide,
           {
-            width: screenWidth - 44,
+            width:
+              screenWidth - 44,
             marginRight: 12,
           },
         ]}
       >
         <View
           ref={(ref) => {
-            ticketRefs.current[index] = ref;
+            ticketRefs.current[
+              index
+            ] = ref;
           }}
           collapsable={false}
-          style={styles.ticketShadow}
+          style={
+            styles.ticketShadow
+          }
         >
           <MemoryTicket
-            key={`${memory.id}-${ticketPreviewMemory.ticketStyle}-${ticketPreviewMemory.ticketAccent}`}
-            memory={ticketPreviewMemory}
-            image={detailImages[index] || image}
+            key={`${
+              memory.id
+            }-${ticketPreviewMemory.ticketStyle}-${ticketPreviewMemory.ticketAccent}`}
+            memory={
+              ticketPreviewMemory
+            }
+            image={
+              detailImages[index] ||
+              image
+            }
             ticketNumber={getTicketNumber()}
-            onPress={() => openImageViewer(index)}
+            onPress={() =>
+              openImageViewer(
+                index,
+              )
+            }
           />
         </View>
       </View>
@@ -846,9 +1070,15 @@ function MemoryDetailsScreen({ navigation, route }) {
   return (
     <View style={styles.container}>
       <ScrollView
-        style={detailStyles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
+        style={
+          detailStyles.scrollView
+        }
+        contentContainerStyle={
+          styles.scrollContent
+        }
+        showsVerticalScrollIndicator={
+          false
+        }
         nestedScrollEnabled
         keyboardShouldPersistTaps="handled"
         refreshControl={
@@ -865,27 +1095,52 @@ function MemoryDetailsScreen({ navigation, route }) {
 
         <View style={styles.header}>
           <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
+            style={
+              styles.backButton
+            }
+            onPress={() =>
+              navigation.goBack()
+            }
             activeOpacity={0.7}
           >
-            <Ionicons name="arrow-back" size={22} color="#242424" />
+            <Ionicons
+              name="arrow-back"
+              size={22}
+              color="#242424"
+            />
           </TouchableOpacity>
 
-          <Text style={styles.headerTitle}>Memory</Text>
+          <Text
+            style={
+              styles.headerTitle
+            }
+          >
+            Memory
+          </Text>
 
           <TouchableOpacity
             style={[
               styles.favoriteButton,
-              memory.favorite && styles.favoriteButtonActive,
+              memory.favorite &&
+                styles.favoriteButtonActive,
             ]}
-            onPress={handleFavorite}
+            onPress={
+              handleFavorite
+            }
             activeOpacity={0.8}
           >
             <Ionicons
-              name={memory.favorite ? "heart" : "heart-outline"}
+              name={
+                memory.favorite
+                  ? "heart"
+                  : "heart-outline"
+              }
               size={21}
-              color={memory.favorite ? "#E76F51" : "#34345C"}
+              color={
+                memory.favorite
+                  ? "#E76F51"
+                  : "#34345C"
+              }
             />
           </TouchableOpacity>
         </View>
@@ -894,31 +1149,71 @@ function MemoryDetailsScreen({ navigation, route }) {
 
         <FlatList
           horizontal
-          data={images.length > 0 ? images : [null]}
-          renderItem={renderTicket}
-          keyExtractor={(item, index) => `${item || "empty"}-${index}`}
-          showsHorizontalScrollIndicator={false}
+          data={
+            images.length > 0
+              ? images
+              : [null]
+          }
+          renderItem={
+            renderTicket
+          }
+          keyExtractor={(
+            item,
+            index,
+          ) =>
+            `${item || "empty"}-${index}`
+          }
+          showsHorizontalScrollIndicator={
+            false
+          }
           nestedScrollEnabled
           directionalLockEnabled
           decelerationRate="fast"
-          snapToInterval={screenWidth - 44 + 12}
+          snapToInterval={
+            screenWidth - 44 + 12
+          }
           snapToAlignment="start"
           initialNumToRender={1}
           maxToRenderPerBatch={2}
           windowSize={3}
           removeClippedSubviews={true}
-          getItemLayout={(_, index) => ({
-            length: screenWidth - 44 + 12,
-            offset: (screenWidth - 44 + 12) * index,
+          getItemLayout={(
+            _,
+            index,
+          ) => ({
+            length:
+              screenWidth -
+              44 +
+              12,
+
+            offset:
+              (screenWidth -
+                44 +
+                12) *
+              index,
+
             index,
           })}
-          onMomentumScrollEnd={(event) => {
-            const index = Math.round(
-              event.nativeEvent.contentOffset.x / (screenWidth - 44 + 12),
-            );
+          onMomentumScrollEnd={(
+            event,
+          ) => {
+            const index =
+              Math.round(
+                event.nativeEvent
+                  .contentOffset.x /
+                  (screenWidth -
+                    44 +
+                    12),
+              );
 
-            if (index >= 0 && index < images.length) {
-              setActiveImage(index);
+            if (
+              index >= 0 &&
+              index <
+                images.length
+            ) {
+              setActiveImage(
+                index,
+              );
             }
           }}
         />
@@ -926,17 +1221,32 @@ function MemoryDetailsScreen({ navigation, route }) {
         {/* SWIPE HINT */}
 
         {images.length > 1 && (
-          <View style={styles.swipeHint}>
+          <View
+            style={
+              styles.swipeHint
+            }
+          >
             <Ionicons
               name="swap-horizontal-outline"
               size={15}
               color="#707080"
             />
 
-            <Text style={styles.swipeHintText}>Swipe to view photos</Text>
+            <Text
+              style={
+                styles.swipeHintText
+              }
+            >
+              Swipe to view photos
+            </Text>
 
-            <Text style={styles.swipeCountText}>
-              {activeImage + 1}/{images.length}
+            <Text
+              style={
+                styles.swipeCountText
+              }
+            >
+              {activeImage + 1}/
+              {images.length}
             </Text>
           </View>
         )}
@@ -944,13 +1254,38 @@ function MemoryDetailsScreen({ navigation, route }) {
         {/* TAGS */}
 
         {tags.length > 0 && (
-          <View style={detailStyles.tagsSection}>
-            <Text style={detailStyles.tagsLabel}>TAGS</Text>
+          <View
+            style={
+              detailStyles.tagsSection
+            }
+          >
+            <Text
+              style={
+                detailStyles.tagsLabel
+              }
+            >
+              TAGS
+            </Text>
 
-            <View style={detailStyles.tagsContainer}>
+            <View
+              style={
+                detailStyles.tagsContainer
+              }
+            >
               {tags.map((tag) => (
-                <View key={tag} style={detailStyles.tagChip}>
-                  <Text style={detailStyles.tagText}>#{tag}</Text>
+                <View
+                  key={tag}
+                  style={
+                    detailStyles.tagChip
+                  }
+                >
+                  <Text
+                    style={
+                      detailStyles.tagText
+                    }
+                  >
+                    #{tag}
+                  </Text>
                 </View>
               ))}
             </View>
@@ -960,165 +1295,334 @@ function MemoryDetailsScreen({ navigation, route }) {
         {/* CUSTOMIZE TICKET */}
 
         <TouchableOpacity
-          style={detailStyles.customizeButton}
-          onPress={openCustomization}
+          style={
+            detailStyles.customizeButton
+          }
+          onPress={
+            openCustomization
+          }
           activeOpacity={0.85}
         >
-          <Ionicons name="color-palette-outline" size={19} color="#34345C" />
+          <Ionicons
+            name="color-palette-outline"
+            size={19}
+            color="#34345C"
+          />
 
-          <Text style={detailStyles.customizeButtonText}>CUSTOMIZE TICKET</Text>
+          <Text
+            style={
+              detailStyles.customizeButtonText
+            }
+          >
+            CUSTOMIZE TICKET
+          </Text>
         </TouchableOpacity>
 
         {/* SHARE */}
 
         <TouchableOpacity
-          style={detailStyles.shareButton}
-          onPress={openShareSheet}
+          style={
+            detailStyles.shareButton
+          }
+          onPress={
+            openShareSheet
+          }
           activeOpacity={0.85}
         >
-          <Ionicons name="share-social-outline" size={19} color="#FFFFFF" />
+          <Ionicons
+            name="share-social-outline"
+            size={19}
+            color="#FFFFFF"
+          />
 
-          <Text style={detailStyles.shareButtonText}>SHARE MEMORY</Text>
+          <Text
+            style={
+              detailStyles.shareButtonText
+            }
+          >
+            SHARE MEMORY
+          </Text>
         </TouchableOpacity>
 
         {/* EDIT MEMORY */}
 
         <TouchableOpacity
-          style={styles.editButton}
+          style={
+            styles.editButton
+          }
           onPress={() =>
-            navigation.navigate("EditMemory", {
-              memoryId: memory.id,
-            })
+            navigation.navigate(
+              "EditMemory",
+              {
+                memoryId:
+                  memory.id,
+              },
+            )
           }
           activeOpacity={0.8}
         >
-          <Ionicons name="create-outline" size={18} color="#34345C" />
+          <Ionicons
+            name="create-outline"
+            size={18}
+            color="#34345C"
+          />
 
-          <Text style={styles.editText}>EDIT MEMORY</Text>
+          <Text
+            style={styles.editText}
+          >
+            EDIT MEMORY
+          </Text>
         </TouchableOpacity>
 
         {/* DELETE MEMORY */}
 
         <TouchableOpacity
-          style={styles.deleteButton}
+          style={
+            styles.deleteButton
+          }
           onPress={handleDelete}
           activeOpacity={0.8}
         >
-          <Ionicons name="trash-outline" size={18} color="#D9534F" />
+          <Ionicons
+            name="trash-outline"
+            size={18}
+            color="#D9534F"
+          />
 
-          <Text style={styles.deleteText}>DELETE MEMORY</Text>
+          <Text
+            style={styles.deleteText}
+          >
+            DELETE MEMORY
+          </Text>
         </TouchableOpacity>
 
-        <Text style={styles.footerText}>KEEP THE MOMENT. KEEP THE STORY.</Text>
+        <Text
+          style={styles.footerText}
+        >
+          KEEP THE MOMENT. KEEP THE STORY.
+        </Text>
       </ScrollView>
 
       {/* SHARE / EXPORT SHEET */}
 
       <ShareExportSheet
         ref={shareSheetRef}
-        onSaveImage={handleSaveImage}
+        onSaveImage={
+          handleSaveImage
+        }
         onExportPDF={() => {
           shareSheetRef.current?.close();
 
           setTimeout(() => {
-            setPdfOptionsVisible(true);
+            setPdfOptionsVisible(
+              true,
+            );
           }, 250);
         }}
         onMore={handleMore}
-        savingImage={savingImage}
-        generatingPdf={generatingPdf}
+        savingImage={
+          savingImage
+        }
+        generatingPdf={
+          generatingPdf
+        }
         sharing={sharing}
       />
 
       {/* TICKET CUSTOMIZATION */}
 
       <TicketCustomizationSheet
-        visible={customizationVisible}
-        value={draftCustomization || normalizeTicketCustomization(memory)}
-        onChange={setDraftCustomization}
-        onClose={closeCustomization}
-        onSave={handleSaveCustomization}
-        saving={customizationSaving}
+        visible={
+          customizationVisible
+        }
+        value={
+          draftCustomization ||
+          normalizeTicketCustomization(
+            memory,
+          )
+        }
+        onChange={
+          setDraftCustomization
+        }
+        onClose={
+          closeCustomization
+        }
+        onSave={
+          handleSaveCustomization
+        }
+        saving={
+          customizationSaving
+        }
       />
 
       {/* PDF OPTIONS */}
 
       <Modal
-        visible={pdfOptionsVisible}
+        visible={
+          pdfOptionsVisible
+        }
         transparent
         animationType="fade"
         onRequestClose={() =>
-          generatingPdf ? null : setPdfOptionsVisible(false)
+          generatingPdf
+            ? null
+            : setPdfOptionsVisible(
+                false,
+              )
         }
       >
-        <View style={pdfStyles.overlay}>
-          <View style={pdfStyles.modal}>
-            <View style={pdfStyles.header}>
+        <View
+          style={
+            pdfStyles.overlay
+          }
+        >
+          <View
+            style={
+              pdfStyles.modal
+            }
+          >
+            <View
+              style={
+                pdfStyles.header
+              }
+            >
               <View>
-                <Text style={pdfStyles.eyebrow}>EXPORT PDF</Text>
+                <Text
+                  style={
+                    pdfStyles.eyebrow
+                  }
+                >
+                  EXPORT PDF
+                </Text>
 
-                <Text style={pdfStyles.title}>Choose Ticket Back</Text>
+                <Text
+                  style={
+                    pdfStyles.title
+                  }
+                >
+                  Choose Ticket Back
+                </Text>
               </View>
 
               <TouchableOpacity
-                style={pdfStyles.closeButton}
-                onPress={() => setPdfOptionsVisible(false)}
-                disabled={generatingPdf}
+                style={
+                  pdfStyles.closeButton
+                }
+                onPress={() =>
+                  setPdfOptionsVisible(
+                    false,
+                  )
+                }
+                disabled={
+                  generatingPdf
+                }
               >
-                <Ionicons name="close" size={22} color="#242424" />
+                <Ionicons
+                  name="close"
+                  size={22}
+                  color="#242424"
+                />
               </TouchableOpacity>
             </View>
 
-            <Text style={pdfStyles.description}>
+            <Text
+              style={
+                pdfStyles.description
+              }
+            >
               Your PDF will contain exactly 2 pages. Page 1 is the selected
               ticket front. Page 2 will be the back you choose.
             </Text>
 
             <TouchableOpacity
-              style={pdfStyles.option}
-              onPress={() => handleExportPdf("blank")}
+              style={
+                pdfStyles.option
+              }
+              onPress={() =>
+                handleExportPdf(
+                  "blank",
+                )
+              }
               activeOpacity={0.85}
             >
-              <View style={pdfStyles.optionPreview}>
+              <View
+                style={
+                  pdfStyles.optionPreview
+                }
+              >
                 <View
                   style={[
                     pdfStyles.miniPage,
                     {
-                      backgroundColor: "#F5C842",
+                      backgroundColor:
+                        "#F5C842",
                     },
                   ]}
                 />
               </View>
 
-              <View style={pdfStyles.optionContent}>
-                <Text style={pdfStyles.optionTitle}>Yellow Blank Back</Text>
+              <View
+                style={
+                  pdfStyles.optionContent
+                }
+              >
+                <Text
+                  style={
+                    pdfStyles.optionTitle
+                  }
+                >
+                  Yellow Blank Back
+                </Text>
 
-                <Text style={pdfStyles.optionText}>
+                <Text
+                  style={
+                    pdfStyles.optionText
+                  }
+                >
                   Page 1 → Ticket Front
                   {"\n"}
                   Page 2 → Same yellow background
                 </Text>
               </View>
 
-              <Ionicons name="chevron-forward" size={20} color="#34345C" />
+              <Ionicons
+                name="chevron-forward"
+                size={20}
+                color="#34345C"
+              />
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={pdfStyles.option}
-              onPress={() => handleExportPdf("standard")}
+              style={
+                pdfStyles.option
+              }
+              onPress={() =>
+                handleExportPdf(
+                  "standard",
+                )
+              }
               activeOpacity={0.85}
             >
-              <View style={pdfStyles.optionPreview}>
+              <View
+                style={
+                  pdfStyles.optionPreview
+                }
+              >
                 <View
                   style={[
                     pdfStyles.miniPage,
                     {
-                      backgroundColor: "#F5C842",
+                      backgroundColor:
+                        "#F5C842",
                       padding: 5,
                     },
                   ]}
                 >
-                  <View style={pdfStyles.miniLine} />
+                  <View
+                    style={
+                      pdfStyles.miniLine
+                    }
+                  />
 
                   <View
                     style={[
@@ -1141,27 +1645,59 @@ function MemoryDetailsScreen({ navigation, route }) {
                 </View>
               </View>
 
-              <View style={pdfStyles.optionContent}>
-                <Text style={pdfStyles.optionTitle}>Standard Ticket Back</Text>
+              <View
+                style={
+                  pdfStyles.optionContent
+                }
+              >
+                <Text
+                  style={
+                    pdfStyles.optionTitle
+                  }
+                >
+                  Standard Ticket Back
+                </Text>
 
-                <Text style={pdfStyles.optionText}>
+                <Text
+                  style={
+                    pdfStyles.optionText
+                  }
+                >
                   Page 1 → Ticket Front
                   {"\n"}
                   Page 2 → Memory Ticket Back
                 </Text>
               </View>
 
-              <Ionicons name="chevron-forward" size={20} color="#34345C" />
+              <Ionicons
+                name="chevron-forward"
+                size={20}
+                color="#34345C"
+              />
             </TouchableOpacity>
 
             {/* CANCEL */}
 
             <TouchableOpacity
-              style={pdfStyles.cancelButton}
-              onPress={() => setPdfOptionsVisible(false)}
-              disabled={generatingPdf}
+              style={
+                pdfStyles.cancelButton
+              }
+              onPress={() =>
+                setPdfOptionsVisible(
+                  false,
+                )
+              }
+              disabled={
+                generatingPdf
+              }
             >
-              <Text style={pdfStyles.cancelText}>CANCEL</Text>
+              <Text
+                style={
+                  pdfStyles.cancelText
+                }
+              >
+                CANCEL
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -1170,25 +1706,54 @@ function MemoryDetailsScreen({ navigation, route }) {
       {/* FULLSCREEN IMAGE VIEWER */}
 
       <Modal
-        visible={imageViewerVisible}
+        visible={
+          imageViewerVisible
+        }
         transparent={false}
         animationType="fade"
-        onRequestClose={closeImageViewer}
+        onRequestClose={
+          closeImageViewer
+        }
       >
-        <View style={imageViewerStyles.container}>
-          <View style={imageViewerStyles.topBar}>
+        <View
+          style={
+            imageViewerStyles.container
+          }
+        >
+          <View
+            style={
+              imageViewerStyles.topBar
+            }
+          >
             <TouchableOpacity
-              style={imageViewerStyles.closeButton}
-              onPress={closeImageViewer}
+              style={
+                imageViewerStyles.closeButton
+              }
+              onPress={
+                closeImageViewer
+              }
               activeOpacity={0.8}
             >
-              <Ionicons name="close" size={25} color="#FFFFFF" />
+              <Ionicons
+                name="close"
+                size={25}
+                color="#FFFFFF"
+              />
             </TouchableOpacity>
 
             {images.length > 0 && (
-              <View style={imageViewerStyles.counterWrapper}>
-                <Text style={imageViewerStyles.counter}>
-                  {viewerImage + 1}/{images.length}
+              <View
+                style={
+                  imageViewerStyles.counterWrapper
+                }
+              >
+                <Text
+                  style={
+                    imageViewerStyles.counter
+                  }
+                >
+                  {viewerImage + 1}/
+                  {images.length}
                 </Text>
               </View>
             )}
@@ -1198,56 +1763,97 @@ function MemoryDetailsScreen({ navigation, route }) {
             data={images}
             horizontal
             pagingEnabled
-            showsHorizontalScrollIndicator={false}
+            showsHorizontalScrollIndicator={
+              false
+            }
             decelerationRate="fast"
-            initialScrollIndex={viewerImage}
+            initialScrollIndex={
+              viewerImage
+            }
             initialNumToRender={1}
-            maxToRenderPerBatch={2}
+            maxToRenderPerBatch={
+              2
+            }
             windowSize={3}
-            removeClippedSubviews={true}
-            getItemLayout={(_, index) => ({
-              length: screenWidth,
-              offset: screenWidth * index,
+            removeClippedSubviews={
+              true
+            }
+            getItemLayout={(
+              _,
+              index,
+            ) => ({
+              length:
+                screenWidth,
+
+              offset:
+                screenWidth *
+                index,
+
               index,
             })}
-            keyExtractor={(item, index) => `${item}-viewer-${index}`}
-            renderItem={({ item: image, index }) => (
+            keyExtractor={(
+              item,
+              index,
+            ) =>
+              `${item}-viewer-${index}`
+            }
+            renderItem={({
+              item: image,
+              index,
+            }) => (
               <View
                 style={[
                   imageViewerStyles.imagePage,
                   {
-                    width: screenWidth,
-                    height: screenHeight,
+                    width:
+                      screenWidth,
+                    height:
+                      screenHeight,
                   },
                 ]}
               >
                 <Image
                   source={{
-                    uri: viewerImages[index] || image,
+                    uri:
+                      viewerImages[
+                        index
+                      ] || image,
                   }}
                   style={[
                     imageViewerStyles.fullImage,
                     {
-                      width: screenWidth,
-                      height: screenHeight,
+                      width:
+                        screenWidth,
+                      height:
+                        screenHeight,
                     },
                   ]}
                   resizeMode="contain"
                 />
               </View>
             )}
-            onMomentumScrollEnd={handleViewerScroll}
+            onMomentumScrollEnd={
+              handleViewerScroll
+            }
           />
 
           {images.length > 1 && (
-            <View style={imageViewerStyles.bottomHint}>
+            <View
+              style={
+                imageViewerStyles.bottomHint
+              }
+            >
               <Ionicons
                 name="swap-horizontal-outline"
                 size={16}
                 color="#BDBDBD"
               />
 
-              <Text style={imageViewerStyles.bottomHintText}>
+              <Text
+                style={
+                  imageViewerStyles.bottomHintText
+                }
+              >
                 Swipe to view photos
               </Text>
             </View>
@@ -1258,316 +1864,332 @@ function MemoryDetailsScreen({ navigation, route }) {
   );
 }
 
-const detailStyles = StyleSheet.create({
-  scrollView: {
-    flex: 1,
-  },
+const detailStyles =
+  StyleSheet.create({
+    scrollView: {
+      flex: 1,
+    },
 
-  // --------------------------------------------------
-  // TAGS
-  // --------------------------------------------------
+    tagsSection: {
+      marginHorizontal: 22,
+      marginTop: 16,
+    },
 
-  tagsSection: {
-    marginHorizontal: 22,
-    marginTop: 16,
-  },
+    tagsLabel: {
+      fontSize: 9,
+      fontWeight: "900",
+      letterSpacing: 1.5,
+      color: "#707080",
+      marginBottom: 8,
+    },
 
-  tagsLabel: {
-    fontSize: 9,
-    fontWeight: "900",
-    letterSpacing: 1.5,
-    color: "#707080",
-    marginBottom: 8,
-  },
+    tagsContainer: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 7,
+    },
 
-  tagsContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 7,
-  },
+    tagChip: {
+      backgroundColor:
+        "transparent",
+      paddingHorizontal: 0,
+      paddingVertical: 2,
+      borderBottomWidth: 1,
+      borderBottomColor:
+        "#34345C",
+    },
 
-  tagChip: {
-    backgroundColor: "transparent",
-    paddingHorizontal: 0,
-    paddingVertical: 2,
-    borderBottomWidth: 1,
-    borderBottomColor: "#34345C",
-  },
+    tagText: {
+      color: "#34345C",
+      fontSize: 11,
+      fontWeight: "700",
+    },
 
-  tagText: {
-    color: "#34345C",
-    fontSize: 11,
-    fontWeight: "700",
-  },
+    customizeButton: {
+      height: 50,
+      marginHorizontal: 22,
+      marginTop: 20,
+      borderRadius: 14,
+      backgroundColor: "#FFFFFF",
+      borderWidth: 1,
+      borderColor: "#D9D8E2",
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 9,
+    },
 
-  // --------------------------------------------------
-  // CUSTOMIZE
-  // --------------------------------------------------
+    customizeButtonText: {
+      color: "#34345C",
+      fontSize: 11,
+      fontWeight: "900",
+      letterSpacing: 1,
+    },
 
-  customizeButton: {
-    height: 50,
-    marginHorizontal: 22,
-    marginTop: 20,
-    borderRadius: 14,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#D9D8E2",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 9,
-  },
+    shareButton: {
+      height: 50,
+      marginHorizontal: 22,
+      marginTop: 12,
+      borderRadius: 14,
+      backgroundColor: "#34345C",
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 9,
+    },
 
-  customizeButtonText: {
-    color: "#34345C",
-    fontSize: 11,
-    fontWeight: "900",
-    letterSpacing: 1,
-  },
+    shareButtonText: {
+      color: "#FFFFFF",
+      fontSize: 11,
+      fontWeight: "900",
+      letterSpacing: 1,
+    },
+  });
 
-  // --------------------------------------------------
-  // SHARE
-  // --------------------------------------------------
+const pdfStyles =
+  StyleSheet.create({
+    overlay: {
+      flex: 1,
+      backgroundColor:
+        "rgba(20, 20, 20, 0.72)",
+      justifyContent: "center",
+      paddingHorizontal: 18,
+    },
 
-  shareButton: {
-    height: 50,
-    marginHorizontal: 22,
-    marginTop: 12,
-    borderRadius: 14,
-    backgroundColor: "#34345C",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 9,
-  },
+    modal: {
+      width: "100%",
+      backgroundColor: "#F4F1E8",
+      borderRadius: 24,
+      paddingBottom: 18,
+      overflow: "hidden",
+    },
 
-  shareButtonText: {
-    color: "#FFFFFF",
-    fontSize: 11,
-    fontWeight: "900",
-    letterSpacing: 1,
-  },
-});
+    header: {
+      minHeight: 76,
+      paddingHorizontal: 20,
+      paddingVertical: 14,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent:
+        "space-between",
+    },
 
-const pdfStyles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: "rgba(20, 20, 20, 0.72)",
-    justifyContent: "center",
-    paddingHorizontal: 18,
-  },
+    eyebrow: {
+      fontSize: 9,
+      fontWeight: "900",
+      letterSpacing: 1.5,
+      color: "#6A6A6A",
+    },
 
-  modal: {
-    width: "100%",
-    backgroundColor: "#F4F1E8",
-    borderRadius: 24,
-    paddingBottom: 18,
-    overflow: "hidden",
-  },
+    title: {
+      marginTop: 4,
+      fontSize: 19,
+      fontWeight: "900",
+      color: "#242424",
+    },
 
-  header: {
-    minHeight: 76,
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
+    closeButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor:
+        "#E8E4D8",
+      alignItems: "center",
+      justifyContent:
+        "center",
+    },
 
-  eyebrow: {
-    fontSize: 9,
-    fontWeight: "900",
-    letterSpacing: 1.5,
-    color: "#6A6A6A",
-  },
+    description: {
+      paddingHorizontal: 20,
+      marginBottom: 16,
+      fontSize: 11,
+      lineHeight: 17,
+      color: "#6A6A6A",
+    },
 
-  title: {
-    marginTop: 4,
-    fontSize: 19,
-    fontWeight: "900",
-    color: "#242424",
-  },
+    option: {
+      marginHorizontal: 18,
+      marginBottom: 10,
+      padding: 13,
+      minHeight: 94,
+      borderRadius: 16,
+      backgroundColor:
+        "#FFFFFF",
+      borderWidth: 1,
+      borderColor:
+        "#E2DED3",
+      flexDirection: "row",
+      alignItems: "center",
+    },
 
-  closeButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#E8E4D8",
-    alignItems: "center",
-    justifyContent: "center",
-  },
+    optionPreview: {
+      width: 54,
+      height: 68,
+      borderRadius: 6,
+      overflow: "hidden",
+      backgroundColor:
+        "#F5C842",
+      alignItems: "center",
+      justifyContent:
+        "center",
+    },
 
-  description: {
-    paddingHorizontal: 20,
-    marginBottom: 16,
-    fontSize: 11,
-    lineHeight: 17,
-    color: "#6A6A6A",
-  },
+    miniPage: {
+      width: 42,
+      height: 60,
+      borderRadius: 3,
+      borderWidth: 1,
+      borderColor: "#1D2528",
+      alignItems: "center",
+      justifyContent:
+        "flex-start",
+    },
 
-  option: {
-    marginHorizontal: 18,
-    marginBottom: 10,
-    padding: 13,
-    minHeight: 94,
-    borderRadius: 16,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#E2DED3",
-    flexDirection: "row",
-    alignItems: "center",
-  },
+    miniLine: {
+      width: "75%",
+      height: 2,
+      marginTop: 10,
+      backgroundColor:
+        "#1D2528",
+    },
 
-  optionPreview: {
-    width: 54,
-    height: 68,
-    borderRadius: 6,
-    overflow: "hidden",
-    backgroundColor: "#F5C842",
-    alignItems: "center",
-    justifyContent: "center",
-  },
+    optionContent: {
+      flex: 1,
+      paddingHorizontal: 13,
+    },
 
-  miniPage: {
-    width: 42,
-    height: 60,
-    borderRadius: 3,
-    borderWidth: 1,
-    borderColor: "#1D2528",
-    alignItems: "center",
-    justifyContent: "flex-start",
-  },
+    optionTitle: {
+      fontSize: 13,
+      fontWeight: "900",
+      color: "#242424",
+    },
 
-  miniLine: {
-    width: "75%",
-    height: 2,
-    marginTop: 10,
-    backgroundColor: "#1D2528",
-  },
+    optionText: {
+      marginTop: 5,
+      fontSize: 9,
+      lineHeight: 14,
+      color: "#777777",
+    },
 
-  optionContent: {
-    flex: 1,
-    paddingHorizontal: 13,
-  },
+    cancelButton: {
+      height: 46,
+      marginHorizontal: 18,
+      marginTop: 4,
+      borderRadius: 13,
+      alignItems: "center",
+      justifyContent:
+        "center",
+    },
 
-  optionTitle: {
-    fontSize: 13,
-    fontWeight: "900",
-    color: "#242424",
-  },
+    cancelText: {
+      fontSize: 10,
+      fontWeight: "900",
+      letterSpacing: 1.2,
+      color: "#6A6A6A",
+    },
+  });
 
-  optionText: {
-    marginTop: 5,
-    fontSize: 9,
-    lineHeight: 14,
-    color: "#777777",
-  },
+const imageViewerStyles =
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor:
+        "#0B0B0D",
+    },
 
-  cancelButton: {
-    height: 46,
-    marginHorizontal: 18,
-    marginTop: 4,
-    borderRadius: 13,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+    topBar: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      zIndex: 20,
+      height: 92,
+      paddingTop: 48,
+      paddingHorizontal: 18,
+      flexDirection: "row",
+      alignItems: "center",
+    },
 
-  cancelText: {
-    fontSize: 10,
-    fontWeight: "900",
-    letterSpacing: 1.2,
-    color: "#6A6A6A",
-  },
-});
+    closeButton: {
+      position: "absolute",
+      left: 18,
+      top: 48,
+      width: 42,
+      height: 42,
+      borderRadius: 14,
+      backgroundColor:
+        "rgba(255, 255, 255, 0.12)",
+      borderWidth: 1,
+      borderColor:
+        "rgba(255, 255, 255, 0.12)",
+      alignItems: "center",
+      justifyContent:
+        "center",
+    },
 
-const imageViewerStyles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#0B0B0D",
-  },
+    counterWrapper: {
+      flex: 1,
+      alignItems: "center",
+    },
 
-  topBar: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 20,
-    height: 92,
-    paddingTop: 48,
-    paddingHorizontal: 18,
-    flexDirection: "row",
-    alignItems: "center",
-  },
+    counter: {
+      minWidth: 54,
+      paddingHorizontal: 12,
+      paddingVertical: 7,
+      borderRadius: 14,
+      backgroundColor:
+        "rgba(255, 255, 255, 0.12)",
+      borderWidth: 1,
+      borderColor:
+        "rgba(255, 255, 255, 0.14)",
+      color: "#FFFFFF",
+      fontSize: 11,
+      fontWeight: "900",
+      letterSpacing: 1,
+      textAlign: "center",
+    },
 
-  closeButton: {
-    position: "absolute",
-    left: 18,
-    top: 48,
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: "rgba(255, 255, 255, 0.12)",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.12)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
+    imagePage: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent:
+        "center",
+      backgroundColor:
+        "#0B0B0D",
+    },
 
-  counterWrapper: {
-    flex: 1,
-    alignItems: "center",
-  },
+    fullImage: {
+      alignSelf: "center",
+      backgroundColor:
+        "transparent",
+    },
 
-  counter: {
-    minWidth: 54,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 14,
-    backgroundColor: "rgba(255, 255, 255, 0.12)",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.14)",
-    color: "#FFFFFF",
-    fontSize: 11,
-    fontWeight: "900",
-    letterSpacing: 1,
-    textAlign: "center",
-  },
+    bottomHint: {
+      position: "absolute",
+      left: 18,
+      right: 18,
+      bottom: 28,
+      minHeight: 42,
+      paddingHorizontal: 15,
+      borderRadius: 21,
+      backgroundColor:
+        "rgba(255, 255, 255, 0.10)",
+      borderWidth: 1,
+      borderColor:
+        "rgba(255, 255, 255, 0.10)",
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent:
+        "center",
+      gap: 7,
+    },
 
-  imagePage: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#0B0B0D",
-  },
-
-  fullImage: {
-    alignSelf: "center",
-    backgroundColor: "transparent",
-  },
-
-  bottomHint: {
-    position: "absolute",
-    left: 18,
-    right: 18,
-    bottom: 28,
-    minHeight: 42,
-    paddingHorizontal: 15,
-    borderRadius: 21,
-    backgroundColor: "rgba(255, 255, 255, 0.10)",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.10)",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 7,
-  },
-
-  bottomHintText: {
-    color: "#C9C9CE",
-    fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 0.8,
-  },
-});
+    bottomHintText: {
+      color: "#C9C9CE",
+      fontSize: 10,
+      fontWeight: "800",
+      letterSpacing: 0.8,
+    },
+  });
 
 export default MemoryDetailsScreen;

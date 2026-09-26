@@ -1,43 +1,54 @@
 import { useState } from "react";
-
 import {
   View,
   Text,
   TouchableOpacity,
   ScrollView,
   useWindowDimensions,
-  Alert,
   ActivityIndicator,
 } from "react-native";
-
 import { Ionicons } from "@expo/vector-icons";
-
 import { useMemory } from "../../hooks/useMemory";
-
+import { useAppAlert } from "../../context/AlertContext";
 import MemoryTicket from "../../components/MemoryTicket/MemoryTicket";
-
 import TicketCustomizationSheet from "../../components/TicketCustomization/TicketCustomizationSheet";
-
 import { normalizeTicketCustomization } from "../../utils/ticketCustomization";
-
 import styles from "./ticketPreviewStyles";
 
-function TicketPreviewScreen({ route, navigation }) {
+function TicketPreviewScreen({
+  route,
+  navigation,
+}) {
   const { addMemory } = useMemory();
 
-  const { memory } = route.params || {};
+  const { showAlert } =
+    useAppAlert();
 
-  const { width: screenWidth } = useWindowDimensions();
+  const { memory } =
+    route.params || {};
 
-  const [activeImage, setActiveImage] = useState(0);
+  const { width: screenWidth } =
+    useWindowDimensions();
 
-  const [saving, setSaving] = useState(false);
+  const [activeImage, setActiveImage] =
+    useState(0);
 
-  const [customization, setCustomization] = useState(() =>
-    normalizeTicketCustomization(memory || {}),
+  const [saving, setSaving] =
+    useState(false);
+
+  const [
+    customization,
+    setCustomization,
+  ] = useState(() =>
+    normalizeTicketCustomization(
+      memory || {},
+    ),
   );
 
-  const [customizationVisible, setCustomizationVisible] = useState(false);
+  const [
+    customizationVisible,
+    setCustomizationVisible,
+  ] = useState(false);
 
   if (!memory) {
     return (
@@ -50,7 +61,11 @@ function TicketPreviewScreen({ route, navigation }) {
             paddingHorizontal: 30,
           }}
         >
-          <Ionicons name="alert-circle-outline" size={45} color="#34345C" />
+          <Ionicons
+            name="alert-circle-outline"
+            size={45}
+            color="#34345C"
+          />
 
           <Text
             style={{
@@ -74,9 +89,12 @@ function TicketPreviewScreen({ route, navigation }) {
               justifyContent: "center",
             }}
             onPress={() =>
-              navigation.navigate("MainTabs", {
-                screen: "Create",
-              })
+              navigation.navigate(
+                "MainTabs",
+                {
+                  screen: "Create",
+                },
+              )
             }
           >
             <Text
@@ -95,7 +113,9 @@ function TicketPreviewScreen({ route, navigation }) {
     );
   }
 
-  const images = Array.isArray(memory.images)
+  const images = Array.isArray(
+    memory.images,
+  )
     ? memory.images
     : memory.image
       ? [memory.image]
@@ -113,57 +133,99 @@ function TicketPreviewScreen({ route, navigation }) {
 
     try {
       if (!images.length) {
-        Alert.alert("No Photos", "This memory doesn't contain any photos.");
+        showAlert({
+          type: "warning",
+          icon: "images-outline",
+          title: "No Photos",
+          message:
+            "This memory doesn't contain any photos.",
+          confirmText: "OK",
+        });
 
         return;
       }
 
       setSaving(true);
 
-      const savedMemory = await addMemory({
-        title: memory.title || "",
+      const savedMemory =
+        await addMemory({
+          title:
+            memory.title || "",
 
-        location: memory.location || "",
+          location:
+            memory.location || "",
 
-        locationData: memory.locationData || null,
+          locationData:
+            memory.locationData ||
+            null,
 
-        network: memory.network || memory.environment?.network || null,
+          network:
+            memory.network ||
+            memory.environment
+              ?.network ||
+            null,
 
-        description: memory.description || "",
+          description:
+            memory.description ||
+            "",
 
-        tags: Array.isArray(memory.tags) ? [...memory.tags] : [],
+          tags: Array.isArray(
+            memory.tags,
+          )
+            ? [...memory.tags]
+            : [],
 
-        images: [...images],
+          images: [...images],
 
-        date: memory.date || new Date().toISOString(),
+          date:
+            memory.date ||
+            new Date().toISOString(),
 
-        favorite: false,
+          favorite: false,
 
-        environment: memory.environment || null,
+          environment:
+            memory.environment ||
+            null,
 
-        ticketStyle: customization.ticketStyle,
+          ticketStyle:
+            customization.ticketStyle,
 
-        ticketAccent: customization.ticketAccent,
+          ticketAccent:
+            customization.ticketAccent,
 
-        ticketOptions: {
-          ...customization.ticketOptions,
-        },
-      });
+          ticketOptions: {
+            ...customization.ticketOptions,
+          },
+        });
 
       if (!savedMemory) {
-        throw new Error("Memory was not created.");
+        throw new Error(
+          "Memory was not created.",
+        );
       }
 
-      navigation.navigate("MainTabs", {
-        screen: "Memories",
-      });
-    } catch (error) {
-      console.error("Error saving memory:", error);
-
-      Alert.alert(
-        "Save Failed",
-        error?.message || "Unable to save the memory.",
+      navigation.navigate(
+        "MainTabs",
+        {
+          screen: "Memories",
+        },
       );
+    } catch (error) {
+      console.error(
+        "Error saving memory:",
+        error,
+      );
+
+      showAlert({
+        type: "danger",
+        icon:
+          "close-circle-outline",
+        title: "Save Failed",
+        message:
+          error?.message ||
+          "Unable to save the memory.",
+        confirmText: "OK",
+      });
     } finally {
       setSaving(false);
     }
@@ -174,47 +236,70 @@ function TicketPreviewScreen({ route, navigation }) {
       return;
     }
 
-    navigation.navigate("MainTabs", {
-      screen: "Create",
-      params: {
-        editMemory: {
-          ...memory,
+    navigation.navigate(
+      "MainTabs",
+      {
+        screen: "Create",
+        params: {
+          editMemory: {
+            ...memory,
 
-          images: [...images],
+            images: [...images],
 
-          image: images[0] || memory.image || null,
+            image:
+              images[0] ||
+              memory.image ||
+              null,
 
-          location: memory.location || "",
+            location:
+              memory.location || "",
 
-          locationData: memory.locationData || null,
+            locationData:
+              memory.locationData ||
+              null,
 
-          tags: Array.isArray(memory.tags) ? [...memory.tags] : [],
+            tags: Array.isArray(
+              memory.tags,
+            )
+              ? [...memory.tags]
+              : [],
 
-          ticketStyle: customization.ticketStyle,
+            ticketStyle:
+              customization.ticketStyle,
 
-          ticketAccent: customization.ticketAccent,
+            ticketAccent:
+              customization.ticketAccent,
 
-          ticketOptions: {
-            ...customization.ticketOptions,
+            ticketOptions: {
+              ...customization.ticketOptions,
+            },
           },
         },
       },
-    });
+    );
   };
 
-  const renderTicket = (image, index) => {
+  const renderTicket = (
+    image,
+    index,
+  ) => {
     return (
       <View
         key={`ticket-${index}-${image}`}
         style={[
           styles.ticketSlide,
           {
-            width: screenWidth - 44,
+            width:
+              screenWidth - 44,
             marginRight: 12,
           },
         ]}
       >
-        <View style={styles.ticketShadow}>
+        <View
+          style={
+            styles.ticketShadow
+          }
+        >
           <MemoryTicket
             key={`preview-${index}-${previewMemory.ticketStyle}-${previewMemory.ticketAccent}`}
             memory={previewMemory}
@@ -228,37 +313,83 @@ function TicketPreviewScreen({ route, navigation }) {
   return (
     <View style={styles.container}>
       <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={
+          false
+        }
+        contentContainerStyle={
+          styles.scrollContent
+        }
         nestedScrollEnabled
       >
         {/* HEADER */}
 
         <View style={styles.header}>
           <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
+            style={
+              styles.backButton
+            }
+            onPress={() =>
+              navigation.goBack()
+            }
             disabled={saving}
             activeOpacity={0.7}
           >
-            <Ionicons name="arrow-back" size={21} color="#242424" />
+            <Ionicons
+              name="arrow-back"
+              size={21}
+              color="#242424"
+            />
           </TouchableOpacity>
 
-          <View style={styles.headerTextContainer}>
-            <Text style={styles.headerEyebrow}>YOUR MEMORY</Text>
+          <View
+            style={
+              styles.headerTextContainer
+            }
+          >
+            <Text
+              style={
+                styles.headerEyebrow
+              }
+            >
+              YOUR MEMORY
+            </Text>
 
-            <Text style={styles.headerTitle}>Ticket Preview</Text>
+            <Text
+              style={
+                styles.headerTitle
+              }
+            >
+              Ticket Preview
+            </Text>
           </View>
 
-          <View style={styles.headerSpacer} />
+          <View
+            style={
+              styles.headerSpacer
+            }
+          />
         </View>
 
         {/* INTRO */}
 
-        <View style={styles.previewHeader}>
-          <Text style={styles.previewTitle}>Looks good?</Text>
+        <View
+          style={
+            styles.previewHeader
+          }
+        >
+          <Text
+            style={
+              styles.previewTitle
+            }
+          >
+            Looks good?
+          </Text>
 
-          <Text style={styles.previewSubtitle}>
+          <Text
+            style={
+              styles.previewSubtitle
+            }
+          >
             This moment is ready to become a ticket.
           </Text>
         </View>
@@ -268,34 +399,62 @@ function TicketPreviewScreen({ route, navigation }) {
         <ScrollView
           horizontal
           pagingEnabled
-          showsHorizontalScrollIndicator={false}
+          showsHorizontalScrollIndicator={
+            false
+          }
           nestedScrollEnabled
           decelerationRate="fast"
-          snapToInterval={screenWidth - 32}
+          snapToInterval={
+            screenWidth - 32
+          }
           snapToAlignment="start"
           disableIntervalMomentum
-          onMomentumScrollEnd={(event) => {
-            const index = Math.round(
-              event.nativeEvent.contentOffset.x / (screenWidth - 32),
-            );
+          onMomentumScrollEnd={(
+            event,
+          ) => {
+            const index =
+              Math.round(
+                event.nativeEvent
+                  .contentOffset.x /
+                  (screenWidth - 32),
+              );
 
-            setActiveImage(index);
+            setActiveImage(
+              index,
+            );
           }}
         >
-          {images.length > 0 ? images.map(renderTicket) : renderTicket(null, 0)}
+          {images.length > 0
+            ? images.map(
+                renderTicket,
+              )
+            : renderTicket(
+                null,
+                0,
+              )}
         </ScrollView>
 
         {/* SWIPE HINT */}
 
         {images.length > 1 && (
-          <View style={styles.swipeHint}>
+          <View
+            style={
+              styles.swipeHint
+            }
+          >
             <Ionicons
               name="swap-horizontal-outline"
               size={16}
               color="#9A99A5"
             />
 
-            <Text style={styles.swipeHintText}>SWIPE TO VIEW MORE PHOTOS</Text>
+            <Text
+              style={
+                styles.swipeHintText
+              }
+            >
+              SWIPE TO VIEW MORE PHOTOS
+            </Text>
           </View>
         )}
 
@@ -309,59 +468,128 @@ function TicketPreviewScreen({ route, navigation }) {
               marginBottom: 10,
             },
           ]}
-          onPress={() => setCustomizationVisible(true)}
+          onPress={() =>
+            setCustomizationVisible(
+              true,
+            )
+          }
           disabled={saving}
           activeOpacity={0.8}
         >
-          <Ionicons name="color-palette-outline" size={19} color="#34345C" />
+          <Ionicons
+            name="color-palette-outline"
+            size={19}
+            color="#34345C"
+          />
 
-          <Text style={styles.editButtonText}>CUSTOMIZE TICKET</Text>
+          <Text
+            style={
+              styles.editButtonText
+            }
+          >
+            CUSTOMIZE TICKET
+          </Text>
         </TouchableOpacity>
 
         {/* ACTIONS */}
 
-        <View style={styles.actionsContainer}>
+        <View
+          style={
+            styles.actionsContainer
+          }
+        >
           <TouchableOpacity
-            style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+            style={[
+              styles.saveButton,
+              saving &&
+                styles.saveButtonDisabled,
+            ]}
             onPress={handleSave}
             disabled={saving}
             activeOpacity={0.85}
           >
             {saving ? (
               <>
-                <ActivityIndicator size="small" color="#FFFFFF" />
+                <ActivityIndicator
+                  size="small"
+                  color="#FFFFFF"
+                />
 
-                <Text style={styles.saveButtonText}>SAVING...</Text>
+                <Text
+                  style={
+                    styles.saveButtonText
+                  }
+                >
+                  SAVING...
+                </Text>
               </>
             ) : (
               <>
-                <Ionicons name="bookmark-outline" size={20} color="#FFFFFF" />
+                <Ionicons
+                  name="bookmark-outline"
+                  size={20}
+                  color="#FFFFFF"
+                />
 
-                <Text style={styles.saveButtonText}>SAVE MEMORY</Text>
+                <Text
+                  style={
+                    styles.saveButtonText
+                  }
+                >
+                  SAVE MEMORY
+                </Text>
               </>
             )}
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.editButton}
+            style={
+              styles.editButton
+            }
             onPress={handleEdit}
             disabled={saving}
             activeOpacity={0.8}
           >
-            <Ionicons name="create-outline" size={19} color="#34345C" />
+            <Ionicons
+              name="create-outline"
+              size={19}
+              color="#34345C"
+            />
 
-            <Text style={styles.editButtonText}>EDIT</Text>
+            <Text
+              style={
+                styles.editButtonText
+              }
+            >
+              EDIT
+            </Text>
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.footerText}>Every moment deserves a ticket.</Text>
+        <Text
+          style={
+            styles.footerText
+          }
+        >
+          Every moment deserves a ticket.
+        </Text>
       </ScrollView>
 
       <TicketCustomizationSheet
-        visible={customizationVisible}
-        value={customization}
-        onChange={setCustomization}
-        onClose={() => setCustomizationVisible(false)}
+        visible={
+          customizationVisible
+        }
+        value={
+          customization
+        }
+        onChange={
+          setCustomization
+        }
+        onClose={() =>
+          setCustomizationVisible(
+            false,
+          )
+        }
       />
     </View>
   );

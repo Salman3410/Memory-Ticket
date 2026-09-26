@@ -1,16 +1,12 @@
 import { useEffect, useState } from "react";
-
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
 } from "react-native";
-
 import { Ionicons } from "@expo/vector-icons";
-
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -18,11 +14,9 @@ import Animated, {
   withSpring,
   withTiming,
 } from "react-native-reanimated";
-
 import styles from "./authStyles";
-
 import { useAuth } from "../../hooks/useAuth";
-
+import { useAppAlert } from "../../context/AlertContext";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 
 const AnimatedView =
@@ -30,10 +24,10 @@ const AnimatedView =
 
 function SignupScreen({ navigation }) {
   const { signup } = useAuth();
+  const { showAlert } = useAppAlert();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] =
     useState("");
@@ -50,7 +44,6 @@ function SignupScreen({ navigation }) {
   // =========================
   // Entrance Animation
   // =========================
-
   const entranceOpacity =
     useSharedValue(0);
 
@@ -60,7 +53,6 @@ function SignupScreen({ navigation }) {
   // =========================
   // Button Animation
   // =========================
-
   const buttonScale =
     useSharedValue(1);
 
@@ -87,7 +79,6 @@ function SignupScreen({ navigation }) {
       return {
         opacity:
           entranceOpacity.value,
-
         transform: [
           {
             translateY:
@@ -130,7 +121,6 @@ function SignupScreen({ navigation }) {
   // =========================
   // Signup
   // =========================
-
   const handleSignup = async () => {
     const trimmedName =
       name.trim();
@@ -140,19 +130,25 @@ function SignupScreen({ navigation }) {
 
     // Name
     if (!trimmedName) {
-      Alert.alert(
-        "Name Required",
-        "Please enter your name.",
-      );
+      showAlert({
+        type: "warning",
+        icon: "person-outline",
+        title: "Name Required",
+        message: "Please enter your name.",
+        confirmText: "OK",
+      });
       return;
     }
 
     // Email
     if (!normalizedEmail) {
-      Alert.alert(
-        "Email Required",
-        "Please enter your email address.",
-      );
+      showAlert({
+        type: "warning",
+        icon: "mail-outline",
+        title: "Email Required",
+        message: "Please enter your email address.",
+        confirmText: "OK",
+      });
       return;
     }
 
@@ -161,44 +157,60 @@ function SignupScreen({ navigation }) {
       /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     if (!emailRegex.test(normalizedEmail)) {
-      Alert.alert(
-        "Invalid Email",
-        "Please enter a valid email address.",
-      );
+      showAlert({
+        type: "warning",
+        icon: "mail-outline",
+        title: "Invalid Email",
+        message: "Please enter a valid email address.",
+        confirmText: "OK",
+      });
       return;
     }
 
     // Password
     if (!password) {
-      Alert.alert(
-        "Password Required",
-        "Please create a password.",
-      );
+      showAlert({
+        type: "warning",
+        icon: "lock-closed-outline",
+        title: "Password Required",
+        message: "Please create a password.",
+        confirmText: "OK",
+      });
       return;
     }
 
     if (password.length < 8) {
-      Alert.alert(
-        "Weak Password",
-        "Password must be at least 8 characters.",
-      );
+      showAlert({
+        type: "warning",
+        icon: "shield-checkmark-outline",
+        title: "Weak Password",
+        message: "Password must be at least 8 characters.",
+        confirmText: "OK",
+      });
       return;
     }
 
     // Confirm Password
     if (!confirmPassword) {
-      Alert.alert(
-        "Confirm Password",
-        "Please confirm your password.",
-      );
+      showAlert({
+        type: "warning",
+        icon: "shield-checkmark-outline",
+        title: "Confirm Password",
+        message: "Please confirm your password.",
+        confirmText: "OK",
+      });
       return;
     }
 
     if (password !== confirmPassword) {
-      Alert.alert(
-        "Passwords Don't Match",
-        "Please make sure both passwords are the same.",
-      );
+      showAlert({
+        type: "warning",
+        icon: "alert-circle-outline",
+        title: "Passwords Don't Match",
+        message:
+          "Please make sure both passwords are the same.",
+        confirmText: "OK",
+      });
       return;
     }
 
@@ -212,11 +224,15 @@ function SignupScreen({ navigation }) {
       );
 
       if (!result.success) {
-        Alert.alert(
-          "Signup Failed",
-          result.message ||
+        showAlert({
+          type: "danger",
+          icon: "close-circle-outline",
+          title: "Signup Failed",
+          message:
+            result.message ||
             "Unable to start account creation.",
-        );
+          confirmText: "OK",
+        });
         return;
       }
 
@@ -232,10 +248,14 @@ function SignupScreen({ navigation }) {
         error,
       );
 
-      Alert.alert(
-        "Signup Failed",
-        "Something went wrong. Please try again.",
-      );
+      showAlert({
+        type: "danger",
+        icon: "close-circle-outline",
+        title: "Signup Failed",
+        message:
+          "Something went wrong. Please try again.",
+        confirmText: "OK",
+      });
     } finally {
       setIsLoading(false);
     }

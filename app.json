@@ -7,23 +7,22 @@
     "icon": "./assets/Memento-icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+
     "splash": {
       "image": "./assets/Memento-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#34345C"
     },
+
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.salera.memoryticket",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "LSApplicationQueriesSchemes": [
-          "instagram",
-          "fb",
-          "whatsapp"
-        ]
+        "LSApplicationQueriesSchemes": ["instagram", "fb", "whatsapp"]
       }
     },
+
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/Memento-icon.png",
@@ -32,25 +31,28 @@
       "edgeToEdgeEnabled": true,
       "package": "com.salera.memoryticket",
       "config": {
-        "abiFilters": [
-          "armeabi-v7a",
-          "arm64-v8a",
-          "x86",
-          "x86_64"
-        ]
+        "abiFilters": ["armeabi-v7a", "arm64-v8a", "x86", "x86_64"]
       },
-      "permissions": [
-        "android.permission.RECORD_AUDIO"
-      ]
+      "permissions": ["android.permission.RECORD_AUDIO"]
     },
+
     "plugins": [
       "expo-secure-store",
+
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-3404665145185739~3242147488"
+        }
+      ],
+
       [
         "expo-image-picker",
         {
           "photosPermission": "Allow MemoryTicket to access your photos so you can create memories."
         }
       ],
+
       [
         "expo-build-properties",
         {
@@ -63,17 +65,21 @@
         }
       ]
     ],
+
     "extra": {
       "eas": {
         "projectId": "39c9d6d9-62d6-40d1-96f5-746f16355596"
       }
     },
+
     "runtimeVersion": {
       "policy": "appVersion"
     },
+
     "updates": {
       "url": "https://u.expo.dev/39c9d6d9-62d6-40d1-96f5-746f16355596"
     },
+
     "owner": "salman_saeed"
   }
 }
