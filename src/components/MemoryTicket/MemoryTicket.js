@@ -1,12 +1,14 @@
 import React, { useCallback, useMemo, useState } from "react";
 
-import { View, Text, Image, TouchableOpacity, ScrollView } from "react-native";
+import {
+  View,
+  Text,
+  Image,
+  TouchableOpacity,
+  ScrollView,
+} from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
-
-import MaskedView from "@react-native-masked-view/masked-view";
-
-import Svg, { Path } from "react-native-svg";
 
 import { getMemoryThumbnailUrl } from "../../utils/cloudinary";
 import { normalizeTicketCustomization } from "../../utils/ticketCustomization";
@@ -14,78 +16,47 @@ import { normalizeTicketCustomization } from "../../utils/ticketCustomization";
 import styles from "./memoryTicketStyles";
 
 // --------------------------------------------------
-// SVG MASK HELPERS
+// TICKET DESIGNS
 // --------------------------------------------------
 
-const createCirclePath = (cx, cy, radius) => {
-  return [
-    `M ${cx - radius} ${cy}`,
-    `A ${radius} ${radius} 0 1 0 ${cx + radius} ${cy}`,
-    `A ${radius} ${radius} 0 1 0 ${cx - radius} ${cy}`,
-    "Z",
-  ].join(" ");
+const TICKET_DESIGNS = {
+  classic: {
+    background: require("../../../assets/tickets/classic.png"),
+
+    colors: {
+      primary: "#111111",
+      secondary: "#FFFFFF",
+      muted: "rgba(255,255,255,0.78)",
+      border: "rgba(255,255,255,0.55)",
+    },
+  },
 };
 
-const createTicketMaskPath = (width, height) => {
-  if (!width || !height) {
-    return `M 0 0 H 1 V 1 H 0 Z`;
+// --------------------------------------------------
+// HELPERS
+// --------------------------------------------------
+
+const formatDate = (value) => {
+  if (!value) {
+    return "DATE NOT SET";
   }
 
-  // EXACT SIZE OF THE OLD WHITE CUTOUTS
-  const radius = 9;
+  const parsedDate = new Date(value);
 
-  // ------------------------------------------------
-  // EXACT OLD CUTOUT POSITIONS
-  // ------------------------------------------------
+  if (Number.isNaN(parsedDate.getTime())) {
+    return "DATE NOT SET";
+  }
 
-  const topCenters = [
-    width * 0.1 + radius,
-    width * 0.3 + radius,
-    width * 0.5,
-    width * 0.7 - radius,
-    width * 0.9 - radius,
-  ];
-
-  const bottomCenters = [
-    width * 0.1 + radius,
-    width * 0.3 + radius,
-    width * 0.5,
-    width * 0.7 - radius,
-    width * 0.9 - radius,
-  ];
-
-  const sideYCenters = [height * 0.3 + radius, height * 0.7 - radius];
-
-  // ------------------------------------------------
-  // OUTER TICKET
-  // ------------------------------------------------
-
-  const outerTicket = [`M 0 0`, `H ${width}`, `V ${height}`, `H 0`, "Z"].join(
-    " ",
-  );
-
-  // ------------------------------------------------
-  // CUTOUTS
-  // ------------------------------------------------
-
-  const cutouts = [
-    // TOP
-    ...topCenters.map((cx) => createCirclePath(cx, 0, radius)),
-
-    // BOTTOM
-    ...bottomCenters.map((cx) => createCirclePath(cx, height, radius)),
-
-    // LEFT
-    ...sideYCenters.map((cy) => createCirclePath(0, cy, radius)),
-
-    // RIGHT
-    ...sideYCenters.map((cy) => createCirclePath(width, cy, radius)),
-  ];
-
-  // IMPORTANT:
-  // evenodd makes the circle subpaths actual HOLES.
-  return [outerTicket, ...cutouts].join(" ");
+  return parsedDate.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 };
+
+// --------------------------------------------------
+// COMPONENT
+// --------------------------------------------------
 
 function MemoryTicket({
   memory,
@@ -93,14 +64,18 @@ function MemoryTicket({
   compact = false,
   image = null,
   ticketNumber = null,
+  ticketTemplate = null,
 }) {
   const [imageWidth, setImageWidth] = useState(0);
   const [activeImage, setActiveImage] = useState(0);
 
-  const [ticketSize, setTicketSize] = useState({
-    width: 0,
-    height: 0,
-  });
+  // --------------------------------------------------
+  // VALIDATION
+  // --------------------------------------------------
+
+  if (!memory) {
+    return null;
+  }
 
   // --------------------------------------------------
   // CUSTOMIZATION
@@ -111,14 +86,6 @@ function MemoryTicket({
     [memory],
   );
 
-  const ticketStyle =
-    customization.ticketStyle === "minimal" ||
-    customization.ticketStyle === "vintage"
-      ? customization.ticketStyle
-      : "classic";
-
-  const ticketAccent = customization.ticketAccent;
-
   const {
     showLocation,
     showDate,
@@ -127,110 +94,45 @@ function MemoryTicket({
     showTicketNumber,
   } = customization.ticketOptions;
 
-  if (!memory) {
-    return null;
-  }
-
   // --------------------------------------------------
-  // STYLE MODE
+  // SELECT TICKET TEMPLATE
   // --------------------------------------------------
 
-  const isClassic = ticketStyle === "classic";
-  const isMinimal = ticketStyle === "minimal";
-  const isVintage = ticketStyle === "vintage";
+  const selectedTemplate =
+    ticketTemplate ||
+    memory.ticketTemplate ||
+    "classic";
 
-  // --------------------------------------------------
-  // ACCENT COLORS
-  // --------------------------------------------------
+  const ticketDesign =
+    TICKET_DESIGNS[selectedTemplate] ||
+    TICKET_DESIGNS.classic;
 
-  const accentColors = {
-    coral: {
-      main: "#E76F51",
-      text: "#E76F51",
-    },
-
-    navy: {
-      main: "#34345C",
-      text: "#34345C",
-    },
-
-    yellow: {
-      main: "#F5C842",
-      text: "#8A6900",
-    },
-
-    green: {
-      main: "#6C8B74",
-      text: "#4F6756",
-    },
-  };
-
-  const selectedAccent = accentColors[ticketAccent] || accentColors.coral;
-
-  const accentColor = selectedAccent.main;
-
-  // --------------------------------------------------
-  // TICKET COLORS
-  // --------------------------------------------------
-
-  let ticketBackground = "#F7B900";
-  let ticketTextColor = "#F0442C";
-  let imageBackground = "#EAAE00";
-  let borderColor = "transparent";
-
-  if (isMinimal) {
-    ticketBackground = "#FFFFFF";
-
-    ticketTextColor =
-      ticketAccent === "yellow" ? "#725900" : selectedAccent.text;
-
-    imageBackground = "#F1F0F6";
-    borderColor = "#D9D8E2";
-  }
-
-  if (isVintage) {
-    ticketBackground = "#F3E7CF";
-
-    ticketTextColor =
-      ticketAccent === "yellow" ? "#745D20" : selectedAccent.text;
-
-    imageBackground = "#E4D2AD";
-    borderColor = "#C5A978";
-  }
+  const {
+    background,
+    colors,
+  } = ticketDesign;
 
   // --------------------------------------------------
   // MEMORY DATA
   // --------------------------------------------------
 
-  const formatDate = (value) => {
-    if (!value) {
-      return "DATE NOT SET";
-    }
-
-    const parsedDate = new Date(value);
-
-    if (Number.isNaN(parsedDate.getTime())) {
-      return "DATE NOT SET";
-    }
-
-    return parsedDate.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-  };
-
   const title = memory.title || "UNTITLED MEMORY";
 
-  const location = memory.location?.trim() || "UNKNOWN";
+  const location =
+    memory.location?.trim() ||
+    "UNKNOWN";
 
-  const date = formatDate(memory.createdAt || memory.date);
+  const date = formatDate(
+    memory.createdAt || memory.date,
+  );
 
   const time = memory.time || "";
 
-  const description = memory.description?.trim() || "";
+  const description =
+    memory.description?.trim() || "";
 
-  const admission = memory.admission || "X1";
+  const admission =
+    memory.admission || "X1";
 
   const resolvedTicketNumber =
     ticketNumber ||
@@ -238,11 +140,29 @@ function MemoryTicket({
     memory.id?.toString().slice(-6) ||
     "000000";
 
+  // --------------------------------------------------
+  // IMAGES
+  // --------------------------------------------------
+
   const images = Array.isArray(memory.images)
     ? memory.images
     : memory.image
       ? [memory.image]
       : [];
+
+  const isSingleImageMode = Boolean(image);
+
+  const displayImages = isSingleImageMode
+    ? [image]
+    : images;
+
+  const displayImageSources = useMemo(
+    () =>
+      displayImages.map((imageUri) =>
+        getMemoryThumbnailUrl(imageUri),
+      ),
+    [displayImages],
+  );
 
   // --------------------------------------------------
   // TAGS
@@ -252,25 +172,23 @@ function MemoryTicket({
     ? [
         ...new Set(
           memory.tags
-            .filter((tag) => typeof tag === "string")
-            .map((tag) => tag.trim().replace(/^#+/, "").toLowerCase())
+            .filter(
+              (tag) => typeof tag === "string",
+            )
+            .map((tag) =>
+              tag
+                .trim()
+                .replace(/^#+/, "")
+                .toLowerCase(),
+            )
             .filter(Boolean),
         ),
       ]
     : [];
 
   // --------------------------------------------------
-  // IMAGES
+  // IMAGE PRESS
   // --------------------------------------------------
-
-  const isSingleImageMode = Boolean(image);
-
-  const displayImages = isSingleImageMode ? [image] : images;
-
-  const displayImageSources = useMemo(
-    () => displayImages.map((imageUri) => getMemoryThumbnailUrl(imageUri)),
-    [displayImages],
-  );
 
   const handleImagePress = () => {
     if (onPress) {
@@ -279,322 +197,329 @@ function MemoryTicket({
   };
 
   // --------------------------------------------------
-  // TICKET SIZE
+  // IMAGE LAYOUT
   // --------------------------------------------------
 
-  const handleTicketLayout = useCallback((event) => {
-    const { width, height } = event.nativeEvent.layout;
+  const handleImageLayout = useCallback(
+    (event) => {
+      const width =
+        event.nativeEvent.layout.width;
 
-    if (!width || !height) {
-      return;
-    }
-
-    setTicketSize((previous) => {
-      if (previous.width === width && previous.height === height) {
-        return previous;
+      if (width && width !== imageWidth) {
+        setImageWidth(width);
       }
-
-      return {
-        width,
-        height,
-      };
-    });
-  }, []);
+    },
+    [imageWidth],
+  );
 
   // --------------------------------------------------
-  // MASK
+  // TICKET
   // --------------------------------------------------
 
-  const ticketMaskPath = useMemo(() => {
-    return createTicketMaskPath(ticketSize.width, ticketSize.height);
-  }, [ticketSize.width, ticketSize.height]);
-
-  const classicMask =
-    ticketSize.width > 0 && ticketSize.height > 0 ? (
-      <View
-        style={[
-          styles.maskElement,
-          {
-            width: ticketSize.width,
-            height: ticketSize.height,
-          },
-        ]}
-      >
-        <Svg
-          width={ticketSize.width}
-          height={ticketSize.height}
-          viewBox={`0 0 ${ticketSize.width} ${ticketSize.height}`}
-        >
-          <Path
-            d={ticketMaskPath}
-            fill="#FFFFFF"
-            fillRule="evenodd"
-            clipRule="evenodd"
-          />
-        </Svg>
-      </View>
-    ) : (
-      <View
-        style={{
-          width: 1,
-          height: 1,
-          backgroundColor: "transparent",
-        }}
-      />
-    );
-
-  // --------------------------------------------------
-  // TICKET BODY
-  // --------------------------------------------------
-
-  const ticketBody = (
+  return (
     <View
       style={[
-        styles.ticketBody,
-        {
-          backgroundColor: ticketBackground,
-        },
+        styles.ticketFrame,
+        compact && styles.ticketCompact,
       ]}
     >
-      {/* -------------------------------------- */}
-      {/* HEADER */}
-      {/* -------------------------------------- */}
+      {/* ---------------------------------------- */}
+      {/* BACKGROUND DESIGN */}
+      {/* ---------------------------------------- */}
 
-      <View style={styles.header}>
-        <Text
-          style={[
-            styles.brandText,
-            {
-              color: accentColor,
-            },
-          ]}
-        >
-          MEMENTO
-        </Text>
+      <Image
+        source={background}
+        resizeMode="stretch"
+        style={styles.ticketBackground}
+      />
 
-        <Ionicons name="ticket-outline" size={18} color={accentColor} />
-      </View>
+      {/* ---------------------------------------- */}
+      {/* CONTENT */}
+      {/* ---------------------------------------- */}
 
-      {/* -------------------------------------- */}
-      {/* IMAGE */}
-      {/* -------------------------------------- */}
+      <View style={styles.ticketContent}>
+        {/* -------------------------------------- */}
+        {/* HEADER */}
+        {/* -------------------------------------- */}
 
-      <View
-        style={[
-          styles.ticketImageContainer,
-          {
-            backgroundColor: imageBackground,
-          },
-        ]}
-        onLayout={(event) => {
-          const width = event.nativeEvent.layout.width;
-
-          if (width && width !== imageWidth) {
-            setImageWidth(width);
-          }
-        }}
-      >
-        {displayImageSources.length > 0 ? (
-          isSingleImageMode ? (
-            <TouchableOpacity
-              activeOpacity={0.95}
-              onPress={handleImagePress}
-              disabled={!onPress}
-              style={styles.imageTouchable}
+        <View style={styles.header}>
+          <View>
+            <Text
+              style={[
+                styles.brandText,
+                {
+                  color: colors.secondary,
+                },
+              ]}
             >
-              <Image
-                source={{
-                  uri: displayImageSources[0],
-                }}
-                style={styles.ticketImage}
-                resizeMode="cover"
-              />
-            </TouchableOpacity>
-          ) : (
-            <ScrollView
-              horizontal
-              pagingEnabled
-              showsHorizontalScrollIndicator={false}
-              nestedScrollEnabled
-              onMomentumScrollEnd={(event) => {
-                if (!imageWidth) {
-                  return;
-                }
-
-                const index = Math.round(
-                  event.nativeEvent.contentOffset.x / imageWidth,
-                );
-
-                setActiveImage(index);
-              }}
-            >
-              {displayImageSources.map((imageUri, index) => (
-                <View
-                  key={`${imageUri}-${index}`}
-                  style={[
-                    styles.ticketImageSlide,
-                    imageWidth
-                      ? {
-                          width: imageWidth,
-                        }
-                      : null,
-                  ]}
-                >
-                  <TouchableOpacity
-                    activeOpacity={0.95}
-                    onPress={handleImagePress}
-                    disabled={!onPress}
-                    style={styles.imageTouchable}
-                  >
-                    <Image
-                      source={{
-                        uri: imageUri,
-                      }}
-                      style={styles.ticketImage}
-                      resizeMode="cover"
-                    />
-                  </TouchableOpacity>
-                </View>
-              ))}
-            </ScrollView>
-          )
-        ) : (
-          <View style={styles.noImage}>
-            <Ionicons name="image-outline" size={40} color={accentColor} />
+              MEMENTO
+            </Text>
 
             <Text
               style={[
-                styles.imagePlaceholderText,
+                styles.brandSubText,
                 {
-                  color: accentColor,
+                  color: colors.muted,
                 },
               ]}
             >
-              NO IMAGE
+              MEMORY TICKET
             </Text>
           </View>
-        )}
 
-        {!isSingleImageMode && displayImages.length > 1 && (
-          <View style={styles.imageCounter}>
-            <Text style={styles.imageCounterText}>
-              {activeImage + 1}/{displayImages.length}
-            </Text>
-          </View>
-        )}
+          <Ionicons
+            name="ticket-outline"
+            size={22}
+            color={colors.secondary}
+          />
+        </View>
 
-        {!isSingleImageMode && displayImages.length > 1 && (
-          <View style={styles.imageDots}>
-            {displayImages.map((_, index) => (
-              <View
-                key={index}
-                style={[
-                  styles.imageDot,
-                  index === activeImage && styles.imageDotActive,
-                ]}
+        {/* -------------------------------------- */}
+        {/* MEMORY IMAGE */}
+        {/* -------------------------------------- */}
+
+        <View
+          style={styles.imageSection}
+          onLayout={handleImageLayout}
+        >
+          {displayImageSources.length > 0 ? (
+            isSingleImageMode ? (
+              <TouchableOpacity
+                activeOpacity={0.95}
+                onPress={handleImagePress}
+                disabled={!onPress}
+                style={styles.imageTouchable}
+              >
+                <Image
+                  source={{
+                    uri: displayImageSources[0],
+                  }}
+                  style={styles.ticketImage}
+                  resizeMode="cover"
+                />
+              </TouchableOpacity>
+            ) : (
+              <ScrollView
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                nestedScrollEnabled
+                onMomentumScrollEnd={(event) => {
+                  if (!imageWidth) {
+                    return;
+                  }
+
+                  const index = Math.round(
+                    event.nativeEvent.contentOffset.x /
+                      imageWidth,
+                  );
+
+                  setActiveImage(index);
+                }}
+              >
+                {displayImageSources.map(
+                  (imageUri, index) => (
+                    <View
+                      key={`${imageUri}-${index}`}
+                      style={[
+                        styles.ticketImageSlide,
+                        imageWidth
+                          ? {
+                              width: imageWidth,
+                            }
+                          : null,
+                      ]}
+                    >
+                      <TouchableOpacity
+                        activeOpacity={0.95}
+                        onPress={
+                          handleImagePress
+                        }
+                        disabled={!onPress}
+                        style={
+                          styles.imageTouchable
+                        }
+                      >
+                        <Image
+                          source={{
+                            uri: imageUri,
+                          }}
+                          style={styles.ticketImage}
+                          resizeMode="cover"
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  ),
+                )}
+              </ScrollView>
+            )
+          ) : (
+            <View
+              style={styles.noImage}
+            >
+              <Ionicons
+                name="image-outline"
+                size={38}
+                color={colors.secondary}
               />
+
+              <Text
+                style={[
+                  styles.noImageText,
+                  {
+                    color: colors.secondary,
+                  },
+                ]}
+              >
+                NO IMAGE
+              </Text>
+            </View>
+          )}
+
+          {/* IMAGE COUNTER */}
+
+          {!isSingleImageMode &&
+            displayImages.length > 1 && (
+              <View
+                style={styles.imageCounter}
+              >
+                <Text
+                  style={styles.imageCounterText}
+                >
+                  {activeImage + 1}/
+                  {displayImages.length}
+                </Text>
+              </View>
+            )}
+
+          {/* IMAGE DOTS */}
+
+          {!isSingleImageMode &&
+            displayImages.length > 1 && (
+              <View
+                style={styles.imageDots}
+              >
+                {displayImages.map(
+                  (_, index) => (
+                    <View
+                      key={index}
+                      style={[
+                        styles.imageDot,
+                        index ===
+                          activeImage &&
+                          styles.imageDotActive,
+                      ]}
+                    />
+                  ),
+                )}
+              </View>
+            )}
+        </View>
+
+        {/* -------------------------------------- */}
+        {/* TITLE */}
+        {/* -------------------------------------- */}
+
+        <View style={styles.titleSection}>
+          <Text
+            style={[
+              styles.ticketTitle,
+              {
+                color: colors.primary,
+              },
+            ]}
+            numberOfLines={2}
+            adjustsFontSizeToFit
+            minimumFontScale={0.72}
+          >
+            {title}
+          </Text>
+        </View>
+
+        {/* -------------------------------------- */}
+        {/* TAGS */}
+        {/* -------------------------------------- */}
+
+        {tags.length > 0 && (
+          <View style={styles.tagsContainer}>
+            {tags.slice(0, 4).map((tag) => (
+              <View
+                key={tag}
+                style={[
+                  styles.tagChip,
+                  {
+                    borderColor:
+                      colors.border,
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.tagText,
+                    {
+                      color:
+                        colors.secondary,
+                    },
+                  ]}
+                  numberOfLines={1}
+                >
+                  #{tag}
+                </Text>
+              </View>
             ))}
           </View>
         )}
-      </View>
 
-      {/* -------------------------------------- */}
-      {/* TITLE */}
-      {/* -------------------------------------- */}
+        {/* -------------------------------------- */}
+        {/* DESCRIPTION */}
+        {/* -------------------------------------- */}
 
-      <View style={styles.titleContainer}>
-        <Text
-          style={[
-            styles.ticketTitle,
-            isMinimal && styles.minimalTitle,
-            isVintage && styles.vintageTitle,
-            {
-              color: ticketTextColor,
-            },
-          ]}
-          numberOfLines={2}
-        >
-          {title}
-        </Text>
-      </View>
-
-      {/* -------------------------------------- */}
-      {/* TAGS */}
-      {/* -------------------------------------- */}
-
-      {tags.length > 0 && (
-        <View style={styles.tagsContainer}>
-          {tags.map((tag) => (
+        {showDescription &&
+          description && (
             <View
-              key={tag}
-              style={[
-                styles.tagChip,
-                {
-                  borderBottomColor: accentColor,
-                },
-              ]}
+              style={styles.descriptionSection}
             >
               <Text
                 style={[
-                  styles.tagText,
+                  styles.descriptionLabel,
                   {
-                    color: accentColor,
+                    color:
+                      colors.secondary,
                   },
                 ]}
-                numberOfLines={1}
               >
-                #{tag}
+                THE STORY
+              </Text>
+
+              <Text
+                style={[
+                  styles.descriptionText,
+                  {
+                    color:
+                      colors.primary,
+                  },
+                ]}
+                numberOfLines={3}
+              >
+                {description}
               </Text>
             </View>
-          ))}
-        </View>
-      )}
+          )}
 
-      {/* -------------------------------------- */}
-      {/* DESCRIPTION */}
-      {/* -------------------------------------- */}
+        {/* -------------------------------------- */}
+        {/* INFORMATION */}
+        {/* -------------------------------------- */}
 
-      {showDescription && description ? (
-        <View style={styles.descriptionContainer}>
-          <Text
-            style={[
-              styles.descriptionLabel,
-              {
-                color: accentColor,
-              },
-            ]}
-          >
-            THE STORY
-          </Text>
-
-          <Text
-            style={[
-              styles.descriptionText,
-              {
-                color: ticketTextColor,
-              },
-            ]}
-            numberOfLines={4}
-          >
-            {description}
-          </Text>
-        </View>
-      ) : null}
-
-      {/* -------------------------------------- */}
-      {/* INFO */}
-      {/* -------------------------------------- */}
-
-      {(showLocation || showDate) && (
-        <View style={styles.infoSection}>
-          <View style={styles.infoRow}>
+        {(showLocation || showDate) && (
+          <View style={styles.infoSection}>
             {showLocation && (
               <View style={styles.infoBlock}>
                 <Text
                   style={[
                     styles.infoLabel,
                     {
-                      color: accentColor,
+                      color:
+                        colors.secondary,
                     },
                   ]}
                 >
@@ -605,10 +530,13 @@ function MemoryTicket({
                   style={[
                     styles.infoValue,
                     {
-                      color: ticketTextColor,
+                      color:
+                        colors.primary,
                     },
                   ]}
                   numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.75}
                 >
                   {location}
                 </Text>
@@ -621,7 +549,8 @@ function MemoryTicket({
                   style={[
                     styles.infoLabel,
                     {
-                      color: accentColor,
+                      color:
+                        colors.secondary,
                     },
                   ]}
                 >
@@ -632,7 +561,8 @@ function MemoryTicket({
                   style={[
                     styles.infoValue,
                     {
-                      color: ticketTextColor,
+                      color:
+                        colors.primary,
                     },
                   ]}
                   numberOfLines={1}
@@ -641,196 +571,136 @@ function MemoryTicket({
                 </Text>
               </View>
             )}
-          </View>
 
-          {showDate && time ? (
-            <View style={styles.timeRow}>
+            {showDate && time ? (
+              <View style={styles.infoBlock}>
+                <Text
+                  style={[
+                    styles.infoLabel,
+                    {
+                      color:
+                        colors.secondary,
+                    },
+                  ]}
+                >
+                  TIME
+                </Text>
+
+                <Text
+                  style={[
+                    styles.infoValue,
+                    {
+                      color:
+                        colors.primary,
+                    },
+                  ]}
+                  numberOfLines={1}
+                >
+                  {time}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        )}
+
+        {/* -------------------------------------- */}
+        {/* ADMISSION */}
+        {/* -------------------------------------- */}
+
+        {showAdmission && (
+          <View
+            style={styles.admissionSection}
+          >
+            <Text
+              style={[
+                styles.admissionLabel,
+                {
+                  color:
+                    colors.secondary,
+                },
+              ]}
+            >
+              ADMISSION
+            </Text>
+
+            <Text
+              style={[
+                styles.admissionValue,
+                {
+                  color:
+                    colors.primary,
+                },
+              ]}
+            >
+              X
+              {admission
+                .toString()
+                .replace(/^X/, "")}
+            </Text>
+          </View>
+        )}
+
+        {/* -------------------------------------- */}
+        {/* FOOTER */}
+        {/* -------------------------------------- */}
+
+        <View style={styles.footer}>
+          {showTicketNumber && (
+            <View
+              style={styles.ticketNumberContainer}
+            >
               <Text
                 style={[
-                  styles.infoLabel,
+                  styles.ticketNumberLabel,
                   {
-                    color: accentColor,
+                    color:
+                      colors.secondary,
                   },
                 ]}
               >
-                TIME
+                TICKET NO.
               </Text>
 
               <Text
                 style={[
-                  styles.infoValue,
+                  styles.ticketNumber,
                   {
-                    color: ticketTextColor,
+                    color:
+                      colors.primary,
                   },
                 ]}
               >
-                {time}
+                {resolvedTicketNumber}
               </Text>
             </View>
-          ) : null}
-        </View>
-      )}
+          )}
 
-      {/* -------------------------------------- */}
-      {/* ADMISSION */}
-      {/* -------------------------------------- */}
+          {/* BARCODE */}
 
-      {showAdmission && (
-        <View style={styles.admissionSection}>
-          <Text
+          <View
             style={[
-              styles.admissionLabel,
-              {
-                color: accentColor,
-              },
+              styles.barcode,
+              !showTicketNumber &&
+                styles.barcodeFull,
             ]}
           >
-            ADMISSION
-          </Text>
-
-          <Text
-            style={[
-              styles.admissionValue,
-              {
-                color: ticketTextColor,
-              },
-            ]}
-          >
-            X{admission.toString().replace(/^X/, "")}
-          </Text>
-        </View>
-      )}
-
-      {/* -------------------------------------- */}
-      {/* DIVIDER */}
-      {/* -------------------------------------- */}
-
-      <View style={styles.divider}>
-        <View
-          style={[
-            styles.dividerLine,
-            {
-              borderColor: accentColor,
-            },
-          ]}
-        />
-
-        {!isMinimal && (
-          <>
-            <View
-              style={[
-                styles.dividerNotchLeft,
-                {
-                  backgroundColor: "#F1F0F6",
-                },
-              ]}
-            />
-
-            <View
-              style={[
-                styles.dividerNotchRight,
-                {
-                  backgroundColor: "#F1F0F6",
-                },
-              ]}
-            />
-          </>
-        )}
-      </View>
-
-      {/* -------------------------------------- */}
-      {/* FOOTER */}
-      {/* -------------------------------------- */}
-
-      <View style={styles.ticketFooter}>
-        {showTicketNumber && (
-          <View style={styles.ticketNumberContainer}>
-            <Text
-              style={[
-                styles.ticketNumberLabel,
-                {
-                  color: accentColor,
-                },
-              ]}
-            >
-              TICKET NO.
-            </Text>
-
-            <Text
-              style={[
-                styles.ticketNumber,
-                {
-                  color: ticketTextColor,
-                },
-              ]}
-            >
-              {resolvedTicketNumber}
-            </Text>
+            {Array.from({
+              length: 30,
+            }).map((_, index) => (
+              <View
+                key={index}
+                style={[
+                  styles.bar,
+                  {
+                    backgroundColor:
+                      colors.primary,
+                  },
+                ]}
+              />
+            ))}
           </View>
-        )}
-
-        <View style={[styles.barcode, !showTicketNumber && styles.barcodeFull]}>
-          {Array.from({
-            length: 30,
-          }).map((_, index) => (
-            <View
-              key={index}
-              style={[
-                styles.bar,
-                {
-                  backgroundColor: accentColor,
-                },
-                index % 4 === 0
-                  ? styles.barWide
-                  : index % 3 === 0
-                    ? styles.barMedium
-                    : styles.barSmall,
-              ]}
-            />
-          ))}
         </View>
       </View>
-    </View>
-  );
-
-  // --------------------------------------------------
-  // ACTUAL TICKET
-  // --------------------------------------------------
-
-  const ticket = (
-    <View
-      style={[
-        styles.ticket,
-        compact && styles.ticketCompact,
-        isMinimal && styles.ticketMinimal,
-        isVintage && styles.ticketVintage,
-        {
-          backgroundColor: ticketBackground,
-          borderColor,
-        },
-      ]}
-    >
-      {ticketBody}
-    </View>
-  );
-
-  // --------------------------------------------------
-  // FINAL TICKET
-  // --------------------------------------------------
-
-  return (
-    <View style={styles.ticketFrame} onLayout={handleTicketLayout}>
-      {isClassic && ticketSize.width > 0 && ticketSize.height > 0 ? (
-        <MaskedView
-          style={styles.maskedTicket}
-          androidRenderingMode="software"
-          maskElement={classicMask}
-        >
-          {ticket}
-        </MaskedView>
-      ) : (
-        ticket
-      )}
     </View>
   );
 }
