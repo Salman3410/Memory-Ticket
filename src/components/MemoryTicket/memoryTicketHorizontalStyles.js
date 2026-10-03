@@ -1,22 +1,14 @@
 import { StyleSheet } from "react-native";
 
 const styles = StyleSheet.create({
-  // --------------------------------------------------
-  // TICKET
-  // --------------------------------------------------
-
   ticket: {
     width: "100%",
     height: 175,
     flexDirection: "row",
-    backgroundColor: "#F7B900",
+    backgroundColor: "#E13723",
     borderRadius: 5,
     overflow: "hidden",
     position: "relative",
-
-    // Keep the border width constant.
-    // This prevents the ticket layout from changing
-    // when selecting / unselecting it.
     borderWidth: 2,
     borderColor: "transparent",
 
@@ -30,16 +22,12 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
 
-  // --------------------------------------------------
-  // IMAGE
-  // --------------------------------------------------
-
   imageSection: {
     width: 125,
     height: "100%",
     position: "relative",
     overflow: "hidden",
-    backgroundColor: "#EAAE00",
+    backgroundColor: "#E13723",
   },
 
   ticketImage: {
@@ -51,7 +39,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#EAAE00",
+    backgroundColor: "#E13723",
   },
 
   imageBadge: {
@@ -87,10 +75,6 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
   },
 
-  // --------------------------------------------------
-  // CONTENT
-  // --------------------------------------------------
-
   ticketContent: {
     flex: 1,
     height: "100%",
@@ -98,10 +82,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     justifyContent: "space-between",
   },
-
-  // --------------------------------------------------
-  // HEADER
-  // --------------------------------------------------
 
   header: {
     height: 16,
@@ -114,27 +94,19 @@ const styles = StyleSheet.create({
     fontSize: 7,
     fontWeight: "900",
     letterSpacing: 1.4,
-    color: "#F0442C",
+    color: "#0B1325",
   },
-
-  // --------------------------------------------------
-  // TITLE
-  // --------------------------------------------------
 
   title: {
     fontSize: 17,
     lineHeight: 18,
     fontWeight: "900",
     textTransform: "uppercase",
-    color: "#F0442C",
+    color: "#FFFFFF",
     letterSpacing: -0.3,
     marginTop: 2,
     marginBottom: 3,
   },
-
-  // --------------------------------------------------
-  // INFO
-  // --------------------------------------------------
 
   infoRow: {
     height: 16,
@@ -149,13 +121,9 @@ const styles = StyleSheet.create({
     fontSize: 9,
     lineHeight: 11,
     fontWeight: "800",
-    color: "#F0442C",
+    color: "#0B1325",
     textTransform: "uppercase",
   },
-
-  // --------------------------------------------------
-  // FOOTER
-  // --------------------------------------------------
 
   footer: {
     minHeight: 35,
@@ -166,14 +134,14 @@ const styles = StyleSheet.create({
     paddingTop: 6,
     borderTopWidth: 1,
     borderStyle: "dotted",
-    borderColor: "#F0442C",
+    borderColor: "#0B1325",
   },
 
   ticketNumberLabel: {
     fontSize: 5,
     fontWeight: "900",
     letterSpacing: 0.7,
-    color: "#F0442C",
+    color: "#0B1325",
     marginBottom: 2,
   },
 
@@ -181,12 +149,8 @@ const styles = StyleSheet.create({
     fontSize: 8,
     fontWeight: "900",
     letterSpacing: 0.8,
-    color: "#F0442C",
+    color: "#0B1325",
   },
-
-  // --------------------------------------------------
-  // BARCODE
-  // --------------------------------------------------
 
   barcode: {
     height: 24,
@@ -200,7 +164,7 @@ const styles = StyleSheet.create({
 
   bar: {
     height: "100%",
-    backgroundColor: "#F0442C",
+    backgroundColor: "#0B1325",
   },
 
   barSmall: {
@@ -214,10 +178,6 @@ const styles = StyleSheet.create({
   barWide: {
     width: 3,
   },
-
-  // --------------------------------------------------
-  // PERFORATION NOTCHES
-  // --------------------------------------------------
 
   topNotch: {
     position: "absolute",
@@ -238,10 +198,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: "#F1F0F6",
   },
-
-  // --------------------------------------------------
-  // SELECTION
-  // --------------------------------------------------
 
   ticketSelected: {
     borderColor: "#34345C",

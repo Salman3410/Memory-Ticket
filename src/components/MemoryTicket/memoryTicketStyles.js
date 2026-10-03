@@ -3,31 +3,20 @@ import { StyleSheet } from "react-native";
 const styles = StyleSheet.create({
   ticketFrame: {
     width: "100%",
-
     // A7 portrait ratio
     aspectRatio: 74 / 105,
-
     position: "relative",
-
     backgroundColor: "transparent",
-
     borderRadius: 4,
-
     overflow: "hidden",
-
     shadowColor: "#000",
-
     shadowOffset: {
       width: 0,
       height: 8,
     },
-
     shadowOpacity: 0.18,
-
     shadowRadius: 14,
-
     elevation: 0,
-
     zIndex: 1,
   },
 
@@ -41,79 +30,54 @@ const styles = StyleSheet.create({
 
   ticketBackground: {
     position: "absolute",
-
     top: 0,
     left: 0,
-
     width: "100%",
     height: "100%",
-
     zIndex: 0,
   },
 
   ticketContent: {
     position: "absolute",
-
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-
     paddingHorizontal: 17,
-
     paddingTop: 17,
-
     paddingBottom: 14,
-
     zIndex: 2,
   },
 
   header: {
     height: 34,
-
     flexDirection: "row",
-
     alignItems: "center",
-
     justifyContent: "space-between",
   },
 
   brandText: {
     fontSize: 8,
-
     fontWeight: "900",
-
     letterSpacing: 2,
-
     textTransform: "uppercase",
   },
 
   brandSubText: {
     marginTop: 2,
-
     fontSize: 6,
-
     lineHeight: 8,
-
     fontWeight: "800",
-
     letterSpacing: 1.1,
-
     textTransform: "uppercase",
   },
 
   imageSection: {
     width: "100%",
-
-    // Same visual weight as the old ticket image
     height: 180,
-
     marginTop: 4,
-
     overflow: "hidden",
-
     position: "relative",
-
     borderRadius: 3,
   },
 
@@ -127,66 +91,46 @@ const styles = StyleSheet.create({
 
   ticketImage: {
     width: "100%",
-
     height: "100%",
   },
 
   noImage: {
     flex: 1,
-
     alignItems: "center",
-
     justifyContent: "center",
   },
 
   noImageText: {
     marginTop: 7,
-
     fontSize: 8,
-
     fontWeight: "900",
-
     letterSpacing: 1,
   },
 
   imageCounter: {
     position: "absolute",
-
     top: 10,
-
     right: 10,
-
     backgroundColor: "rgba(0, 0, 0, 0.65)",
-
     paddingHorizontal: 9,
-
     paddingVertical: 5,
-
     borderRadius: 12,
   },
 
   imageCounterText: {
     color: "#FFFFFF",
-
     fontSize: 11,
-
     fontWeight: "700",
   },
 
   imageDots: {
     position: "absolute",
-
     bottom: 10,
-
     left: 0,
     right: 0,
-
     flexDirection: "row",
-
     justifyContent: "center",
-
     alignItems: "center",
-
     gap: 5,
   },
 
@@ -302,9 +246,7 @@ const styles = StyleSheet.create({
 
   ticketNumber: {
     fontSize: 10,
-
     fontWeight: "900",
-
     letterSpacing: 1,
   },
 

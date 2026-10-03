@@ -1,9 +1,6 @@
-import React, { memo } from "react";
-
+import { memo } from "react";
 import { View, Text, Image, TouchableOpacity } from "react-native";
-
 import { Ionicons } from "@expo/vector-icons";
-
 import styles from "./memoryTicketHorizontalStyles";
 
 function MemoryTicketHorizontal({
@@ -71,7 +68,7 @@ function MemoryTicketHorizontal({
           />
         ) : (
           <View style={styles.noImage}>
-            <Ionicons name="image-outline" size={28} color="#F0442C" />
+            <Ionicons name="image-outline" size={28} color="#0B1325" />
           </View>
         )}
 
@@ -96,7 +93,7 @@ function MemoryTicketHorizontal({
         <View style={styles.header}>
           <Text style={styles.brandText}>MEMENTO</Text>
 
-          <Ionicons name="arrow-forward" size={16} color="#F0442C" />
+          <Ionicons name="arrow-forward" size={16} color="#0B1325" />
         </View>
 
         {/* TITLE */}
@@ -106,7 +103,7 @@ function MemoryTicketHorizontal({
 
         {/* LOCATION */}
         <View style={styles.infoRow}>
-          <Ionicons name="location-outline" size={12} color="#F0442C" />
+          <Ionicons name="location-outline" size={12} color="#0B1325" />
 
           <Text style={styles.infoText} numberOfLines={1}>
             {location}
@@ -115,7 +112,7 @@ function MemoryTicketHorizontal({
 
         {/* DATE */}
         <View style={styles.infoRow}>
-          <Ionicons name="calendar-outline" size={12} color="#F0442C" />
+          <Ionicons name="calendar-outline" size={12} color="#0B1325" />
 
           <Text style={styles.infoText} numberOfLines={1}>
             {date}

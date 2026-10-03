@@ -9,7 +9,7 @@ function EditMemoryDetails({
   location,
   setLocation,
   description,
-  setDescription,
+  setDescription, 
 }) {
   return (
     <View style={styles.section}>
@@ -57,7 +57,7 @@ function EditMemoryDetails({
         <View style={styles.descriptionHeader}>
           <Text style={styles.label}>DESCRIPTION</Text>
 
-          <Text style={styles.characterCount}>{description.length}/500</Text>
+          <Text style={styles.characterCount}>{description.length}/100</Text>
         </View>
 
         <TextInput
@@ -67,7 +67,7 @@ function EditMemoryDetails({
           value={description}
           onChangeText={setDescription}
           multiline
-          maxLength={200}
+          maxLength={100}
           textAlignVertical="top"
         />
       </View>
