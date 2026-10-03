@@ -23,22 +23,6 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
 
-  addButton: {
-    width: 46,
-    height: 46,
-    borderRadius: 15,
-    backgroundColor: "#34345C",
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#34345C",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.18,
-    shadowRadius: 7,
-    elevation: 5,
-  },
 });
 
 export default styles;

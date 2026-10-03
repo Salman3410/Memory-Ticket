@@ -16,23 +16,17 @@ import {
   StyleSheet,
   RefreshControl,
 } from "react-native";
-
 import { Ionicons } from "@expo/vector-icons";
-
 import { captureRef } from "react-native-view-shot";
 import * as Sharing from "expo-sharing";
 import * as MediaLibrary from "expo-media-library";
-
 import { useMemory } from "../../hooks/useMemory";
 import useRefresh from "../../hooks/useRefresh";
 import { useAppAlert } from "../../context/AlertContext";
-
 import MemoryTicket from "../../components/MemoryTicket/MemoryTicket";
 import ShareExportSheet from "../../components/ShareExportSheet/ShareExportSheet";
 import TicketCustomizationSheet from "../../components/TicketCustomization/TicketCustomizationSheet";
-
 import { normalizeTicketCustomization } from "../../utils/ticketCustomization";
-
 import {
   getMemoryDetailUrl,
   getMemoryViewerUrl,
@@ -817,7 +811,7 @@ function MemoryDetailsScreen({
             console.log("Prepare PDF export error:", error);
           }
         }}
-        
+
         onMore={handleMore}
         savingImage={savingImage}
         generatingPdf={false}

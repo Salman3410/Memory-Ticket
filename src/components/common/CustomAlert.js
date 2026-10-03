@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 
 import {
   Animated,
@@ -24,10 +24,14 @@ function CustomAlert({
   onCancel,
 }) {
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(0.9)).current;
+
+  const scaleAnim = useRef(new Animated.Value(0.92)).current;
 
   useEffect(() => {
     if (visible) {
+      fadeAnim.setValue(0);
+      scaleAnim.setValue(0.92);
+
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 1,
@@ -37,14 +41,14 @@ function CustomAlert({
 
         Animated.spring(scaleAnim, {
           toValue: 1,
-          tension: 70,
+          tension: 80,
           friction: 8,
           useNativeDriver: true,
         }),
       ]).start();
     } else {
       fadeAnim.setValue(0);
-      scaleAnim.setValue(0.9);
+      scaleAnim.setValue(0.92);
     }
   }, [visible, fadeAnim, scaleAnim]);
 
@@ -69,35 +73,16 @@ function CustomAlert({
     }
   };
 
-  const getIconColor = () => {
-    switch (type) {
-      case "success":
-        return "#4CAF50";
-
-      case "warning":
-        return "#F4A261";
-
-      case "info":
-        return "#4D7CFE";
-
-      case "danger":
-      default:
-        return "#E76F51";
-    }
-  };
-
   if (!visible) {
     return null;
   }
-
-  const iconColor = getIconColor();
 
   return (
     <Modal
       visible={visible}
       transparent
       animationType="none"
-      onRequestClose={onCancel}
+      onRequestClose={() => {}}
     >
       <View style={styles.overlay}>
         <Animated.View
@@ -105,24 +90,29 @@ function CustomAlert({
             styles.modalContainer,
             {
               opacity: fadeAnim,
-              transform: [{ scale: scaleAnim }],
+              transform: [
+                {
+                  scale: scaleAnim,
+                },
+              ],
             },
           ]}
         >
-          <View
-            style={[
-              styles.iconContainer,
-              {
-                backgroundColor: `${iconColor}18`,
-              },
-            ]}
-          >
-            <Ionicons name={getAlertIcon()} size={30} color={iconColor} />
+          {/* ICON */}
+
+          <View style={styles.iconContainer}>
+            <Ionicons name={getAlertIcon()} size={30} color="#34345C" />
           </View>
+
+          {/* TITLE */}
 
           <Text style={styles.title}>{title}</Text>
 
+          {/* MESSAGE */}
+
           {message ? <Text style={styles.message}>{message}</Text> : null}
+
+          {/* BUTTONS */}
 
           <View
             style={[styles.buttonRow, !showCancel && styles.singleButtonRow]}
@@ -142,9 +132,6 @@ function CustomAlert({
             <Pressable
               style={({ pressed }) => [
                 styles.confirmButton,
-                {
-                  backgroundColor: iconColor,
-                },
                 pressed && styles.buttonPressed,
               ]}
               onPress={onConfirm}
@@ -163,52 +150,94 @@ export default CustomAlert;
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
+
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(20, 20, 30, 0.55)",
+
+    /*
+     * Completely transparent outside the popup.
+     */
+    backgroundColor: "transparent",
+
     paddingHorizontal: 24,
   },
 
   modalContainer: {
     width: "100%",
-    maxWidth: 380,
-    backgroundColor: "#F1F0F6",
-    borderRadius: 26,
+    maxWidth: 360,
+
+    backgroundColor: "#FFFFFF",
+
+    borderRadius: 22,
+
     paddingHorizontal: 22,
     paddingTop: 24,
     paddingBottom: 20,
+
     alignItems: "center",
+
+    shadowColor: "#000000",
+
+    shadowOffset: {
+      width: 0,
+      height: 10,
+    },
+
+    shadowOpacity: 0.18,
+    shadowRadius: 20,
+
+    elevation: 12,
   },
 
   iconContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 58,
+    height: 58,
+
+    borderRadius: 29,
+
+    backgroundColor: "#F1F0F6",
+
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 16,
+
+    marginBottom: 15,
+
+    borderWidth: 1,
+    borderColor: "#D9D8E2",
   },
 
   title: {
-    fontSize: 21,
-    fontWeight: "700",
+    fontSize: 20,
+    fontWeight: "900",
+
     color: "#34345C",
+
     textAlign: "center",
+
     marginBottom: 8,
   },
 
   message: {
-    fontSize: 14,
-    lineHeight: 21,
-    color: "#666675",
+    fontSize: 13,
+
+    lineHeight: 20,
+
+    fontWeight: "500",
+
+    color: "#242424",
+
     textAlign: "center",
-    paddingHorizontal: 10,
+
+    paddingHorizontal: 8,
+
     marginBottom: 22,
   },
 
   buttonRow: {
     width: "100%",
+
     flexDirection: "row",
+
     gap: 10,
   },
 
@@ -218,37 +247,57 @@ const styles = StyleSheet.create({
 
   cancelButton: {
     flex: 1,
-    height: 50,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#D9D8E2",
+
+    height: 48,
+
+    borderRadius: 14,
+
+    borderWidth: 1.5,
+
+    borderColor: "#34345C",
+
     justifyContent: "center",
     alignItems: "center",
+
     backgroundColor: "#FFFFFF",
   },
 
   confirmButton: {
     flex: 1,
-    height: 50,
-    borderRadius: 16,
+
+    height: 48,
+
+    borderRadius: 14,
+
     justifyContent: "center",
     alignItems: "center",
+
     paddingHorizontal: 18,
+
+    backgroundColor: "#34345C",
   },
 
   cancelText: {
-    fontSize: 15,
-    fontWeight: "600",
+    fontSize: 13,
+
+    fontWeight: "900",
+
+    letterSpacing: 0.4,
+
     color: "#34345C",
   },
 
   confirmText: {
-    fontSize: 15,
-    fontWeight: "700",
+    fontSize: 13,
+
+    fontWeight: "900",
+
+    letterSpacing: 0.4,
+
     color: "#FFFFFF",
   },
 
   buttonPressed: {
-    opacity: 0.75,
+    opacity: 0.7,
   },
 });
