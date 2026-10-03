@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-
 import {
   ActivityIndicator,
   Modal,
@@ -9,13 +8,11 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
-
 import {
   Gesture,
   GestureDetector,
   GestureHandlerRootView,
 } from "react-native-gesture-handler";
-
 import Animated, {
   Extrapolation,
   interpolate,
@@ -25,7 +22,6 @@ import Animated, {
   withSpring,
   withTiming,
 } from "react-native-reanimated";
-
 import { Ionicons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -52,70 +48,31 @@ function MemoryImageViewer({
   saving = false,
 }) {
   const { width, height } = useWindowDimensions();
-
   const insets = useSafeAreaInsets();
-
   const [currentIndex, setCurrentIndex] = useState(
     Math.max(0, Math.min(initialIndex, Math.max(images.length - 1, 0))),
   );
 
   const [controlsVisible, setControlsVisible] = useState(true);
-
   const [hintVisible, setHintVisible] = useState(images.length > 1);
 
   const imageSizes = useRef({});
-
   const controlsTimer = useRef(null);
-
   const hintTimer = useRef(null);
-
-  // ==================================================
-  // PAGER
-  // ==================================================
-
   const pagerX = useSharedValue(0);
-
-  // ==================================================
-  // DISMISS
-  // ==================================================
-
   const dismissY = useSharedValue(0);
 
-  // ==================================================
-  // IMAGE ZOOM
-  // ==================================================
-
   const scale = useSharedValue(1);
-
   const translateX = useSharedValue(0);
-
   const translateY = useSharedValue(0);
-
   const fitWidth = useSharedValue(width);
-
   const fitHeight = useSharedValue(height);
 
-  // ==================================================
-  // GESTURE START VALUES
-  // ==================================================
-
   const pinchStartScale = useSharedValue(1);
-
   const panStartX = useSharedValue(0);
-
   const panStartY = useSharedValue(0);
-
-  // ==================================================
-  // CONTROL OPACITY
-  // ==================================================
-
   const controlsOpacity = useSharedValue(1);
-
   const hintOpacity = useSharedValue(1);
-
-  // ==================================================
-  // CLEAR TIMERS
-  // ==================================================
 
   const clearTimers = () => {
     if (controlsTimer.current) {
@@ -131,10 +88,6 @@ function MemoryImageViewer({
     }
   };
 
-  // ==================================================
-  // FIT IMAGE
-  // ==================================================
-
   const updateImageFit = (imageWidth, imageHeight) => {
     if (!imageWidth || !imageHeight || !width || !height) {
       return;
@@ -146,10 +99,6 @@ function MemoryImageViewer({
 
     fitHeight.value = imageHeight * ratio;
   };
-
-  // ==================================================
-  // IMAGE LOAD
-  // ==================================================
 
   const handleImageLoad = (index, event) => {
     const source = event?.nativeEvent?.source;
@@ -167,10 +116,6 @@ function MemoryImageViewer({
       updateImageFit(source.width, source.height);
     }
   };
-
-  // ==================================================
-  // RESET ZOOM
-  // ==================================================
 
   const resetZoom = (animated = true) => {
     if (animated) {
@@ -197,10 +142,6 @@ function MemoryImageViewer({
       translateY.value = 0;
     }
   };
-
-  // ==================================================
-  // CONTROLS
-  // ==================================================
 
   const scheduleControlsHide = () => {
     if (controlsTimer.current) {
@@ -233,10 +174,6 @@ function MemoryImageViewer({
       controlsTimer.current = null;
     }
   };
-
-  // ==================================================
-  // OPEN / CLOSE
-  // ==================================================
 
   useEffect(() => {
     if (!visible) {
@@ -304,10 +241,6 @@ function MemoryImageViewer({
     }
   }, [currentIndex, visible]);
 
-  // ==================================================
-  // DOUBLE TAP
-  // ==================================================
-
   const doubleTap = Gesture.Tap()
     .numberOfTaps(2)
     .maxDistance(18)
@@ -352,10 +285,6 @@ function MemoryImageViewer({
       });
     });
 
-  // ==================================================
-  // SINGLE TAP
-  // ==================================================
-
   const singleTap = Gesture.Tap()
     .numberOfTaps(1)
     .maxDistance(18)
@@ -367,33 +296,16 @@ function MemoryImageViewer({
       runOnJS(toggleControls)();
     });
 
-  // ==================================================
-  // STEP 5
-  // PINCH ZOOM
-  // ==================================================
-
   const pinch = Gesture.Pinch()
     .onStart(() => {
-      // Save current zoom level.
       pinchStartScale.value = scale.value;
     })
     .onUpdate((event) => {
-      // --------------------------------------------
-      // CALCULATE NEW SCALE
-      // --------------------------------------------
-
       const nextScale = clamp(pinchStartScale.value * event.scale, 1, 4);
-
-      // --------------------------------------------
-      // APPLY ZOOM
-      // --------------------------------------------
 
       scale.value = nextScale;
     })
     .onEnd(() => {
-      // --------------------------------------------
-      // IF BACK AT 1X
-      // --------------------------------------------
 
       if (scale.value <= 1.02) {
         scale.value = withSpring(1, {
@@ -414,17 +326,8 @@ function MemoryImageViewer({
         return;
       }
 
-      // --------------------------------------------
-      // CALCULATE MAX MOVEMENT
-      // --------------------------------------------
-
       const maxX = Math.max(0, (fitWidth.value * scale.value - width) / 2);
-
       const maxY = Math.max(0, (fitHeight.value * scale.value - height) / 2);
-
-      // --------------------------------------------
-      // KEEP IMAGE INSIDE BOUNDS
-      // --------------------------------------------
 
       translateX.value = withSpring(clamp(translateX.value, -maxX, maxX), {
         damping: 20,
@@ -437,11 +340,6 @@ function MemoryImageViewer({
       });
     });
 
-  // ==================================================
-  // STEP 4
-  // PAN / PHOTO SWIPE / DISMISS
-  // ==================================================
-
   const pan = Gesture.Pan()
     .minDistance(8)
     .maxPointers(2)
@@ -451,17 +349,10 @@ function MemoryImageViewer({
       panStartY.value = translateY.value;
     })
     .onUpdate((event) => {
-      // --------------------------------------------
-      // TWO FINGERS = PINCH
-      // --------------------------------------------
 
       if (event.numberOfPointers > 1) {
         return;
       }
-
-      // --------------------------------------------
-      // ZOOMED IMAGE = MOVE IMAGE
-      // --------------------------------------------
 
       if (scale.value > 1.03) {
         const maxX = Math.max(0, (fitWidth.value * scale.value - width) / 2);
@@ -483,17 +374,8 @@ function MemoryImageViewer({
         return;
       }
 
-      // --------------------------------------------
-      // NORMAL IMAGE
-      // --------------------------------------------
-
       const horizontalDistance = Math.abs(event.translationX);
-
       const verticalDistance = Math.abs(event.translationY);
-
-      // --------------------------------------------
-      // VERTICAL DISMISS
-      // --------------------------------------------
 
       if (verticalDistance > horizontalDistance) {
         dismissY.value = Math.max(0, event.translationY);
@@ -503,18 +385,11 @@ function MemoryImageViewer({
         return;
       }
 
-      // --------------------------------------------
-      // HORIZONTAL PHOTO SWIPE
-      // --------------------------------------------
-
       dismissY.value = 0;
 
       pagerX.value = -currentIndex * width + event.translationX;
     })
     .onEnd((event) => {
-      // --------------------------------------------
-      // ZOOMED IMAGE
-      // --------------------------------------------
 
       if (scale.value > 1.03) {
         const maxX = Math.max(0, (fitWidth.value * scale.value - width) / 2);
@@ -530,10 +405,6 @@ function MemoryImageViewer({
 
       const horizontal =
         Math.abs(event.translationX) >= Math.abs(event.translationY);
-
-      // --------------------------------------------
-      // SWIPE DOWN TO CLOSE
-      // --------------------------------------------
 
       if (!horizontal && event.translationY > 120) {
         dismissY.value = withTiming(
@@ -551,10 +422,6 @@ function MemoryImageViewer({
         return;
       }
 
-      // --------------------------------------------
-      // CANCEL VERTICAL SWIPE
-      // --------------------------------------------
-
       if (!horizontal) {
         dismissY.value = withSpring(0, {
           damping: 20,
@@ -563,10 +430,6 @@ function MemoryImageViewer({
 
         return;
       }
-
-      // --------------------------------------------
-      // PHOTO PAGING
-      // --------------------------------------------
 
       const distanceThreshold = width * 0.18;
 
@@ -604,17 +467,9 @@ function MemoryImageViewer({
       });
     });
 
-  // ==================================================
-  // GESTURE COMPOSITION
-  // ==================================================
-
   const tapGestures = Gesture.Exclusive(doubleTap, singleTap);
 
   const gestures = Gesture.Simultaneous(pinch, pan, tapGestures);
-
-  // ==================================================
-  // PAGER ANIMATION
-  // ==================================================
 
   const pagerStyle = useAnimatedStyle(() => {
     return {
@@ -628,10 +483,6 @@ function MemoryImageViewer({
       ],
     };
   });
-
-  // ==================================================
-  // IMAGE ANIMATION
-  // ==================================================
 
   const imageStyle = useAnimatedStyle(() => {
     return {
@@ -656,19 +507,11 @@ function MemoryImageViewer({
     };
   });
 
-  // ==================================================
-  // CONTROLS ANIMATION
-  // ==================================================
-
   const controlsStyle = useAnimatedStyle(() => {
     return {
       opacity: controlsOpacity.value,
     };
   });
-
-  // ==================================================
-  // HINT ANIMATION
-  // ==================================================
 
   const hintStyle = useAnimatedStyle(() => {
     return {
@@ -691,10 +534,6 @@ function MemoryImageViewer({
       <GestureHandlerRootView style={{ flex: 1 }} unstable_forceActive>
         <View style={styles.container}>
           <StatusBar hidden />
-
-          {/* ==================================================
-              IMAGE PAGER
-          ================================================== */}
 
           <GestureDetector gesture={gestures}>
             <Animated.View
@@ -738,10 +577,6 @@ function MemoryImageViewer({
             </Animated.View>
           </GestureDetector>
 
-          {/* ==================================================
-              TOP CONTROLS
-          ================================================== */}
-
           <Animated.View
             style={[styles.controlsLayer, controlsStyle]}
             pointerEvents={controlsVisible ? "box-none" : "none"}
@@ -772,10 +607,6 @@ function MemoryImageViewer({
                 {images.length}
               </Text>
             </View>
-
-            {/* ==================================================
-                SHARE / SAVE
-            ================================================== */}
 
             {(onShare || onSave) && (
               <View
@@ -838,10 +669,6 @@ function MemoryImageViewer({
               </View>
             )}
           </Animated.View>
-
-          {/* ==================================================
-              SWIPE HINT
-          ================================================== */}
 
           {images.length > 1 && hintVisible && (
             <Animated.View
