@@ -1,5 +1,4 @@
 import React, { useCallback, useMemo, useState } from "react";
-
 import {
   View,
   Text,
@@ -7,17 +6,10 @@ import {
   TouchableOpacity,
   ScrollView,
 } from "react-native";
-
 import { Ionicons } from "@expo/vector-icons";
-
 import { getMemoryThumbnailUrl } from "../../utils/cloudinary";
 import { normalizeTicketCustomization } from "../../utils/ticketCustomization";
-
 import styles from "./memoryTicketStyles";
-
-// --------------------------------------------------
-// TICKET DESIGNS
-// --------------------------------------------------
 
 const TICKET_DESIGNS = {
   classic: {
@@ -31,10 +23,6 @@ const TICKET_DESIGNS = {
     },
   },
 };
-
-// --------------------------------------------------
-// HELPERS
-// --------------------------------------------------
 
 const formatDate = (value) => {
   if (!value) {
@@ -54,10 +42,6 @@ const formatDate = (value) => {
   });
 };
 
-// --------------------------------------------------
-// COMPONENT
-// --------------------------------------------------
-
 function MemoryTicket({
   memory,
   onPress,
@@ -69,17 +53,9 @@ function MemoryTicket({
   const [imageWidth, setImageWidth] = useState(0);
   const [activeImage, setActiveImage] = useState(0);
 
-  // --------------------------------------------------
-  // VALIDATION
-  // --------------------------------------------------
-
   if (!memory) {
     return null;
   }
-
-  // --------------------------------------------------
-  // CUSTOMIZATION
-  // --------------------------------------------------
 
   const customization = useMemo(
     () => normalizeTicketCustomization(memory || {}),
@@ -90,13 +66,8 @@ function MemoryTicket({
     showLocation,
     showDate,
     showDescription,
-    showAdmission,
     showTicketNumber,
   } = customization.ticketOptions;
-
-  // --------------------------------------------------
-  // SELECT TICKET TEMPLATE
-  // --------------------------------------------------
 
   const selectedTemplate =
     ticketTemplate ||
@@ -111,10 +82,6 @@ function MemoryTicket({
     background,
     colors,
   } = ticketDesign;
-
-  // --------------------------------------------------
-  // MEMORY DATA
-  // --------------------------------------------------
 
   const title = memory.title || "UNTITLED MEMORY";
 
@@ -131,18 +98,11 @@ function MemoryTicket({
   const description =
     memory.description?.trim() || "";
 
-  const admission =
-    memory.admission || "X1";
-
   const resolvedTicketNumber =
     ticketNumber ||
     memory.ticketNumber ||
     memory.id?.toString().slice(-6) ||
     "000000";
-
-  // --------------------------------------------------
-  // IMAGES
-  // --------------------------------------------------
 
   const images = Array.isArray(memory.images)
     ? memory.images
@@ -164,10 +124,6 @@ function MemoryTicket({
     [displayImages],
   );
 
-  // --------------------------------------------------
-  // TAGS
-  // --------------------------------------------------
-
   const tags = Array.isArray(memory.tags)
     ? [
         ...new Set(
@@ -186,19 +142,11 @@ function MemoryTicket({
       ]
     : [];
 
-  // --------------------------------------------------
-  // IMAGE PRESS
-  // --------------------------------------------------
-
   const handleImagePress = () => {
     if (onPress) {
       onPress();
     }
   };
-
-  // --------------------------------------------------
-  // IMAGE LAYOUT
-  // --------------------------------------------------
 
   const handleImageLayout = useCallback(
     (event) => {
@@ -212,10 +160,6 @@ function MemoryTicket({
     [imageWidth],
   );
 
-  // --------------------------------------------------
-  // TICKET
-  // --------------------------------------------------
-
   return (
     <View
       style={[
@@ -223,25 +167,19 @@ function MemoryTicket({
         compact && styles.ticketCompact,
       ]}
     >
-      {/* ---------------------------------------- */}
-      {/* BACKGROUND DESIGN */}
-      {/* ---------------------------------------- */}
 
+      {/* BACKGROUND DESIGN */}
       <Image
         source={background}
         resizeMode="stretch"
         style={styles.ticketBackground}
       />
 
-      {/* ---------------------------------------- */}
       {/* CONTENT */}
-      {/* ---------------------------------------- */}
 
       <View style={styles.ticketContent}>
-        {/* -------------------------------------- */}
-        {/* HEADER */}
-        {/* -------------------------------------- */}
 
+        {/* HEADER */}
         <View style={styles.header}>
           <View>
             <Text
@@ -274,9 +212,7 @@ function MemoryTicket({
           />
         </View>
 
-        {/* -------------------------------------- */}
         {/* MEMORY IMAGE */}
-        {/* -------------------------------------- */}
 
         <View
           style={styles.imageSection}
@@ -416,9 +352,7 @@ function MemoryTicket({
             )}
         </View>
 
-        {/* -------------------------------------- */}
         {/* TITLE */}
-        {/* -------------------------------------- */}
 
         <View style={styles.titleSection}>
           <Text
@@ -436,9 +370,7 @@ function MemoryTicket({
           </Text>
         </View>
 
-        {/* -------------------------------------- */}
         {/* TAGS */}
-        {/* -------------------------------------- */}
 
         {tags.length > 0 && (
           <View style={styles.tagsContainer}>
@@ -470,9 +402,7 @@ function MemoryTicket({
           </View>
         )}
 
-        {/* -------------------------------------- */}
         {/* DESCRIPTION */}
-        {/* -------------------------------------- */}
 
         {showDescription &&
           description && (
@@ -506,9 +436,7 @@ function MemoryTicket({
             </View>
           )}
 
-        {/* -------------------------------------- */}
         {/* INFORMATION */}
-        {/* -------------------------------------- */}
 
         {(showLocation || showDate) && (
           <View style={styles.infoSection}>
@@ -603,46 +531,7 @@ function MemoryTicket({
           </View>
         )}
 
-        {/* -------------------------------------- */}
-        {/* ADMISSION */}
-        {/* -------------------------------------- */}
-
-        {showAdmission && (
-          <View
-            style={styles.admissionSection}
-          >
-            <Text
-              style={[
-                styles.admissionLabel,
-                {
-                  color:
-                    colors.secondary,
-                },
-              ]}
-            >
-              ADMISSION
-            </Text>
-
-            <Text
-              style={[
-                styles.admissionValue,
-                {
-                  color:
-                    colors.primary,
-                },
-              ]}
-            >
-              X
-              {admission
-                .toString()
-                .replace(/^X/, "")}
-            </Text>
-          </View>
-        )}
-
-        {/* -------------------------------------- */}
         {/* FOOTER */}
-        {/* -------------------------------------- */}
 
         <View style={styles.footer}>
           {showTicketNumber && (

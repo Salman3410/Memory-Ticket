@@ -3,7 +3,7 @@ import styles from "../createMemoryStyles";
 
 function DescriptionInput({ description, setDescription }) {
   const handleChange = (text) => {
-    if (text.length <= 500) {
+    if (text.length <= 100) {
       setDescription(text);
     }
   };
@@ -13,7 +13,7 @@ function DescriptionInput({ description, setDescription }) {
       <View style={styles.descriptionHeader}>
         <Text style={styles.label}>DESCRIPTION</Text>
 
-        <Text style={styles.characterCount}>{description.length}/500</Text>
+        <Text style={styles.characterCount}>{description.length}/100</Text>
       </View>
 
       <TextInput

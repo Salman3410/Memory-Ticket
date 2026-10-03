@@ -1,10 +1,6 @@
 import { StyleSheet } from "react-native";
 
 const styles = StyleSheet.create({
-  // --------------------------------------------------
-  // OUTER FRAME / A7 TICKET
-  // --------------------------------------------------
-
   ticketFrame: {
     width: "100%",
 
@@ -35,10 +31,6 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
 
-  // --------------------------------------------------
-  // COMPACT
-  // --------------------------------------------------
-
   ticketCompact: {
     transform: [
       {
@@ -46,10 +38,6 @@ const styles = StyleSheet.create({
       },
     ],
   },
-
-  // --------------------------------------------------
-  // CLASSIC PNG BACKGROUND
-  // --------------------------------------------------
 
   ticketBackground: {
     position: "absolute",
@@ -62,10 +50,6 @@ const styles = StyleSheet.create({
 
     zIndex: 0,
   },
-
-  // --------------------------------------------------
-  // CONTENT
-  // --------------------------------------------------
 
   ticketContent: {
     position: "absolute",
@@ -83,10 +67,6 @@ const styles = StyleSheet.create({
 
     zIndex: 2,
   },
-
-  // --------------------------------------------------
-  // HEADER
-  // --------------------------------------------------
 
   header: {
     height: 34,
@@ -121,10 +101,6 @@ const styles = StyleSheet.create({
 
     textTransform: "uppercase",
   },
-
-  // --------------------------------------------------
-  // IMAGE
-  // --------------------------------------------------
 
   imageSection: {
     width: "100%",
@@ -173,10 +149,6 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
 
-  // --------------------------------------------------
-  // IMAGE COUNTER
-  // --------------------------------------------------
-
   imageCounter: {
     position: "absolute",
 
@@ -201,10 +173,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
 
-  // --------------------------------------------------
-  // IMAGE DOTS
-  // --------------------------------------------------
-
   imageDots: {
     position: "absolute",
 
@@ -224,81 +192,50 @@ const styles = StyleSheet.create({
 
   imageDot: {
     width: 6,
-
     height: 6,
-
     borderRadius: 3,
-
     backgroundColor: "rgba(255, 255, 255, 0.55)",
   },
 
   imageDotActive: {
     width: 8,
-
     height: 8,
-
     borderRadius: 4,
-
     backgroundColor: "#FFFFFF",
   },
 
-  // --------------------------------------------------
-  // TITLE
-  // --------------------------------------------------
-
   titleSection: {
     marginTop: 10,
-
     marginBottom: 13,
   },
 
   ticketTitle: {
     fontSize: 27,
-
     lineHeight: 27,
-
     fontWeight: "900",
-
     textTransform: "uppercase",
-
     letterSpacing: -0.5,
   },
 
-  // --------------------------------------------------
-  // TAGS
-  // --------------------------------------------------
-
   tagsContainer: {
     flexDirection: "row",
-
     flexWrap: "wrap",
-
     gap: 7,
-
     marginBottom: 13,
   },
 
   tagChip: {
     paddingHorizontal: 0,
-
     paddingVertical: 2,
-
     borderBottomWidth: 1,
   },
 
   tagText: {
     fontSize: 8,
-
     lineHeight: 11,
-
     fontWeight: "800",
-
     letterSpacing: 0.2,
   },
-
-  // --------------------------------------------------
-  // DESCRIPTION
-  // --------------------------------------------------
 
   descriptionSection: {
     marginBottom: 13,
@@ -306,33 +243,21 @@ const styles = StyleSheet.create({
 
   descriptionLabel: {
     fontSize: 7,
-
     fontWeight: "900",
-
     letterSpacing: 1,
-
     marginBottom: 4,
-
     textTransform: "uppercase",
   },
 
   descriptionText: {
     fontSize: 11,
-
     lineHeight: 16,
-
     fontWeight: "600",
   },
 
-  // --------------------------------------------------
-  // INFORMATION
-  // --------------------------------------------------
-
   infoSection: {
     marginBottom: 12,
-
     flexDirection: "row",
-
     gap: 14,
   },
 
@@ -342,73 +267,25 @@ const styles = StyleSheet.create({
 
   infoLabel: {
     fontSize: 7,
-
     fontWeight: "900",
-
     letterSpacing: 1,
-
-    marginBottom: 3,
-
     textTransform: "uppercase",
   },
 
   infoValue: {
     fontSize: 11,
-
     fontWeight: "800",
-
     textTransform: "uppercase",
   },
-
-  // --------------------------------------------------
-  // ADMISSION
-  // --------------------------------------------------
-
-  admissionSection: {
-    flexDirection: "row",
-
-    alignItems: "center",
-
-    gap: 7,
-
-    marginBottom: 10,
-  },
-
-  admissionLabel: {
-    fontSize: 8,
-
-    fontWeight: "900",
-
-    letterSpacing: 0.8,
-
-    textTransform: "uppercase",
-  },
-
-  admissionValue: {
-    fontSize: 11,
-
-    fontWeight: "900",
-  },
-
-  // --------------------------------------------------
-  // FOOTER
-  // --------------------------------------------------
 
   footer: {
     position: "absolute",
-
     left: 17,
-
     right: 17,
-
-    bottom: 14,
-
+    bottom: 28,
     flexDirection: "row",
-
     alignItems: "flex-end",
-
     justifyContent: "space-between",
-
     minHeight: 52,
   },
 
@@ -418,13 +295,8 @@ const styles = StyleSheet.create({
 
   ticketNumberLabel: {
     fontSize: 6,
-
     fontWeight: "900",
-
     letterSpacing: 0.8,
-
-    marginBottom: 3,
-
     textTransform: "uppercase",
   },
 
@@ -436,23 +308,13 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
 
-  // --------------------------------------------------
-  // BARCODE
-  // --------------------------------------------------
-
   barcode: {
-    height: 43,
-
+    height: 20,
     flex: 1,
-
     flexDirection: "row",
-
     alignItems: "stretch",
-
     justifyContent: "flex-end",
-
     gap: 2,
-
     overflow: "hidden",
   },
 
