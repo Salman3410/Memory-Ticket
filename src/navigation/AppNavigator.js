@@ -15,6 +15,7 @@ import CollectionMemorySelector from "../screens/collections/CollectionMemorySel
 import EditCollectionScreen from "../screens/collections/EditCollectionScreen";
 import OnThisDayScreen from "../screens/OnThisDay/OnThisDayScreen";
 import RewardsScreen from "../screens/rewards/RewardsScreen";
+import ExportPdfScreen from "../screens/ExportPdf/ExportPdfScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -55,6 +56,13 @@ function AppNavigator() {
       <Stack.Screen name="EditCollection" component={EditCollectionScreen} />
       <Stack.Screen name="OnThisDay" component={OnThisDayScreen} />
       <Stack.Screen name="Rewards" component={RewardsScreen} />
+      <Stack.Screen
+        name="ExportPdf"
+        component={ExportPdfScreen}
+        options={{
+          headerShown: false,
+        }}
+      />
     </Stack.Navigator>
   );
 }
