@@ -10,9 +10,7 @@ import {
   TouchableOpacity,
   ScrollView,
   FlatList,
-  Image,
   useWindowDimensions,
-  Modal,
   StyleSheet,
   RefreshControl,
 } from "react-native";
@@ -20,24 +18,23 @@ import { Ionicons } from "@expo/vector-icons";
 import { captureRef } from "react-native-view-shot";
 import * as Sharing from "expo-sharing";
 import * as MediaLibrary from "expo-media-library";
+import * as FileSystem from "expo-file-system/legacy";
 import { useMemory } from "../../hooks/useMemory";
 import useRefresh from "../../hooks/useRefresh";
 import { useAppAlert } from "../../context/AlertContext";
+import MemoryImageViewer from "../../components/MemoryImageViewer/MemoryImageViewer";
 import MemoryTicket from "../../components/MemoryTicket/MemoryTicket";
 import ShareExportSheet from "../../components/ShareExportSheet/ShareExportSheet";
 import TicketCustomizationSheet from "../../components/TicketCustomization/TicketCustomizationSheet";
 import { normalizeTicketCustomization } from "../../utils/ticketCustomization";
+
 import {
   getMemoryDetailUrl,
   getMemoryViewerUrl,
 } from "../../utils/cloudinary";
-
 import styles from "./memoryDetailsStyles";
 
-function MemoryDetailsScreen({
-  navigation,
-  route,
-}) {
+function MemoryDetailsScreen({ navigation, route }) {
   const {
     getMemoryById,
     toggleFavorite,
@@ -46,216 +43,118 @@ function MemoryDetailsScreen({
     refreshMemories,
   } = useMemory();
 
-  const { showAlert } =
-    useAppAlert();
+  const { showAlert } = useAppAlert();
 
-  const refreshMemoryDetails =
-    useCallback(
-      async () => {
-        await refreshMemories();
-      },
-      [refreshMemories],
-    );
+  const refreshMemoryDetails = useCallback(async () => {
+    await refreshMemories();
+  }, [refreshMemories]);
 
-  const {
-    refreshing,
-    onRefresh,
-  } = useRefresh(
-    refreshMemoryDetails,
-  );
+  const { refreshing, onRefresh } = useRefresh(refreshMemoryDetails);
 
-  const {
-    width: screenWidth,
-    height: screenHeight,
-  } = useWindowDimensions();
+  const { width: screenWidth } = useWindowDimensions();
 
-  const memoryId =
-    route?.params?.memoryId;
+  const memoryId = route?.params?.memoryId;
 
-  const [activeImage, setActiveImage] =
-    useState(0);
+  const [activeImage, setActiveImage] = useState(0);
 
-  const [
-    imageViewerVisible,
-    setImageViewerVisible,
-  ] = useState(false);
+  const [imageViewerVisible, setImageViewerVisible] = useState(false);
 
-  const [viewerImage, setViewerImage] =
-    useState(0);
+  const [viewerImage, setViewerImage] = useState(0);
 
-  const shareSheetRef =
-    useRef(null);
+  const shareSheetRef = useRef(null);
 
-  const [sharing, setSharing] =
-    useState(false);
+  const [sharing, setSharing] = useState(false);
 
-  const [savingImage, setSavingImage] =
-    useState(false);
+  const [savingImage, setSavingImage] = useState(false);
 
-  const ticketRefs =
-    useRef([]);
+  const [sharingPhoto, setSharingPhoto] = useState(false);
 
-  const [
-    customizationVisible,
-    setCustomizationVisible,
-  ] = useState(false);
+  const [savingPhoto, setSavingPhoto] = useState(false);
 
-  const [
-    customizationSaving,
-    setCustomizationSaving,
-  ] = useState(false);
+  const ticketRefs = useRef([]);
 
-  const [
-    draftCustomization,
-    setDraftCustomization,
-  ] = useState(null);
+  const [customizationVisible, setCustomizationVisible] = useState(false);
 
-  const memory =
-    getMemoryById(memoryId);
+  const [customizationSaving, setCustomizationSaving] = useState(false);
+
+  const [draftCustomization, setDraftCustomization] = useState(null);
+
+  const memory = getMemoryById(memoryId);
 
   if (!memory) {
     return (
-      <View
-        style={
-          styles.notFoundContainer
-        }
-      >
-        <Ionicons
-          name="sad-outline"
-          size={45}
-          color="#34345C"
-        />
+      <View style={styles.notFoundContainer}>
+        <Ionicons name="sad-outline" size={45} color="#34345C" />
 
-        <Text
-          style={
-            styles.notFoundTitle
-          }
-        >
-          Memory not found
-        </Text>
+        <Text style={styles.notFoundTitle}>Memory not found</Text>
 
         <TouchableOpacity
-          style={
-            styles.backToMemoriesButton
-          }
-          onPress={() =>
-            navigation.goBack()
-          }
+          style={styles.backToMemoriesButton}
+          onPress={() => navigation.goBack()}
           activeOpacity={0.8}
         >
-          <Text
-            style={
-              styles.backToMemoriesText
-            }
-          >
-            GO BACK
-          </Text>
+          <Text style={styles.backToMemoriesText}>GO BACK</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
-  const images =
-    Array.isArray(memory?.images)
-      ? memory.images
-      : memory?.image
-        ? [memory.image]
-        : [];
-
-  const tags =
-    Array.isArray(memory?.tags)
-      ? [
-          ...new Set(
-            memory.tags
-              .filter(
-                (tag) =>
-                  typeof tag ===
-                  "string",
-              )
-              .map((tag) =>
-                tag
-                  .trim()
-                  .replace(
-                    /^#+/,
-                    "",
-                  )
-                  .toLowerCase(),
-              )
-              .filter(Boolean),
-          ),
-        ]
+  const images = Array.isArray(memory?.images)
+    ? memory.images
+    : memory?.image
+      ? [memory.image]
       : [];
 
-  const detailImages =
-    images.map((image) =>
-      getMemoryDetailUrl(image),
-    );
+  const tags = Array.isArray(memory?.tags)
+    ? [
+        ...new Set(
+          memory.tags
+            .filter((tag) => typeof tag === "string")
+            .map((tag) => tag.trim().replace(/^#+/, "").toLowerCase())
+            .filter(Boolean),
+        ),
+      ]
+    : [];
 
-  const viewerImages =
-    images.map((image) =>
-      getMemoryViewerUrl(image),
-    );
+  const detailImages = images.map((image) => getMemoryDetailUrl(image));
 
-  const ticketPreviewMemory =
-    draftCustomization
-      ? {
-          ...memory,
-          ...draftCustomization,
-        }
-      : memory;
+  const viewerImages = images.map((image) => getMemoryViewerUrl(image));
 
-  const openImageViewer = (
-    index,
-  ) => {
+  const ticketPreviewMemory = draftCustomization
+    ? {
+        ...memory,
+        ...draftCustomization,
+      }
+    : memory;
+
+  const openImageViewer = (index) => {
     if (!images[index]) {
       return;
     }
 
     setViewerImage(index);
-    setImageViewerVisible(
-      true,
-    );
+    setImageViewerVisible(true);
   };
 
   const closeImageViewer = () => {
     setImageViewerVisible(false);
   };
 
-  const handleViewerScroll = (
-    event,
-  ) => {
-    const index = Math.round(
-      event.nativeEvent.contentOffset
-        .x / screenWidth,
-    );
-
-    setViewerImage(index);
-    setActiveImage(index);
-  };
-
   const getTicketNumber = () => {
     if (memory?.id) {
-      return memory.id
-        .slice(-5)
-        .toUpperCase();
+      return memory.id.slice(-5).toUpperCase();
     }
 
     return "00001";
   };
 
-  const handleFavorite =
-    async () => {
-      try {
-        await toggleFavorite(
-          memory.id,
-        );
-      } catch (error) {
-        console.log(
-          "Favorite update error:",
-          error,
-        );
-      }
-    };
+  const handleFavorite = async () => {
+    try {
+      await toggleFavorite(memory.id);
+    } catch (error) {
+      console.log("Favorite update error:", error);
+    }
+  };
 
   // --------------------------------------------------
   // DELETE
@@ -274,21 +173,13 @@ function MemoryDetailsScreen({
 
       onConfirm: async () => {
         try {
-          await deleteMemory(
-            memory.id,
-          );
+          await deleteMemory(memory.id);
 
-          navigation.navigate(
-            "MainTabs",
-            {
-              screen: "Memories",
-            },
-          );
+          navigation.navigate("MainTabs", {
+            screen: "Memories",
+          });
         } catch (error) {
-          console.log(
-            "Delete error:",
-            error,
-          );
+          console.log("Delete error:", error);
         }
       },
     });
@@ -307,15 +198,9 @@ function MemoryDetailsScreen({
   // --------------------------------------------------
 
   const openCustomization = () => {
-    setDraftCustomization(
-      normalizeTicketCustomization(
-        memory,
-      ),
-    );
+    setDraftCustomization(normalizeTicketCustomization(memory));
 
-    setCustomizationVisible(
-      true,
-    );
+    setCustomizationVisible(true);
   };
 
   const closeCustomization = () => {
@@ -323,115 +208,195 @@ function MemoryDetailsScreen({
       return;
     }
 
-    setCustomizationVisible(
-      false,
-    );
+    setCustomizationVisible(false);
 
     setDraftCustomization(null);
   };
 
-  const handleSaveCustomization =
-    async () => {
-      if (
-        customizationSaving ||
-        !draftCustomization
-      ) {
-        return;
-      }
+  const handleSaveCustomization = async () => {
+    if (customizationSaving || !draftCustomization) {
+      return;
+    }
 
-      try {
-        setCustomizationSaving(
-          true,
-        );
+    try {
+      setCustomizationSaving(true);
 
-        await updateMemory(
-          memory.id,
-          {
-            ticketStyle:
-              draftCustomization.ticketStyle,
+      await updateMemory(memory.id, {
+        ticketStyle: draftCustomization.ticketStyle,
 
-            ticketAccent:
-              draftCustomization.ticketAccent,
+        ticketAccent: draftCustomization.ticketAccent,
 
-            ticketOptions: {
-              ...draftCustomization.ticketOptions,
-            },
-          },
-        );
+        ticketOptions: {
+          ...draftCustomization.ticketOptions,
+        },
+      });
 
-        setCustomizationVisible(
-          false,
-        );
+      setCustomizationVisible(false);
 
-        setDraftCustomization(
-          null,
-        );
+      setDraftCustomization(null);
 
-        showAlert({
-          type: "success",
-          icon:
-            "checkmark-circle-outline",
-          title: "Ticket Updated",
-          message:
-            "Your ticket customization has been saved.",
-          confirmText: "Done",
-        });
-      } catch (error) {
-        console.error(
-          "Ticket customization update error:",
-          error,
-        );
+      showAlert({
+        type: "success",
+        icon: "checkmark-circle-outline",
+        title: "Ticket Updated",
+        message: "Your ticket customization has been saved.",
+        confirmText: "Done",
+      });
+    } catch (error) {
+      console.error("Ticket customization update error:", error);
 
-        showAlert({
-          type: "danger",
-          icon:
-            "close-circle-outline",
-          title: "Update Failed",
-          message:
-            error?.message ||
-            "Unable to save ticket customization.",
-          confirmText: "OK",
-        });
-      } finally {
-        setCustomizationSaving(
-          false,
-        );
-      }
-    };
+      showAlert({
+        type: "danger",
+        icon: "close-circle-outline",
+        title: "Update Failed",
+        message: error?.message || "Unable to save ticket customization.",
+        confirmText: "OK",
+      });
+    } finally {
+      setCustomizationSaving(false);
+    }
+  };
 
   // --------------------------------------------------
   // CAPTURE CURRENT TICKET
   // Used by Share + Save Image
   // --------------------------------------------------
 
-  const captureCurrentTicket =
-    async () => {
-      const safeIndex =
-        activeImage >= 0 &&
-        activeImage < images.length
-          ? activeImage
-          : 0;
+  const captureCurrentTicket = async () => {
+    const safeIndex =
+      activeImage >= 0 && activeImage < images.length ? activeImage : 0;
 
-      const ticketRef =
-        ticketRefs.current[
-          safeIndex
-        ];
+    const ticketRef = ticketRefs.current[safeIndex];
 
-      if (!ticketRef) {
-        throw new Error(
-          "Memory Ticket is still rendering.",
-        );
+    if (!ticketRef) {
+      throw new Error("Memory Ticket is still rendering.");
+    }
+
+    return await captureRef(ticketRef, {
+      format: "png",
+      quality: 1,
+      result: "tmpfile",
+    });
+  };
+
+  // --------------------------------------------------
+  // PREPARE ORIGINAL PHOTO FOR SHARE / SAVE
+  // --------------------------------------------------
+
+  const downloadViewerImage = async (index) => {
+    const remoteUri = viewerImages[index];
+    if (!remoteUri) {
+      throw new Error("Photo is unavailable.");
+    }
+    const cleanUri = remoteUri.split("?")[0];
+    const extensionMatch = cleanUri.match(/\.(jpg|jpeg|png|webp)$/i);
+    const extension = extensionMatch?.[1] || "jpg";
+    const fileName = `memento-photo-${memory.id}-${index + 1}-${Date.now()}.${extension}`;
+    const localUri = `${FileSystem.cacheDirectory}${fileName}`;
+    const result = await FileSystem.downloadAsync(remoteUri, localUri);
+    return {
+      uri: result.uri,
+      extension,
+    };
+  };
+
+  // --------------------------------------------------
+  // SHARE ORIGINAL PHOTO
+  // --------------------------------------------------
+
+  const handleSharePhoto = async (index) => {
+    try {
+      if (sharingPhoto) {
+        return;
+      }
+      setSharingPhoto(true);
+      const available = await Sharing.isAvailableAsync();
+      if (!available) {
+        showAlert({
+          type: "warning",
+          icon: "share-social-outline",
+          title: "Sharing Unavailable",
+          message: "Sharing is not available on this device.",
+          confirmText: "OK",
+        });
+
+        return;
+      }
+      const { uri, extension } = await downloadViewerImage(index);
+      const mimeType = extension === "png" ? "image/png" : "image/jpeg";
+
+      await Sharing.shareAsync(uri, {
+        mimeType,
+        dialogTitle: "Share Photo",
+        UTI: extension === "png" ? "public.png" : "public.jpeg",
+      });
+    } catch (error) {
+      console.log("Photo share error:", error);
+
+      showAlert({
+        type: "danger",
+        icon: "close-circle-outline",
+        title: "Share Failed",
+        message: "Unable to share this photo.",
+        confirmText: "OK",
+      });
+    } finally {
+      setSharingPhoto(false);
+    }
+  };
+
+  // --------------------------------------------------
+  // SAVE ORIGINAL PHOTO
+  // --------------------------------------------------
+
+  const handleSavePhoto = async (index) => {
+    try {
+      if (savingPhoto) {
+        return;
       }
 
-      return await captureRef(
-        ticketRef,
-        {
-          format: "png",
-          quality: 1,
-          result: "tmpfile",
-        },
-      );
-    };
+      setSavingPhoto(true);
+
+      const permission = await MediaLibrary.requestPermissionsAsync();
+
+      if (!permission.granted) {
+        showAlert({
+          type: "warning",
+          icon: "images-outline",
+          title: "Permission Required",
+          message:
+            "Allow photo access so Memento can save the photo to your gallery.",
+          confirmText: "OK",
+        });
+
+        return;
+      }
+
+      const { uri } = await downloadViewerImage(index);
+
+      await MediaLibrary.saveToLibraryAsync(uri);
+
+      showAlert({
+        type: "success",
+        icon: "checkmark-circle-outline",
+        title: "Saved",
+        message: "Photo saved to your gallery.",
+        confirmText: "Done",
+      });
+    } catch (error) {
+      console.log("Photo save error:", error);
+
+      showAlert({
+        type: "danger",
+        icon: "close-circle-outline",
+        title: "Save Failed",
+        message: "Unable to save this photo.",
+        confirmText: "OK",
+      });
+    } finally {
+      setSavingPhoto(false);
+    }
+  };
 
   // --------------------------------------------------
   // MORE / SHARE IMAGE
@@ -445,52 +410,37 @@ function MemoryDetailsScreen({
 
       setSharing(true);
 
-      const available =
-        await Sharing.isAvailableAsync();
+      const available = await Sharing.isAvailableAsync();
 
       if (!available) {
         showAlert({
           type: "warning",
-          icon:
-            "share-social-outline",
-          title:
-            "Sharing Unavailable",
-          message:
-            "Sharing is not available on this device.",
+          icon: "share-social-outline",
+          title: "Sharing Unavailable",
+          message: "Sharing is not available on this device.",
           confirmText: "OK",
         });
 
         return;
       }
 
-      const imageUri =
-        await captureCurrentTicket();
+      const imageUri = await captureCurrentTicket();
 
-      await Sharing.shareAsync(
-        imageUri,
-        {
-          mimeType:
-            "image/png",
+      await Sharing.shareAsync(imageUri, {
+        mimeType: "image/png",
 
-          dialogTitle:
-            "Share Memory Ticket",
+        dialogTitle: "Share Memory Ticket",
 
-          UTI: "public.png",
-        },
-      );
+        UTI: "public.png",
+      });
     } catch (error) {
-      console.log(
-        "Share error:",
-        error,
-      );
+      console.log("Share error:", error);
 
       showAlert({
         type: "danger",
-        icon:
-          "close-circle-outline",
+        icon: "close-circle-outline",
         title: "Share Failed",
-        message:
-          "Unable to share the Memory Ticket.",
+        message: "Unable to share the Memory Ticket.",
         confirmText: "OK",
       });
     } finally {
@@ -502,118 +452,85 @@ function MemoryDetailsScreen({
   // SAVE IMAGE
   // --------------------------------------------------
 
-  const handleSaveImage =
-    async () => {
-      try {
-        if (savingImage) {
-          return;
-        }
+  const handleSaveImage = async () => {
+    try {
+      if (savingImage) {
+        return;
+      }
 
-        setSavingImage(true);
+      setSavingImage(true);
 
-        const permission =
-          await MediaLibrary.requestPermissionsAsync();
+      const permission = await MediaLibrary.requestPermissionsAsync();
 
-        if (!permission.granted) {
-          showAlert({
-            type: "warning",
-            icon:
-              "images-outline",
-            title:
-              "Permission Required",
-            message:
-              "Allow photo access so Memory Ticket can save the image to your device.",
-            confirmText: "OK",
-          });
-
-          return;
-        }
-
-        const imageUri =
-          await captureCurrentTicket();
-
-        await MediaLibrary.saveToLibraryAsync(
-          imageUri,
-        );
-
-        shareSheetRef.current?.close();
-
+      if (!permission.granted) {
         showAlert({
-          type: "success",
-          icon:
-            "checkmark-circle-outline",
-          title: "Saved",
+          type: "warning",
+          icon: "images-outline",
+          title: "Permission Required",
           message:
-            "Your Memory Ticket has been saved to your gallery.",
-          confirmText: "Done",
-        });
-      } catch (error) {
-        console.log(
-          "Save image error:",
-          error,
-        );
-
-        showAlert({
-          type: "danger",
-          icon:
-            "close-circle-outline",
-          title: "Save Failed",
-          message:
-            "Something went wrong while saving your Memory Ticket.",
+            "Allow photo access so Memory Ticket can save the image to your device.",
           confirmText: "OK",
         });
-      } finally {
-        setSavingImage(false);
+
+        return;
       }
-    };
+
+      const imageUri = await captureCurrentTicket();
+
+      await MediaLibrary.saveToLibraryAsync(imageUri);
+
+      shareSheetRef.current?.close();
+
+      showAlert({
+        type: "success",
+        icon: "checkmark-circle-outline",
+        title: "Saved",
+        message: "Your Memory Ticket has been saved to your gallery.",
+        confirmText: "Done",
+      });
+    } catch (error) {
+      console.log("Save image error:", error);
+
+      showAlert({
+        type: "danger",
+        icon: "close-circle-outline",
+        title: "Save Failed",
+        message: "Something went wrong while saving your Memory Ticket.",
+        confirmText: "OK",
+      });
+    } finally {
+      setSavingImage(false);
+    }
+  };
 
   // --------------------------------------------------
   // TICKET CAROUSEL ITEM
   // --------------------------------------------------
 
-  const renderTicket = ({
-    item: image,
-    index,
-  }) => {
+  const renderTicket = ({ item: image, index }) => {
     return (
       <View
         style={[
           styles.ticketSlide,
           {
-            width:
-              screenWidth - 44,
+            width: screenWidth - 44,
             marginRight: 12,
           },
         ]}
       >
         <View
           ref={(ref) => {
-            ticketRefs.current[
-              index
-            ] = ref;
+            ticketRefs.current[index] = ref;
           }}
           collapsable={false}
-          style={
-            styles.ticketShadow
-          }
+          style={styles.ticketShadow}
         >
           <MemoryTicket
             key={`${memory.id}-${ticketPreviewMemory.ticketStyle}-${ticketPreviewMemory.ticketAccent}`}
-            memory={
-              ticketPreviewMemory
-            }
-            image={
-              detailImages[index] ||
-              image
-            }
-            ticketNumber={
-              getTicketNumber()
-            }
-            onPress={() =>
-              openImageViewer(
-                index,
-              )
-            }
+            memory={ticketPreviewMemory}
+            image={detailImages[index] || image}
+            ticketNumber={getTicketNumber()}
+            onPress={() => openImageViewer(index)}
           />
         </View>
       </View>
@@ -738,7 +655,7 @@ function MemoryDetailsScreen({
 
         {/* CUSTOMIZE TICKET */}
 
-        <TouchableOpacity
+        {/* <TouchableOpacity
           style={detailStyles.customizeButton}
           onPress={openCustomization}
           activeOpacity={0.85}
@@ -746,7 +663,7 @@ function MemoryDetailsScreen({
           <Ionicons name="color-palette-outline" size={19} color="#34345C" />
 
           <Text style={detailStyles.customizeButtonText}>CUSTOMIZE TICKET</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
 
         {/* SHARE */}
 
@@ -796,7 +713,6 @@ function MemoryDetailsScreen({
       <ShareExportSheet
         ref={shareSheetRef}
         onSaveImage={handleSaveImage}
-
         onExportPDF={async () => {
           try {
             const frontTicketUri = await captureCurrentTicket();
@@ -811,7 +727,6 @@ function MemoryDetailsScreen({
             console.log("Prepare PDF export error:", error);
           }
         }}
-
         onMore={handleMore}
         savingImage={savingImage}
         generatingPdf={false}
@@ -820,104 +735,31 @@ function MemoryDetailsScreen({
 
       {/* TICKET CUSTOMIZATION */}
 
-      <TicketCustomizationSheet
+      {/* <TicketCustomizationSheet
         visible={customizationVisible}
         value={draftCustomization || normalizeTicketCustomization(memory)}
         onChange={setDraftCustomization}
         onClose={closeCustomization}
         onSave={handleSaveCustomization}
         saving={customizationSaving}
-      />
+      /> */}
 
       {/* FULLSCREEN IMAGE VIEWER */}
 
-      <Modal
+      <MemoryImageViewer
         visible={imageViewerVisible}
-        transparent={false}
-        animationType="fade"
-        onRequestClose={closeImageViewer}
-      >
-        <View style={imageViewerStyles.container}>
-          <View style={imageViewerStyles.topBar}>
-            <TouchableOpacity
-              style={imageViewerStyles.closeButton}
-              onPress={closeImageViewer}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="close" size={25} color="#FFFFFF" />
-            </TouchableOpacity>
-
-            {images.length > 0 && (
-              <View style={imageViewerStyles.counterWrapper}>
-                <Text style={imageViewerStyles.counter}>
-                  {viewerImage + 1}/{images.length}
-                </Text>
-              </View>
-            )}
-          </View>
-
-          <FlatList
-            data={images}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            decelerationRate="fast"
-            initialScrollIndex={viewerImage}
-            initialNumToRender={1}
-            maxToRenderPerBatch={2}
-            windowSize={3}
-            removeClippedSubviews={true}
-            getItemLayout={(_, index) => ({
-              length: screenWidth,
-
-              offset: screenWidth * index,
-
-              index,
-            })}
-            keyExtractor={(item, index) => `${item}-viewer-${index}`}
-            renderItem={({ item: image, index }) => (
-              <View
-                style={[
-                  imageViewerStyles.imagePage,
-                  {
-                    width: screenWidth,
-                    height: screenHeight,
-                  },
-                ]}
-              >
-                <Image
-                  source={{
-                    uri: viewerImages[index] || image,
-                  }}
-                  style={[
-                    imageViewerStyles.fullImage,
-                    {
-                      width: screenWidth,
-                      height: screenHeight,
-                    },
-                  ]}
-                  resizeMode="contain"
-                />
-              </View>
-            )}
-            onMomentumScrollEnd={handleViewerScroll}
-          />
-
-          {images.length > 1 && (
-            <View style={imageViewerStyles.bottomHint}>
-              <Ionicons
-                name="swap-horizontal-outline"
-                size={16}
-                color="#BDBDBD"
-              />
-
-              <Text style={imageViewerStyles.bottomHintText}>
-                Swipe to view photos
-              </Text>
-            </View>
-          )}
-        </View>
-      </Modal>
+        images={viewerImages}
+        initialIndex={viewerImage}
+        onClose={closeImageViewer}
+        onIndexChange={(index) => {
+          setViewerImage(index);
+          setActiveImage(index);
+        }}
+        onShare={handleSharePhoto}
+        onSave={handleSavePhoto}
+        sharing={sharingPhoto}
+        saving={savingPhoto}
+      />
     </View>
   );
 }
@@ -1019,140 +861,6 @@ const detailStyles =
       fontWeight: "900",
 
       letterSpacing: 1,
-    },
-  });
-
-const imageViewerStyles =
-  StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor:
-        "#0B0B0D",
-    },
-
-    topBar: {
-      position: "absolute",
-
-      top: 0,
-      left: 0,
-      right: 0,
-
-      zIndex: 20,
-
-      height: 92,
-
-      paddingTop: 48,
-      paddingHorizontal: 18,
-
-      flexDirection: "row",
-      alignItems: "center",
-    },
-
-    closeButton: {
-      position: "absolute",
-
-      left: 18,
-      top: 48,
-
-      width: 42,
-      height: 42,
-
-      borderRadius: 14,
-
-      backgroundColor:
-        "rgba(255, 255, 255, 0.12)",
-
-      borderWidth: 1,
-
-      borderColor:
-        "rgba(255, 255, 255, 0.12)",
-
-      alignItems: "center",
-      justifyContent: "center",
-    },
-
-    counterWrapper: {
-      flex: 1,
-      alignItems: "center",
-    },
-
-    counter: {
-      minWidth: 54,
-
-      paddingHorizontal: 12,
-      paddingVertical: 7,
-
-      borderRadius: 14,
-
-      backgroundColor:
-        "rgba(255, 255, 255, 0.12)",
-
-      borderWidth: 1,
-
-      borderColor:
-        "rgba(255, 255, 255, 0.14)",
-
-      color: "#FFFFFF",
-
-      fontSize: 11,
-      fontWeight: "900",
-
-      letterSpacing: 1,
-
-      textAlign: "center",
-    },
-
-    imagePage: {
-      flex: 1,
-
-      alignItems: "center",
-      justifyContent: "center",
-
-      backgroundColor:
-        "#0B0B0D",
-    },
-
-    fullImage: {
-      alignSelf: "center",
-      backgroundColor:
-        "transparent",
-    },
-
-    bottomHint: {
-      position: "absolute",
-
-      left: 18,
-      right: 18,
-      bottom: 28,
-
-      minHeight: 42,
-
-      paddingHorizontal: 15,
-
-      borderRadius: 21,
-
-      backgroundColor:
-        "rgba(255, 255, 255, 0.10)",
-
-      borderWidth: 1,
-
-      borderColor:
-        "rgba(255, 255, 255, 0.10)",
-
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
-
-      gap: 7,
-    },
-
-    bottomHintText: {
-      color: "#C9C9CE",
-
-      fontSize: 10,
-      fontWeight: "800",
-
-      letterSpacing: 0.8,
     },
   });
 
