@@ -1,4 +1,7 @@
-import { useEffect, useRef } from "react";
+import {
+  useEffect,
+  useRef,
+} from "react";
 
 import {
   Animated,
@@ -20,12 +23,20 @@ function CustomAlert({
   confirmText = "Confirm",
   cancelText = "Cancel",
   showCancel = true,
+  showClose = true,
   onConfirm,
   onCancel,
+  onClose,
 }) {
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnim =
+    useRef(
+      new Animated.Value(0),
+    ).current;
 
-  const scaleAnim = useRef(new Animated.Value(0.92)).current;
+  const scaleAnim =
+    useRef(
+      new Animated.Value(0.92),
+    ).current;
 
   useEffect(() => {
     if (visible) {
@@ -33,24 +44,38 @@ function CustomAlert({
       scaleAnim.setValue(0.92);
 
       Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 180,
-          useNativeDriver: true,
-        }),
+        Animated.timing(
+          fadeAnim,
+          {
+            toValue: 1,
+            duration: 180,
+            useNativeDriver: true,
+          },
+        ),
 
-        Animated.spring(scaleAnim, {
-          toValue: 1,
-          tension: 80,
-          friction: 8,
-          useNativeDriver: true,
-        }),
+        Animated.spring(
+          scaleAnim,
+          {
+            toValue: 1,
+            tension: 80,
+            friction: 8,
+            useNativeDriver: true,
+          },
+        ),
       ]).start();
     } else {
       fadeAnim.setValue(0);
       scaleAnim.setValue(0.92);
     }
-  }, [visible, fadeAnim, scaleAnim]);
+  }, [
+    visible,
+    fadeAnim,
+    scaleAnim,
+  ]);
+
+  // ==================================================
+  // ALERT ICON
+  // ==================================================
 
   const getAlertIcon = () => {
     if (icon) {
@@ -82,61 +107,150 @@ function CustomAlert({
       visible={visible}
       transparent
       animationType="none"
-      onRequestClose={() => {}}
+      onRequestClose={
+        onClose || (() => {})
+      }
     >
-      <View style={styles.overlay}>
+      <View
+        style={styles.overlay}
+      >
         <Animated.View
           style={[
             styles.modalContainer,
             {
-              opacity: fadeAnim,
+              opacity:
+                fadeAnim,
+
               transform: [
                 {
-                  scale: scaleAnim,
+                  scale:
+                    scaleAnim,
                 },
               ],
             },
           ]}
         >
-          {/* ICON */}
+          {/* ==================================================
+              CLOSE BUTTON
+          ================================================== */}
 
-          <View style={styles.iconContainer}>
-            <Ionicons name={getAlertIcon()} size={30} color="#34345C" />
-          </View>
+          {showClose && (
+            <Pressable
+              style={({ pressed }) => [
+                styles.closeButton,
 
-          {/* TITLE */}
+                pressed &&
+                  styles.closeButtonPressed,
+              ]}
+              onPress={
+                onClose
+              }
+              hitSlop={8}
+            >
+              <Ionicons
+                name="close"
+                size={19}
+                color="#34345C"
+              />
+            </Pressable>
+          )}
 
-          <Text style={styles.title}>{title}</Text>
-
-          {/* MESSAGE */}
-
-          {message ? <Text style={styles.message}>{message}</Text> : null}
-
-          {/* BUTTONS */}
+          {/* ==================================================
+              ICON
+          ================================================== */}
 
           <View
-            style={[styles.buttonRow, !showCancel && styles.singleButtonRow]}
+            style={
+              styles.iconContainer
+            }
+          >
+            <Ionicons
+              name={getAlertIcon()}
+              size={30}
+              color="#34345C"
+            />
+          </View>
+
+          {/* ==================================================
+              TITLE
+          ================================================== */}
+
+          <Text
+            style={styles.title}
+          >
+            {title}
+          </Text>
+
+          {/* ==================================================
+              MESSAGE
+          ================================================== */}
+
+          {message ? (
+            <Text
+              style={
+                styles.message
+              }
+            >
+              {message}
+            </Text>
+          ) : null}
+
+          {/* ==================================================
+              BUTTONS
+          ================================================== */}
+
+          <View
+            style={[
+              styles.buttonRow,
+
+              !showCancel &&
+                styles.singleButtonRow,
+            ]}
           >
             {showCancel && (
               <Pressable
-                style={({ pressed }) => [
+                style={({
+                  pressed,
+                }) => [
                   styles.cancelButton,
-                  pressed && styles.buttonPressed,
+
+                  pressed &&
+                    styles.buttonPressed,
                 ]}
-                onPress={onCancel}
+                onPress={
+                  onCancel
+                }
               >
-                <Text style={styles.cancelText}>{cancelText}</Text>
+                <Text
+                  style={
+                    styles.cancelText
+                  }
+                >
+                  {cancelText}
+                </Text>
               </Pressable>
             )}
 
             <Pressable
-              style={({ pressed }) => [
+              style={({
+                pressed,
+              }) => [
                 styles.confirmButton,
-                pressed && styles.buttonPressed,
+
+                pressed &&
+                  styles.buttonPressed,
               ]}
-              onPress={onConfirm}
+              onPress={
+                onConfirm
+              }
             >
-              <Text style={styles.confirmText}>{confirmText}</Text>
+              <Text
+                style={
+                  styles.confirmText
+                }
+              >
+                {confirmText}
+              </Text>
             </Pressable>
           </View>
         </Animated.View>
@@ -147,157 +261,268 @@ function CustomAlert({
 
 export default CustomAlert;
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
+const styles =
+  StyleSheet.create({
+    // ==================================================
+    // OVERLAY
+    // ==================================================
 
-    justifyContent: "center",
-    alignItems: "center",
+    overlay: {
+      flex: 1,
 
-    /*
-     * Completely transparent outside the popup.
-     */
-    backgroundColor: "transparent",
+      justifyContent:
+        "center",
 
-    paddingHorizontal: 24,
-  },
+      alignItems:
+        "center",
 
-  modalContainer: {
-    width: "100%",
-    maxWidth: 360,
+      backgroundColor:
+        "transparent",
 
-    backgroundColor: "#FFFFFF",
-
-    borderRadius: 22,
-
-    paddingHorizontal: 22,
-    paddingTop: 24,
-    paddingBottom: 20,
-
-    alignItems: "center",
-
-    shadowColor: "#000000",
-
-    shadowOffset: {
-      width: 0,
-      height: 10,
+      paddingHorizontal: 24,
     },
 
-    shadowOpacity: 0.18,
-    shadowRadius: 20,
+    // ==================================================
+    // MODAL
+    // ==================================================
 
-    elevation: 12,
-  },
+    modalContainer: {
+      width: "100%",
 
-  iconContainer: {
-    width: 58,
-    height: 58,
+      maxWidth: 360,
 
-    borderRadius: 29,
+      backgroundColor:
+        "#FFFFFF",
 
-    backgroundColor: "#F1F0F6",
+      borderRadius: 22,
 
-    justifyContent: "center",
-    alignItems: "center",
+      paddingHorizontal: 22,
 
-    marginBottom: 15,
+      paddingTop: 24,
 
-    borderWidth: 1,
-    borderColor: "#D9D8E2",
-  },
+      paddingBottom: 20,
 
-  title: {
-    fontSize: 20,
-    fontWeight: "900",
+      alignItems: "center",
 
-    color: "#34345C",
+      shadowColor:
+        "#000000",
 
-    textAlign: "center",
+      shadowOffset: {
+        width: 0,
+        height: 10,
+      },
 
-    marginBottom: 8,
-  },
+      shadowOpacity: 0.18,
 
-  message: {
-    fontSize: 13,
+      shadowRadius: 20,
 
-    lineHeight: 20,
+      elevation: 12,
 
-    fontWeight: "500",
+      position: "relative",
+    },
 
-    color: "#242424",
+    // ==================================================
+    // CLOSE BUTTON
+    // ==================================================
 
-    textAlign: "center",
+    closeButton: {
+      position: "absolute",
 
-    paddingHorizontal: 8,
+      top: 12,
+      right: 12,
 
-    marginBottom: 22,
-  },
+      width: 36,
+      height: 36,
 
-  buttonRow: {
-    width: "100%",
+      borderRadius: 12,
 
-    flexDirection: "row",
+      backgroundColor:
+        "#F1F0F6",
 
-    gap: 10,
-  },
+      borderWidth: 1,
 
-  singleButtonRow: {
-    flexDirection: "column",
-  },
+      borderColor:
+        "#D9D8E2",
 
-  cancelButton: {
-    flex: 1,
+      alignItems:
+        "center",
 
-    height: 48,
+      justifyContent:
+        "center",
 
-    borderRadius: 14,
+      zIndex: 10,
+    },
 
-    borderWidth: 1.5,
+    closeButtonPressed: {
+      opacity: 0.6,
+      transform: [
+        {
+          scale: 0.94,
+        },
+      ],
+    },
 
-    borderColor: "#34345C",
+    // ==================================================
+    // ICON
+    // ==================================================
 
-    justifyContent: "center",
-    alignItems: "center",
+    iconContainer: {
+      width: 58,
+      height: 58,
 
-    backgroundColor: "#FFFFFF",
-  },
+      borderRadius: 29,
 
-  confirmButton: {
-    flex: 1,
+      backgroundColor:
+        "#F1F0F6",
 
-    height: 48,
+      justifyContent:
+        "center",
 
-    borderRadius: 14,
+      alignItems:
+        "center",
 
-    justifyContent: "center",
-    alignItems: "center",
+      marginBottom: 15,
 
-    paddingHorizontal: 18,
+      borderWidth: 1,
 
-    backgroundColor: "#34345C",
-  },
+      borderColor:
+        "#D9D8E2",
+    },
 
-  cancelText: {
-    fontSize: 13,
+    // ==================================================
+    // TITLE
+    // ==================================================
 
-    fontWeight: "900",
+    title: {
+      fontSize: 20,
 
-    letterSpacing: 0.4,
+      fontWeight: "900",
 
-    color: "#34345C",
-  },
+      color: "#34345C",
 
-  confirmText: {
-    fontSize: 13,
+      textAlign: "center",
 
-    fontWeight: "900",
+      marginBottom: 8,
 
-    letterSpacing: 0.4,
+      paddingHorizontal: 28,
+    },
 
-    color: "#FFFFFF",
-  },
+    // ==================================================
+    // MESSAGE
+    // ==================================================
 
-  buttonPressed: {
-    opacity: 0.7,
-  },
-});
+    message: {
+      fontSize: 13,
+
+      lineHeight: 20,
+
+      fontWeight: "500",
+
+      color: "#242424",
+
+      textAlign: "center",
+
+      paddingHorizontal: 8,
+
+      marginBottom: 22,
+    },
+
+    // ==================================================
+    // BUTTON ROW
+    // ==================================================
+
+    buttonRow: {
+      width: "100%",
+
+      flexDirection:
+        "row",
+
+      gap: 10,
+    },
+
+    singleButtonRow: {
+      flexDirection:
+        "column",
+    },
+
+    // ==================================================
+    // CANCEL
+    // ==================================================
+
+    cancelButton: {
+      flex: 1,
+
+      height: 48,
+
+      borderRadius: 14,
+
+      borderWidth: 1.5,
+
+      borderColor:
+        "#34345C",
+
+      justifyContent:
+        "center",
+
+      alignItems:
+        "center",
+
+      backgroundColor:
+        "#FFFFFF",
+    },
+
+    // ==================================================
+    // CONFIRM
+    // ==================================================
+
+    confirmButton: {
+      flex: 1,
+
+      height: 48,
+
+      borderRadius: 14,
+
+      justifyContent:
+        "center",
+
+      alignItems:
+        "center",
+
+      paddingHorizontal: 18,
+
+      backgroundColor:
+        "#34345C",
+    },
+
+    // ==================================================
+    // TEXT
+    // ==================================================
+
+    cancelText: {
+      fontSize: 13,
+
+      fontWeight: "900",
+
+      letterSpacing: 0.4,
+
+      color: "#34345C",
+    },
+
+    confirmText: {
+      fontSize: 13,
+
+      fontWeight: "900",
+
+      letterSpacing: 0.4,
+
+      color: "#FFFFFF",
+    },
+
+    // ==================================================
+    // BUTTON PRESS
+    // ==================================================
+
+    buttonPressed: {
+      opacity: 0.7,
+    },
+  });

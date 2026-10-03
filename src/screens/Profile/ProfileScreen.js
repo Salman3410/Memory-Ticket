@@ -36,7 +36,14 @@ function ProfileScreen({ navigation }) {
   };
 
   const handleRewards = () => {
-    navigation.navigate("Rewards");
+    showAlert({
+      type: "info",
+      icon: "gift-outline",
+      title: "Memento Rewards",
+      message: "The rewards section is coming soon.",
+      confirmText: "OK",
+      showClose: true,
+    });
   };
 
   const handleSettings = () => {
