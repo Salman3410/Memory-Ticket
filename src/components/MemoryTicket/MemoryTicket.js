@@ -16,8 +16,8 @@ const TICKET_DESIGNS = {
     background: require("../../../assets/tickets/classic.png"),
 
     colors: {
-      primary: "#111111",
-      secondary: "#FFFFFF",
+      primary: "#FFFFFF",
+      secondary: "#0B1325",
       muted: "rgba(255,255,255,0.78)",
       border: "rgba(255,255,255,0.55)",
     },
