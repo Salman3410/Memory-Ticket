@@ -6,10 +6,16 @@ function PhotoPlaceholder({ pickImages, takePhoto }) {
   return (
     <View style={styles.photoPlaceholder}>
       <View style={styles.photoIcon}>
-        <Ionicons name="images-outline" size={30} color="#34345C" />
+        <Ionicons
+          name="images-outline"
+          size={27}
+          color="#34345C"
+        />
       </View>
 
-      <Text style={styles.photoTitle}>Add your photos</Text>
+      <Text style={styles.photoTitle}>
+        Add your photos
+      </Text>
 
       <Text style={styles.photoDescription}>
         Capture this moment with up to 5 photos.
@@ -21,9 +27,15 @@ function PhotoPlaceholder({ pickImages, takePhoto }) {
           onPress={pickImages}
           activeOpacity={0.8}
         >
-          <Ionicons name="images-outline" size={19} color="#34345C" />
+          <Ionicons
+            name="images-outline"
+            size={18}
+            color="#34345C"
+          />
 
-          <Text style={styles.galleryButtonText}>ADD PHOTOS</Text>
+          <Text style={styles.galleryButtonText}>
+            ADD PHOTOS
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -31,9 +43,15 @@ function PhotoPlaceholder({ pickImages, takePhoto }) {
           onPress={takePhoto}
           activeOpacity={0.8}
         >
-          <Ionicons name="camera-outline" size={19} color="#FFFFFF" />
+          <Ionicons
+            name="camera-outline"
+            size={18}
+            color="#FFFFFF"
+          />
 
-          <Text style={styles.cameraButtonText}>CAMERA</Text>
+          <Text style={styles.cameraButtonText}>
+            CAMERA
+          </Text>
         </TouchableOpacity>
       </View>
     </View>

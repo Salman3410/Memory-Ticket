@@ -1,4 +1,5 @@
 import { View, Text, TextInput } from "react-native";
+
 import styles from "../createMemoryStyles";
 
 function DescriptionInput({ description, setDescription }) {
@@ -21,7 +22,7 @@ function DescriptionInput({ description, setDescription }) {
         value={description}
         onChangeText={handleChange}
         placeholder="Tell the story behind this moment..."
-        placeholderTextColor="#A6A5AE"
+        placeholderTextColor="#9A9AA3"
         multiline
         textAlignVertical="top"
       />

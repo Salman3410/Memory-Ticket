@@ -1,5 +1,4 @@
 import React, { useCallback, useMemo, useRef, useState } from "react";
-
 import {
   Dimensions,
   FlatList,
@@ -7,17 +6,12 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-
 import { Ionicons } from "@expo/vector-icons";
-
 import { useMemory } from "../../hooks/useMemory";
-
 import MemoryTicket from "../../components/MemoryTicket/MemoryTicket";
-
 import { styles } from "./onThisDayStyles";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
-
 const MAX_MEMORIES = 10;
 
 function getMemoryDate(memory) {
@@ -30,18 +24,18 @@ function getTimestamp(memory) {
   if (!value) {
     return 0;
   }
-
   const timestamp = new Date(value).getTime();
-
   return Number.isNaN(timestamp) ? 0 : timestamp;
 }
 
 function getOnThisDayMemories(memories) {
   const today = new Date();
 
-  const targetYear = today.getFullYear() - 1;
   const targetMonth = today.getMonth();
+
   const targetDay = today.getDate();
+
+  const currentYear = today.getFullYear();
 
   return memories
     .filter((memory) => {
@@ -58,9 +52,9 @@ function getOnThisDayMemories(memories) {
       }
 
       return (
-        date.getFullYear() === targetYear &&
         date.getMonth() === targetMonth &&
-        date.getDate() === targetDay
+        date.getDate() === targetDay &&
+        date.getFullYear() < currentYear
       );
     })
     .sort((a, b) => {
@@ -72,16 +66,9 @@ function getOnThisDayMemories(memories) {
 function formatDate() {
   const today = new Date();
 
-  const targetDate = new Date(
-    today.getFullYear() - 1,
-    today.getMonth(),
-    today.getDate(),
-  );
-
-  return targetDate.toLocaleDateString("en-US", {
+  return today.toLocaleDateString("en-US", {
     month: "long",
     day: "numeric",
-    year: "numeric",
   });
 }
 
@@ -172,10 +159,10 @@ function OnThisDayScreen({ navigation }) {
               <Ionicons name="time-outline" size={28} color="#34345C" />
             </View>
 
-            <Text style={styles.emptyTitle}>Nothing from one year ago</Text>
+            <Text style={styles.emptyTitle}>Nothing from this day</Text>
 
             <Text style={styles.emptyText}>
-              You don't have a memory from {targetDate}.
+              You don't have any memories from {targetDate} in previous years.
             </Text>
 
             <Text style={styles.emptyHint}>
@@ -189,6 +176,7 @@ function OnThisDayScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
+
       <View style={styles.header}>
         <TouchableOpacity
           activeOpacity={0.7}
@@ -210,8 +198,8 @@ function OnThisDayScreen({ navigation }) {
       <View style={styles.subtitleWrapper}>
         <Text style={styles.subtitle}>
           {onThisDayMemories.length}{" "}
-          {onThisDayMemories.length === 1 ? "memory" : "memories"} from one year
-          ago
+          {onThisDayMemories.length === 1 ? "memory" : "memories"} from this day
+          in previous years
         </Text>
       </View>
 
@@ -247,9 +235,7 @@ function OnThisDayScreen({ navigation }) {
         </View>
 
         {onThisDayMemories.length > 1 && (
-          <Text style={styles.swipeHint}>
-            Swipe to rediscover more memories
-          </Text>
+          <Text style={styles.swipeHint}>Swipe to rediscover memories</Text>
         )}
       </View>
     </View>

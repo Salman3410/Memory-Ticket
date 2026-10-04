@@ -5,27 +5,27 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 
+import { Ionicons } from "@expo/vector-icons";
+
 import { useCollection } from "../../hooks/useCollection";
+
+import styles from "./createCollectionStyles";
 
 function CreateCollectionScreen({ navigation }) {
   const { createCollection } = useCollection();
 
   const [name, setName] = useState("");
-
   const [description, setDescription] = useState("");
-
   const [saving, setSaving] = useState(false);
 
   const handleCreate = useCallback(async () => {
     const trimmedName = name.trim();
-
     const trimmedDescription = description.trim();
 
     if (!trimmedName) {
@@ -71,6 +71,8 @@ function CreateCollectionScreen({ navigation }) {
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
+      {/* HEADER */}
+
       <View style={styles.header}>
         <TouchableOpacity
           onPress={handleCancel}
@@ -91,6 +93,7 @@ function CreateCollectionScreen({ navigation }) {
         showsVerticalScrollIndicator={false}
       >
         {/* PREVIEW */}
+
         <View style={styles.previewTicket}>
           <View style={styles.previewTop}>
             <View style={styles.previewMark}>
@@ -122,40 +125,50 @@ function CreateCollectionScreen({ navigation }) {
         </View>
 
         {/* NAME */}
-        <View style={styles.fieldContainer}>
-          <Text style={styles.label}>Collection Name</Text>
 
-          <TextInput
-            value={name}
-            onChangeText={setName}
-            placeholder="e.g. Turkey Trip"
-            placeholderTextColor="#999999"
-            style={styles.input}
-            maxLength={100}
-            autoFocus
-            returnKeyType="next"
-          />
+        <View style={styles.fieldContainer}>
+          <Text style={styles.label}>COLLECTION NAME</Text>
+
+          <View style={styles.inputWithIcon}>
+            <Ionicons name="albums-outline" size={17} color="#7E7E88" />
+
+            <TextInput
+              value={name}
+              onChangeText={setName}
+              placeholder="e.g. Turkey Trip"
+              placeholderTextColor="#9A9AA3"
+              style={styles.input}
+              maxLength={100}
+              autoFocus
+              autoCapitalize="sentences"
+              autoCorrect={false}
+              returnKeyType="next"
+            />
+          </View>
 
           <Text style={styles.characterCount}>{name.length}/100</Text>
         </View>
 
         {/* DESCRIPTION */}
+
         <View style={styles.fieldContainer}>
-          <Text style={styles.label}>Description</Text>
+          <Text style={styles.label}>DESCRIPTION</Text>
 
           <TextInput
             value={description}
             onChangeText={setDescription}
             placeholder="Add a short description"
-            placeholderTextColor="#999999"
-            style={[styles.input, styles.descriptionInput]}
-            maxLength={500}
+            placeholderTextColor="#9A9AA3"
+            style={styles.descriptionInput}
+            maxLength={200}
             multiline
             textAlignVertical="top"
           />
 
-          <Text style={styles.characterCount}>{description.length}/500</Text>
+          <Text style={styles.characterCount}>{description.length}/200</Text>
         </View>
+
+        {/* HELPER */}
 
         <View style={styles.helper}>
           <Text style={styles.helperTitle}>BUILD YOUR TICKET</Text>
@@ -166,6 +179,8 @@ function CreateCollectionScreen({ navigation }) {
           </Text>
         </View>
       </ScrollView>
+
+      {/* FOOTER */}
 
       <View style={styles.footer}>
         <TouchableOpacity
@@ -189,214 +204,3 @@ function CreateCollectionScreen({ navigation }) {
 }
 
 export default CreateCollectionScreen;
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F1F0F6",
-  },
-
-  header: {
-    height: 80,
-    paddingTop:20,
-    paddingHorizontal: 20,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    borderBottomWidth: 1,
-    borderBottomColor: "#D9D8E2",
-  },
-
-  cancelText: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#34345C",
-  },
-
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "800",
-    color: "#242424",
-  },
-
-  headerSpacer: {
-    width: 52,
-  },
-
-  content: {
-    padding: 20,
-    paddingBottom: 35,
-  },
-
-  previewTicket: {
-    overflow: "hidden",
-    borderRadius: 18,
-    backgroundColor: "#FFFFFF",
-    marginBottom: 28,
-  },
-
-  previewTop: {
-    minHeight: 120,
-    padding: 17,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-
-  previewMark: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#34345C",
-  },
-
-  previewMarkText: {
-    fontSize: 21,
-    fontWeight: "800",
-    color: "#FFFFFF",
-  },
-
-  previewText: {
-    flex: 1,
-    marginLeft: 14,
-  },
-
-  previewLabel: {
-    fontSize: 8,
-    fontWeight: "800",
-    letterSpacing: 1.5,
-    color: "#E76F51",
-  },
-
-  previewName: {
-    marginTop: 4,
-    fontSize: 19,
-    lineHeight: 23,
-    fontWeight: "800",
-    color: "#242424",
-  },
-
-  previewCount: {
-    marginTop: 4,
-    fontSize: 8,
-    fontWeight: "800",
-    letterSpacing: 1,
-    color: "#34345C",
-  },
-
-  previewDivider: {
-    marginHorizontal: 17,
-    borderTopWidth: 1,
-    borderTopColor: "#CECDD6",
-    borderStyle: "dashed",
-  },
-
-  previewFooter: {
-    paddingHorizontal: 17,
-    paddingVertical: 11,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-
-  previewBrand: {
-    fontSize: 7,
-    fontWeight: "800",
-    letterSpacing: 1.4,
-    color: "#9999A1",
-  },
-
-  previewBarcode: {
-    height: 16,
-    flexDirection: "row",
-    gap: 2,
-  },
-
-  previewBar: {
-    height: "100%",
-    backgroundColor: "#34345C",
-  },
-
-  fieldContainer: {
-    marginBottom: 23,
-  },
-
-  label: {
-    marginBottom: 8,
-    fontSize: 13,
-    fontWeight: "800",
-    color: "#242424",
-  },
-
-  input: {
-    minHeight: 52,
-    paddingHorizontal: 15,
-    borderRadius: 12,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#D9D8E2",
-    fontSize: 16,
-    color: "#242424",
-  },
-
-  descriptionInput: {
-    minHeight: 125,
-    paddingTop: 14,
-    paddingBottom: 14,
-  },
-
-  characterCount: {
-    marginTop: 5,
-    alignSelf: "flex-end",
-    fontSize: 10,
-    color: "#8A8A8A",
-  },
-
-  helper: {
-    padding: 15,
-    borderRadius: 14,
-    backgroundColor: "#E9E8F1",
-  },
-
-  helperTitle: {
-    fontSize: 8,
-    fontWeight: "800",
-    letterSpacing: 1.4,
-    color: "#34345C",
-  },
-
-  helperText: {
-    marginTop: 6,
-    fontSize: 12,
-    lineHeight: 18,
-    color: "#666666",
-  },
-
-  footer: {
-    paddingHorizontal: 20,
-    paddingTop: 11,
-    paddingBottom: 20,
-    backgroundColor: "#F1F0F6",
-    borderTopWidth: 1,
-    borderTopColor: "#D9D8E2",
-  },
-
-  createButton: {
-    height: 52,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#34345C",
-  },
-
-  createButtonDisabled: {
-    opacity: 0.45,
-  },
-
-  createButtonText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#FFFFFF",
-  },
-});

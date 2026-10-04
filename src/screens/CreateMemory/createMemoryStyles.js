@@ -88,78 +88,104 @@ const styles = StyleSheet.create({
 
   photoPlaceholder: {
     backgroundColor: "#FFFFFF",
-    borderWidth: 1.5,
-    borderColor: "#D9D8E2",
-    borderStyle: "dashed",
-    borderRadius: 22,
+
+    borderRadius: 14,
+
     alignItems: "center",
-    paddingHorizontal: 22,
-    paddingVertical: 32,
+
+    paddingHorizontal: 20,
+    paddingVertical: 26,
   },
 
   photoIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 20,
+    width: 54,
+    height: 54,
+
+    borderRadius: 14,
+
     backgroundColor: "#F1F0F6",
+
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 15,
+
+    marginBottom: 14,
   },
 
   photoTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "800",
+
     color: "#242424",
-    marginBottom: 7,
+
+    marginBottom: 6,
   },
 
   photoDescription: {
-    fontSize: 13,
-    lineHeight: 20,
+    fontSize: 12,
+    lineHeight: 18,
+
     color: "#707080",
+
     textAlign: "center",
-    maxWidth: 290,
-    marginBottom: 22,
+
+    maxWidth: 280,
+
+    marginBottom: 20,
   },
 
   photoButtons: {
     flexDirection: "row",
+
     gap: 10,
+
+    width: "100%",
   },
 
   galleryButton: {
-    height: 46,
-    paddingHorizontal: 15,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: "#34345C",
+    flex: 1,
+
+    height: 44,
+
+    borderRadius: 10,
+
+    backgroundColor: "#F8F8FA",
+
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
+
     gap: 7,
   },
 
   galleryButtonText: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: "900",
-    letterSpacing: 1,
+    letterSpacing: 0.8,
+
     color: "#34345C",
   },
 
   cameraButton: {
-    height: 46,
-    paddingHorizontal: 15,
-    borderRadius: 12,
-    backgroundColor: "#E76F51",
+    flex: 1,
+
+    height: 44,
+
+    borderRadius: 10,
+
+    backgroundColor: "#34345C",
+
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
+
     gap: 7,
   },
 
   cameraButtonText: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: "900",
-    letterSpacing: 1,
+    letterSpacing: 0.8,
+
     color: "#FFFFFF",
   },
 
@@ -313,7 +339,7 @@ const styles = StyleSheet.create({
   // --------------------------------
 
   inputGroup: {
-    marginBottom: 18,
+    marginBottom: 16,
   },
 
   label: {
@@ -325,33 +351,74 @@ const styles = StyleSheet.create({
   },
 
   input: {
-    height: 54,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: "#D9D8E2",
-    backgroundColor: "#FFFFFF",
-    paddingHorizontal: 16,
-    fontSize: 14,
+    height: 48,
+    borderRadius: 10,
+    backgroundColor: "#F8F8FA",
+    paddingHorizontal: 13,
+    fontSize: 12,
     color: "#242424",
   },
 
   inputWithIcon: {
-    height: 54,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: "#D9D8E2",
-    backgroundColor: "#FFFFFF",
-    paddingHorizontal: 15,
+    height: 48,
+    borderRadius: 10,
+    backgroundColor: "#F8F8FA",
+
+    paddingHorizontal: 12,
+
     flexDirection: "row",
     alignItems: "center",
+
     gap: 9,
   },
 
   iconInput: {
     flex: 1,
     height: "100%",
-    fontSize: 14,
+
+    paddingVertical: 0,
+
+    fontSize: 12,
     color: "#242424",
+  },
+
+  // --------------------------------
+  // TAGS
+  // --------------------------------
+
+  tagsContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 7,
+    marginBottom: 10,
+  },
+
+  tagChip: {
+    flexDirection: "row",
+    alignItems: "center",
+
+    backgroundColor: "#34345C",
+
+    borderRadius: 10,
+
+    paddingLeft: 10,
+    paddingRight: 8,
+    paddingVertical: 6,
+
+    gap: 5,
+  },
+
+  tagText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+
+  helperText: {
+    marginTop: 6,
+
+    fontSize: 10,
+    color: "#9A9AA3",
   },
 
   // --------------------------------
@@ -371,16 +438,20 @@ const styles = StyleSheet.create({
   },
 
   descriptionInput: {
-    minHeight: 120,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: "#D9D8E2",
-    backgroundColor: "#FFFFFF",
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 14,
-    lineHeight: 21,
+    minHeight: 110,
+
+    borderRadius: 10,
+    backgroundColor: "#F8F8FA",
+
+    paddingHorizontal: 13,
+    paddingTop: 13,
+    paddingBottom: 13,
+
+    fontSize: 12,
+    lineHeight: 19,
+
     color: "#242424",
+    textAlignVertical: "top",
   },
 
   // --------------------------------

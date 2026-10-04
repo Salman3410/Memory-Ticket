@@ -5,18 +5,18 @@ import React, {
   useRef,
   useState,
 } from "react";
-
 import { Text, TouchableOpacity, View } from "react-native";
-
 import { Ionicons } from "@expo/vector-icons";
-
 import {
   BottomSheetModal,
   BottomSheetBackdrop,
   BottomSheetView,
 } from "@gorhom/bottom-sheet";
-
 import styles from "./timelineBottomSheetStyles";
+
+const MIN_YEAR = 2020;
+
+const getCurrentYear = () => new Date().getFullYear();
 
 const MONTHS = [
   "January",
@@ -39,8 +39,7 @@ const TimelineBottomSheet = forwardRef(function TimelineBottomSheet(
 ) {
   const sheetRef = useRef(null);
 
-  const [displayYear, setDisplayYear] = useState(new Date().getFullYear());
-
+  const [displayYear, setDisplayYear] = useState(getCurrentYear());
   const [draftMonth, setDraftMonth] = useState(null);
 
   useImperativeHandle(
@@ -50,11 +49,9 @@ const TimelineBottomSheet = forwardRef(function TimelineBottomSheet(
         const currentDate = selectedMonth || new Date();
 
         const year = currentDate.getFullYear();
-
         const month = currentDate.getMonth();
 
         setDisplayYear(year);
-
         setDraftMonth(new Date(year, month, 1));
 
         requestAnimationFrame(() => {
@@ -69,9 +66,41 @@ const TimelineBottomSheet = forwardRef(function TimelineBottomSheet(
     [selectedMonth],
   );
 
+  // ------------------------------------------
+  // BACKDROP
+  // ------------------------------------------
+
+  const renderBackdrop = useCallback(
+    (props) => (
+      <BottomSheetBackdrop
+        {...props}
+        appearsOnIndex={0}
+        disappearsOnIndex={-1}
+        opacity={0.35}
+        pressBehavior="close"
+      />
+    ),
+    [],
+  );
+
+  // ------------------------------------------
+  // YEAR
+  // ------------------------------------------
+
   const handleChangeYear = useCallback((direction) => {
     setDisplayYear((currentYear) => {
+      const maxYear = getCurrentYear();
       const nextYear = currentYear + direction;
+
+      // Prevent going below 2000
+      if (nextYear < MIN_YEAR) {
+        return currentYear;
+      }
+
+      // Prevent going above current year
+      if (nextYear > maxYear) {
+        return currentYear;
+      }
 
       setDraftMonth((currentDraft) => {
         const month = currentDraft?.getMonth() ?? new Date().getMonth();
@@ -83,6 +112,10 @@ const TimelineBottomSheet = forwardRef(function TimelineBottomSheet(
     });
   }, []);
 
+  // ------------------------------------------
+  // MONTH
+  // ------------------------------------------
+
   const handleSelectMonth = useCallback(
     (monthIndex) => {
       setDraftMonth(new Date(displayYear, monthIndex, 1));
@@ -90,9 +123,17 @@ const TimelineBottomSheet = forwardRef(function TimelineBottomSheet(
     [displayYear],
   );
 
+  // ------------------------------------------
+  // CANCEL
+  // ------------------------------------------
+
   const handleCancel = useCallback(() => {
     sheetRef.current?.dismiss();
   }, []);
+
+  // ------------------------------------------
+  // DONE
+  // ------------------------------------------
 
   const handleDone = useCallback(() => {
     if (!draftMonth) {
@@ -110,15 +151,27 @@ const TimelineBottomSheet = forwardRef(function TimelineBottomSheet(
     sheetRef.current?.dismiss();
   }, [draftMonth, onApply]);
 
+  // ------------------------------------------
+  // CLEAR
+  // ------------------------------------------
+
   const handleClear = useCallback(() => {
     onClear?.();
-
     sheetRef.current?.dismiss();
   }, [onClear]);
+
+  // ------------------------------------------
+  // DISMISS
+  // ------------------------------------------
 
   const handleDismiss = useCallback(() => {
     onClose?.();
   }, [onClose]);
+
+  const currentYear = getCurrentYear();
+
+  const isMinYear = displayYear <= MIN_YEAR;
+  const isMaxYear = displayYear >= currentYear;
 
   return (
     <BottomSheetModal
@@ -157,21 +210,31 @@ const TimelineBottomSheet = forwardRef(function TimelineBottomSheet(
 
         <View style={styles.yearRow}>
           <TouchableOpacity
-            style={styles.yearArrow}
+            style={[styles.yearArrow, isMinYear && styles.yearArrowDisabled]}
             onPress={() => handleChangeYear(-1)}
+            disabled={isMinYear}
             activeOpacity={0.8}
           >
-            <Ionicons name="chevron-back" size={20} color="#34345C" />
+            <Ionicons
+              name="chevron-back"
+              size={20}
+              color={isMinYear ? "#B8B7C0" : "#34345C"}
+            />
           </TouchableOpacity>
 
           <Text style={styles.yearText}>{displayYear}</Text>
 
           <TouchableOpacity
-            style={styles.yearArrow}
+            style={[styles.yearArrow, isMaxYear && styles.yearArrowDisabled]}
             onPress={() => handleChangeYear(1)}
+            disabled={isMaxYear}
             activeOpacity={0.8}
           >
-            <Ionicons name="chevron-forward" size={20} color="#34345C" />
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={isMaxYear ? "#B8B7C0" : "#34345C"}
+            />
           </TouchableOpacity>
         </View>
 

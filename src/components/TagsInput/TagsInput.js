@@ -1,14 +1,7 @@
 import { useState } from "react";
-
-import {
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
-
+import { Text, TextInput, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import styles from "../../screens/CreateMemory/createMemoryStyles";
 
 const MAX_TAGS = 20;
 const MAX_TAG_LENGTH = 30;
@@ -38,7 +31,6 @@ function TagsInput({ tags, setTags }) {
     }
 
     setTags([...tags, normalizedTag]);
-
     setTagInput("");
   };
 
@@ -61,7 +53,7 @@ function TagsInput({ tags, setTags }) {
               <Text style={styles.tagText}>#{tag}</Text>
 
               <TouchableOpacity onPress={() => removeTag(tag)} hitSlop={8}>
-                <Ionicons name="close" size={16} color="#FFFFFF" />
+                <Ionicons name="close" size={15} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
           ))}
@@ -69,7 +61,7 @@ function TagsInput({ tags, setTags }) {
       )}
 
       <View style={styles.inputWithIcon}>
-        <Ionicons name="pricetag-outline" size={22} color="#707080" />
+        <Ionicons name="pricetag-outline" size={17} color="#7E7E88" />
 
         <TextInput
           style={styles.iconInput}
@@ -77,7 +69,7 @@ function TagsInput({ tags, setTags }) {
           onChangeText={handleTagChange}
           onSubmitEditing={addTag}
           placeholder="Add a tag"
-          placeholderTextColor="#A6A5AE"
+          placeholderTextColor="#9A9AA3"
           autoCapitalize="none"
           autoCorrect={false}
           returnKeyType="done"
@@ -88,8 +80,9 @@ function TagsInput({ tags, setTags }) {
           onPress={addTag}
           disabled={!tagInput.trim()}
           hitSlop={8}
+          activeOpacity={0.7}
         >
-          <Ionicons name="add-circle-outline" size={24} color="#34345C" />
+          <Ionicons name="add-circle-outline" size={21} color="#34345C" />
         </TouchableOpacity>
       </View>
 
@@ -97,67 +90,5 @@ function TagsInput({ tags, setTags }) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  inputGroup: {
-    marginBottom: 18,
-  },
-
-  label: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#707080",
-    letterSpacing: 0.8,
-    marginBottom: 8,
-  },
-
-  tagsContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    marginBottom: 10,
-    gap: 8,
-  },
-
-  tagChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#34345C",
-    borderRadius: 16,
-    paddingLeft: 12,
-    paddingRight: 9,
-    paddingVertical: 7,
-  },
-
-  tagText: {
-    color: "#FFFFFF",
-    fontSize: 13,
-    fontWeight: "600",
-  },
-
-  inputWithIcon: {
-    minHeight: 52,
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#D9D8E2",
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    backgroundColor: "#FFFFFF",
-  },
-
-  iconInput: {
-    flex: 1,
-    marginLeft: 10,
-    fontSize: 15,
-    color: "#242424",
-    paddingVertical: 0,
-  },
-
-  helperText: {
-    marginTop: 6,
-    fontSize: 11,
-    color: "#A6A5AE",
-  },
-});
 
 export default TagsInput;

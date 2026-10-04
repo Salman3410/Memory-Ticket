@@ -23,12 +23,12 @@ function SearchBar({
 
   return (
     <View style={styles.container}>
-      <Ionicons name="search-outline" size={20} color="#707080" />
+      <Ionicons name="search-outline" size={17} color="#7E7E88" />
 
       <TextInput
         style={styles.input}
         placeholder={placeholder}
-        placeholderTextColor="#9999A8"
+        placeholderTextColor="#9A9AA3"
         value={searchValue}
         onChangeText={onChangeText}
         autoCapitalize="none"
@@ -41,8 +41,9 @@ function SearchBar({
           style={styles.clearButton}
           onPress={() => onChangeText("")}
           activeOpacity={0.7}
+          hitSlop={6}
         >
-          <Ionicons name="close-circle" size={20} color="#707080" />
+          <Ionicons name="close-circle-outline" size={17} color="#7E7E88" />
         </TouchableOpacity>
       )}
 
@@ -51,10 +52,11 @@ function SearchBar({
           style={searchBarExtraStyles.advancedButton}
           onPress={onAdvancedPress}
           activeOpacity={0.7}
+          hitSlop={4}
         >
           <Ionicons
             name={advancedFilterCount > 0 ? "options" : "options-outline"}
-            size={20}
+            size={17}
             color="#34345C"
           />
 
@@ -73,31 +75,41 @@ function SearchBar({
 
 const searchBarExtraStyles = StyleSheet.create({
   advancedButton: {
-    width: 34,
-    height: 34,
-    marginLeft: 4,
+    width: 28,
+    height: 28,
+
+    marginLeft: 3,
+
     alignItems: "center",
     justifyContent: "center",
+
     position: "relative",
   },
 
   badge: {
     position: "absolute",
-    top: 0,
-    right: 0,
+
+    top: -2,
+    right: -3,
+
     minWidth: 15,
     height: 15,
+
     paddingHorizontal: 3,
+
     borderRadius: 8,
+
     backgroundColor: "#34345C",
+
     alignItems: "center",
     justifyContent: "center",
   },
 
   badgeText: {
     color: "#FFFFFF",
-    fontSize: 9,
-    fontWeight: "700",
+
+    fontSize: 8,
+    fontWeight: "800",
   },
 });
 

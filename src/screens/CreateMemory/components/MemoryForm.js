@@ -1,5 +1,6 @@
 import { View, Text, TextInput } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+
 import styles from "../createMemoryStyles";
 
 function MemoryForm({
@@ -14,20 +15,26 @@ function MemoryForm({
       <View style={styles.inputGroup}>
         <Text style={styles.label}>MEMORY TITLE</Text>
 
-        <TextInput
-          style={styles.input}
-          value={title}
-          onChangeText={setTitle}
-          placeholder="Give this moment a name"
-          placeholderTextColor="#A6A5AE"
-        />
+        <View style={styles.inputWithIcon}>
+          <Ionicons name="text-outline" size={17} color="#7E7E88" />
+
+          <TextInput
+            style={styles.iconInput}
+            value={title}
+            onChangeText={setTitle}
+            placeholder="Give this moment a name"
+            placeholderTextColor="#9A9AA3"
+            autoCapitalize="sentences"
+            autoCorrect={false}
+          />
+        </View>
       </View>
 
       <View style={styles.inputGroup}>
         <Text style={styles.label}>LOCATION</Text>
 
         <View style={styles.inputWithIcon}>
-          <Ionicons name="location-outline" size={22} color="#707080" />
+          <Ionicons name="location-outline" size={17} color="#7E7E88" />
 
           <TextInput
             style={styles.iconInput}
@@ -35,7 +42,7 @@ function MemoryForm({
             onChangeText={setLocation}
             onFocus={onLocationPress}
             placeholder="Where did it happen?"
-            placeholderTextColor="#A6A5AE"
+            placeholderTextColor="#9A9AA3"
             autoCapitalize="sentences"
             autoCorrect={false}
           />
