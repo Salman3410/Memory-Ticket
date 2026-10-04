@@ -1,23 +1,31 @@
 import { StyleSheet } from "react-native";
 
 const styles = StyleSheet.create({
+  // --------------------------------
+  // CONTAINER
+  // --------------------------------
+
   container: {
     flex: 1,
+
     backgroundColor: "#F1F0F6",
   },
 
   scrollContent: {
     paddingHorizontal: 22,
+
     paddingTop: 55,
+
     paddingBottom: 100,
   },
 
-  // --------------------------------------------------
+  // --------------------------------
   // HEADER
-  // --------------------------------------------------
+  // --------------------------------
 
   header: {
     flexDirection: "row",
+
     alignItems: "center",
 
     marginBottom: 25,
@@ -27,15 +35,12 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
 
-    borderRadius: 14,
+    borderRadius: 10,
 
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#F8F8FA",
 
     alignItems: "center",
     justifyContent: "center",
-
-    borderWidth: 1,
-    borderColor: "#D9D8E2",
 
     marginRight: 13,
   },
@@ -46,6 +51,7 @@ const styles = StyleSheet.create({
 
   headerEyebrow: {
     fontSize: 9,
+
     fontWeight: "900",
 
     letterSpacing: 1.6,
@@ -56,37 +62,36 @@ const styles = StyleSheet.create({
   },
 
   headerTitle: {
-    fontSize: 25,
-    fontWeight: "900",
+    fontSize: 23,
+
+    fontWeight: "800",
 
     color: "#242424",
   },
 
-  // --------------------------------------------------
+  // --------------------------------
   // INTRO CARD
-  // --------------------------------------------------
+  // --------------------------------
 
   introCard: {
     flexDirection: "row",
+
     alignItems: "center",
 
     backgroundColor: "#FFFFFF",
 
-    borderWidth: 1,
-    borderColor: "#D9D8E2",
+    borderRadius: 14,
 
-    borderRadius: 18,
+    padding: 14,
 
-    padding: 15,
-
-    marginBottom: 28,
+    marginBottom: 26,
   },
 
   introIcon: {
     width: 44,
     height: 44,
 
-    borderRadius: 13,
+    borderRadius: 12,
 
     backgroundColor: "#F1F0F6",
 
@@ -102,6 +107,7 @@ const styles = StyleSheet.create({
 
   introTitle: {
     fontSize: 13,
+
     fontWeight: "800",
 
     color: "#242424",
@@ -111,81 +117,83 @@ const styles = StyleSheet.create({
 
   introText: {
     fontSize: 10,
+
     lineHeight: 15,
 
-    color: "#9A99A5",
+    color: "#9A9AA3",
   },
 
-  // --------------------------------------------------
-  // SECTION
-  // --------------------------------------------------
+  // --------------------------------
+  // SECTION TITLE
+  // --------------------------------
 
   sectionTitle: {
     fontSize: 9,
+
     fontWeight: "900",
 
     letterSpacing: 1.5,
 
-    color: "#707080",
+    color: "#242424",
 
-    marginBottom: 9,
+    marginBottom: 8,
 
-    paddingLeft: 3,
+    paddingLeft: 2,
   },
 
-  // --------------------------------------------------
+  // --------------------------------
   // INPUT
-  // --------------------------------------------------
+  // --------------------------------
 
   inputContainer: {
-    minHeight: 54,
+    height: 48,
 
     flexDirection: "row",
+
     alignItems: "center",
 
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#F8F8FA",
 
-    borderWidth: 1,
-    borderColor: "#D9D8E2",
+    borderRadius: 10,
 
-    borderRadius: 14,
+    paddingHorizontal: 12,
 
-    paddingHorizontal: 15,
+    marginBottom: 18,
 
-    marginBottom: 20,
+    gap: 9,
   },
 
   input: {
     flex: 1,
 
-    fontSize: 12,
-    fontWeight: "600",
-
-    color: "#242424",
-
-    marginHorizontal: 11,
+    height: "100%",
 
     paddingVertical: 0,
+
+    fontSize: 12,
+
+    color: "#242424",
   },
 
   inputError: {
-    borderColor: "#E6A29A",
+    backgroundColor: "#F9EEEC",
   },
 
-  // --------------------------------------------------
+  // --------------------------------
   // PASSWORD REQUIREMENTS
-  // --------------------------------------------------
+  // --------------------------------
 
   requirements: {
-    marginTop: -7,
+    marginTop: -5,
 
-    marginBottom: 22,
+    marginBottom: 20,
 
-    paddingLeft: 3,
+    paddingLeft: 2,
   },
 
   requirementRow: {
     flexDirection: "row",
+
     alignItems: "center",
 
     gap: 7,
@@ -203,25 +211,27 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
 
-  // --------------------------------------------------
+  // --------------------------------
   // PASSWORD MATCH
-  // --------------------------------------------------
+  // --------------------------------
 
   matchRow: {
     flexDirection: "row",
+
     alignItems: "center",
 
     gap: 6,
 
-    marginTop: -10,
+    marginTop: -7,
 
-    marginBottom: 22,
+    marginBottom: 20,
 
-    paddingLeft: 3,
+    paddingLeft: 2,
   },
 
   matchText: {
     fontSize: 10,
+
     fontWeight: "700",
   },
 
@@ -233,20 +243,21 @@ const styles = StyleSheet.create({
     color: "#D9534F",
   },
 
-  // --------------------------------------------------
+  // --------------------------------
   // BUTTON
-  // --------------------------------------------------
+  // --------------------------------
 
   changeButton: {
-    minHeight: 54,
+    height: 48,
 
     flexDirection: "row",
+
     alignItems: "center",
     justifyContent: "center",
 
     backgroundColor: "#34345C",
 
-    borderRadius: 14,
+    borderRadius: 10,
 
     marginTop: 5,
 
@@ -259,6 +270,7 @@ const styles = StyleSheet.create({
 
   changeButtonText: {
     fontSize: 10,
+
     fontWeight: "900",
 
     letterSpacing: 0.9,
@@ -266,14 +278,15 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
   },
 
-  // --------------------------------------------------
+  // --------------------------------
   // FOOTER
-  // --------------------------------------------------
+  // --------------------------------
 
   footerText: {
     textAlign: "center",
 
     fontSize: 8,
+
     fontWeight: "800",
 
     letterSpacing: 1,

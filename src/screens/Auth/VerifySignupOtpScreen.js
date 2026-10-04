@@ -60,8 +60,7 @@ function VerifySignupOtpScreen({ navigation, route }) {
           type: "danger",
           icon: "close-circle-outline",
           title: "Verification Failed",
-          message:
-            result.message || "Unable to verify your email.",
+          message: result.message || "Unable to verify your email.",
           confirmText: "OK",
         });
         return;
@@ -77,8 +76,7 @@ function VerifySignupOtpScreen({ navigation, route }) {
         type: "danger",
         icon: "close-circle-outline",
         title: "Verification Failed",
-        message:
-          "Something went wrong. Please try again.",
+        message: "Something went wrong. Please try again.",
         confirmText: "OK",
       });
     } finally {
@@ -101,8 +99,7 @@ function VerifySignupOtpScreen({ navigation, route }) {
           type: "danger",
           icon: "refresh-outline",
           title: "Unable to Resend",
-          message:
-            result.message || "Please try again.",
+          message: result.message || "Please try again.",
           confirmText: "OK",
         });
         return;
@@ -115,8 +112,7 @@ function VerifySignupOtpScreen({ navigation, route }) {
         type: "success",
         icon: "mail-outline",
         title: "OTP Sent",
-        message:
-          "A new verification code has been sent to your email.",
+        message: "A new verification code has been sent to your email.",
         confirmText: "OK",
       });
     } catch (error) {
@@ -126,8 +122,7 @@ function VerifySignupOtpScreen({ navigation, route }) {
         type: "danger",
         icon: "close-circle-outline",
         title: "Unable to Resend",
-        message:
-          "Something went wrong. Please try again.",
+        message: "Something went wrong. Please try again.",
         confirmText: "OK",
       });
     } finally {
@@ -150,15 +145,9 @@ function VerifySignupOtpScreen({ navigation, route }) {
           disabled={isLoading || resending}
           activeOpacity={0.7}
         >
-          <Ionicons
-            name="arrow-back"
-            size={22}
-            color="#242424"
-          />
+          <Ionicons name="arrow-back" size={22} color="#242424" />
 
-          <Text style={styles.backText}>
-            Back
-          </Text>
+          <Text style={styles.backText}>Back</Text>
         </TouchableOpacity>
 
         {/* Brand */}
@@ -171,16 +160,12 @@ function VerifySignupOtpScreen({ navigation, route }) {
             />
           </View>
 
-          <Text style={styles.brandText}>
-            MEMENTO
-          </Text>
+          <Text style={styles.brandText}>MEMENTO</Text>
         </View>
 
         {/* Heading */}
         <View style={styles.headingContainer}>
-          <Text style={styles.title}>
-            Verify Your Email
-          </Text>
+          <Text style={styles.title}>Verify Your Email</Text>
 
           <Text style={styles.subtitle}>
             We sent a 6-digit verification code to
@@ -203,9 +188,7 @@ function VerifySignupOtpScreen({ navigation, route }) {
         <View style={styles.formContainer}>
           {/* OTP */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>
-              VERIFICATION CODE
-            </Text>
+            <Text style={styles.label}>VERIFICATION CODE</Text>
 
             <View style={styles.inputWrapper}>
               <Ionicons
@@ -221,9 +204,7 @@ function VerifySignupOtpScreen({ navigation, route }) {
                 placeholderTextColor="#A39C92"
                 value={otp}
                 onChangeText={(text) =>
-                  setOtp(
-                    text.replace(/\D/g, "").slice(0, 6),
-                  )
+                  setOtp(text.replace(/\D/g, "").slice(0, 6))
                 }
                 keyboardType="number-pad"
                 maxLength={6}
@@ -248,21 +229,12 @@ function VerifySignupOtpScreen({ navigation, route }) {
             activeOpacity={0.85}
           >
             {isLoading ? (
-              <ActivityIndicator
-                size="small"
-                color="#FFFFFF"
-              />
+              <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
               <>
-                <Text style={styles.loginButtonText}>
-                  VERIFY EMAIL
-                </Text>
+                <Text style={styles.loginButtonText}>VERIFY EMAIL</Text>
 
-                <Ionicons
-                  name="checkmark"
-                  size={20}
-                  color="#FFFFFF"
-                />
+                <Ionicons name="checkmark" size={20} color="#FFFFFF" />
               </>
             )}
           </TouchableOpacity>
@@ -271,19 +243,13 @@ function VerifySignupOtpScreen({ navigation, route }) {
           <View style={styles.resendSection}>
             <TouchableOpacity
               onPress={handleResend}
-              disabled={
-                countdown > 0 ||
-                resending ||
-                isLoading
-              }
+              disabled={countdown > 0 || resending || isLoading}
               activeOpacity={0.7}
             >
               <Text
                 style={[
                   styles.resendText,
-                  (countdown > 0 ||
-                    resending ||
-                    isLoading) &&
+                  (countdown > 0 || resending || isLoading) &&
                     styles.resendDisabled,
                 ]}
               >
@@ -296,8 +262,7 @@ function VerifySignupOtpScreen({ navigation, route }) {
             </TouchableOpacity>
 
             <Text style={styles.spamCheck}>
-              Didn't receive the code? Check your spam
-              folder.
+              Didn't receive the code? Check your spam folder.
             </Text>
           </View>
         </View>

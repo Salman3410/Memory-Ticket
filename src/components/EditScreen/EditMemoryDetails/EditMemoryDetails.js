@@ -1,4 +1,5 @@
 import { View, Text, TextInput } from "react-native";
+
 import { Ionicons } from "@expo/vector-icons";
 
 import styles from "./editMemoryDetailsStyles";
@@ -9,11 +10,12 @@ function EditMemoryDetails({
   location,
   setLocation,
   description,
-  setDescription, 
+  setDescription,
 }) {
   return (
     <View style={styles.section}>
       {/* SECTION HEADER */}
+
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Edit the story</Text>
 
@@ -21,38 +23,49 @@ function EditMemoryDetails({
       </View>
 
       {/* TITLE */}
+
       <View style={styles.inputGroup}>
         <Text style={styles.label}>MEMORY TITLE</Text>
 
-        <TextInput
-          style={styles.input}
-          placeholder="Memory title"
-          placeholderTextColor="#9A99A5"
-          value={title}
-          onChangeText={setTitle}
-          maxLength={50}
-        />
+        <View style={styles.inputWithIcon}>
+          <Ionicons name="text-outline" size={17} color="#7E7E88" />
+
+          <TextInput
+            style={styles.iconInput}
+            placeholder="Memory title"
+            placeholderTextColor="#9A9AA3"
+            value={title}
+            onChangeText={setTitle}
+            maxLength={50}
+            autoCapitalize="sentences"
+            autoCorrect={false}
+          />
+        </View>
       </View>
 
       {/* LOCATION */}
+
       <View style={styles.inputGroup}>
         <Text style={styles.label}>LOCATION</Text>
 
         <View style={styles.inputWithIcon}>
-          <Ionicons name="location-outline" size={20} color="#707080" />
+          <Ionicons name="location-outline" size={17} color="#7E7E88" />
 
           <TextInput
             style={styles.iconInput}
             placeholder="Where did it happen?"
-            placeholderTextColor="#9A99A5"
+            placeholderTextColor="#9A9AA3"
             value={location}
             onChangeText={setLocation}
             maxLength={60}
+            autoCapitalize="sentences"
+            autoCorrect={false}
           />
         </View>
       </View>
 
       {/* DESCRIPTION */}
+
       <View style={styles.inputGroup}>
         <View style={styles.descriptionHeader}>
           <Text style={styles.label}>DESCRIPTION</Text>
@@ -63,7 +76,7 @@ function EditMemoryDetails({
         <TextInput
           style={styles.descriptionInput}
           placeholder="Write something you'll want to remember..."
-          placeholderTextColor="#9A99A5"
+          placeholderTextColor="#9A9AA3"
           value={description}
           onChangeText={setDescription}
           multiline

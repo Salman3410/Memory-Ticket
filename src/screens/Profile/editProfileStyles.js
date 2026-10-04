@@ -1,38 +1,48 @@
 import { StyleSheet } from "react-native";
 
 const styles = StyleSheet.create({
+  // --------------------------------
+  // CONTAINER
+  // --------------------------------
+
   container: {
     flex: 1,
+
     backgroundColor: "#F1F0F6",
   },
 
   scrollContent: {
     paddingHorizontal: 22,
+
     paddingTop: 55,
+
     paddingBottom: 110,
   },
 
+  // --------------------------------
   // HEADER
+  // --------------------------------
 
   header: {
     flexDirection: "row",
+
     alignItems: "center",
+
     marginBottom: 30,
   },
 
   backButton: {
     width: 44,
     height: 44,
-    borderRadius: 14,
-    backgroundColor: "#FFFFFF",
+
+    borderRadius: 10,
+
+    backgroundColor: "#F8F8FA",
 
     alignItems: "center",
     justifyContent: "center",
 
     marginRight: 14,
-
-    borderWidth: 1,
-    borderColor: "#D9D8E2",
   },
 
   headerTextContainer: {
@@ -41,15 +51,21 @@ const styles = StyleSheet.create({
 
   headerEyebrow: {
     fontSize: 9,
+
     fontWeight: "900",
+
     letterSpacing: 1.8,
+
     color: "#E76F51",
+
     marginBottom: 3,
   },
 
   headerTitle: {
-    fontSize: 24,
-    fontWeight: "900",
+    fontSize: 23,
+
+    fontWeight: "800",
+
     color: "#242424",
   },
 
@@ -57,22 +73,27 @@ const styles = StyleSheet.create({
     width: 44,
   },
 
+  // --------------------------------
   // PHOTO
+  // --------------------------------
 
   photoSection: {
     alignItems: "center",
-    marginBottom: 34,
+
+    marginBottom: 32,
   },
 
   avatarContainer: {
     position: "relative",
+
     marginBottom: 14,
   },
 
   avatar: {
     width: 105,
     height: 105,
-    borderRadius: 34,
+
+    borderRadius: 28,
 
     backgroundColor: "#F2C14E",
 
@@ -86,7 +107,8 @@ const styles = StyleSheet.create({
   avatarImage: {
     width: 105,
     height: 105,
-    borderRadius: 34,
+
+    borderRadius: 28,
 
     borderWidth: 4,
     borderColor: "#FFFFFF",
@@ -94,18 +116,22 @@ const styles = StyleSheet.create({
 
   avatarText: {
     fontSize: 38,
+
     fontWeight: "900",
+
     color: "#34345C",
   },
 
   cameraButton: {
     position: "absolute",
+
     right: -4,
     bottom: -4,
 
     width: 36,
     height: 36,
-    borderRadius: 12,
+
+    borderRadius: 10,
 
     backgroundColor: "#E76F51",
 
@@ -118,66 +144,86 @@ const styles = StyleSheet.create({
 
   photoTitle: {
     fontSize: 15,
+
     fontWeight: "800",
+
     color: "#242424",
+
     marginBottom: 5,
   },
 
   changePhotoText: {
     fontSize: 9,
+
     fontWeight: "900",
+
     letterSpacing: 1.2,
+
     color: "#34345C",
   },
 
+  // --------------------------------
   // FORM
+  // --------------------------------
 
   formContainer: {
-    marginBottom: 26,
+    marginBottom: 24,
   },
 
   inputGroup: {
-    marginBottom: 20,
+    marginBottom: 18,
   },
 
   label: {
     fontSize: 10,
+
     fontWeight: "900",
+
     letterSpacing: 1.4,
+
     color: "#242424",
+
     marginBottom: 8,
   },
 
+  // --------------------------------
+  // INPUT
+  // --------------------------------
+
   inputWrapper: {
-    height: 54,
-    borderRadius: 14,
+    height: 48,
 
-    borderWidth: 1,
-    borderColor: "#D9D8E2",
+    borderRadius: 10,
 
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#F8F8FA",
 
     flexDirection: "row",
+
     alignItems: "center",
 
-    paddingHorizontal: 15,
-  },
+    paddingHorizontal: 12,
 
-  inputIcon: {
-    marginRight: 10,
+    gap: 9,
   },
 
   input: {
     flex: 1,
+
     height: "100%",
 
-    fontSize: 14,
+    paddingVertical: 0,
+
+    fontSize: 12,
+
     color: "#242424",
   },
 
+  // --------------------------------
+  // DISABLED EMAIL
+  // --------------------------------
+
   disabledInput: {
-    backgroundColor: "#E8E7ED",
-    borderColor: "#D9D8E2",
+    backgroundColor: "#E9E8EE",
   },
 
   disabledText: {
@@ -186,34 +232,32 @@ const styles = StyleSheet.create({
 
   helperText: {
     fontSize: 10,
-    color: "#9A99A5",
+
+    color: "#9A9AA3",
+
     marginTop: 7,
+
     marginLeft: 3,
   },
 
+  // --------------------------------
   // SAVE
+  // --------------------------------
 
   saveButton: {
-    height: 58,
-    borderRadius: 15,
+    height: 48,
+
+    borderRadius: 10,
 
     backgroundColor: "#34345C",
 
     flexDirection: "row",
+
     alignItems: "center",
+
     justifyContent: "center",
 
     gap: 9,
-
-    shadowColor: "#34345C",
-    shadowOffset: {
-      width: 0,
-      height: 5,
-    },
-    shadowOpacity: 0.18,
-    shadowRadius: 8,
-
-    elevation: 5,
   },
 
   saveButtonDisabled: {
@@ -221,16 +265,26 @@ const styles = StyleSheet.create({
   },
 
   saveButtonText: {
-    fontSize: 11,
+    fontSize: 10,
+
     fontWeight: "900",
-    letterSpacing: 1.4,
+
+    letterSpacing: 1.2,
+
     color: "#FFFFFF",
   },
 
+  // --------------------------------
+  // FOOTER
+  // --------------------------------
+
   footerText: {
     textAlign: "center",
+
     fontSize: 10,
-    color: "#9A99A5",
+
+    color: "#9A9AA3",
+
     marginTop: 16,
   },
 });

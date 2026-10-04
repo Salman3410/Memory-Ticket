@@ -1,6 +1,10 @@
 import { StyleSheet } from "react-native";
 
 const styles = StyleSheet.create({
+  // --------------------------------
+  // SCROLL
+  // --------------------------------
+
   keyboardContainer: {
     flex: 1,
     backgroundColor: "#F1F0F6",
@@ -10,12 +14,22 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
 
+  // --------------------------------
+  // CONTAINER
+  // --------------------------------
+
   container: {
     flex: 1,
+
     paddingHorizontal: 28,
+
     paddingTop: 20,
     paddingBottom: 24,
   },
+
+  // --------------------------------
+  // HEADING
+  // --------------------------------
 
   headingContainer: {
     marginBottom: 24,
@@ -23,18 +37,29 @@ const styles = StyleSheet.create({
 
   title: {
     fontSize: 28,
+
     fontWeight: "700",
+
     color: "#29293D",
+
     letterSpacing: -0.5,
+
     marginBottom: 6,
   },
 
   subtitle: {
     fontSize: 14,
+
     lineHeight: 20,
+
     color: "#858494",
+
     maxWidth: 320,
   },
+
+  // --------------------------------
+  // FORM
+  // --------------------------------
 
   formContainer: {
     width: "100%",
@@ -46,29 +71,25 @@ const styles = StyleSheet.create({
 
   label: {
     fontSize: 10,
-    fontWeight: "700",
+    fontWeight: "900",
     letterSpacing: 1.3,
-    color: "#5F5E6D",
-    marginBottom: 7,
+    color: "#242424",
+    marginBottom: 8,
   },
 
   inputWrapper: {
-    height: 54,
+    height: 48,
+
+    paddingHorizontal: 12,
+
+    borderRadius: 10,
+
+    backgroundColor: "#F8F8FA",
 
     flexDirection: "row",
     alignItems: "center",
 
-    backgroundColor: "#F9F8FB",
-
-    borderWidth: 1,
-    borderColor: "#DDDCE5",
-
-    borderRadius: 15,
-  },
-
-  inputIcon: {
-    marginLeft: 16,
-    marginRight: 10,
+    gap: 9,
   },
 
   input: {
@@ -76,40 +97,68 @@ const styles = StyleSheet.create({
 
     height: "100%",
 
-    fontSize: 15,
+    paddingVertical: 0,
 
-    color: "#29293D",
+    fontSize: 12,
+
+    color: "#242424",
+  },
+
+  otpInput: {
+    flex: 1,
+
+    height: "100%",
 
     paddingVertical: 0,
-    paddingRight: 12,
+
+    fontSize: 18,
+
+    fontWeight: "800",
+
+    letterSpacing: 4,
+
+    color: "#242424",
   },
 
   passwordButton: {
-    width: 48,
-    height: "100%",
+    width: 28,
+
+    height: 28,
 
     alignItems: "center",
     justifyContent: "center",
   },
 
+  // --------------------------------
+  // FORGOT PASSWORD
+  // --------------------------------
+
   forgotButton: {
     alignSelf: "flex-end",
 
     marginTop: -1,
+
     marginBottom: 16,
 
     paddingVertical: 2,
+
     paddingLeft: 8,
   },
 
   forgotText: {
-    fontSize: 13,
-    fontWeight: "600",
+    fontSize: 12,
+
+    fontWeight: "700",
+
     color: "#34345C",
   },
 
+  // --------------------------------
+  // LOGIN BUTTON
+  // --------------------------------
+
   loginButton: {
-    height: 54,
+    height: 48,
 
     flexDirection: "row",
     alignItems: "center",
@@ -117,7 +166,7 @@ const styles = StyleSheet.create({
 
     backgroundColor: "#34345C",
 
-    borderRadius: 15,
+    borderRadius: 10,
 
     gap: 9,
   },
@@ -125,16 +174,22 @@ const styles = StyleSheet.create({
   loginButtonText: {
     color: "#FFFFFF",
 
-    fontSize: 13,
-    fontWeight: "700",
+    fontSize: 10,
+
+    fontWeight: "900",
 
     letterSpacing: 1.5,
   },
+
+  // --------------------------------
+  // TAGLINE
+  // --------------------------------
 
   tagline: {
     textAlign: "center",
 
     fontSize: 9,
+
     fontWeight: "700",
 
     letterSpacing: 2,
@@ -144,9 +199,15 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
 
+  // --------------------------------
+  // OTHER AUTH SCREENS
+  // --------------------------------
+
   backButton: {
     flexDirection: "row",
+
     alignItems: "center",
+
     alignSelf: "flex-start",
 
     marginBottom: 18,
@@ -154,6 +215,7 @@ const styles = StyleSheet.create({
 
   backText: {
     fontSize: 14,
+
     fontWeight: "600",
 
     color: "#555462",
@@ -163,6 +225,7 @@ const styles = StyleSheet.create({
 
   signupBrandContainer: {
     alignItems: "center",
+
     marginBottom: 28,
   },
 
@@ -174,6 +237,7 @@ const styles = StyleSheet.create({
 
   resendText: {
     fontSize: 14,
+
     fontWeight: "600",
 
     color: "#34345C",
@@ -187,6 +251,7 @@ const styles = StyleSheet.create({
     marginTop: 7,
 
     fontSize: 12,
+
     lineHeight: 18,
 
     color: "#AAA8B2",
@@ -196,6 +261,7 @@ const styles = StyleSheet.create({
 
   dividerContainer: {
     flexDirection: "row",
+
     alignItems: "center",
 
     marginVertical: 18,
@@ -223,6 +289,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
 
     justifyContent: "center",
+
     alignItems: "center",
   },
 

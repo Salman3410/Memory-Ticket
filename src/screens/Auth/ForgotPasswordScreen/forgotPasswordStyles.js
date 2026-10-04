@@ -1,8 +1,13 @@
 import { StyleSheet } from "react-native";
 
 const styles = StyleSheet.create({
+  // --------------------------------------------------
+  // ROOT
+  // --------------------------------------------------
+
   keyboardContainer: {
     flex: 1,
+
     backgroundColor: "#F1F0F6",
   },
 
@@ -12,7 +17,9 @@ const styles = StyleSheet.create({
 
   container: {
     flex: 1,
+
     paddingHorizontal: 28,
+
     paddingTop: 28,
     paddingBottom: 30,
   },
@@ -23,16 +30,23 @@ const styles = StyleSheet.create({
 
   topBackButton: {
     flexDirection: "row",
+
     alignItems: "center",
+
     alignSelf: "flex-start",
+
     marginBottom: 34,
+
     paddingTop: 20,
   },
 
   topBackText: {
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: 12,
+
+    fontWeight: "700",
+
     color: "#242424",
+
     marginLeft: 7,
   },
 
@@ -42,38 +56,52 @@ const styles = StyleSheet.create({
 
   brandContainer: {
     alignItems: "center",
-    marginBottom: 48,
+
+    marginBottom: 44,
   },
 
   brandIcon: {
     width: 72,
     height: 72,
-    borderRadius: 41,
+
+    borderRadius: 22,
+
     backgroundColor: "#34345C",
+
     alignItems: "center",
     justifyContent: "center",
+
     marginBottom: 14,
+
     overflow: "hidden",
   },
 
   logoImage: {
     width: 62,
     height: 62,
+
     resizeMode: "contain",
   },
 
   brandText: {
     fontSize: 25,
+
     fontWeight: "800",
+
     letterSpacing: 5,
+
     color: "#242424",
   },
 
   brandSubText: {
     fontSize: 13,
+
     fontWeight: "700",
+
     letterSpacing: 7,
+
     color: "#34345C",
+
     marginTop: 2,
   },
 
@@ -82,25 +110,32 @@ const styles = StyleSheet.create({
   // --------------------------------------------------
 
   headingContainer: {
-    marginBottom: 34,
+    marginBottom: 30,
   },
 
   title: {
-    fontSize: 34,
+    fontSize: 32,
+
     fontWeight: "800",
+
     color: "#242424",
+
     letterSpacing: -0.8,
+
     marginBottom: 8,
   },
 
   subtitle: {
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: 14,
+
+    lineHeight: 21,
+
     color: "#707080",
   },
 
   emailText: {
     fontWeight: "700",
+
     color: "#34345C",
   },
 
@@ -113,38 +148,51 @@ const styles = StyleSheet.create({
   },
 
   inputGroup: {
-    marginBottom: 20,
+    marginBottom: 18,
   },
 
   label: {
-    fontSize: 11,
-    fontWeight: "800",
-    letterSpacing: 1.5,
+    fontSize: 10,
+
+    fontWeight: "900",
+
+    letterSpacing: 1.4,
+
     color: "#242424",
+
     marginBottom: 8,
   },
 
-  inputWrapper: {
-    height: 56,
-    borderWidth: 1,
-    borderColor: "#D9D8E2",
-    borderRadius: 14,
-    backgroundColor: "#FFFFFF",
-    flexDirection: "row",
-    alignItems: "center",
-  },
+  // --------------------------------------------------
+  // STANDARD INPUT
+  // --------------------------------------------------
 
-  inputIcon: {
-    marginLeft: 16,
-    marginRight: 10,
+  inputWrapper: {
+    height: 48,
+
+    paddingHorizontal: 12,
+
+    borderRadius: 10,
+
+    backgroundColor: "#F8F8FA",
+
+    flexDirection: "row",
+
+    alignItems: "center",
+
+    gap: 9,
   },
 
   input: {
     flex: 1,
+
     height: "100%",
-    fontSize: 15,
-    color: "#242424",
+
     paddingVertical: 0,
+
+    fontSize: 12,
+
+    color: "#242424",
   },
 
   // --------------------------------------------------
@@ -153,12 +201,19 @@ const styles = StyleSheet.create({
 
   otpInput: {
     flex: 1,
+
     height: "100%",
-    fontSize: 20,
-    fontWeight: "800",
-    letterSpacing: 5,
-    color: "#242424",
+
     paddingVertical: 0,
+
+    fontSize: 20,
+
+    fontWeight: "800",
+
+    letterSpacing: 5,
+
+    color: "#242424",
+
     textAlign: "left",
   },
 
@@ -167,9 +222,12 @@ const styles = StyleSheet.create({
   // --------------------------------------------------
 
   passwordButton: {
-    width: 50,
-    height: "100%",
+    width: 28,
+
+    height: 28,
+
     alignItems: "center",
+
     justifyContent: "center",
   },
 
@@ -178,31 +236,31 @@ const styles = StyleSheet.create({
   // --------------------------------------------------
 
   primaryButton: {
-    height: 58,
-    borderRadius: 14,
+    height: 48,
+
+    borderRadius: 10,
+
     backgroundColor: "#34345C",
+
     flexDirection: "row",
+
     alignItems: "center",
+
     justifyContent: "center",
-    gap: 10,
-    paddingHorizontal: 20,
 
-    shadowColor: "#242440",
-    shadowOffset: {
-      width: 0,
-      height: 5,
-    },
-    shadowOpacity: 0.18,
-    shadowRadius: 8,
+    gap: 9,
 
-    elevation: 4,
+    paddingHorizontal: 18,
   },
 
   primaryButtonText: {
     color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "800",
-    letterSpacing: 2,
+
+    fontSize: 10,
+
+    fontWeight: "900",
+
+    letterSpacing: 1.5,
   },
 
   disabledButton: {
@@ -214,19 +272,27 @@ const styles = StyleSheet.create({
   // --------------------------------------------------
 
   errorText: {
-    fontSize: 13,
-    lineHeight: 19,
+    fontSize: 11,
+
+    lineHeight: 17,
+
     color: "#C94A4A",
-    marginTop: -4,
-    marginBottom: 18,
+
+    marginTop: -2,
+
+    marginBottom: 16,
   },
 
   messageText: {
-    fontSize: 13,
-    lineHeight: 19,
+    fontSize: 11,
+
+    lineHeight: 17,
+
     color: "#4C704C",
-    marginTop: -4,
-    marginBottom: 18,
+
+    marginTop: -2,
+
+    marginBottom: 16,
   },
 
   // --------------------------------------------------
@@ -234,11 +300,15 @@ const styles = StyleSheet.create({
   // --------------------------------------------------
 
   passwordHint: {
-    fontSize: 12,
-    lineHeight: 18,
+    fontSize: 10,
+
+    lineHeight: 17,
+
     color: "#707080",
-    marginTop: -4,
-    marginBottom: 22,
+
+    marginTop: -2,
+
+    marginBottom: 20,
   },
 
   // --------------------------------------------------
@@ -247,19 +317,25 @@ const styles = StyleSheet.create({
 
   resendSection: {
     alignItems: "center",
-    marginTop: 24,
+
+    marginTop: 22,
   },
 
   resendContainer: {
     flexDirection: "row",
+
     alignItems: "center",
+
     justifyContent: "center",
   },
 
   resendText: {
-    fontSize: 16,
+    fontSize: 12,
+
     fontWeight: "800",
+
     color: "#34345C",
+
     marginLeft: 5,
   },
 
@@ -269,8 +345,13 @@ const styles = StyleSheet.create({
 
   spamCheck: {
     marginTop: 8,
-    fontSize: 12,
+
+    fontSize: 10,
+
+    lineHeight: 16,
+
     color: "#A39C92",
+
     textAlign: "center",
   },
 
@@ -280,15 +361,21 @@ const styles = StyleSheet.create({
 
   backLink: {
     flexDirection: "row",
+
     alignItems: "center",
+
     justifyContent: "center",
-    marginTop: 24,
+
+    marginTop: 22,
   },
 
   backLinkText: {
-    fontSize: 13,
+    fontSize: 11,
+
     fontWeight: "700",
+
     color: "#34345C",
+
     marginLeft: 5,
   },
 
@@ -298,33 +385,46 @@ const styles = StyleSheet.create({
 
   successContainer: {
     alignItems: "center",
+
     paddingTop: 20,
   },
 
   successIcon: {
     width: 78,
     height: 78,
-    borderRadius: 39,
+
+    borderRadius: 22,
+
     backgroundColor: "#34345C",
+
     alignItems: "center",
     justifyContent: "center",
+
     marginBottom: 24,
   },
 
   successTitle: {
     fontSize: 28,
+
     fontWeight: "800",
+
     color: "#242424",
+
     textAlign: "center",
+
     marginBottom: 12,
   },
 
   successText: {
-    fontSize: 15,
-    lineHeight: 23,
+    fontSize: 14,
+
+    lineHeight: 22,
+
     color: "#707080",
+
     textAlign: "center",
-    marginBottom: 32,
+
+    marginBottom: 30,
   },
 
   // --------------------------------------------------
@@ -333,13 +433,17 @@ const styles = StyleSheet.create({
 
   tagline: {
     textAlign: "center",
+
     fontSize: 9,
+
     fontWeight: "800",
+
     letterSpacing: 2.5,
+
     color: "#A39C92",
-    marginTop: 42,
+
+    marginTop: 40,
   },
 });
 
 export default styles;
-
