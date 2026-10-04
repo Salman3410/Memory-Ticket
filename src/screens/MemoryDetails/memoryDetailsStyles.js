@@ -12,10 +12,6 @@ const styles = StyleSheet.create({
     paddingBottom: 110,
   },
 
-  // ==================================================
-  // HEADER
-  // ==================================================
-
   header: {
     height: 50,
     flexDirection: "row",
@@ -55,10 +51,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFF7F6",
   },
 
-  // ==================================================
-  // HORIZONTAL TICKET CAROUSEL
-  // ==================================================
-
   ticketSlide: {
     flexGrow: 0,
     flexShrink: 0,
@@ -66,17 +58,13 @@ const styles = StyleSheet.create({
 
   ticketShadow: {
     shadowColor: "#242424",
-
     shadowOffset: {
       width: 0,
       height: 10,
     },
-
     shadowOpacity: 0.22,
     shadowRadius: 16,
-
     elevation: 8,
-
     marginBottom: 4,
   },
 
@@ -85,10 +73,6 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     borderRadius: 2,
   },
-
-  // ==================================================
-  // TOP PERFORATION
-  // ==================================================
 
   topPerforation: {
     height: 17,
@@ -107,15 +91,10 @@ const styles = StyleSheet.create({
     marginTop: -8,
   },
 
-  // ==================================================
-  // TICKET HEADER
-  // ==================================================
-
   ticketHeader: {
     paddingHorizontal: 20,
     paddingTop: 18,
     paddingBottom: 14,
-
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
@@ -145,10 +124,6 @@ const styles = StyleSheet.create({
     marginTop: 3,
   },
 
-  // ==================================================
-  // IMAGE
-  // ==================================================
-
   ticketImageContainer: {
     width: "100%",
     height: 240,
@@ -168,8 +143,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-
-    // backgroundColor: "rgba(255, 176, 0, 0.18)",
   },
   imageCounter: {
     position: "absolute",
@@ -209,66 +182,42 @@ const styles = StyleSheet.create({
     marginTop: 7,
   },
 
-  // ==========================================================
-  // FULL IMAGE VIEWER
-  // ==========================================================
-
   imageViewerOverlay: {
     flex: 1,
-
     backgroundColor: "#000000",
-
     justifyContent: "center",
   },
 
   imageViewerClose: {
     position: "absolute",
-
     top: 50,
     right: 20,
-
     zIndex: 10,
-
     width: 42,
     height: 42,
-
     borderRadius: 21,
-
     backgroundColor: "rgba(255, 255, 255, 0.15)",
-
     alignItems: "center",
     justifyContent: "center",
   },
 
   imageViewerCounter: {
     position: "absolute",
-
     top: 56,
     left: 20,
-
     zIndex: 10,
-
     paddingHorizontal: 12,
     paddingVertical: 7,
-
     borderRadius: 14,
-
     backgroundColor: "rgba(255, 255, 255, 0.15)",
   },
 
   imageViewerCounterText: {
     color: "#FFFFFF",
-
     fontSize: 11,
-
     fontWeight: "800",
-
     letterSpacing: 1,
   },
-
-  // ==================================================
-  // TICKET INFORMATION
-  // ==================================================
 
   ticketInfo: {
     paddingHorizontal: 20,
@@ -324,10 +273,6 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
 
-  // ==================================================
-  // DESCRIPTION
-  // ==================================================
-
   descriptionContainer: {
     marginTop: 18,
     paddingTop: 12,
@@ -342,10 +287,6 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
     color: "#D92F16",
   },
-
-  // ==================================================
-  // MIDDLE PERFORATION
-  // ==================================================
 
   middlePerforation: {
     height: 18,
@@ -380,15 +321,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#F1F0F6",
   },
 
-  // ==================================================
-  // FOOTER
-  // ==================================================
-
   ticketFooter: {
     paddingHorizontal: 20,
     paddingTop: 12,
     paddingBottom: 10,
-
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-end",
@@ -409,18 +345,12 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 
-  // ==================================================
-  // BARCODE
-  // ==================================================
-
   barcode: {
     height: 42,
     width: 125,
-
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-
     overflow: "hidden",
   },
 
@@ -441,10 +371,6 @@ const styles = StyleSheet.create({
     width: 5,
   },
 
-  // ==================================================
-  // SERIAL
-  // ==================================================
-
   serialContainer: {
     alignItems: "flex-end",
     paddingHorizontal: 20,
@@ -458,30 +384,19 @@ const styles = StyleSheet.create({
     color: "#D92F16",
   },
 
-  // ==================================================
-  // BOTTOM PERFORATION
-  // ==================================================
-
   bottomPerforation: {
     height: 17,
-
     flexDirection: "row",
     justifyContent: "space-around",
     alignItems: "flex-end",
-
     backgroundColor: "#F9B900",
     overflow: "hidden",
   },
-
-  // ==================================================
-  // SWIPE HINT
-  // ==================================================
 
   swipeHint: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-
     marginTop: 13,
     gap: 7,
   },
@@ -500,25 +415,16 @@ const styles = StyleSheet.create({
     marginLeft: 3,
   },
 
-  // ==================================================
-  // EDIT
-  // ==================================================
-
   editButton: {
     height: 52,
     borderRadius: 14,
-
     backgroundColor: "#FFFFFF",
-
     borderWidth: 1,
     borderColor: "#D9D8E2",
-
     marginTop: 22,
-
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-
     gap: 8,
   },
 
@@ -529,25 +435,16 @@ const styles = StyleSheet.create({
     color: "#34345C",
   },
 
-  // ==================================================
-  // DELETE
-  // ==================================================
-
   deleteButton: {
     height: 52,
     borderRadius: 14,
-
     backgroundColor: "#FFF7F6",
-
     borderWidth: 1,
     borderColor: "#F3D3CF",
-
     marginTop: 8,
-
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-
     gap: 8,
   },
 
@@ -558,56 +455,36 @@ const styles = StyleSheet.create({
     color: "#D9534F",
   },
 
-  // ==================================================
-  // FOOTER TEXT
-  // ==================================================
-
   footerText: {
     textAlign: "center",
-
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 1,
-
     color: "#9A99A5",
-
     marginTop: 18,
   },
 
-  // ==================================================
-  // NOT FOUND
-  // ==================================================
-
   notFoundContainer: {
     flex: 1,
-
     backgroundColor: "#F1F0F6",
-
     alignItems: "center",
     justifyContent: "center",
-
     paddingHorizontal: 30,
   },
 
   notFoundTitle: {
     fontSize: 20,
     fontWeight: "900",
-
     color: "#242424",
-
     marginTop: 15,
     marginBottom: 18,
   },
 
   backToMemoriesButton: {
     height: 48,
-
     paddingHorizontal: 22,
-
     borderRadius: 13,
-
     backgroundColor: "#34345C",
-
     alignItems: "center",
     justifyContent: "center",
   },
@@ -616,7 +493,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "900",
     letterSpacing: 1,
-
     color: "#FFFFFF",
   },
 });

@@ -1,10 +1,6 @@
 import { StyleSheet } from "react-native";
 
 const styles = StyleSheet.create({
-  // --------------------------------------------------
-  // ROOT
-  // --------------------------------------------------
-
   keyboardContainer: {
     flex: 1,
 
@@ -23,10 +19,6 @@ const styles = StyleSheet.create({
     paddingTop: 28,
     paddingBottom: 30,
   },
-
-  // --------------------------------------------------
-  // TOP BACK BUTTON
-  // --------------------------------------------------
 
   topBackButton: {
     flexDirection: "row",
@@ -49,10 +41,6 @@ const styles = StyleSheet.create({
 
     marginLeft: 7,
   },
-
-  // --------------------------------------------------
-  // BRAND
-  // --------------------------------------------------
 
   brandContainer: {
     alignItems: "center",
@@ -105,10 +93,6 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  // --------------------------------------------------
-  // HEADING
-  // --------------------------------------------------
-
   headingContainer: {
     marginBottom: 30,
   },
@@ -139,10 +123,6 @@ const styles = StyleSheet.create({
     color: "#34345C",
   },
 
-  // --------------------------------------------------
-  // FORM
-  // --------------------------------------------------
-
   formContainer: {
     width: "100%",
   },
@@ -162,10 +142,6 @@ const styles = StyleSheet.create({
 
     marginBottom: 8,
   },
-
-  // --------------------------------------------------
-  // STANDARD INPUT
-  // --------------------------------------------------
 
   inputWrapper: {
     height: 48,
@@ -195,10 +171,6 @@ const styles = StyleSheet.create({
     color: "#242424",
   },
 
-  // --------------------------------------------------
-  // OTP
-  // --------------------------------------------------
-
   otpInput: {
     flex: 1,
 
@@ -217,10 +189,6 @@ const styles = StyleSheet.create({
     textAlign: "left",
   },
 
-  // --------------------------------------------------
-  // PASSWORD VISIBILITY
-  // --------------------------------------------------
-
   passwordButton: {
     width: 28,
 
@@ -230,10 +198,6 @@ const styles = StyleSheet.create({
 
     justifyContent: "center",
   },
-
-  // --------------------------------------------------
-  // PRIMARY BUTTON
-  // --------------------------------------------------
 
   primaryButton: {
     height: 48,
@@ -267,10 +231,6 @@ const styles = StyleSheet.create({
     opacity: 0.65,
   },
 
-  // --------------------------------------------------
-  // FEEDBACK
-  // --------------------------------------------------
-
   errorText: {
     fontSize: 11,
 
@@ -295,10 +255,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
 
-  // --------------------------------------------------
-  // PASSWORD HINT
-  // --------------------------------------------------
-
   passwordHint: {
     fontSize: 10,
 
@@ -310,10 +266,6 @@ const styles = StyleSheet.create({
 
     marginBottom: 20,
   },
-
-  // --------------------------------------------------
-  // RESEND
-  // --------------------------------------------------
 
   resendSection: {
     alignItems: "center",
@@ -355,10 +307,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 
-  // --------------------------------------------------
-  // BACK LINK
-  // --------------------------------------------------
-
   backLink: {
     flexDirection: "row",
 
@@ -378,10 +326,6 @@ const styles = StyleSheet.create({
 
     marginLeft: 5,
   },
-
-  // --------------------------------------------------
-  // SUCCESS
-  // --------------------------------------------------
 
   successContainer: {
     alignItems: "center",
@@ -426,10 +370,6 @@ const styles = StyleSheet.create({
 
     marginBottom: 30,
   },
-
-  // --------------------------------------------------
-  // TAGLINE
-  // --------------------------------------------------
 
   tagline: {
     textAlign: "center",

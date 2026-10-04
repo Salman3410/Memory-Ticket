@@ -1,10 +1,6 @@
 import { StyleSheet } from "react-native";
 
 const styles = StyleSheet.create({
-  // --------------------------------
-  // SCROLL
-  // --------------------------------
-
   keyboardContainer: {
     flex: 1,
     backgroundColor: "#F1F0F6",
@@ -14,10 +10,6 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
 
-  // --------------------------------
-  // CONTAINER
-  // --------------------------------
-
   container: {
     flex: 1,
 
@@ -26,10 +18,6 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 24,
   },
-
-  // --------------------------------
-  // HEADING
-  // --------------------------------
 
   headingContainer: {
     marginBottom: 24,
@@ -56,10 +44,6 @@ const styles = StyleSheet.create({
 
     maxWidth: 320,
   },
-
-  // --------------------------------
-  // FORM
-  // --------------------------------
 
   formContainer: {
     width: "100%",
@@ -129,10 +113,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
-  // --------------------------------
-  // FORGOT PASSWORD
-  // --------------------------------
-
   forgotButton: {
     alignSelf: "flex-end",
 
@@ -152,10 +132,6 @@ const styles = StyleSheet.create({
 
     color: "#34345C",
   },
-
-  // --------------------------------
-  // LOGIN BUTTON
-  // --------------------------------
 
   loginButton: {
     height: 48,
@@ -181,10 +157,6 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
   },
 
-  // --------------------------------
-  // TAGLINE
-  // --------------------------------
-
   tagline: {
     textAlign: "center",
 
@@ -198,10 +170,6 @@ const styles = StyleSheet.create({
 
     marginTop: 20,
   },
-
-  // --------------------------------
-  // OTHER AUTH SCREENS
-  // --------------------------------
 
   backButton: {
     flexDirection: "row",

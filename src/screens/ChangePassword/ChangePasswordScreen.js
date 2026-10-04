@@ -1,5 +1,4 @@
 import { useState } from "react";
-
 import {
   View,
   Text,
@@ -7,15 +6,10 @@ import {
   TextInput,
   ActivityIndicator,
 } from "react-native";
-
 import { Ionicons } from "@expo/vector-icons";
-
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
-
 import { useAuth } from "../../hooks/useAuth";
-
 import { useAppAlert } from "../../context/AlertContext";
-
 import styles from "./changePasswordStyles";
 
 function ChangePasswordScreen({ navigation }) {
@@ -25,13 +19,9 @@ function ChangePasswordScreen({ navigation }) {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-
   const [showNewPassword, setShowNewPassword] = useState(false);
-
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
   const [loading, setLoading] = useState(false);
 
   const hasMinimumLength = newPassword.length >= 8;

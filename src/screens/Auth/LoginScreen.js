@@ -28,25 +28,15 @@ function LoginScreen({ navigation }) {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
   const [showPassword, setShowPassword] =
     useState(false);
-
   const [isLoading, setIsLoading] =
     useState(false);
 
-  // =========================
-  // Entrance Animation
-  // =========================
   const entranceOpacity =
     useSharedValue(0);
-
   const entranceY =
     useSharedValue(12);
-
-  // =========================
-  // Button Animation
-  // =========================
   const buttonScale =
     useSharedValue(1);
 
@@ -112,9 +102,6 @@ function LoginScreen({ navigation }) {
       });
   };
 
-  // =========================
-  // Login
-  // =========================
   const handleLogin = async () => {
     const normalizedEmail =
       email.trim().toLowerCase();

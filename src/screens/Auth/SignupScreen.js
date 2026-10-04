@@ -31,28 +31,17 @@ function SignupScreen({ navigation }) {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] =
     useState("");
-
   const [showPassword, setShowPassword] =
     useState(false);
-
   const [showConfirmPassword, setShowConfirmPassword] =
     useState(false);
-
   const [isLoading, setIsLoading] =
     useState(false);
 
-  // =========================
-  // Entrance Animation
-  // =========================
   const entranceOpacity =
     useSharedValue(0);
-
   const entranceY =
     useSharedValue(12);
-
-  // =========================
-  // Button Animation
-  // =========================
   const buttonScale =
     useSharedValue(1);
 
@@ -118,9 +107,6 @@ function SignupScreen({ navigation }) {
       });
   };
 
-  // =========================
-  // Signup
-  // =========================
   const handleSignup = async () => {
     const trimmedName =
       name.trim();

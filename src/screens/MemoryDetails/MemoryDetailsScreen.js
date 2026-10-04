@@ -3,8 +3,8 @@ import {
   useRef,
   useState,
 } from "react";
-
 import {
+  Animated,
   View,
   Text,
   TouchableOpacity,
@@ -42,44 +42,35 @@ function MemoryDetailsScreen({ navigation, route }) {
     updateMemory,
     refreshMemories,
   } = useMemory();
-
   const { showAlert } = useAppAlert();
-
   const refreshMemoryDetails = useCallback(async () => {
     await refreshMemories();
   }, [refreshMemories]);
-
   const { refreshing, onRefresh } = useRefresh(refreshMemoryDetails);
-
   const { width: screenWidth } = useWindowDimensions();
 
   const memoryId = route?.params?.memoryId;
 
   const [activeImage, setActiveImage] = useState(0);
-
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
-
   const [viewerImage, setViewerImage] = useState(0);
 
   const shareSheetRef = useRef(null);
 
   const [sharing, setSharing] = useState(false);
-
   const [savingImage, setSavingImage] = useState(false);
-
   const [sharingPhoto, setSharingPhoto] = useState(false);
-
   const [savingPhoto, setSavingPhoto] = useState(false);
 
   const ticketRefs = useRef([]);
 
   const [customizationVisible, setCustomizationVisible] = useState(false);
-
   const [customizationSaving, setCustomizationSaving] = useState(false);
-
   const [draftCustomization, setDraftCustomization] = useState(null);
 
   const memory = getMemoryById(memoryId);
+
+  const favoriteScale = useRef(new Animated.Value(1)).current;
 
   if (!memory) {
     return (
@@ -150,15 +141,37 @@ function MemoryDetailsScreen({ navigation, route }) {
 
   const handleFavorite = async () => {
     try {
+      favoriteScale.stopAnimation();
+      favoriteScale.setValue(1);
+
+      Animated.sequence([
+        Animated.spring(favoriteScale, {
+          toValue: 1.3,
+          friction: 4,
+          tension: 180,
+          useNativeDriver: true,
+        }),
+
+        Animated.spring(favoriteScale, {
+          toValue: 0.92,
+          friction: 5,
+          tension: 180,
+          useNativeDriver: true,
+        }),
+
+        Animated.spring(favoriteScale, {
+          toValue: 1,
+          friction: 5,
+          tension: 160,
+          useNativeDriver: true,
+        }),
+      ]).start();
+
       await toggleFavorite(memory.id);
     } catch (error) {
       console.log("Favorite update error:", error);
     }
   };
-
-  // --------------------------------------------------
-  // DELETE
-  // --------------------------------------------------
 
   const handleDelete = () => {
     showAlert({
@@ -185,17 +198,9 @@ function MemoryDetailsScreen({ navigation, route }) {
     });
   };
 
-  // --------------------------------------------------
-  // SHARE SHEET
-  // --------------------------------------------------
-
   const openShareSheet = () => {
     shareSheetRef.current?.present();
   };
-
-  // --------------------------------------------------
-  // TICKET CUSTOMIZATION
-  // --------------------------------------------------
 
   const openCustomization = () => {
     setDraftCustomization(normalizeTicketCustomization(memory));
@@ -257,11 +262,6 @@ function MemoryDetailsScreen({ navigation, route }) {
     }
   };
 
-  // --------------------------------------------------
-  // CAPTURE CURRENT TICKET
-  // Used by Share + Save Image
-  // --------------------------------------------------
-
   const captureCurrentTicket = async () => {
     const safeIndex =
       activeImage >= 0 && activeImage < images.length ? activeImage : 0;
@@ -279,10 +279,6 @@ function MemoryDetailsScreen({ navigation, route }) {
     });
   };
 
-  // --------------------------------------------------
-  // PREPARE ORIGINAL PHOTO FOR SHARE / SAVE
-  // --------------------------------------------------
-
   const downloadViewerImage = async (index) => {
     const remoteUri = viewerImages[index];
     if (!remoteUri) {
@@ -299,10 +295,6 @@ function MemoryDetailsScreen({ navigation, route }) {
       extension,
     };
   };
-
-  // --------------------------------------------------
-  // SHARE ORIGINAL PHOTO
-  // --------------------------------------------------
 
   const handleSharePhoto = async (index) => {
     try {
@@ -344,10 +336,6 @@ function MemoryDetailsScreen({ navigation, route }) {
       setSharingPhoto(false);
     }
   };
-
-  // --------------------------------------------------
-  // SAVE ORIGINAL PHOTO
-  // --------------------------------------------------
 
   const handleSavePhoto = async (index) => {
     try {
@@ -398,10 +386,6 @@ function MemoryDetailsScreen({ navigation, route }) {
     }
   };
 
-  // --------------------------------------------------
-  // MORE / SHARE IMAGE
-  // --------------------------------------------------
-
   const handleMore = async () => {
     try {
       if (sharing) {
@@ -447,10 +431,6 @@ function MemoryDetailsScreen({ navigation, route }) {
       setSharing(false);
     }
   };
-
-  // --------------------------------------------------
-  // SAVE IMAGE
-  // --------------------------------------------------
 
   const handleSaveImage = async () => {
     try {
@@ -502,10 +482,6 @@ function MemoryDetailsScreen({ navigation, route }) {
       setSavingImage(false);
     }
   };
-
-  // --------------------------------------------------
-  // TICKET CAROUSEL ITEM
-  // --------------------------------------------------
 
   const renderTicket = ({ item: image, index }) => {
     return (
@@ -576,11 +552,21 @@ function MemoryDetailsScreen({ navigation, route }) {
             onPress={handleFavorite}
             activeOpacity={0.8}
           >
-            <Ionicons
-              name={memory.favorite ? "heart" : "heart-outline"}
-              size={21}
-              color={memory.favorite ? "#E76F51" : "#34345C"}
-            />
+            <Animated.View
+              style={{
+                transform: [
+                  {
+                    scale: favoriteScale,
+                  },
+                ],
+              }}
+            >
+              <Ionicons
+                name={memory.favorite ? "heart" : "heart-outline"}
+                size={21}
+                color={memory.favorite ? "#E76F51" : "#34345C"}
+              />
+            </Animated.View>
           </TouchableOpacity>
         </View>
 

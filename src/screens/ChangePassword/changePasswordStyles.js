@@ -1,10 +1,6 @@
 import { StyleSheet } from "react-native";
 
 const styles = StyleSheet.create({
-  // --------------------------------
-  // CONTAINER
-  // --------------------------------
-
   container: {
     flex: 1,
 
@@ -18,10 +14,6 @@ const styles = StyleSheet.create({
 
     paddingBottom: 100,
   },
-
-  // --------------------------------
-  // HEADER
-  // --------------------------------
 
   header: {
     flexDirection: "row",
@@ -68,10 +60,6 @@ const styles = StyleSheet.create({
 
     color: "#242424",
   },
-
-  // --------------------------------
-  // INTRO CARD
-  // --------------------------------
 
   introCard: {
     flexDirection: "row",
@@ -123,10 +111,6 @@ const styles = StyleSheet.create({
     color: "#9A9AA3",
   },
 
-  // --------------------------------
-  // SECTION TITLE
-  // --------------------------------
-
   sectionTitle: {
     fontSize: 9,
 
@@ -140,10 +124,6 @@ const styles = StyleSheet.create({
 
     paddingLeft: 2,
   },
-
-  // --------------------------------
-  // INPUT
-  // --------------------------------
 
   inputContainer: {
     height: 48,
@@ -179,10 +159,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#F9EEEC",
   },
 
-  // --------------------------------
-  // PASSWORD REQUIREMENTS
-  // --------------------------------
-
   requirements: {
     marginTop: -5,
 
@@ -211,10 +187,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
 
-  // --------------------------------
-  // PASSWORD MATCH
-  // --------------------------------
-
   matchRow: {
     flexDirection: "row",
 
@@ -242,10 +214,6 @@ const styles = StyleSheet.create({
   matchTextError: {
     color: "#D9534F",
   },
-
-  // --------------------------------
-  // BUTTON
-  // --------------------------------
 
   changeButton: {
     height: 48,
@@ -277,10 +245,6 @@ const styles = StyleSheet.create({
 
     color: "#FFFFFF",
   },
-
-  // --------------------------------
-  // FOOTER
-  // --------------------------------
 
   footerText: {
     textAlign: "center",
