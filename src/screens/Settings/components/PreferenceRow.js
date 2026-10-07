@@ -7,24 +7,20 @@ function PreferenceRow({
   notifications,
   loading,
   onNotificationsChange,
+  title = "Notifications",
+  subtitle = "Get reminders about your memories",
+  icon = "notifications-outline",
 }) {
   return (
     <View style={styles.card}>
       <View style={styles.row}>
         <View style={styles.iconBox}>
-          <Ionicons
-            name="notifications-outline"
-            size={20}
-            color="#34345C"
-          />
+          <Ionicons name={icon} size={20} color="#34345C" />
         </View>
 
         <View style={styles.rowContent}>
-          <Text style={styles.rowTitle}>Notifications</Text>
-
-          <Text style={styles.rowSubtitle}>
-            Get reminders about your memories
-          </Text>
+          <Text style={styles.rowTitle}>{title}</Text>
+          <Text style={styles.rowSubtitle}>{subtitle}</Text>
         </View>
 
         {!loading && (
@@ -44,4 +40,3 @@ function PreferenceRow({
 }
 
 export default PreferenceRow;
-
