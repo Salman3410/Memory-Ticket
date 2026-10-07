@@ -13,13 +13,15 @@ import { configureNotifications } from "./src/services/notificationService";
 import { useAuth } from "./src/hooks/useAuth";
 import RootNavigator from "./src/navigation/RootNavigator";
 import MementoSplashScreen from "./src/components/Splash/SplashScreen";
+import AppLockScreen from "./src/components/AppLock/AppLockScreen";
+import { getAppLockEnabled } from "./src/services/appLockService";
 import AlertProvider from "./src/context/AlertContext";
 
 ExpoSplashScreen.preventAutoHideAsync();
 
 function AppContent() {
   const { loading } = useAuth();
-  const [showMementoSplash, setShowMementoSplash] = useState(true);
+  const [showMementoSplash, setShowMementoSplash] = useState(true);\n  const [appLocked, setAppLocked] = useState(false);
   const nativeSplashHidden = useRef(false);
 
   useEffect(() => {
