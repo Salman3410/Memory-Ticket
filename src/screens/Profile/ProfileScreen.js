@@ -6,6 +6,7 @@ import {
 import { useMemory } from "../../hooks/useMemory";
 import { useAuth } from "../../hooks/useAuth";
 import { useRewards } from "../../hooks/useRewards";
+import { useSubscription } from "../../context/SubscriptionContext";
 import { useAppAlert } from "../../context/AlertContext";
 import ProfileCard from "../../components/Profile/Card/ProfileCard";
 import ProfileStats from "../../components/Profile/Stats/ProfileStats";
@@ -17,22 +18,21 @@ function ProfileScreen({ navigation }) {
   const { memories } = useMemory();
   const { user, logout } = useAuth();
   const { coins } = useRewards();
+  const { isPremium } = useSubscription();
   const { showAlert } = useAppAlert();
 
   const stats = {
     memories: memories.length,
-
     tickets: memories.length,
-
-    favorites: memories.filter(
-      (memory) => memory.favorite,
-    ).length,
+    favorites: memories.filter((memory) => memory.favorite).length,
   };
 
   const handleEditProfile = () => {
-    navigation.getParent()?.navigate(
-      "EditProfile",
-    );
+    navigation.getParent()?.navigate("EditProfile");
+  };
+
+  const handlePremium = () => {
+    navigation.getParent()?.navigate("Premium");
   };
 
   const handleRewards = () => {
@@ -47,11 +47,11 @@ function ProfileScreen({ navigation }) {
   };
 
   const handleSettings = () => {
-    navigation.navigate("Settings");
+    navigation.getParent()?.navigate("Settings");
   };
 
   const handleAbout = () => {
-    navigation.navigate("About");
+    navigation.getParent()?.navigate("About");
   };
 
   const handleLogout = () => {
@@ -59,27 +59,20 @@ function ProfileScreen({ navigation }) {
       type: "warning",
       icon: "log-out-outline",
       title: "Log Out?",
-      message:
-        "Are you sure you want to log out of Memento?",
+      message: "Are you sure you want to log out of Memento?",
       cancelText: "Cancel",
       confirmText: "Log Out",
       showCancel: true,
-
       onConfirm: async () => {
         try {
           await logout();
         } catch (error) {
-          console.error(
-            "Logout error:",
-            error,
-          );
-
+          console.error("Logout error:", error);
           showAlert({
             type: "danger",
             icon: "close-circle-outline",
             title: "Logout Failed",
-            message:
-              "Unable to log out. Please try again.",
+            message: "Unable to log out. Please try again.",
             confirmText: "OK",
           });
         }
@@ -89,33 +82,34 @@ function ProfileScreen({ navigation }) {
 
   const accountMenuItems = [
     {
+      title: isPremium ? "Memento Premium" : "Memento Premium",
+      subtitle: isPremium
+        ? "Premium is active"
+        : "Unlock advanced Memento features",
+      icon: "sparkles-outline",
+      onPress: handlePremium,
+    },
+    {
       title: "Edit Profile",
-      subtitle:
-        "Change your name or profile photo",
+      subtitle: "Change your name or profile photo",
       icon: "person-outline",
       onPress: handleEditProfile,
     },
-
     {
       title: "Memento Rewards",
-      subtitle:
-        `${coins} Coins • Earn and redeem rewards`,
+      subtitle: `${coins} Coins • Earn and redeem rewards`,
       icon: "gift-outline",
       onPress: handleRewards,
     },
-
     {
       title: "Settings",
-      subtitle:
-        "Manage your app preferences",
+      subtitle: "Manage your app preferences",
       icon: "options-outline",
       onPress: handleSettings,
     },
-
     {
       title: "About Memento",
-      subtitle:
-        "Learn more about the app",
+      subtitle: "Learn more about the app",
       icon: "information-circle-outline",
       onPress: handleAbout,
     },
@@ -124,17 +118,12 @@ function ProfileScreen({ navigation }) {
   const appMenuItems = [
     {
       title: "Your Favorites",
-      subtitle:
-        "Memories you don't want to forget",
+      subtitle: "Memories you don't want to forget",
       icon: "heart-outline",
-
       onPress: () =>
-        navigation.navigate(
-          "Memories",
-          {
-            filter: "favorites",
-          },
-        ),
+        navigation.navigate("Memories", {
+          filter: "favorites",
+        }),
     },
   ];
 
@@ -142,76 +131,26 @@ function ProfileScreen({ navigation }) {
     <View style={styles.container}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={
-          styles.scrollContent
-        }
+        contentContainerStyle={styles.scrollContent}
       >
-        {/* HEADER */}
-
         <View style={styles.header}>
           <View>
-            <Text
-              style={
-                styles.headerEyebrow
-              }
-            >
-              YOUR SPACE
-            </Text>
-
-            <Text
-              style={
-                styles.headerTitle
-              }
-            >
-              Profile
-            </Text>
+            <Text style={styles.headerEyebrow}>YOUR SPACE</Text>
+            <Text style={styles.headerTitle}>Profile</Text>
           </View>
         </View>
 
-        {/* PROFILE CARD */}
+        <ProfileCard user={user} onEditProfile={handleEditProfile} />
 
-        <ProfileCard
-          user={user}
-          onEditProfile={
-            handleEditProfile
-          }
-        />
+        <ProfileStats stats={stats} />
 
-        {/* STATS */}
+        <ProfileMenu title="ACCOUNT" items={accountMenuItems} />
 
-        <ProfileStats
-          stats={stats}
-        />
+        <ProfileMenu title="APP" items={appMenuItems} />
 
-        {/* ACCOUNT */}
+        <LogoutButton onPress={handleLogout} />
 
-        <ProfileMenu
-          title="ACCOUNT"
-          items={accountMenuItems}
-        />
-
-        {/* APP */}
-
-        <ProfileMenu
-          title="APP"
-          items={appMenuItems}
-        />
-
-        {/* LOGOUT */}
-
-        <LogoutButton
-          onPress={handleLogout}
-        />
-
-        {/* VERSION */}
-
-        <Text
-          style={
-            styles.versionText
-          }
-        >
-          MEMENTO • VERSION 1.0.0
-        </Text>
+        <Text style={styles.versionText}>MEMENTO • VERSION 2.5.0</Text>
       </ScrollView>
     </View>
   );
