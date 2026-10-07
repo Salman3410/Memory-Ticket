@@ -2,7 +2,11 @@
 import React from "react";
 import { FlexWidget, TextWidget } from "react-native-android-widget";
 
-export function MementoWidget({ memories = 0, latestTitle = "Your memories" }) {
+export function MementoWidget({
+  memories = 0,
+  latestTitle = "Your memories",
+  latestDate = "",
+}) {
   return (
     <FlexWidget
       style={{
@@ -15,32 +19,66 @@ export function MementoWidget({ memories = 0, latestTitle = "Your memories" }) {
       }}
       accessibilityLabel="Memento memory widget"
     >
-      <TextWidget
-        text="MEMENTO"
+      <FlexWidget
         style={{
-          fontSize: 11,
-          fontWeight: "bold",
-          color: "#34345C",
+          height: "wrap_content",
+          width: "wrap_content",
         }}
-      />
+        clickAction="OPEN_APP"
+      >
+        <TextWidget
+          text="MEMENTO"
+          style={{
+            fontSize: 11,
+            fontWeight: "bold",
+            color: "#34345C",
+          }}
+        />
+      </FlexWidget>
 
-      <TextWidget
-        text={latestTitle || "Your memories"}
+      <FlexWidget
         style={{
-          fontSize: 18,
-          fontWeight: "bold",
-          color: "#242424",
+          height: "wrap_content",
+          width: "match_parent",
         }}
-        maxLines={2}
-      />
+        clickAction="OPEN_APP"
+      >
+        <TextWidget
+          text={latestTitle || "No memories yet"}
+          style={{
+            fontSize: 18,
+            fontWeight: "bold",
+            color: "#242424",
+          }}
+          maxLines={2}
+        />
 
-      <TextWidget
-        text={`${memories} memories saved`}
+        {latestDate ? (
+          <TextWidget
+            text={latestDate}
+            style={{
+              fontSize: 10,
+              color: "#888793",
+            }}
+          />
+        ) : null}
+      </FlexWidget>
+
+      <FlexWidget
         style={{
-          fontSize: 11,
-          color: "#888793",
+          height: "wrap_content",
+          width: "wrap_content",
         }}
-      />
+        clickAction="OPEN_APP"
+      >
+        <TextWidget
+          text={`${memories} memories saved`}
+          style={{
+            fontSize: 11,
+            color: "#888793",
+          }}
+        />
+      </FlexWidget>
     </FlexWidget>
   );
 }
