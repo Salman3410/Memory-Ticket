@@ -7,11 +7,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-import {
-  authenticateAppLock,
-  getAppLockEnabled,
-} from "../../services/appLockService";
-
+import { authenticateAppLock, getAppLockEnabled } from "../../services/appLockService";
 import styles from "./appLockStyles";
 
 function AppLockScreen({ onUnlocked }) {
@@ -23,9 +19,7 @@ function AppLockScreen({ onUnlocked }) {
     setLoading(true);
 
     try {
-      const enabled = await getAppLockEnabled();
-
-      if (!enabled) {
+      if (!(await getAppLockEnabled())) {
         onUnlocked?.();
         return;
       }
@@ -41,6 +35,9 @@ function AppLockScreen({ onUnlocked }) {
             : "Authentication failed. Try again.",
         );
       }
+    } catch (authenticationError) {
+      console.error("App lock authentication error:", authenticationError);
+      setError("Unable to authenticate. Try again.");
     } finally {
       setLoading(false);
     }
@@ -55,25 +52,16 @@ function AppLockScreen({ onUnlocked }) {
       <View style={styles.iconBox}>
         <Ionicons name="lock-closed-outline" size={30} color="#34345C" />
       </View>
-
       <Text style={styles.title}>Memento is locked</Text>
-      <Text style={styles.subtitle}>
-        Unlock Memento to access your memories.
-      </Text>
-
+      <Text style={styles.subtitle}>Unlock Memento to access your memories.</Text>
       {loading ? (
         <ActivityIndicator size="small" color="#34345C" />
       ) : (
-        <TouchableOpacity
-          style={styles.button}
-          onPress={unlock}
-          activeOpacity={0.85}
-        >
+        <TouchableOpacity style={styles.button} onPress={unlock} activeOpacity={0.85}>
           <Ionicons name="finger-print-outline" size={19} color="#FFFFFF" />
           <Text style={styles.buttonText}>UNLOCK MEMENTO</Text>
         </TouchableOpacity>
       )}
-
       {error ? <Text style={styles.error}>{error}</Text> : null}
     </View>
   );
