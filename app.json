@@ -17,7 +17,11 @@
       "bundleIdentifier": "com.salera.memoryticket",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "LSApplicationQueriesSchemes": ["instagram", "fb", "whatsapp"]
+        "LSApplicationQueriesSchemes": [
+          "instagram",
+          "fb",
+          "whatsapp"
+        ]
       }
     },
     "android": {
@@ -28,27 +32,62 @@
       "edgeToEdgeEnabled": true,
       "package": "com.salera.memoryticket",
       "config": {
-        "abiFilters": ["armeabi-v7a", "arm64-v8a", "x86", "x86_64"]
+        "abiFilters": [
+          "armeabi-v7a",
+          "arm64-v8a",
+          "x86",
+          "x86_64"
+        ]
       },
-      "permissions": ["android.permission.RECORD_AUDIO"]
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "plugins": [
       "expo-secure-store",
-      ["react-native-google-mobile-ads", {
-        "androidAppId": "ca-app-pub-3404665145185739~3242147488"
-      }],
-      ["expo-image-picker", {
-        "photosPermission": "Allow MemoryTicket to access your photos so you can create memories."
-      }],
-      ["expo-build-properties", {
-        "android": {
-          "packagingOptions": {
-            "pickFirst": [],
-            "doNotStrip": []
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-3404665145185739~3242147488"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow MemoryTicket to access your photos so you can create memories."
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "packagingOptions": {
+              "pickFirst": [],
+              "doNotStrip": []
+            }
           }
         }
-      }],
-      "expo-asset"
+      ],
+      "expo-asset",
+      "expo-local-authentication",
+      "expo-notifications",
+      [
+        "react-native-android-widget",
+        {
+          "widgets": [
+            {
+              "name": "Memento",
+              "label": "Memento",
+              "minWidth": "180dp",
+              "minHeight": "100dp",
+              "description": "Your memories at a glance",
+              "targetCellWidth": 3,
+              "targetCellHeight": 2,
+              "updatePeriodMillis": 1800000
+            }
+          ]
+        }
+      ]
     ],
     "extra": {
       "eas": {
