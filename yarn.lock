@@ -2793,7 +2793,7 @@ expo-network@~8.0.8:
   resolved "https://registry.npmjs.org/expo-network/-/expo-network-8.0.8.tgz"
   integrity sha512-dgrL8UHAmWofqeY4UEjWskCl/RoQAM0DG6PZR8xz2WZt+6aQEboQgFRXowCfhbKZ71d16sNuKXtwBEsp2DtdNw==
 
-expo-notifications@0.32.17:
+expo-notifications@~0.32.17:
   version "0.32.17"
   resolved "https://registry.npmjs.org/expo-notifications/-/expo-notifications-0.32.17.tgz"
   integrity sha512-lwwzn7tImuzTzn9PAglZlS2VfZEvsfFGJTK9Eb8I4cqkGh2DI23YJFJH+WPEIu4QhDvk5JeBjklenJ8IZbmA4A==

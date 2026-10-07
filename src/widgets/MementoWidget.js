@@ -1,5 +1,3 @@
-'use no memo';
-import React from "react";
 import { FlexWidget, TextWidget } from "react-native-android-widget";
 
 export function MementoWidget({ memories = 0, latestTitle = "Your memories" }) {
