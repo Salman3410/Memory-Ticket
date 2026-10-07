@@ -12,6 +12,9 @@ import { File } from "expo-file-system";
 import { useMemory } from "../../hooks/useMemory";
 import { useAuth } from "../../hooks/useAuth";
 import { useAppAlert } from "../../context/AlertContext";
+import { useSubscription } from "../../context/SubscriptionContext";
+import { requestNotificationPermission, scheduleDailyMemoryReminder, cancelAllMemoryNotifications } from "../../services/notificationService";
+import { getAppLockEnabled, setAppLockEnabled, getBiometricSupport } from "../../services/appLockService";
 import SettingsHeader from "./components/SettingsHeader";
 import PreferenceRow from "./components/PreferenceRow";
 import StorageSection from "./components/StorageSection";
@@ -512,7 +515,7 @@ function SettingsScreen({ navigation }) {
             styles.footerText
           }
         >
-          MEMENTO • VERSION 1.0.0
+          MEMENTO • VERSION 2.5.0
         </Text>
       </ScrollView>
     </View>
