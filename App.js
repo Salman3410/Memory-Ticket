@@ -21,7 +21,8 @@ ExpoSplashScreen.preventAutoHideAsync();
 
 function AppContent() {
   const { loading } = useAuth();
-  const [showMementoSplash, setShowMementoSplash] = useState(true);\n  const [appLocked, setAppLocked] = useState(false);
+  const [showMementoSplash, setShowMementoSplash] = useState(true);
+  const [appLocked, setAppLocked] = useState(false);
   const nativeSplashHidden = useRef(false);
 
   useEffect(() => {
