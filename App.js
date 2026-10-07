@@ -25,6 +25,14 @@ function AppContent() {
   const nativeSplashHidden = useRef(false);
 
   useEffect(() => {
+    getAppLockEnabled()
+      .then(setAppLocked)
+      .catch(() => setAppLocked(false));
+
+    configureNotifications().catch((error) => {
+      console.warn("Notification setup failed:", error);
+    });
+
     const hideNativeSplash = async () => {
       if (nativeSplashHidden.current) return;
       nativeSplashHidden.current = true;
@@ -44,7 +52,11 @@ function AppContent() {
   return (
     <NavigationContainer>
       {appReady ? (
-        <RootNavigator />
+        appLocked ? (
+          <AppLockScreen onUnlocked={() => setAppLocked(false)} />
+        ) : (
+          <RootNavigator />
+        )
       ) : (
         <MementoSplashScreen onFinish={() => setShowMementoSplash(false)} />
       )}
