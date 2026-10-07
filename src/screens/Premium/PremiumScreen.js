@@ -7,13 +7,11 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-
 import { useSubscription } from "../../context/SubscriptionContext";
 import {
   PREMIUM_FEATURE_LIST,
   SUBSCRIPTION_PRICING,
 } from "../../constants/subscription";
-
 import styles from "./premiumStyles";
 
 function PremiumScreen({ navigation }) {
