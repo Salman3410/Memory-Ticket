@@ -51,7 +51,10 @@
     "react-native-view-shot": "4.0.3",
     "react-native-worklets": "0.5.1",
     "yup": "^1.7.1",
-    "react-native-purchases": "10.10.2"
+    "react-native-purchases": "10.10.2",
+    "expo-local-authentication": "~17.0.9",
+    "expo-notifications": "0.32.17",
+    "react-native-android-widget": "0.22.1"
   },
   "private": true
 }
