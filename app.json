@@ -31,14 +31,6 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.salera.memoryticket",
-      "config": {
-        "abiFilters": [
-          "armeabi-v7a",
-          "arm64-v8a",
-          "x86",
-          "x86_64"
-        ]
-      },
       "permissions": [
         "android.permission.RECORD_AUDIO"
       ]
@@ -87,7 +79,8 @@
             }
           ]
         }
-      ]
+      ],
+      "expo-font"
     ],
     "extra": {
       "eas": {
