@@ -4,6 +4,7 @@ import { NavigationContainer } from "@react-navigation/native";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import * as ExpoSplashScreen from "expo-splash-screen";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AuthProvider } from "./src/context/AuthContext";
 import { MemoryProvider } from "./src/context/MemoryContext";
 import { CollectionProvider } from "./src/context/CollectionContext";
@@ -16,6 +17,9 @@ import MementoSplashScreen from "./src/components/Splash/SplashScreen";
 import AppLockScreen from "./src/components/AppLock/AppLockScreen";
 import { getAppLockEnabled } from "./src/services/appLockService";
 import AlertProvider from "./src/context/AlertContext";
+import OnboardingScreen from "./src/screens/Onboarding/OnboardingScreen";
+
+const ONBOARDING_SEEN_KEY = "memory_ticket_onboarding_seen";
 
 ExpoSplashScreen.preventAutoHideAsync();
 
@@ -23,12 +27,19 @@ function AppContent() {
   const { loading } = useAuth();
   const [showMementoSplash, setShowMementoSplash] = useState(true);
   const [appLocked, setAppLocked] = useState(false);
+  const [onboardingReady, setOnboardingReady] = useState(false);
+  const [hasSeenOnboarding, setHasSeenOnboarding] = useState(false);
   const nativeSplashHidden = useRef(false);
 
   useEffect(() => {
     getAppLockEnabled()
       .then(setAppLocked)
       .catch(() => setAppLocked(false));
+
+    AsyncStorage.getItem(ONBOARDING_SEEN_KEY)
+      .then((value) => setHasSeenOnboarding(value === "true"))
+      .catch(() => setHasSeenOnboarding(false))
+      .finally(() => setOnboardingReady(true));
 
     configureNotifications().catch((error) => {
       console.warn("Notification setup failed:", error);
@@ -48,12 +59,24 @@ function AppContent() {
     requestAnimationFrame(hideNativeSplash);
   }, []);
 
-  const appReady = !loading && !showMementoSplash;
+  const appReady = !loading && !showMementoSplash && onboardingReady;
+
+  const handleOnboardingComplete = async () => {
+    try {
+      await AsyncStorage.setItem(ONBOARDING_SEEN_KEY, "true");
+    } catch (error) {
+      console.warn("Unable to persist onboarding state:", error);
+    } finally {
+      setHasSeenOnboarding(true);
+    }
+  };
 
   return (
     <NavigationContainer>
       {appReady ? (
-        appLocked ? (
+        !hasSeenOnboarding ? (
+          <OnboardingScreen onComplete={handleOnboardingComplete} />
+        ) : appLocked ? (
           <AppLockScreen onUnlocked={() => setAppLocked(false)} />
         ) : (
           <RootNavigator />
