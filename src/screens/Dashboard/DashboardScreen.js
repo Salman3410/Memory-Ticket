@@ -1,5 +1,5 @@
 
-import React, { useCallback } from "react";
+import React, { useCallback, useMemo } from "react";
 
 import {
   ActivityIndicator,
@@ -14,7 +14,6 @@ import useDashboard from "../../hooks/useDashboard";
 import useRefresh from "../../hooks/useRefresh";
 import { useMemory } from "../../hooks/useMemory";
 import { useCollection } from "../../hooks/useCollection";
-
 import { useTheme } from "../../context/ThemeContext";
 
 import DashboardHeader from "./components/DashboardHeader";
@@ -26,8 +25,7 @@ import DashboardMemoryCard from "./components/DashboardMemoryCard";
 import DashboardSectionHeader from "./components/DashboardSectionHeader";
 
 import HomeCollectionsSection from "../../components/collections/HomeCollectionsSection";
-
-import { styles } from "./dashboardStyles";
+import { styles as dashboardStyles } from "./dashboardStyles";
 
 function DashboardScreen({ navigation }) {
   const { user } = useAuth();
@@ -37,6 +35,35 @@ function DashboardScreen({ navigation }) {
 
   const { theme, isDark } = useTheme();
   const { colors } = theme;
+
+  // Preserve existing layouts while applying the active theme.
+  const styles = useMemo(
+    () => ({
+      ...dashboardStyles,
+
+      container: [
+        dashboardStyles.container,
+        {
+          backgroundColor: colors.background,
+        },
+      ],
+
+      loadingContainer: [
+        dashboardStyles.loadingContainer,
+        {
+          backgroundColor: colors.background,
+        },
+      ],
+
+      content: [
+        dashboardStyles.content,
+        {
+          backgroundColor: colors.background,
+        },
+      ],
+    }),
+    [colors.background]
+  );
 
   const {
     stats,
@@ -51,10 +78,7 @@ function DashboardScreen({ navigation }) {
     loading,
   } = useDashboard();
 
-  // --------------------------------------------------
-  // REFRESH
-  // --------------------------------------------------
-
+  // Refresh dashboard data.
   const refreshDashboard = useCallback(async () => {
     await Promise.all([
       refreshMemories(),
@@ -64,10 +88,7 @@ function DashboardScreen({ navigation }) {
 
   const { refreshing, onRefresh } = useRefresh(refreshDashboard);
 
-  // --------------------------------------------------
-  // MEMORY NAVIGATION
-  // --------------------------------------------------
-
+  // Open memory details.
   const openMemory = useCallback(
     (memory) => {
       if (!memory?.id) {
@@ -81,10 +102,7 @@ function DashboardScreen({ navigation }) {
     [navigation]
   );
 
-  // --------------------------------------------------
-  // COLLECTION NAVIGATION
-  // --------------------------------------------------
-
+  // Collections navigation.
   const handleViewCollections = useCallback(() => {
     navigation.navigate("Collections");
   }, [navigation]);
@@ -108,28 +126,15 @@ function DashboardScreen({ navigation }) {
     [navigation]
   );
 
-  // --------------------------------------------------
-  // ON THIS DAY
-  // --------------------------------------------------
-
+  // On This Day navigation.
   const openOnThisDay = useCallback(() => {
     navigation.navigate("OnThisDay");
   }, [navigation]);
 
-  // --------------------------------------------------
-  // LOADING
-  // --------------------------------------------------
-
+  // Loading screen.
   if (loading && !stats.totalMemories) {
     return (
-      <View
-        style={[
-          styles.loadingContainer,
-          {
-            backgroundColor: colors.background,
-          },
-        ]}
-      >
+      <View style={styles.loadingContainer}>
         <StatusBar
           barStyle={isDark ? "light-content" : "dark-content"}
           backgroundColor={colors.background}
@@ -143,19 +148,8 @@ function DashboardScreen({ navigation }) {
     );
   }
 
-  // --------------------------------------------------
-  // DASHBOARD
-  // --------------------------------------------------
-
   return (
-    <View
-      style={[
-        styles.container,
-        {
-          backgroundColor: colors.background,
-        },
-      ]}
-    >
+    <View style={styles.container}>
       <StatusBar
         barStyle={isDark ? "light-content" : "dark-content"}
         backgroundColor={colors.background}
@@ -174,24 +168,21 @@ function DashboardScreen({ navigation }) {
           />
         }
       >
-        {/* HEADER */}
-
+        {/* Header */}
         <DashboardHeader
           name={user?.name}
           colors={colors}
           isDark={isDark}
         />
 
-        {/* DASHBOARD HERO */}
-
+        {/* Dashboard Hero */}
         <DashboardHero
           stats={stats}
           colors={colors}
           isDark={isDark}
         />
 
-        {/* MEMORY ACTIVITY */}
-
+        {/* Memory Activity */}
         <MemoryPulseCard
           activity={monthlyActivity}
           thisMonthCount={thisMonthCount}
@@ -200,8 +191,7 @@ function DashboardScreen({ navigation }) {
           isDark={isDark}
         />
 
-        {/* ON THIS DAY */}
-
+        {/* On This Day */}
         <View style={styles.section}>
           <OnThisDayCard
             memories={onThisDay}
@@ -211,8 +201,7 @@ function DashboardScreen({ navigation }) {
           />
         </View>
 
-        {/* MEMORY SPOTLIGHT */}
-
+        {/* Memory Spotlight */}
         {featuredMemory && (
           <View style={styles.section}>
             <DashboardSectionHeader
@@ -232,8 +221,7 @@ function DashboardScreen({ navigation }) {
           </View>
         )}
 
-        {/* FAVORITES */}
-
+        {/* Favorites */}
         {favoriteMemories.length > 0 && (
           <View style={styles.section}>
             <DashboardSectionHeader
@@ -270,8 +258,7 @@ function DashboardScreen({ navigation }) {
           </View>
         )}
 
-        {/* COLLECTIONS */}
-
+        {/* Collections */}
         <HomeCollectionsSection
           collections={
             Array.isArray(recentCollections)

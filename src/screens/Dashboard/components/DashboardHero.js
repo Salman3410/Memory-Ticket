@@ -1,28 +1,21 @@
 import React from "react";
-import {
-  Text,
-  View,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+
+import { Text, View } from "react-native";
+
 import { styles } from "../dashboardStyles";
 
 function DashboardHero({ stats }) {
   return (
     <View style={styles.heroCard}>
-
       {/* Ticket side cut-outs */}
       <View style={styles.ticketNotchLeft} />
       <View style={styles.ticketNotchRight} />
 
       <View style={styles.heroTopRow}>
         <View>
-          <Text style={styles.heroEyebrow}>
-            YOUR STORY SO FAR
-          </Text>
+          <Text style={styles.heroEyebrow}>YOUR STORY SO FAR</Text>
 
-          <Text style={styles.heroCount}>
-            {stats.totalMemories}
-          </Text>
+          <Text style={styles.heroCount}>{stats.totalMemories}</Text>
 
           <Text style={styles.heroDescription}>
             {stats.totalMemories === 1
@@ -35,42 +28,28 @@ function DashboardHero({ stats }) {
       {/* Ticket perforation */}
       <View style={styles.ticketDivider}>
         {Array.from({ length: 22 }).map((_, index) => (
-          <View
-            key={index}
-            style={styles.ticketDot}
-          />
+          <View key={index} style={styles.ticketDot} />
         ))}
       </View>
 
+      {/* Ticket statistics */}
       <View style={styles.heroStatsRow}>
         <View style={styles.heroStat}>
-          <Text style={styles.heroStatValue}>
-            {stats.totalPhotos}
-          </Text>
+          <Text style={styles.heroStatValue}>{stats.totalPhotos}</Text>
 
-          <Text style={styles.heroStatLabel}>
-            PHOTOS
-          </Text>
+          <Text style={styles.heroStatLabel}>PHOTOS</Text>
         </View>
 
         <View style={styles.heroStat}>
-          <Text style={styles.heroStatValue}>
-            {stats.totalPlaces}
-          </Text>
+          <Text style={styles.heroStatValue}>{stats.totalPlaces}</Text>
 
-          <Text style={styles.heroStatLabel}>
-            PLACES
-          </Text>
+          <Text style={styles.heroStatLabel}>PLACES</Text>
         </View>
 
         <View style={styles.heroStat}>
-          <Text style={styles.heroStatValue}>
-            {stats.totalFavorites}
-          </Text>
+          <Text style={styles.heroStatValue}>{stats.totalFavorites}</Text>
 
-          <Text style={styles.heroStatLabel}>
-            FAVORITES
-          </Text>
+          <Text style={styles.heroStatLabel}>FAVORITES</Text>
         </View>
       </View>
     </View>
@@ -78,4 +57,3 @@ function DashboardHero({ stats }) {
 }
 
 export default React.memo(DashboardHero);
-
