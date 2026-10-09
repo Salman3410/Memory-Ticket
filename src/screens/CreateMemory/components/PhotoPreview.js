@@ -1,9 +1,34 @@
+import React from "react";
+
 import { View, Text, TouchableOpacity, Image, FlatList } from "react-native";
+
 import { Ionicons } from "@expo/vector-icons";
 
 import styles from "../createMemoryStyles";
 
-function PhotoPreview({ images, removeImage, handleImageScroll }) {
+function PhotoPreview({
+  images,
+  removeImage,
+  handleImageScroll,
+  theme,
+  isDark,
+}) {
+  const colors = theme?.colors || {};
+
+  const textColor = colors.text || (isDark ? "#F1F0F6" : "#242424");
+
+  const mutedTextColor =
+    colors.textSecondary ||
+    colors.textMuted ||
+    (isDark ? "#A6A6B8" : "#737387");
+
+  const surfaceColor =
+    colors.surface || colors.card || (isDark ? "#232333" : "#FFFFFF");
+
+  const borderColor = colors.border || (isDark ? "#38384C" : "#D9D8E2");
+
+  const accentColor = colors.accent || "#E76F51";
+
   const getImageUri = (item) => {
     if (!item) {
       return null;
@@ -25,11 +50,35 @@ function PhotoPreview({ images, removeImage, handleImageScroll }) {
 
     if (!uri) {
       return (
-        <View style={styles.imagePage}>
-          <View style={styles.imageError}>
-            <Ionicons name="image-outline" size={40} color="#9A99A5" />
+        <View
+          style={[
+            styles.imagePage,
+            {
+              backgroundColor: surfaceColor,
+            },
+          ]}
+        >
+          <View
+            style={[
+              styles.imageError,
+              {
+                backgroundColor: surfaceColor,
+                borderColor,
+              },
+            ]}
+          >
+            <Ionicons name="image-outline" size={40} color={mutedTextColor} />
 
-            <Text style={styles.imageErrorText}>Image unavailable</Text>
+            <Text
+              style={[
+                styles.imageErrorText,
+                {
+                  color: textColor,
+                },
+              ]}
+            >
+              Image unavailable
+            </Text>
           </View>
         </View>
       );
@@ -43,9 +92,14 @@ function PhotoPreview({ images, removeImage, handleImageScroll }) {
           resizeMode="cover"
         />
 
-        {/* REMOVE */}
+        {/* REMOVE IMAGE */}
         <TouchableOpacity
-          style={styles.removeImageButton}
+          style={[
+            styles.removeImageButton,
+            {
+              backgroundColor: accentColor,
+            },
+          ]}
           onPress={() => removeImage(index)}
           activeOpacity={0.8}
         >
@@ -53,8 +107,24 @@ function PhotoPreview({ images, removeImage, handleImageScroll }) {
         </TouchableOpacity>
 
         {/* IMAGE NUMBER */}
-        <View style={styles.imageNumber}>
-          <Text style={styles.imageNumberText}>
+        <View
+          style={[
+            styles.imageNumber,
+            {
+              backgroundColor: isDark
+                ? "rgba(23, 23, 36, 0.88)"
+                : "rgba(36, 36, 36, 0.75)",
+            },
+          ]}
+        >
+          <Text
+            style={[
+              styles.imageNumberText,
+              {
+                color: "#FFFFFF",
+              },
+            ]}
+          >
             {index + 1}/{images.length}
           </Text>
         </View>
@@ -63,10 +133,21 @@ function PhotoPreview({ images, removeImage, handleImageScroll }) {
   };
 
   return (
-    <View style={styles.imageContainer}>
+    <View
+      style={[
+        styles.imageContainer,
+        {
+          backgroundColor: surfaceColor,
+        },
+      ]}
+    >
       <FlatList
         data={images}
-        keyExtractor={(item, index) => `${item}-${index}`}
+        keyExtractor={(item, index) => {
+          const uri = typeof item === "string" ? item : item?.uri || "image";
+
+          return `${uri}-${index}`;
+        }}
         renderItem={renderImage}
         horizontal
         pagingEnabled

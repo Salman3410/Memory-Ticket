@@ -1,7 +1,14 @@
-import { useEffect, useState } from "react";
-import { View, Text } from "react-native";
+import { useEffect, useMemo, useState } from "react";
+import {
+  View,
+  Text,
+  StatusBar,
+} from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import { useTheme } from "../../context/ThemeContext";
+import { useAppAlert } from "../../context/AlertContext";
 import CreateMemoryHeader from "./components/CreateMemoryHeader";
 import PhotoSection from "./components/PhotoSection";
 import MemoryForm from "./components/MemoryForm";
@@ -9,23 +16,57 @@ import DescriptionInput from "./components/DescriptionInput";
 import PreviewButton from "./components/PreviewButton";
 import TagsInput from "../../components/TagsInput/TagsInput";
 import styles from "./createMemoryStyles";
-import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { getNetworkInfo } from "../../services/networkService";
 import { normalizeTicketCustomization } from "../../utils/ticketCustomization";
-import { useAppAlert } from "../../context/AlertContext";
 
 const MAX_IMAGES = 5;
 
 function CreateMemoryScreen({ navigation, route }) {
   const { showAlert } = useAppAlert();
+  const { theme, isDark } = useTheme();
+
+  const screenStyles = useMemo(() => {
+    const colors = theme?.colors || {};
+
+    const backgroundColor =
+      colors.background || (isDark ? "#171724" : "#F1F0F6");
+
+    const footerTextColor =
+      colors.textSecondary ||
+      colors.textMuted ||
+      (isDark ? "#A6A6B8" : "#737387");
+
+    return {
+      container: {
+        ...styles.container,
+        backgroundColor,
+      },
+
+      scrollContent: {
+        ...styles.scrollContent,
+        backgroundColor,
+      },
+
+      footerText: {
+        ...styles.footerText,
+        color: footerTextColor,
+      },
+
+      backgroundColor,
+    };
+  }, [theme, isDark]);
 
   const [images, setImages] = useState([]);
   const [activeImage, setActiveImage] = useState(0);
+
   const [title, setTitle] = useState("");
+
   const [network, setNetwork] = useState(null);
+
   const [location, setLocation] = useState("");
   const [locationData, setLocationData] = useState(null);
   const [locationCaptured, setLocationCaptured] = useState(false);
+
   const [description, setDescription] = useState("");
   const [tags, setTags] = useState([]);
 
@@ -48,6 +89,7 @@ function CreateMemoryScreen({ navigation, route }) {
 
     setImages(existingImages.slice(0, MAX_IMAGES));
     setActiveImage(0);
+
     setTitle(editMemory.title || "");
 
     // Keep the existing manual location.
@@ -55,11 +97,12 @@ function CreateMemoryScreen({ navigation, route }) {
 
     // Keep existing GPS data.
     setLocationData(editMemory.locationData || null);
-
     setLocationCaptured(!!editMemory.locationData);
 
     // Keep existing network information.
-    setNetwork(editMemory.network || editMemory.environment?.network || null);
+    setNetwork(
+      editMemory.network || editMemory.environment?.network || null,
+    );
 
     setDescription(editMemory.description || "");
 
@@ -77,7 +120,6 @@ function CreateMemoryScreen({ navigation, route }) {
     let cancelled = false;
 
     const captureMemoryEnvironment = async () => {
-
       try {
         const networkInfo = await getNetworkInfo();
 
@@ -172,6 +214,7 @@ function CreateMemoryScreen({ navigation, route }) {
           message: "Please allow photo library access to select photos.",
           confirmText: "OK",
         });
+
         return;
       }
 
@@ -185,6 +228,7 @@ function CreateMemoryScreen({ navigation, route }) {
           message: "You can add up to 5 photos.",
           confirmText: "OK",
         });
+
         return;
       }
 
@@ -235,10 +279,12 @@ function CreateMemoryScreen({ navigation, route }) {
           message: "You can add up to 5 photos.",
           confirmText: "OK",
         });
+
         return;
       }
 
-      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      const permission =
+        await ImagePicker.requestCameraPermissionsAsync();
 
       if (!permission.granted) {
         showAlert({
@@ -248,6 +294,7 @@ function CreateMemoryScreen({ navigation, route }) {
           message: "Please allow camera access to take a photo.",
           confirmText: "OK",
         });
+
         return;
       }
 
@@ -271,7 +318,6 @@ function CreateMemoryScreen({ navigation, route }) {
       const newIndex = images.length;
 
       setImages((currentImages) => [...currentImages, uri]);
-
       setActiveImage(newIndex);
     } catch (error) {
       console.error("Camera error:", error);
@@ -388,7 +434,6 @@ function CreateMemoryScreen({ navigation, route }) {
 
   const handleImageScroll = (event) => {
     const offsetX = event.nativeEvent.contentOffset.x;
-
     const pageWidth = event.nativeEvent.layoutMeasurement.width;
 
     if (!pageWidth) {
@@ -404,23 +449,14 @@ function CreateMemoryScreen({ navigation, route }) {
 
   const resetForm = () => {
     setImages([]);
-
     setActiveImage(0);
-
     setTitle("");
-
     setNetwork(null);
-
     setLocation("");
-
     setLocationData(null);
-
     setDescription("");
-
     setTags([]);
-
     setLocationCaptured(false);
-
     setTicketCustomization(normalizeTicketCustomization());
   };
 
@@ -463,30 +499,18 @@ function CreateMemoryScreen({ navigation, route }) {
 
     const draftMemory = {
       title: title.trim(),
-
       location: location.trim(),
-
       locationData,
-
       network,
-
       description: description.trim(),
-
       tags: [...tags],
-
       image: images[0] || null,
-
       images: [...images],
-
       date: new Date().toISOString(),
 
-      // ------------------------------------------------
-      // TICKET CUSTOMIZATION
-      // ------------------------------------------------
+      // Ticket customization.
       ticketStyle: ticketCustomization.ticketStyle,
-
       ticketAccent: ticketCustomization.ticketAccent,
-
       ticketOptions: {
         ...ticketCustomization.ticketOptions,
       },
@@ -500,14 +524,23 @@ function CreateMemoryScreen({ navigation, route }) {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={screenStyles.container}>
+      <StatusBar
+        barStyle={isDark ? "light-content" : "dark-content"}
+        backgroundColor={screenStyles.backgroundColor}
+      />
+
       <KeyboardAwareScrollView
         bottomOffset={30}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={screenStyles.scrollContent}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <CreateMemoryHeader navigation={navigation} />
+        <CreateMemoryHeader
+          navigation={navigation}
+          theme={theme}
+          isDark={isDark}
+        />
 
         <PhotoSection
           images={images}
@@ -516,6 +549,8 @@ function CreateMemoryScreen({ navigation, route }) {
           takePhoto={takePhoto}
           removeImage={removeImage}
           handleImageScroll={handleImageScroll}
+          theme={theme}
+          isDark={isDark}
         />
 
         <MemoryForm
@@ -524,18 +559,31 @@ function CreateMemoryScreen({ navigation, route }) {
           location={location}
           setLocation={setLocation}
           onLocationPress={handleLocationPress}
+          theme={theme}
+          isDark={isDark}
         />
 
-        <TagsInput tags={tags} setTags={setTags} />
+        <TagsInput
+          tags={tags}
+          setTags={setTags}
+          theme={theme}
+          isDark={isDark}
+        />
 
         <DescriptionInput
           description={description}
           setDescription={setDescription}
+          theme={theme}
+          isDark={isDark}
         />
 
-        <PreviewButton onPress={handleCreateMemory} />
+        <PreviewButton
+          onPress={handleCreateMemory}
+          theme={theme}
+          isDark={isDark}
+        />
 
-        <Text style={styles.footerText}>
+        <Text style={screenStyles.footerText}>
           KEEP THE MOMENT.
           {"\n"}
           KEEP THE STORY.

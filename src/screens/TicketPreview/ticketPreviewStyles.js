@@ -1,6 +1,10 @@
 import { StyleSheet } from "react-native";
 
 const styles = StyleSheet.create({
+  // ==================================================
+  // SCREEN
+  // ==================================================
+
   container: {
     flex: 1,
     backgroundColor: "#F1F0F6",
@@ -106,6 +110,7 @@ const styles = StyleSheet.create({
 
   // ==================================================
   // TOP PERFORATION
+  // Ticket artwork colors remain unchanged.
   // ==================================================
 
   topPerforation: {
@@ -185,7 +190,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    // backgroundColor: "rgba(255, 176, 0, 0.18)",
   },
 
   noImage: {
@@ -253,7 +257,7 @@ const styles = StyleSheet.create({
   },
 
   // ==================================================
-  // INFORMATION
+  // TICKET INFORMATION
   // ==================================================
 
   ticketInfo: {
@@ -305,6 +309,10 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     letterSpacing: 0.2,
   },
+
+  // ==================================================
+  // TICKET DIVIDER AND INFORMATION ROWS
+  // ==================================================
 
   ticketDivider: {
     height: 1,
@@ -394,7 +402,7 @@ const styles = StyleSheet.create({
   },
 
   // ==================================================
-  // FOOTER
+  // TICKET FOOTER
   // ==================================================
 
   ticketFooter: {
@@ -556,6 +564,10 @@ const styles = StyleSheet.create({
     letterSpacing: 1.2,
     color: "#34345C",
   },
+
+  // ==================================================
+  // SCREEN FOOTER
+  // ==================================================
 
   footerText: {
     textAlign: "center",

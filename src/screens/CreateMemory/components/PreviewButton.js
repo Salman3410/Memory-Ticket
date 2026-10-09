@@ -2,10 +2,19 @@ import { Text, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import styles from "../createMemoryStyles";
 
-function PreviewButton({ onPress }) {
+function PreviewButton({ onPress, theme, isDark }) {
+  const colors = theme?.colors || {};
+
+  const primaryColor = colors.primary || "#34345C";
+
   return (
     <TouchableOpacity
-      style={styles.continueButton}
+      style={[
+        styles.continueButton,
+        {
+          backgroundColor: primaryColor,
+        },
+      ]}
       onPress={onPress}
       activeOpacity={0.8}
     >
