@@ -41,17 +41,11 @@ function PreviewActions({
           },
         ]}
         onPress={onSave}
-        activeOpacity={0.85}
+        activeOpacity={1}
       >
-        <Ionicons
-          name="bookmark-outline"
-          size={20}
-          color="#FFFFFF"
-        />
+        <Ionicons name="bookmark-outline" size={20} color="#FFFFFF" />
 
-        <Text style={styles.saveButtonText}>
-          SAVE MEMORY
-        </Text>
+        <Text style={styles.saveButtonText}>SAVE MEMORY</Text>
       </TouchableOpacity>
 
       {/* EDIT */}
@@ -66,11 +60,7 @@ function PreviewActions({
         onPress={onEdit}
         activeOpacity={0.8}
       >
-        <Ionicons
-          name="create-outline"
-          size={19}
-          color={primaryColor}
-        />
+        <Ionicons name="create-outline" size={19} color={primaryColor} />
 
         <Text
           style={[

@@ -120,12 +120,13 @@ function TicketPreviewScreen({ route, navigation }) {
       saveButton: {
         ...styles.saveButton,
         backgroundColor: colors.primary,
+        opacity: 1,
       },
 
       saveButtonDisabled: {
-        ...styles.saveButtonDisabled,
+        ...styles.saveButton,
         backgroundColor: colors.primary,
-        opacity: 0.6,
+        opacity: 1,
       },
 
       saveButtonText: {
@@ -455,14 +456,12 @@ function TicketPreviewScreen({ route, navigation }) {
 
         <View style={styles.actionsContainer}>
           <TouchableOpacity
-            style={[
-              saving
-                ? screenStyles.saveButtonDisabled
-                : screenStyles.saveButton,
-            ]}
+            style={
+              saving ? screenStyles.saveButtonDisabled : screenStyles.saveButton
+            }
             onPress={handleSave}
             disabled={saving}
-            activeOpacity={0.85}
+            activeOpacity={1}
           >
             {saving ? (
               <>
