@@ -1,16 +1,23 @@
 import { StyleSheet } from "react-native";
 
 const styles = StyleSheet.create({
+  // --------------------------------------------------
+  // CONTAINER
+  // --------------------------------------------------
+
   container: {
     flex: 1,
-    backgroundColor: "#F8F8FB",
   },
 
   scrollContent: {
     paddingHorizontal: 22,
-    paddingTop: 12,
+    paddingTop: 40,
     paddingBottom: 42,
   },
+
+  // --------------------------------------------------
+  // HEADER
+  // --------------------------------------------------
 
   header: {
     minHeight: 54,
@@ -23,27 +30,30 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 13,
-    backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
+    borderWidth: 1,
   },
 
   headerTitle: {
     fontSize: 11,
     fontWeight: "900",
     letterSpacing: 1.4,
-    color: "#34345C",
   },
 
   headerSpacer: {
     width: 42,
   },
 
+  // --------------------------------------------------
+  // HERO
+  // --------------------------------------------------
+
   hero: {
     marginTop: 20,
     padding: 24,
     borderRadius: 24,
-    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
   },
 
   heroBadge: {
@@ -54,14 +64,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 999,
-    backgroundColor: "#F0F0F7",
   },
 
   heroBadgeText: {
     fontSize: 9,
     fontWeight: "900",
     letterSpacing: 1,
-    color: "#34345C",
   },
 
   heroTitle: {
@@ -70,21 +78,23 @@ const styles = StyleSheet.create({
     lineHeight: 35,
     fontWeight: "900",
     letterSpacing: -0.8,
-    color: "#242424",
   },
 
   heroSubtitle: {
     marginTop: 14,
     fontSize: 14,
     lineHeight: 21,
-    color: "#767680",
   },
+
+  // --------------------------------------------------
+  // STORAGE
+  // --------------------------------------------------
 
   storageCard: {
     marginTop: 14,
     padding: 17,
     borderRadius: 20,
-    backgroundColor: "#F0F0F7",
+    borderWidth: 1,
     flexDirection: "row",
     alignItems: "center",
   },
@@ -93,7 +103,6 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 14,
-    backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 13,
@@ -106,15 +115,17 @@ const styles = StyleSheet.create({
   storageTitle: {
     fontSize: 14,
     fontWeight: "900",
-    color: "#242424",
   },
 
   storageSubtitle: {
     marginTop: 4,
     fontSize: 12,
     lineHeight: 18,
-    color: "#767680",
   },
+
+  // --------------------------------------------------
+  // SECTION TITLES
+  // --------------------------------------------------
 
   sectionTitle: {
     marginTop: 24,
@@ -122,12 +133,15 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "900",
     letterSpacing: 1.1,
-    color: "#8A8993",
   },
+
+  // --------------------------------------------------
+  // PREMIUM FEATURES
+  // --------------------------------------------------
 
   featureCard: {
     borderRadius: 20,
-    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
     paddingHorizontal: 16,
   },
 
@@ -135,8 +149,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: "#EEEEF2",
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
 
   featureRowLast: {
@@ -147,7 +160,6 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 12,
-    backgroundColor: "#F0F0F7",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 11,
@@ -161,15 +173,17 @@ const styles = StyleSheet.create({
   featureTitle: {
     fontSize: 13,
     fontWeight: "900",
-    color: "#242424",
   },
 
   featureDescription: {
     marginTop: 3,
     fontSize: 11,
     lineHeight: 16,
-    color: "#8A8993",
   },
+
+  // --------------------------------------------------
+  // PLANS
+  // --------------------------------------------------
 
   planGroup: {
     gap: 10,
@@ -180,24 +194,20 @@ const styles = StyleSheet.create({
     minHeight: 88,
     paddingHorizontal: 16,
     borderRadius: 18,
-    backgroundColor: "#FFFFFF",
     borderWidth: 1.5,
-    borderColor: "#E7E7ED",
     flexDirection: "row",
     alignItems: "center",
   },
 
-  planCardSelected: {
-    borderColor: "#34345C",
-    backgroundColor: "#F5F5FA",
-  },
+  // Selected colors are controlled by PremiumScreen
+  // using colors.accent and colors.surfaceSecondary.
+  planCardSelected: {},
 
   planRadio: {
     width: 20,
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: "#B8B8C2",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 13,
@@ -207,7 +217,6 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: "#34345C",
   },
 
   planContent: {
@@ -218,20 +227,17 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "900",
     letterSpacing: 1,
-    color: "#8A8993",
   },
 
   planPrice: {
     marginTop: 5,
     fontSize: 20,
     fontWeight: "900",
-    color: "#242424",
   },
 
   planPeriod: {
     marginTop: 2,
     fontSize: 11,
-    color: "#767680",
   },
 
   planBadge: {
@@ -241,21 +247,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 9,
     paddingVertical: 5,
     borderRadius: 999,
-    backgroundColor: "#34345C",
   },
 
   planBadgeText: {
     fontSize: 7,
     fontWeight: "900",
     letterSpacing: 0.8,
-    color: "#FFFFFF",
   },
+
+  // --------------------------------------------------
+  // PURCHASE BUTTON
+  // --------------------------------------------------
 
   purchaseButton: {
     marginTop: 22,
     minHeight: 54,
     borderRadius: 16,
-    backgroundColor: "#34345C",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -271,7 +278,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "900",
     letterSpacing: 0.8,
-    color: "#FFFFFF",
   },
 
   disclaimer: {
@@ -279,8 +285,11 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 10,
     lineHeight: 16,
-    color: "#96959F",
   },
+
+  // --------------------------------------------------
+  // ACTIVE PREMIUM
+  // --------------------------------------------------
 
   activeContainer: {
     flex: 1,
@@ -293,7 +302,6 @@ const styles = StyleSheet.create({
     width: 68,
     height: 68,
     borderRadius: 22,
-    backgroundColor: "#F0F0F7",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -302,7 +310,6 @@ const styles = StyleSheet.create({
     marginTop: 18,
     fontSize: 24,
     fontWeight: "900",
-    color: "#242424",
   },
 
   activeText: {
@@ -310,7 +317,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 14,
     lineHeight: 21,
-    color: "#767680",
   },
 
   secondaryButton: {
@@ -318,7 +324,6 @@ const styles = StyleSheet.create({
     minHeight: 50,
     paddingHorizontal: 20,
     borderRadius: 15,
-    backgroundColor: "#34345C",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -327,7 +332,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "900",
     letterSpacing: 0.9,
-    color: "#FFFFFF",
   },
 });
 

@@ -1,5 +1,9 @@
+import React from "react";
+
 import { Pressable, StyleSheet, Text, View } from "react-native";
+
 import { Ionicons } from "@expo/vector-icons";
+import { useTheme } from "../../context/ThemeContext";
 
 function CustomAlert({
   visible,
@@ -15,6 +19,8 @@ function CustomAlert({
   onCancel,
   onClose,
 }) {
+  const { theme, isDark } = useTheme();
+  const { colors } = theme;
 
   const getAlertIcon = () => {
     if (icon) {
@@ -37,56 +43,140 @@ function CustomAlert({
     }
   };
 
+  const getAlertColor = () => {
+    switch (type) {
+      case "success":
+        return "#2EAA78";
+
+      case "warning":
+        return "#E6A23C";
+
+      case "info":
+        return colors.primary;
+
+      case "danger":
+      default:
+        return colors.danger;
+    }
+  };
+
+  const alertColor = getAlertColor();
+
   if (!visible) {
     return null;
   }
 
   return (
-    <View style={styles.alertOverlay}>
-      <View style={styles.modalContainer}>
+    <View
+      style={[
+        styles.alertOverlay,
+        {
+          backgroundColor: isDark
+            ? "rgba(0, 0, 0, 0.64)"
+            : "rgba(30, 28, 48, 0.28)",
+        },
+      ]}
+    >
+      <View
+        style={[
+          styles.modalContainer,
+          {
+            backgroundColor: colors.surface,
+            borderColor: colors.border,
+          },
+        ]}
+      >
+        {/* CLOSE BUTTON */}
+
         {showClose && (
           <Pressable
             style={({ pressed }) => [
               styles.closeButton,
+              {
+                backgroundColor: colors.surfaceSecondary,
+                borderColor: colors.border,
+              },
               pressed && styles.closeButtonPressed,
             ]}
             onPress={onClose}
             hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Close alert"
           >
-            <Ionicons name="close" size={19} color="#34345C" />
+            <Ionicons name="close" size={19} color={colors.icon} />
           </Pressable>
         )}
 
-        <View style={styles.iconContainer}>
-          <Ionicons name={getAlertIcon()} size={30} color="#34345C" />
+        {/* ALERT ICON */}
+
+        <View
+          style={[
+            styles.iconContainer,
+            {
+              backgroundColor: isDark ? `${alertColor}20` : `${alertColor}14`,
+              borderColor: isDark ? `${alertColor}55` : `${alertColor}35`,
+            },
+          ]}
+        >
+          <Ionicons name={getAlertIcon()} size={30} color={alertColor} />
         </View>
 
-        <Text style={styles.title}>{title}</Text>
+        {/* TITLE */}
 
-        {message ? <Text style={styles.message}>{message}</Text> : null}
+        <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
 
+        {/* MESSAGE */}
+
+        {message ? (
+          <Text style={[styles.message, { color: colors.textSecondary }]}>
+            {message}
+          </Text>
+        ) : null}
+
+        {/* ACTION BUTTONS */}
 
         <View style={[styles.buttonRow, !showCancel && styles.singleButtonRow]}>
           {showCancel && (
             <Pressable
               style={({ pressed }) => [
                 styles.cancelButton,
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
+                },
                 pressed && styles.buttonPressed,
               ]}
               onPress={onCancel}
+              accessibilityRole="button"
             >
-              <Text style={styles.cancelText}>{cancelText}</Text>
+              <Text style={[styles.cancelText, { color: colors.text }]}>
+                {cancelText}
+              </Text>
             </Pressable>
           )}
 
           <Pressable
             style={({ pressed }) => [
               styles.confirmButton,
+              {
+                backgroundColor:
+                  type === "danger" ? colors.danger : colors.primary,
+              },
               pressed && styles.buttonPressed,
             ]}
             onPress={onConfirm}
+            accessibilityRole="button"
           >
-            <Text style={styles.confirmText}>{confirmText}</Text>
+            <Text
+              style={[
+                styles.confirmText,
+                {
+                  color: type === "danger" ? "#FFFFFF" : colors.primaryText,
+                },
+              ]}
+            >
+              {confirmText}
+            </Text>
           </Pressable>
         </View>
       </View>
@@ -113,12 +203,13 @@ const styles = StyleSheet.create({
   modalContainer: {
     width: "100%",
     maxWidth: 360,
-    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
     borderRadius: 22,
     paddingHorizontal: 22,
     paddingTop: 24,
     paddingBottom: 20,
     alignItems: "center",
+
     shadowColor: "#000000",
     shadowOffset: {
       width: 0,
@@ -127,6 +218,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.18,
     shadowRadius: 20,
     elevation: 12,
+
     position: "relative",
   },
 
@@ -137,9 +229,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 12,
-    backgroundColor: "#F1F0F6",
     borderWidth: 1,
-    borderColor: "#D9D8E2",
     alignItems: "center",
     justifyContent: "center",
     zIndex: 10,
@@ -153,18 +243,15 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 29,
-    backgroundColor: "#F1F0F6",
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 15,
     borderWidth: 1,
-    borderColor: "#D9D8E2",
   },
 
   title: {
     fontSize: 20,
     fontWeight: "900",
-    color: "#34345C",
     textAlign: "center",
     marginBottom: 8,
     paddingHorizontal: 28,
@@ -174,7 +261,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 20,
     fontWeight: "500",
-    color: "#242424",
     textAlign: "center",
     paddingHorizontal: 8,
     marginBottom: 22,
@@ -195,10 +281,8 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: "#34345C",
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
   },
 
   confirmButton: {
@@ -208,21 +292,18 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 18,
-    backgroundColor: "#34345C",
   },
 
   cancelText: {
     fontSize: 13,
     fontWeight: "900",
     letterSpacing: 0.4,
-    color: "#34345C",
   },
 
   confirmText: {
     fontSize: 13,
     fontWeight: "900",
     letterSpacing: 0.4,
-    color: "#FFFFFF",
   },
 
   buttonPressed: {

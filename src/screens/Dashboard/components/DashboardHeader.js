@@ -1,8 +1,18 @@
-import React from "react";
+import React, { useMemo } from "react";
+
 import { Text, View } from "react-native";
-import { styles } from "../dashboardStyles";
+
+import { useTheme } from "../../../context/ThemeContext";
+import { createDashboardStyles } from "../dashboardStyles";
 
 function DashboardHeader({ name }) {
+  const { theme, isDark } = useTheme();
+
+  const styles = useMemo(
+    () => createDashboardStyles(theme.colors, isDark),
+    [theme.colors, isDark],
+  );
+
   const firstName = name?.trim()?.split(" ")[0] || "there";
 
   return (

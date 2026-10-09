@@ -1,22 +1,14 @@
-import {
-  useEffect,
-  useState,
-} from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-} from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useEffect, useState } from "react";
+import { View, Text, ScrollView, StatusBar } from "react-native";
 import { File } from "expo-file-system";
 import { useMemory } from "../../hooks/useMemory";
 import { useAuth } from "../../hooks/useAuth";
 import { useAppAlert } from "../../context/AlertContext";
 import { useSubscription } from "../../context/SubscriptionContext";
+import { useTheme } from "../../context/ThemeContext";
 import {
   isNotificationsEnabled,
   setNotificationsEnabled,
-  getNotificationPermissionStatus,
 } from "../../services/notificationService";
 import {
   getAppLockEnabled,
@@ -34,8 +26,12 @@ import styles from "./settingsStyles";
 function SettingsScreen({ navigation }) {
   const { memories, clearMemories } = useMemory();
   const { deleteAccount } = useAuth();
+
   useSubscription();
+
   const { showAlert } = useAppAlert();
+  const { theme, isDark } = useTheme();
+  const { colors } = theme;
 
   const [notifications, setNotifications] = useState(false);
   const [appLock, setAppLock] = useState(false);
@@ -49,6 +45,7 @@ function SettingsScreen({ navigation }) {
 
   useEffect(() => {
     calculateStorage();
+
     syncMementoWidget(memories).catch((error) => {
       console.warn("Widget sync failed:", error);
     });
@@ -57,11 +54,13 @@ function SettingsScreen({ navigation }) {
   const calculateStorage = async () => {
     try {
       setStorageLoading(true);
+
       const localImageUris = [];
 
       for (const memory of memories) {
         if (Array.isArray(memory.localImages) && memory.localImages.length) {
           localImageUris.push(...memory.localImages.filter(Boolean));
+
           continue;
         }
 
@@ -79,6 +78,7 @@ function SettingsScreen({ navigation }) {
       }
 
       const uniqueImageUris = [...new Set(localImageUris)];
+
       const sizes = await Promise.all(
         uniqueImageUris.map(async (imageUri) => {
           try {
@@ -92,9 +92,7 @@ function SettingsScreen({ navigation }) {
             const file = new File(imageUri);
             const info = file.info();
 
-            return info.exists && typeof info.size === "number"
-              ? info.size
-              : 0;
+            return info.exists && typeof info.size === "number" ? info.size : 0;
           } catch {
             return 0;
           }
@@ -111,8 +109,14 @@ function SettingsScreen({ navigation }) {
   };
 
   const formatStorageSize = (bytes) => {
-    if (!bytes || bytes <= 0) return "0 KB";
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    if (!bytes || bytes <= 0) {
+      return "0 KB";
+    }
+
+    if (bytes < 1024 * 1024) {
+      return `${(bytes / 1024).toFixed(1)} KB`;
+    }
+
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
@@ -150,7 +154,9 @@ function SettingsScreen({ navigation }) {
       }
     } catch (error) {
       console.error("Notification setting error:", error);
+
       setNotifications(false);
+
       showAlert({
         type: "danger",
         icon: "close-circle-outline",
@@ -180,10 +186,13 @@ function SettingsScreen({ navigation }) {
             "Set up a fingerprint, face unlock, or another supported biometric method on this device before enabling Memento App Lock.",
           confirmText: "OK",
         });
+
         return;
       }
 
-      const { authenticateAppLock } = await import("../../services/appLockService");
+      const { authenticateAppLock } =
+        await import("../../services/appLockService");
+
       const result = await authenticateAppLock();
 
       if (!result.success) {
@@ -194,6 +203,7 @@ function SettingsScreen({ navigation }) {
           message: "Authenticate successfully to enable Memento App Lock.",
           confirmText: "OK",
         });
+
         return;
       }
 
@@ -201,6 +211,7 @@ function SettingsScreen({ navigation }) {
       setAppLock(true);
     } catch (error) {
       console.error("App lock setting error:", error);
+
       showAlert({
         type: "danger",
         icon: "close-circle-outline",
@@ -220,6 +231,7 @@ function SettingsScreen({ navigation }) {
         message: "There are no memories to clear.",
         confirmText: "OK",
       });
+
       return;
     }
 
@@ -227,29 +239,38 @@ function SettingsScreen({ navigation }) {
       type: "danger",
       icon: "trash-outline",
       title: "Clear Memory Storage?",
-      message: `This will permanently delete all ${memories.length} memory ${memories.length === 1 ? "ticket" : "tickets"} from your account.\n\nThis action cannot be undone.`,
+      message: `This will permanently delete all ${memories.length} memory ${
+        memories.length === 1 ? "ticket" : "tickets"
+      } from your account.\n\nThis action cannot be undone.`,
       cancelText: "Cancel",
       confirmText: "Clear Storage",
       showCancel: true,
+
       onConfirm: async () => {
         try {
           const result = await clearMemories();
 
           if (result && result.success === false) {
-            throw new Error(result.message || "Unable to clear memory storage.");
+            throw new Error(
+              result.message || "Unable to clear memory storage.",
+            );
           }
 
           setStorageSize(0);
+
           await syncMementoWidget([]);
+
           showAlert({
             type: "success",
             icon: "checkmark-circle-outline",
             title: "Storage Cleared",
-            message: "All memories and their associated images have been deleted.",
+            message:
+              "All memories and their associated images have been deleted.",
             confirmText: "Done",
           });
         } catch (error) {
           console.error("Clear storage error:", error);
+
           showAlert({
             type: "danger",
             icon: "close-circle-outline",
@@ -274,6 +295,7 @@ function SettingsScreen({ navigation }) {
       cancelText: "Cancel",
       confirmText: "Delete Account",
       showCancel: true,
+
       onConfirm: async () => {
         try {
           const result = await deleteAccount();
@@ -283,10 +305,10 @@ function SettingsScreen({ navigation }) {
               type: "danger",
               icon: "close-circle-outline",
               title: "Delete Account Failed",
-              message:
-                result.message || "Unable to delete your account.",
+              message: result.message || "Unable to delete your account.",
               confirmText: "OK",
             });
+
             return;
           }
 
@@ -294,18 +316,17 @@ function SettingsScreen({ navigation }) {
             type: "success",
             icon: "checkmark-circle-outline",
             title: "Account Deleted",
-            message:
-              "Your account and all associated data have been deleted.",
+            message: "Your account and all associated data have been deleted.",
             confirmText: "Done",
           });
         } catch (error) {
           console.error("Delete account error:", error);
+
           showAlert({
             type: "danger",
             icon: "close-circle-outline",
             title: "Something Went Wrong",
-            message:
-              "Unable to delete your account. Please try again.",
+            message: "Unable to delete your account. Please try again.",
             confirmText: "OK",
           });
         }
@@ -314,14 +335,28 @@ function SettingsScreen({ navigation }) {
   };
 
   return (
-    <View style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: colors.background,
+        },
+      ]}
+    >
+      <StatusBar
+        barStyle={isDark ? "light-content" : "dark-content"}
+        backgroundColor={colors.background}
+      />
+
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
         <SettingsHeader navigation={navigation} />
 
-        <Text style={styles.sectionTitle}>PREFERENCES</Text>
+        <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>
+          PREFERENCES
+        </Text>
 
         <PreferenceRow
           notifications={notifications}
@@ -356,7 +391,9 @@ function SettingsScreen({ navigation }) {
           onDeleteAccount={handleDeleteAccount}
         />
 
-        <Text style={styles.footerText}>MEMENTO • VERSION 2.5.0</Text>
+        <Text style={[styles.footerText, { color: colors.textMuted }]}>
+          MEMENTO • VERSION 2.5.0
+        </Text>
       </ScrollView>
     </View>
   );

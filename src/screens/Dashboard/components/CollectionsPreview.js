@@ -1,9 +1,18 @@
-import React from "react";
+import React, { useMemo } from "react";
+
 import { Text, TouchableOpacity, View } from "react-native";
 
-import { styles } from "../dashboardStyles";
+import { useTheme } from "../../../context/ThemeContext";
+import { createDashboardStyles } from "../dashboardStyles";
 
 function CollectionsPreview({ collections, onPress }) {
+  const { theme, isDark } = useTheme();
+
+  const styles = useMemo(
+    () => createDashboardStyles(theme.colors, isDark),
+    [theme.colors, isDark],
+  );
+
   return (
     <View style={styles.collectionsGrid}>
       {collections.map((collection, index) => {

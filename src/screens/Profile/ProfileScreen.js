@@ -1,25 +1,32 @@
-import {
-  View,
-  Text,
-  ScrollView,
-} from "react-native";
+import React from "react";
+
+import { View, Text, ScrollView, StatusBar } from "react-native";
+
 import { useMemory } from "../../hooks/useMemory";
 import { useAuth } from "../../hooks/useAuth";
 import { useRewards } from "../../hooks/useRewards";
+
 import { useSubscription } from "../../context/SubscriptionContext";
 import { useAppAlert } from "../../context/AlertContext";
+import { useTheme } from "../../context/ThemeContext";
+
 import ProfileCard from "../../components/Profile/Card/ProfileCard";
 import ProfileStats from "../../components/Profile/Stats/ProfileStats";
 import ProfileMenu from "../../components/Profile/Menu/ProfileMenu";
 import LogoutButton from "../../components/Profile/Logout/LogoutButton";
+
 import styles from "./profileStyles";
 
 function ProfileScreen({ navigation }) {
   const { memories } = useMemory();
   const { user, logout } = useAuth();
   const { coins } = useRewards();
+
   const { isPremium } = useSubscription();
   const { showAlert } = useAppAlert();
+
+  const { theme, isDark } = useTheme();
+  const { colors } = theme;
 
   const stats = {
     memories: memories.length,
@@ -27,12 +34,24 @@ function ProfileScreen({ navigation }) {
     favorites: memories.filter((memory) => memory.favorite).length,
   };
 
+  // --------------------------------------------------
+  // NAVIGATION
+  // --------------------------------------------------
+
   const handleEditProfile = () => {
     navigation.getParent()?.navigate("EditProfile");
   };
 
   const handlePremium = () => {
     navigation.getParent()?.navigate("Premium");
+  };
+
+  const handleSettings = () => {
+    navigation.getParent()?.navigate("Settings");
+  };
+
+  const handleAbout = () => {
+    navigation.getParent()?.navigate("About");
   };
 
   const handleRewards = () => {
@@ -46,13 +65,9 @@ function ProfileScreen({ navigation }) {
     });
   };
 
-  const handleSettings = () => {
-    navigation.getParent()?.navigate("Settings");
-  };
-
-  const handleAbout = () => {
-    navigation.getParent()?.navigate("About");
-  };
+  // --------------------------------------------------
+  // LOGOUT
+  // --------------------------------------------------
 
   const handleLogout = () => {
     showAlert({
@@ -63,11 +78,13 @@ function ProfileScreen({ navigation }) {
       cancelText: "Cancel",
       confirmText: "Log Out",
       showCancel: true,
+
       onConfirm: async () => {
         try {
           await logout();
         } catch (error) {
           console.error("Logout error:", error);
+
           showAlert({
             type: "danger",
             icon: "close-circle-outline",
@@ -80,9 +97,13 @@ function ProfileScreen({ navigation }) {
     });
   };
 
+  // --------------------------------------------------
+  // ACCOUNT MENU
+  // --------------------------------------------------
+
   const accountMenuItems = [
     {
-      title: isPremium ? "Memento Premium" : "Memento Premium",
+      title: "Memento Premium",
       subtitle: isPremium
         ? "Premium is active"
         : "Unlock advanced Memento features",
@@ -115,6 +136,10 @@ function ProfileScreen({ navigation }) {
     },
   ];
 
+  // --------------------------------------------------
+  // APP MENU
+  // --------------------------------------------------
+
   const appMenuItems = [
     {
       title: "Your Favorites",
@@ -127,30 +152,82 @@ function ProfileScreen({ navigation }) {
     },
   ];
 
+  // --------------------------------------------------
+  // UI
+  // --------------------------------------------------
+
   return (
-    <View style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: colors.background,
+        },
+      ]}
+    >
+      <StatusBar
+        barStyle={isDark ? "light-content" : "dark-content"}
+        backgroundColor={colors.background}
+      />
+
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
+        {/* HEADER */}
+
         <View style={styles.header}>
           <View>
-            <Text style={styles.headerEyebrow}>YOUR SPACE</Text>
-            <Text style={styles.headerTitle}>Profile</Text>
+            <Text style={[styles.headerEyebrow, { color: colors.accent }]}>
+              YOUR SPACE
+            </Text>
+
+            <Text style={[styles.headerTitle, { color: colors.text }]}>
+              Profile
+            </Text>
           </View>
         </View>
 
-        <ProfileCard user={user} onEditProfile={handleEditProfile} />
+        {/* PROFILE CARD */}
 
-        <ProfileStats stats={stats} />
+        <ProfileCard
+          user={user}
+          onEditProfile={handleEditProfile}
+          colors={colors}
+          isDark={isDark}
+        />
 
-        <ProfileMenu title="ACCOUNT" items={accountMenuItems} />
+        {/* PROFILE STATS */}
 
-        <ProfileMenu title="APP" items={appMenuItems} />
+        <ProfileStats stats={stats} colors={colors} isDark={isDark} />
 
-        <LogoutButton onPress={handleLogout} />
+        {/* ACCOUNT MENU */}
 
-        <Text style={styles.versionText}>MEMENTO • VERSION 2.5.0</Text>
+        <ProfileMenu
+          title="ACCOUNT"
+          items={accountMenuItems}
+          colors={colors}
+          isDark={isDark}
+        />
+
+        {/* APP MENU */}
+
+        <ProfileMenu
+          title="APP"
+          items={appMenuItems}
+          colors={colors}
+          isDark={isDark}
+        />
+
+        {/* LOGOUT */}
+
+        <LogoutButton onPress={handleLogout} colors={colors} isDark={isDark} />
+
+        {/* VERSION */}
+
+        <Text style={[styles.versionText, { color: colors.textMuted }]}>
+          MEMENTO • VERSION 2.5.0
+        </Text>
       </ScrollView>
     </View>
   );

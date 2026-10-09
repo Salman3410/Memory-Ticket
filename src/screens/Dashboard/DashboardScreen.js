@@ -1,15 +1,22 @@
+
 import React, { useCallback } from "react";
+
 import {
   ActivityIndicator,
   RefreshControl,
   ScrollView,
+  StatusBar,
   View,
 } from "react-native";
+
 import { useAuth } from "../../hooks/useAuth";
 import useDashboard from "../../hooks/useDashboard";
 import useRefresh from "../../hooks/useRefresh";
 import { useMemory } from "../../hooks/useMemory";
 import { useCollection } from "../../hooks/useCollection";
+
+import { useTheme } from "../../context/ThemeContext";
+
 import DashboardHeader from "./components/DashboardHeader";
 import DashboardHero from "./components/DashboardHero";
 import MemoryPulseCard from "./components/MemoryPulseCard";
@@ -17,15 +24,19 @@ import OnThisDayCard from "./components/OnThisDayCard";
 import DashboardSpotlightCard from "./components/DashboardSpotlightCard";
 import DashboardMemoryCard from "./components/DashboardMemoryCard";
 import DashboardSectionHeader from "./components/DashboardSectionHeader";
+
 import HomeCollectionsSection from "../../components/collections/HomeCollectionsSection";
+
 import { styles } from "./dashboardStyles";
 
 function DashboardScreen({ navigation }) {
   const { user } = useAuth();
 
   const { refreshMemories } = useMemory();
-
   const { refreshCollections } = useCollection();
+
+  const { theme, isDark } = useTheme();
+  const { colors } = theme;
 
   const {
     stats,
@@ -40,11 +51,22 @@ function DashboardScreen({ navigation }) {
     loading,
   } = useDashboard();
 
+  // --------------------------------------------------
+  // REFRESH
+  // --------------------------------------------------
+
   const refreshDashboard = useCallback(async () => {
-    await Promise.all([refreshMemories(), refreshCollections()]);
+    await Promise.all([
+      refreshMemories(),
+      refreshCollections(),
+    ]);
   }, [refreshMemories, refreshCollections]);
 
   const { refreshing, onRefresh } = useRefresh(refreshDashboard);
+
+  // --------------------------------------------------
+  // MEMORY NAVIGATION
+  // --------------------------------------------------
 
   const openMemory = useCallback(
     (memory) => {
@@ -56,8 +78,12 @@ function DashboardScreen({ navigation }) {
         memoryId: memory.id,
       });
     },
-    [navigation],
+    [navigation]
   );
+
+  // --------------------------------------------------
+  // COLLECTION NAVIGATION
+  // --------------------------------------------------
 
   const handleViewCollections = useCallback(() => {
     navigation.navigate("Collections");
@@ -79,23 +105,62 @@ function DashboardScreen({ navigation }) {
         collectionId,
       });
     },
-    [navigation],
+    [navigation]
   );
+
+  // --------------------------------------------------
+  // ON THIS DAY
+  // --------------------------------------------------
 
   const openOnThisDay = useCallback(() => {
     navigation.navigate("OnThisDay");
   }, [navigation]);
 
+  // --------------------------------------------------
+  // LOADING
+  // --------------------------------------------------
+
   if (loading && !stats.totalMemories) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="small" color="#34345C" />
+      <View
+        style={[
+          styles.loadingContainer,
+          {
+            backgroundColor: colors.background,
+          },
+        ]}
+      >
+        <StatusBar
+          barStyle={isDark ? "light-content" : "dark-content"}
+          backgroundColor={colors.background}
+        />
+
+        <ActivityIndicator
+          size="small"
+          color={colors.accent}
+        />
       </View>
     );
   }
 
+  // --------------------------------------------------
+  // DASHBOARD
+  // --------------------------------------------------
+
   return (
-    <View style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: colors.background,
+        },
+      ]}
+    >
+      <StatusBar
+        barStyle={isDark ? "light-content" : "dark-content"}
+        backgroundColor={colors.background}
+      />
+
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.content}
@@ -103,26 +168,47 @@ function DashboardScreen({ navigation }) {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#34345C"
-            colors={["#34345C"]}
-            progressBackgroundColor="#FFFFFF"
+            tintColor={colors.accent}
+            colors={[colors.accent]}
+            progressBackgroundColor={colors.surface}
           />
         }
       >
-        <DashboardHeader name={user?.name} />
+        {/* HEADER */}
 
-        <DashboardHero stats={stats} />
+        <DashboardHeader
+          name={user?.name}
+          colors={colors}
+          isDark={isDark}
+        />
+
+        {/* DASHBOARD HERO */}
+
+        <DashboardHero
+          stats={stats}
+          colors={colors}
+          isDark={isDark}
+        />
+
+        {/* MEMORY ACTIVITY */}
 
         <MemoryPulseCard
           activity={monthlyActivity}
           thisMonthCount={thisMonthCount}
           mostActiveMonth={mostActiveMonth}
+          colors={colors}
+          isDark={isDark}
         />
 
         {/* ON THIS DAY */}
 
         <View style={styles.section}>
-          <OnThisDayCard memories={onThisDay} onPress={openOnThisDay} />
+          <OnThisDayCard
+            memories={onThisDay}
+            onPress={openOnThisDay}
+            colors={colors}
+            isDark={isDark}
+          />
         </View>
 
         {/* MEMORY SPOTLIGHT */}
@@ -133,11 +219,15 @@ function DashboardScreen({ navigation }) {
               title="Memory Spotlight"
               actionLabel="Open"
               onPress={() => openMemory(featuredMemory)}
+              colors={colors}
+              isDark={isDark}
             />
 
             <DashboardSpotlightCard
               memory={featuredMemory}
               onPress={() => openMemory(featuredMemory)}
+              colors={colors}
+              isDark={isDark}
             />
           </View>
         )}
@@ -154,6 +244,8 @@ function DashboardScreen({ navigation }) {
                   filter: "favorites",
                 })
               }
+              colors={colors}
+              isDark={isDark}
             />
 
             <ScrollView
@@ -163,9 +255,15 @@ function DashboardScreen({ navigation }) {
             >
               {favoriteMemories.map((memory) => (
                 <DashboardMemoryCard
-                  key={memory?.id || memory?._id || memory?.clientMemoryId}
+                  key={
+                    memory?.id ||
+                    memory?._id ||
+                    memory?.clientMemoryId
+                  }
                   memory={memory}
                   onPress={() => openMemory(memory)}
+                  colors={colors}
+                  isDark={isDark}
                 />
               ))}
             </ScrollView>
@@ -183,6 +281,8 @@ function DashboardScreen({ navigation }) {
           onViewAll={handleViewCollections}
           onCreate={handleCreateCollection}
           onCollectionPress={handleCollectionPress}
+          colors={colors}
+          isDark={isDark}
         />
       </ScrollView>
     </View>

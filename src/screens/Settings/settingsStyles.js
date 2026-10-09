@@ -364,6 +364,48 @@ const styles = StyleSheet.create({
 
     marginTop: 10,
   },
+
+  // --------------------------------------------------
+  // THEME
+  // --------------------------------------------------
+
+  themeText: {
+    fontSize: 8,
+    fontWeight: "900",
+    letterSpacing: 0.8,
+  },
+
+  themeControl: {
+    alignItems: "flex-end",
+    justifyContent: "center",
+    gap: 7,
+    marginLeft: 8,
+  },
+
+  themeSwitch: {
+    width: 42,
+    height: 24,
+    borderRadius: 12,
+    padding: 2,
+    justifyContent: "center",
+  },
+
+  themeSwitchThumb: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "#FFFFFF",
+
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+
+    elevation: 2,
+  },
 });
 
 export default styles;
