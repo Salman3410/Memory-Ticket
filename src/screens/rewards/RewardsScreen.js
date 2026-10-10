@@ -10,6 +10,7 @@ import {
   StyleSheet,
   Text,
   View,
+  StatusBar,
 } from "react-native";
 
 import CoinBalanceCard from "./components/CoinBalanceCard";
@@ -19,8 +20,17 @@ import RewardStore from "./components/RewardStore";
 import CoinHistory from "./components/CoinHistory";
 
 import { useRewards } from "../../hooks/useRewards";
+import { useTheme } from "../../context/ThemeContext";
 
 function RewardsScreen() {
+  const { theme, isDark } = useTheme();
+  const colors = theme?.colors || {};
+  const screenBackground = colors.background || (isDark ? "#171624" : "#F1F0F6");
+  const surfaceColor = colors.surface || (isDark ? "#211F30" : "#FFFFFF");
+  const textColor = colors.text || (isDark ? "#F7F5FC" : "#242424");
+  const secondaryTextColor = colors.textSecondary || colors.textMuted || (isDark ? "#C4C0D0" : "#707080");
+  const borderColor = colors.border || (isDark ? "#39364D" : "#D9D8E2");
+
   const {
     coins,
     rewards,
@@ -324,7 +334,8 @@ function RewardsScreen() {
   );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: screenBackground }]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={screenBackground} />
       <ScrollView
         showsVerticalScrollIndicator={
           false
@@ -336,7 +347,7 @@ function RewardsScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#34345C"
+            tintColor={colors.primary || "#34345C"}
           />
         }
       >
@@ -344,13 +355,13 @@ function RewardsScreen() {
             HEADER
         ----------------------------------------- */}
 
-        <View style={styles.header}>
-          <View style={styles.headerText}>
-            <Text style={styles.eyebrow}>
+        <View style={[styles.header, { backgroundColor: screenBackground }]}>
+          <View style={[styles.headerText, { color: secondaryTextColor }]}>
+            <Text style={[styles.eyebrow, { color: secondaryTextColor }]}>
               REWARDS
             </Text>
 
-            <Text style={styles.title}>
+            <Text style={[styles.title, { color: textColor }]}>
               A little something back.
             </Text>
           </View>
@@ -373,14 +384,12 @@ function RewardsScreen() {
 
         <View style={styles.sectionHeader}>
           <View>
-            <Text style={styles.sectionTitle}>
+            <Text style={[styles.sectionTitle, { color: textColor }]}>
               Earn
             </Text>
 
             <Text
-              style={
-                styles.sectionSubtitle
-              }
+              style={[styles.sectionSubtitle, { color: textColor }]}
             >
               Turn a few seconds into Coins.
             </Text>

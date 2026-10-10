@@ -6,17 +6,13 @@ import React, {
   useRef,
   useState,
 } from "react";
-
 import { Text, TouchableOpacity, View } from "react-native";
-
 import {
   BottomSheetBackdrop,
   BottomSheetModal,
   BottomSheetScrollView,
 } from "@gorhom/bottom-sheet";
-
 import { Ionicons } from "@expo/vector-icons";
-
 import styles from "./advancedSearchStyles";
 
 const DEFAULT_FILTERS = {
@@ -29,60 +25,62 @@ const DEFAULT_FILTERS = {
 };
 
 const SEARCH_FIELDS = [
-  {
-    key: "title",
-    label: "Title",
-  },
-  {
-    key: "description",
-    label: "Description",
-  },
-  {
-    key: "location",
-    label: "Location",
-  },
-  {
-    key: "tags",
-    label: "Tags",
-  },
-  {
-    key: "category",
-    label: "Category",
-  },
+  { key: "title", label: "Title" },
+  { key: "description", label: "Description" },
+  { key: "location", label: "Location" },
+  { key: "tags", label: "Tags" },
+  { key: "category", label: "Category" },
 ];
 
 const DATE_OPTIONS = [
-  {
-    key: "all",
-    label: "All time",
-  },
-  {
-    key: "7days",
-    label: "Last 7 days",
-  },
-  {
-    key: "30days",
-    label: "Last 30 days",
-  },
-  {
-    key: "90days",
-    label: "Last 90 days",
-  },
-  {
-    key: "year",
-    label: "This year",
-  },
+  { key: "all", label: "All time" },
+  { key: "7days", label: "Last 7 days" },
+  { key: "30days", label: "Last 30 days" },
+  { key: "90days", label: "Last 90 days" },
+  { key: "year", label: "This year" },
 ];
 
 const AdvancedSearch = forwardRef(function AdvancedSearch(
-  { filters, onApply, onClose, availableTags = [], collections = [] },
+  {
+    filters,
+    onApply,
+    onClose,
+    availableTags = [],
+    collections = [],
+    theme,
+    isDark,
+  },
   ref,
 ) {
   const bottomSheetRef = useRef(null);
-
   const [draftFilters, setDraftFilters] = useState(DEFAULT_FILTERS);
-
   const snapPoints = useMemo(() => ["70%", "92%"], []);
+
+  const colors = useMemo(() => {
+    const themeColors = theme?.colors || {};
+
+    return {
+      background: themeColors.background || (isDark ? "#171724" : "#F1F0F6"),
+
+      surface:
+        themeColors.surface ||
+        themeColors.card ||
+        (isDark ? "#232333" : "#FFFFFF"),
+
+      text: themeColors.text || (isDark ? "#F1F0F6" : "#242424"),
+
+      textSecondary:
+        themeColors.textSecondary ||
+        themeColors.textMuted ||
+        (isDark ? "#A6A6B8" : "#737387"),
+
+      border: themeColors.border || (isDark ? "#38384C" : "#D9D8E2"),
+
+      primary: themeColors.primary || "#34345C",
+
+      accent: themeColors.accent || "#E76F51",
+    };
+  }, [theme, isDark]);
 
   useImperativeHandle(
     ref,
@@ -107,10 +105,6 @@ const AdvancedSearch = forwardRef(function AdvancedSearch(
     [filters],
   );
 
-  // ------------------------------------------
-  // BACKDROP
-  // ------------------------------------------
-
   const renderBackdrop = useCallback(
     (props) => (
       <BottomSheetBackdrop
@@ -124,17 +118,9 @@ const AdvancedSearch = forwardRef(function AdvancedSearch(
     [],
   );
 
-  // ------------------------------------------
-  // CLOSE
-  // ------------------------------------------
-
   const handleSheetClose = useCallback(() => {
     onClose?.();
   }, [onClose]);
-
-  // ------------------------------------------
-  // SEARCH FIELD
-  // ------------------------------------------
 
   const toggleSearchField = useCallback((field) => {
     setDraftFilters((current) => {
@@ -155,20 +141,12 @@ const AdvancedSearch = forwardRef(function AdvancedSearch(
     });
   }, []);
 
-  // ------------------------------------------
-  // FAVORITES
-  // ------------------------------------------
-
   const toggleFavorite = useCallback(() => {
     setDraftFilters((current) => ({
       ...current,
       favoriteOnly: !current.favoriteOnly,
     }));
   }, []);
-
-  // ------------------------------------------
-  // HAS PHOTOS
-  // ------------------------------------------
 
   const toggleHasPhotos = useCallback(() => {
     setDraftFilters((current) => ({
@@ -177,10 +155,6 @@ const AdvancedSearch = forwardRef(function AdvancedSearch(
     }));
   }, []);
 
-  // ------------------------------------------
-  // DATE
-  // ------------------------------------------
-
   const handleDateRange = useCallback((dateRange) => {
     setDraftFilters((current) => ({
       ...current,
@@ -188,20 +162,12 @@ const AdvancedSearch = forwardRef(function AdvancedSearch(
     }));
   }, []);
 
-  // ------------------------------------------
-  // TAG
-  // ------------------------------------------
-
   const handleTag = useCallback((tag) => {
     setDraftFilters((current) => ({
       ...current,
       tag: current.tag === tag ? null : tag,
     }));
   }, []);
-
-  // ------------------------------------------
-  // COLLECTION
-  // ------------------------------------------
 
   const handleCollection = useCallback((collectionId) => {
     setDraftFilters((current) => ({
@@ -213,10 +179,6 @@ const AdvancedSearch = forwardRef(function AdvancedSearch(
     }));
   }, []);
 
-  // ------------------------------------------
-  // CLEAR
-  // ------------------------------------------
-
   const handleClear = useCallback(() => {
     const clearedFilters = {
       ...DEFAULT_FILTERS,
@@ -227,10 +189,6 @@ const AdvancedSearch = forwardRef(function AdvancedSearch(
     onApply(clearedFilters);
   }, [onApply]);
 
-  // ------------------------------------------
-  // APPLY
-  // ------------------------------------------
-
   const handleApply = useCallback(() => {
     onApply({
       ...draftFilters,
@@ -238,6 +196,24 @@ const AdvancedSearch = forwardRef(function AdvancedSearch(
     });
   }, [draftFilters, onApply]);
 
+  const sectionTitleStyle = [
+    styles.sectionTitle,
+    {
+      color: colors.textSecondary,
+    },
+  ];
+
+  const unselectedChipStyle = {
+    backgroundColor: colors.background,
+    borderColor: colors.border,
+  };
+
+  const selectedChipStyle = {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  };
+
+  const selectedRowBackground = colors.background;
   return (
     <BottomSheetModal
       ref={bottomSheetRef}
@@ -247,39 +223,102 @@ const AdvancedSearch = forwardRef(function AdvancedSearch(
       enablePanDownToClose
       backdropComponent={renderBackdrop}
       onDismiss={handleSheetClose}
-      backgroundStyle={styles.background}
-      handleIndicatorStyle={styles.handleIndicator}
+      backgroundStyle={[
+        styles.background,
+        {
+          backgroundColor: colors.surface,
+        },
+      ]}
+      handleIndicatorStyle={[
+        styles.handleIndicator,
+        {
+          backgroundColor: colors.border,
+        },
+      ]}
     >
-      <View style={styles.container}>
+      <View
+        style={[
+          styles.container,
+          {
+            backgroundColor: colors.surface,
+          },
+        ]}
+      >
         {/* HEADER */}
+
         <View style={styles.header}>
           <View>
-            <Text style={styles.eyebrow}>REFINE YOUR SEARCH</Text>
+            <Text
+              style={[
+                styles.eyebrow,
+                {
+                  color: colors.accent,
+                },
+              ]}
+            >
+              REFINE YOUR SEARCH
+            </Text>
 
-            <Text style={styles.title}>Advanced Search</Text>
+            <Text
+              style={[
+                styles.title,
+                {
+                  color: colors.text,
+                },
+              ]}
+            >
+              Advanced Search
+            </Text>
           </View>
 
           <TouchableOpacity
-            style={styles.closeButton}
+            style={[
+              styles.closeButton,
+              {
+                backgroundColor: colors.background,
+                borderColor: colors.border,
+              },
+            ]}
             onPress={() => bottomSheetRef.current?.dismiss()}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Close advanced search"
           >
-            <Ionicons name="close" size={22} color="#34345C" />
+            <Ionicons name="close" size={22} color={colors.text} />
           </TouchableOpacity>
         </View>
 
         {/* SCROLLABLE CONTENT */}
-        <View style={styles.scrollContainer}>
+
+        <View
+          style={[
+            styles.scrollContainer,
+            {
+              backgroundColor: colors.surface,
+            },
+          ]}
+        >
           <BottomSheetScrollView
-            style={styles.scrollView}
-            contentContainerStyle={styles.content}
-            showsVerticalScrollIndicator={true}
-            nestedScrollEnabled={true}
-            bounces={true}
+            style={[
+              styles.scrollView,
+              {
+                backgroundColor: colors.surface,
+              },
+            ]}
+            contentContainerStyle={[
+              styles.content,
+              {
+                backgroundColor: colors.surface,
+              },
+            ]}
+            showsVerticalScrollIndicator
+            nestedScrollEnabled
+            bounces
           >
             {/* SEARCH IN */}
+
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>SEARCH IN</Text>
+              <Text style={sectionTitleStyle}>SEARCH IN</Text>
 
               <View style={styles.optionGrid}>
                 {SEARCH_FIELDS.map((field) => {
@@ -291,6 +330,7 @@ const AdvancedSearch = forwardRef(function AdvancedSearch(
                       style={[
                         styles.optionChip,
                         selected && styles.optionChipActive,
+                        selected ? selectedChipStyle : unselectedChipStyle,
                       ]}
                       onPress={() => toggleSearchField(field.key)}
                       activeOpacity={0.7}
@@ -303,6 +343,9 @@ const AdvancedSearch = forwardRef(function AdvancedSearch(
                         style={[
                           styles.optionChipText,
                           selected && styles.optionChipTextActive,
+                          {
+                            color: selected ? "#FFFFFF" : colors.text,
+                          },
                         ]}
                       >
                         {field.label}
@@ -314,13 +357,22 @@ const AdvancedSearch = forwardRef(function AdvancedSearch(
             </View>
 
             {/* FILTERS */}
+
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>FILTERS</Text>
+              <Text style={sectionTitleStyle}>FILTERS</Text>
+
+              {/* FAVORITES ONLY */}
 
               <TouchableOpacity
                 style={[
                   styles.rowOption,
                   draftFilters.favoriteOnly && styles.rowOptionActive,
+                  {
+                    backgroundColor: draftFilters.favoriteOnly
+                      ? selectedRowBackground
+                      : colors.surface,
+                    borderColor: colors.border,
+                  },
                 ]}
                 onPress={toggleFavorite}
                 activeOpacity={0.7}
@@ -329,10 +381,19 @@ const AdvancedSearch = forwardRef(function AdvancedSearch(
                   <Ionicons
                     name={draftFilters.favoriteOnly ? "heart" : "heart-outline"}
                     size={19}
-                    color="#34345C"
+                    color={colors.primary}
                   />
 
-                  <Text style={styles.rowOptionText}>Favorites only</Text>
+                  <Text
+                    style={[
+                      styles.rowOptionText,
+                      {
+                        color: colors.text,
+                      },
+                    ]}
+                  >
+                    Favorites only
+                  </Text>
                 </View>
 
                 <Ionicons
@@ -342,22 +403,47 @@ const AdvancedSearch = forwardRef(function AdvancedSearch(
                       : "ellipse-outline"
                   }
                   size={21}
-                  color="#34345C"
+                  color={
+                    draftFilters.favoriteOnly
+                      ? colors.accent
+                      : colors.textSecondary
+                  }
                 />
               </TouchableOpacity>
+
+              {/* HAS PHOTOS */}
 
               <TouchableOpacity
                 style={[
                   styles.rowOption,
                   draftFilters.hasPhotos && styles.rowOptionActive,
+                  {
+                    backgroundColor: draftFilters.hasPhotos
+                      ? selectedRowBackground
+                      : colors.surface,
+                    borderColor: colors.border,
+                  },
                 ]}
                 onPress={toggleHasPhotos}
                 activeOpacity={0.7}
               >
                 <View style={styles.rowOptionLeft}>
-                  <Ionicons name="images-outline" size={19} color="#34345C" />
+                  <Ionicons
+                    name="images-outline"
+                    size={19}
+                    color={colors.primary}
+                  />
 
-                  <Text style={styles.rowOptionText}>Has photos</Text>
+                  <Text
+                    style={[
+                      styles.rowOptionText,
+                      {
+                        color: colors.text,
+                      },
+                    ]}
+                  >
+                    Has photos
+                  </Text>
                 </View>
 
                 <Ionicons
@@ -367,14 +453,19 @@ const AdvancedSearch = forwardRef(function AdvancedSearch(
                       : "ellipse-outline"
                   }
                   size={21}
-                  color="#34345C"
+                  color={
+                    draftFilters.hasPhotos
+                      ? colors.accent
+                      : colors.textSecondary
+                  }
                 />
               </TouchableOpacity>
             </View>
 
             {/* DATE */}
+
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>DATE</Text>
+              <Text style={sectionTitleStyle}>DATE</Text>
 
               <View style={styles.optionGrid}>
                 {DATE_OPTIONS.map((option) => {
@@ -386,6 +477,7 @@ const AdvancedSearch = forwardRef(function AdvancedSearch(
                       style={[
                         styles.optionChip,
                         selected && styles.optionChipActive,
+                        selected ? selectedChipStyle : unselectedChipStyle,
                       ]}
                       onPress={() => handleDateRange(option.key)}
                       activeOpacity={0.7}
@@ -394,6 +486,9 @@ const AdvancedSearch = forwardRef(function AdvancedSearch(
                         style={[
                           styles.optionChipText,
                           selected && styles.optionChipTextActive,
+                          {
+                            color: selected ? "#FFFFFF" : colors.text,
+                          },
                         ]}
                       >
                         {option.label}
@@ -405,11 +500,21 @@ const AdvancedSearch = forwardRef(function AdvancedSearch(
             </View>
 
             {/* TAGS */}
+
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>TAGS</Text>
+              <Text style={sectionTitleStyle}>TAGS</Text>
 
               {availableTags.length === 0 ? (
-                <Text style={styles.emptyText}>No tags available yet.</Text>
+                <Text
+                  style={[
+                    styles.emptyText,
+                    {
+                      color: colors.textSecondary,
+                    },
+                  ]}
+                >
+                  No tags available yet.
+                </Text>
               ) : (
                 <View style={styles.optionGrid}>
                   {availableTags.map((tag) => {
@@ -421,6 +526,7 @@ const AdvancedSearch = forwardRef(function AdvancedSearch(
                         style={[
                           styles.optionChip,
                           selected && styles.optionChipActive,
+                          selected ? selectedChipStyle : unselectedChipStyle,
                         ]}
                         onPress={() => handleTag(tag.name)}
                         activeOpacity={0.7}
@@ -429,6 +535,9 @@ const AdvancedSearch = forwardRef(function AdvancedSearch(
                           style={[
                             styles.optionChipText,
                             selected && styles.optionChipTextActive,
+                            {
+                              color: selected ? "#FFFFFF" : colors.text,
+                            },
                           ]}
                         >
                           #{tag.name}
@@ -438,6 +547,11 @@ const AdvancedSearch = forwardRef(function AdvancedSearch(
                           style={[
                             styles.optionCount,
                             selected && styles.optionCountActive,
+                            {
+                              color: selected
+                                ? "#FFFFFF"
+                                : colors.textSecondary,
+                            },
                           ]}
                         >
                           {tag.count}
@@ -449,12 +563,20 @@ const AdvancedSearch = forwardRef(function AdvancedSearch(
               )}
             </View>
 
-            {/* COLLECTION */}
+            {/* COLLECTIONS */}
+
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>COLLECTION</Text>
+              <Text style={sectionTitleStyle}>COLLECTION</Text>
 
               {collections.length === 0 ? (
-                <Text style={styles.emptyText}>
+                <Text
+                  style={[
+                    styles.emptyText,
+                    {
+                      color: colors.textSecondary,
+                    },
+                  ]}
+                >
                   No collections available yet.
                 </Text>
               ) : (
@@ -477,6 +599,12 @@ const AdvancedSearch = forwardRef(function AdvancedSearch(
                         style={[
                           styles.rowOption,
                           selected && styles.rowOptionActive,
+                          {
+                            backgroundColor: selected
+                              ? selectedRowBackground
+                              : colors.surface,
+                            borderColor: colors.border,
+                          },
                         ]}
                         onPress={() => handleCollection(collectionId)}
                         activeOpacity={0.7}
@@ -485,10 +613,17 @@ const AdvancedSearch = forwardRef(function AdvancedSearch(
                           <Ionicons
                             name="albums-outline"
                             size={19}
-                            color="#34345C"
+                            color={colors.primary}
                           />
 
-                          <Text style={styles.rowOptionText}>
+                          <Text
+                            style={[
+                              styles.rowOptionText,
+                              {
+                                color: colors.text,
+                              },
+                            ]}
+                          >
                             {collectionName}
                           </Text>
                         </View>
@@ -498,7 +633,9 @@ const AdvancedSearch = forwardRef(function AdvancedSearch(
                             selected ? "checkmark-circle" : "ellipse-outline"
                           }
                           size={21}
-                          color="#34345C"
+                          color={
+                            selected ? colors.accent : colors.textSecondary
+                          }
                         />
                       </TouchableOpacity>
                     );
@@ -510,21 +647,59 @@ const AdvancedSearch = forwardRef(function AdvancedSearch(
         </View>
 
         {/* ACTIONS */}
-        <View style={styles.actions}>
+
+        <View
+          style={[
+            styles.actions,
+            {
+              backgroundColor: colors.surface,
+              borderTopColor: colors.border,
+            },
+          ]}
+        >
           <TouchableOpacity
-            style={styles.clearButton}
+            style={[
+              styles.clearButton,
+              {
+                backgroundColor: colors.background,
+                borderColor: colors.border,
+              },
+            ]}
             onPress={handleClear}
             activeOpacity={0.7}
           >
-            <Text style={styles.clearButtonText}>CLEAR</Text>
+            <Text
+              style={[
+                styles.clearButtonText,
+                {
+                  color: colors.primary,
+                },
+              ]}
+            >
+              CLEAR
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.applyButton}
+            style={[
+              styles.applyButton,
+              {
+                backgroundColor: colors.primary,
+              },
+            ]}
             onPress={handleApply}
             activeOpacity={0.8}
           >
-            <Text style={styles.applyButtonText}>APPLY FILTERS</Text>
+            <Text
+              style={[
+                styles.applyButtonText,
+                {
+                  color: "#FFFFFF",
+                },
+              ]}
+            >
+              APPLY FILTERS
+            </Text>
           </TouchableOpacity>
         </View>
       </View>

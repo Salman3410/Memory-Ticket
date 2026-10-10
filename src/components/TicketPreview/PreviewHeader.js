@@ -1,22 +1,71 @@
 import { View, Text, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-
 import styles from "./previewHeaderStyles";
 
-function PreviewHeader({ onBack }) {
+function PreviewHeader({ onBack, theme, isDark }) {
+  const colors = theme?.colors || {};
+
+  const backgroundColor = colors.background || (isDark ? "#171724" : "#F1F0F6");
+
+  const surfaceColor =
+    colors.surface || colors.card || (isDark ? "#232333" : "#FFFFFF");
+
+  const textColor = colors.text || (isDark ? "#F1F0F6" : "#242424");
+
+  const mutedTextColor =
+    colors.textSecondary ||
+    colors.textMuted ||
+    (isDark ? "#A6A6B8" : "#737387");
+
+  const borderColor = colors.border || (isDark ? "#38384C" : "#D9D8E2");
+
   return (
-    <View style={styles.header}>
+    <View
+      style={[
+        styles.header,
+        {
+          backgroundColor,
+        },
+      ]}
+    >
       <TouchableOpacity
-        style={styles.backButton}
+        style={[
+          styles.backButton,
+          {
+            backgroundColor: surfaceColor,
+            borderColor,
+          },
+        ]}
         onPress={onBack}
         activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel="Go back"
       >
-        <Ionicons name="arrow-back" size={21} color="#242424" />
+        <Ionicons name="arrow-back" size={21} color={textColor} />
       </TouchableOpacity>
 
       <View style={styles.headerTextContainer}>
-        <Text style={styles.headerEyebrow}>YOUR MEMORY</Text>
-        <Text style={styles.headerTitle}>Ticket Preview</Text>
+        <Text
+          style={[
+            styles.headerEyebrow,
+            {
+              color: mutedTextColor,
+            },
+          ]}
+        >
+          YOUR MEMORY
+        </Text>
+
+        <Text
+          style={[
+            styles.headerTitle,
+            {
+              color: textColor,
+            },
+          ]}
+        >
+          Ticket Preview
+        </Text>
       </View>
 
       <View style={styles.headerSpacer} />
@@ -25,4 +74,3 @@ function PreviewHeader({ onBack }) {
 }
 
 export default PreviewHeader;
-  

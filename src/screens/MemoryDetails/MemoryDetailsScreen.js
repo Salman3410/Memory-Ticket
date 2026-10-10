@@ -13,6 +13,7 @@ import {
   useWindowDimensions,
   StyleSheet,
   RefreshControl,
+  StatusBar,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { captureRef } from "react-native-view-shot";
@@ -33,8 +34,17 @@ import {
   getMemoryViewerUrl,
 } from "../../utils/cloudinary";
 import styles from "./memoryDetailsStyles";
+import { useTheme } from "../../context/ThemeContext";
 
 function MemoryDetailsScreen({ navigation, route }) {
+  const { theme, isDark } = useTheme();
+  const colors = theme?.colors || {};
+  const screenBackground = colors.background || (isDark ? "#171624" : "#F1F0F6");
+  const surfaceColor = colors.surface || (isDark ? "#211F30" : "#FFFFFF");
+  const textColor = colors.text || (isDark ? "#F7F5FC" : "#242424");
+  const secondaryTextColor = colors.textSecondary || colors.textMuted || (isDark ? "#C4C0D0" : "#707080");
+  const borderColor = colors.border || (isDark ? "#39364D" : "#D9D8E2");
+
   const {
     getMemoryById,
     toggleFavorite,
@@ -74,17 +84,18 @@ function MemoryDetailsScreen({ navigation, route }) {
 
   if (!memory) {
     return (
-      <View style={styles.notFoundContainer}>
-        <Ionicons name="sad-outline" size={45} color="#34345C" />
+      <View style={[styles.notFoundContainer, { backgroundColor: screenBackground }]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={screenBackground} />
+        <Ionicons name="sad-outline" size={45} color={colors.primary || "#34345C"} />
 
-        <Text style={styles.notFoundTitle}>Memory not found</Text>
+        <Text style={[styles.notFoundTitle, { color: textColor }]}>Memory not found</Text>
 
         <TouchableOpacity
-          style={styles.backToMemoriesButton}
+          style={[styles.backToMemoriesButton, { backgroundColor: colors.primary || "#34345C" }]}
           onPress={() => navigation.goBack()}
           activeOpacity={0.8}
         >
-          <Text style={styles.backToMemoriesText}>GO BACK</Text>
+          <Text style={[styles.backToMemoriesText, { color: secondaryTextColor }]}>GO BACK</Text>
         </TouchableOpacity>
       </View>
     );
@@ -514,9 +525,10 @@ function MemoryDetailsScreen({ navigation, route }) {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: screenBackground }]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={screenBackground} />
       <ScrollView
-        style={detailStyles.scrollView}
+        style={[detailStyles.scrollView, { backgroundColor: screenBackground }]}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         nestedScrollEnabled
@@ -525,24 +537,24 @@ function MemoryDetailsScreen({ navigation, route }) {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#34345C"
-            colors={["#34345C"]}
-            progressBackgroundColor="#FFFFFF"
+            tintColor={colors.primary || "#34345C"}
+            colors={[colors.primary || "#34345C"]}
+            progressBackgroundColor={surfaceColor}
           />
         }
       >
         {/* HEADER */}
 
-        <View style={styles.header}>
+        <View style={[styles.header, { backgroundColor: screenBackground }]}>
           <TouchableOpacity
-            style={styles.backButton}
+            style={[styles.backButton, { backgroundColor: surfaceColor, borderColor }]}
             onPress={() => navigation.goBack()}
             activeOpacity={0.7}
           >
-            <Ionicons name="arrow-back" size={22} color="#242424" />
+            <Ionicons name="arrow-back" size={22} color={colors.text || "#242424"} />
           </TouchableOpacity>
 
-          <Text style={styles.headerTitle}>Memory</Text>
+          <Text style={[styles.headerTitle, { color: textColor }]}>Memory</Text>
 
           <TouchableOpacity
             style={[
@@ -608,16 +620,16 @@ function MemoryDetailsScreen({ navigation, route }) {
         {/* SWIPE HINT */}
 
         {images.length > 1 && (
-          <View style={styles.swipeHint}>
+          <View style={[styles.swipeHint, { color: secondaryTextColor }]}>
             <Ionicons
               name="swap-horizontal-outline"
               size={15}
-              color="#707080"
+              color={colors.textSecondary || colors.textMuted || "#707080"}
             />
 
-            <Text style={styles.swipeHintText}>Swipe to view photos</Text>
+            <Text style={[styles.swipeHintText, { color: secondaryTextColor }]}>Swipe to view photos</Text>
 
-            <Text style={styles.swipeCountText}>
+            <Text style={[styles.swipeCountText, { color: secondaryTextColor }]}>
               {activeImage + 1}/{images.length}
             </Text>
           </View>
@@ -626,13 +638,13 @@ function MemoryDetailsScreen({ navigation, route }) {
         {/* TAGS */}
 
         {tags.length > 0 && (
-          <View style={detailStyles.tagsSection}>
-            <Text style={detailStyles.tagsLabel}>TAGS</Text>
+          <View style={[detailStyles.tagsSection, { backgroundColor: surfaceColor, borderColor }]}>
+            <Text style={[detailStyles.tagsLabel, { color: secondaryTextColor }]}>TAGS</Text>
 
             <View style={detailStyles.tagsContainer}>
               {tags.map((tag) => (
-                <View key={tag} style={detailStyles.tagChip}>
-                  <Text style={detailStyles.tagText}>#{tag}</Text>
+                <View key={tag} style={[detailStyles.tagChip, { backgroundColor: surfaceColor, borderColor }]}>
+                  <Text style={[detailStyles.tagText, { color: secondaryTextColor }]}>#{tag}</Text>
                 </View>
               ))}
             </View>
@@ -642,31 +654,31 @@ function MemoryDetailsScreen({ navigation, route }) {
         {/* CUSTOMIZE TICKET */}
 
         {/* <TouchableOpacity
-          style={detailStyles.customizeButton}
+          style={[detailStyles.customizeButton, { backgroundColor: surfaceColor, borderColor }]}
           onPress={openCustomization}
           activeOpacity={0.85}
         >
-          <Ionicons name="color-palette-outline" size={19} color="#34345C" />
+          <Ionicons name="color-palette-outline" size={19} color={colors.primary || "#34345C"} />
 
-          <Text style={detailStyles.customizeButtonText}>CUSTOMIZE TICKET</Text>
+          <Text style={[detailStyles.customizeButtonText, { color: colors.primaryText || "#FFFFFF" }]}>CUSTOMIZE TICKET</Text>
         </TouchableOpacity> */}
 
         {/* SHARE */}
 
         <TouchableOpacity
-          style={detailStyles.shareButton}
+          style={[detailStyles.shareButton, { backgroundColor: colors.primary || "#34345C" }]}
           onPress={openShareSheet}
           activeOpacity={0.85}
         >
           <Ionicons name="share-social-outline" size={19} color="#FFFFFF" />
 
-          <Text style={detailStyles.shareButtonText}>SHARE MEMORY</Text>
+          <Text style={[detailStyles.shareButtonText, { color: colors.primaryText || "#FFFFFF" }]}>SHARE MEMORY</Text>
         </TouchableOpacity>
 
         {/* EDIT MEMORY */}
 
         <TouchableOpacity
-          style={styles.editButton}
+          style={[styles.editButton, { backgroundColor: surfaceColor, borderColor }]}
           onPress={() =>
             navigation.navigate("EditMemory", {
               memoryId: memory.id,
@@ -674,24 +686,24 @@ function MemoryDetailsScreen({ navigation, route }) {
           }
           activeOpacity={0.8}
         >
-          <Ionicons name="create-outline" size={18} color="#34345C" />
+          <Ionicons name="create-outline" size={18} color={colors.primary || "#34345C"} />
 
-          <Text style={styles.editText}>EDIT MEMORY</Text>
+          <Text style={[styles.editText, { color: secondaryTextColor }]}>EDIT MEMORY</Text>
         </TouchableOpacity>
 
         {/* DELETE MEMORY */}
 
         <TouchableOpacity
-          style={styles.deleteButton}
+          style={[styles.deleteButton, { backgroundColor: colors.primary || "#34345C" }]}
           onPress={handleDelete}
           activeOpacity={0.8}
         >
           <Ionicons name="trash-outline" size={18} color="#D9534F" />
 
-          <Text style={styles.deleteText}>DELETE MEMORY</Text>
+          <Text style={[styles.deleteText, { color: secondaryTextColor }]}>DELETE MEMORY</Text>
         </TouchableOpacity>
 
-        <Text style={styles.footerText}>KEEP THE MOMENT. KEEP THE STORY.</Text>
+        <Text style={[styles.footerText, { color: secondaryTextColor }]}>KEEP THE MOMENT. KEEP THE STORY.</Text>
       </ScrollView>
 
       {/* SHARE / EXPORT SHEET */}

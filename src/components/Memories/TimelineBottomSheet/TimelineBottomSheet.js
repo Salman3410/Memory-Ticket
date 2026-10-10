@@ -2,16 +2,21 @@ import React, {
   forwardRef,
   useCallback,
   useImperativeHandle,
+  useMemo,
   useRef,
   useState,
 } from "react";
+
 import { Text, TouchableOpacity, View } from "react-native";
+
 import { Ionicons } from "@expo/vector-icons";
+
 import {
   BottomSheetModal,
   BottomSheetBackdrop,
   BottomSheetView,
 } from "@gorhom/bottom-sheet";
+
 import styles from "./timelineBottomSheetStyles";
 
 const MIN_YEAR = 2020;
@@ -34,13 +39,48 @@ const MONTHS = [
 ];
 
 const TimelineBottomSheet = forwardRef(function TimelineBottomSheet(
-  { selectedMonth, onApply, onClear, onClose },
+  { selectedMonth, onApply, onClear, onClose, theme, isDark },
   ref,
 ) {
   const sheetRef = useRef(null);
 
   const [displayYear, setDisplayYear] = useState(getCurrentYear());
+
   const [draftMonth, setDraftMonth] = useState(null);
+
+  // --------------------------------------------------
+  // THEME COLORS
+  // --------------------------------------------------
+
+  const colors = useMemo(() => {
+    const themeColors = theme?.colors || {};
+
+    return {
+      background: themeColors.background || (isDark ? "#171724" : "#F1F0F6"),
+
+      surface:
+        themeColors.surface ||
+        themeColors.card ||
+        (isDark ? "#232333" : "#FFFFFF"),
+
+      text: themeColors.text || (isDark ? "#F1F0F6" : "#242424"),
+
+      textSecondary:
+        themeColors.textSecondary ||
+        themeColors.textMuted ||
+        (isDark ? "#A6A6B8" : "#737387"),
+
+      border: themeColors.border || (isDark ? "#38384C" : "#D9D8E2"),
+
+      primary: themeColors.primary || "#34345C",
+
+      accent: themeColors.accent || "#E76F51",
+    };
+  }, [theme, isDark]);
+
+  // --------------------------------------------------
+  // IMPERATIVE HANDLE
+  // --------------------------------------------------
 
   useImperativeHandle(
     ref,
@@ -66,9 +106,9 @@ const TimelineBottomSheet = forwardRef(function TimelineBottomSheet(
     [selectedMonth],
   );
 
-  // ------------------------------------------
+  // --------------------------------------------------
   // BACKDROP
-  // ------------------------------------------
+  // --------------------------------------------------
 
   const renderBackdrop = useCallback(
     (props) => (
@@ -83,22 +123,16 @@ const TimelineBottomSheet = forwardRef(function TimelineBottomSheet(
     [],
   );
 
-  // ------------------------------------------
-  // YEAR
-  // ------------------------------------------
+  // --------------------------------------------------
+  // CHANGE YEAR
+  // --------------------------------------------------
 
   const handleChangeYear = useCallback((direction) => {
     setDisplayYear((currentYear) => {
       const maxYear = getCurrentYear();
       const nextYear = currentYear + direction;
 
-      // Prevent going below 2000
-      if (nextYear < MIN_YEAR) {
-        return currentYear;
-      }
-
-      // Prevent going above current year
-      if (nextYear > maxYear) {
+      if (nextYear < MIN_YEAR || nextYear > maxYear) {
         return currentYear;
       }
 
@@ -112,9 +146,9 @@ const TimelineBottomSheet = forwardRef(function TimelineBottomSheet(
     });
   }, []);
 
-  // ------------------------------------------
-  // MONTH
-  // ------------------------------------------
+  // --------------------------------------------------
+  // SELECT MONTH
+  // --------------------------------------------------
 
   const handleSelectMonth = useCallback(
     (monthIndex) => {
@@ -123,17 +157,17 @@ const TimelineBottomSheet = forwardRef(function TimelineBottomSheet(
     [displayYear],
   );
 
-  // ------------------------------------------
+  // --------------------------------------------------
   // CANCEL
-  // ------------------------------------------
+  // --------------------------------------------------
 
   const handleCancel = useCallback(() => {
     sheetRef.current?.dismiss();
   }, []);
 
-  // ------------------------------------------
-  // DONE
-  // ------------------------------------------
+  // --------------------------------------------------
+  // APPLY
+  // --------------------------------------------------
 
   const handleDone = useCallback(() => {
     if (!draftMonth) {
@@ -147,22 +181,21 @@ const TimelineBottomSheet = forwardRef(function TimelineBottomSheet(
     );
 
     onApply?.(monthToApply);
-
     sheetRef.current?.dismiss();
   }, [draftMonth, onApply]);
 
-  // ------------------------------------------
+  // --------------------------------------------------
   // CLEAR
-  // ------------------------------------------
+  // --------------------------------------------------
 
   const handleClear = useCallback(() => {
     onClear?.();
     sheetRef.current?.dismiss();
   }, [onClear]);
 
-  // ------------------------------------------
+  // --------------------------------------------------
   // DISMISS
-  // ------------------------------------------
+  // --------------------------------------------------
 
   const handleDismiss = useCallback(() => {
     onClose?.();
@@ -173,68 +206,115 @@ const TimelineBottomSheet = forwardRef(function TimelineBottomSheet(
   const isMinYear = displayYear <= MIN_YEAR;
   const isMaxYear = displayYear >= currentYear;
 
+  // --------------------------------------------------
+  // RENDER
+  // --------------------------------------------------
+
   return (
     <BottomSheetModal
       ref={sheetRef}
       snapPoints={["58%"]}
       enablePanDownToClose
       onDismiss={handleDismiss}
-      backgroundStyle={styles.sheetBackground}
-      handleIndicatorStyle={styles.sheetHandle}
-      backdropComponent={(props) => (
-        <BottomSheetBackdrop
-          {...props}
-          appearsOnIndex={0}
-          disappearsOnIndex={-1}
-          opacity={0.35}
-          pressBehavior="close"
-        />
-      )}
+      backgroundStyle={[
+        styles.sheetBackground,
+        {
+          backgroundColor: colors.surface,
+        },
+      ]}
+      handleIndicatorStyle={[
+        styles.sheetHandle,
+        {
+          backgroundColor: colors.border,
+        },
+      ]}
+      backdropComponent={renderBackdrop}
     >
-      <BottomSheetView style={styles.container}>
+      <BottomSheetView
+        style={[
+          styles.container,
+          {
+            backgroundColor: colors.surface,
+          },
+        ]}
+      >
         {/* HEADER */}
 
         <View style={styles.header}>
-          <Text style={styles.title}>Select Month</Text>
+          <Text
+            style={[
+              styles.title,
+              {
+                color: colors.text,
+              },
+            ]}
+          >
+            Select Month
+          </Text>
 
           <TouchableOpacity
-            style={styles.closeButton}
+            style={[
+              styles.closeButton,
+              {
+                backgroundColor: colors.background,
+                borderColor: colors.border,
+              },
+            ]}
             onPress={handleCancel}
             activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel="Close timeline"
           >
-            <Ionicons name="close" size={21} color="#34345C" />
+            <Ionicons name="close" size={21} color={colors.text} />
           </TouchableOpacity>
         </View>
 
-        {/* YEAR */}
+        {/* YEAR SELECTOR */}
 
         <View style={styles.yearRow}>
           <TouchableOpacity
-            style={[styles.yearArrow, isMinYear && styles.yearArrowDisabled]}
+            style={[
+              styles.yearArrow,
+              {
+                backgroundColor: colors.background,
+                borderColor: colors.border,
+                opacity: isMinYear ? 0.45 : 1,
+              },
+            ]}
             onPress={() => handleChangeYear(-1)}
             disabled={isMinYear}
             activeOpacity={0.8}
+            accessibilityLabel="Previous year"
           >
-            <Ionicons
-              name="chevron-back"
-              size={20}
-              color={isMinYear ? "#B8B7C0" : "#34345C"}
-            />
+            <Ionicons name="chevron-back" size={20} color={colors.primary} />
           </TouchableOpacity>
 
-          <Text style={styles.yearText}>{displayYear}</Text>
+          <Text
+            style={[
+              styles.yearText,
+              {
+                color: colors.text,
+              },
+            ]}
+          >
+            {displayYear}
+          </Text>
 
           <TouchableOpacity
-            style={[styles.yearArrow, isMaxYear && styles.yearArrowDisabled]}
+            style={[
+              styles.yearArrow,
+              {
+                backgroundColor: colors.background,
+                borderColor: colors.border,
+                opacity: isMaxYear ? 0.45 : 1,
+              },
+            ]}
             onPress={() => handleChangeYear(1)}
             disabled={isMaxYear}
             activeOpacity={0.8}
+            accessibilityLabel="Next year"
           >
-            <Ionicons
-              name="chevron-forward"
-              size={20}
-              color={isMaxYear ? "#B8B7C0" : "#34345C"}
-            />
+            <Ionicons name="chevron-forward" size={20} color={colors.primary} />
           </TouchableOpacity>
         </View>
 
@@ -252,14 +332,27 @@ const TimelineBottomSheet = forwardRef(function TimelineBottomSheet(
                 style={[
                   styles.monthButton,
                   isSelected && styles.monthButtonSelected,
+                  {
+                    backgroundColor: isSelected
+                      ? colors.primary
+                      : colors.background,
+                    borderColor: isSelected ? colors.primary : colors.border,
+                  },
                 ]}
                 onPress={() => handleSelectMonth(index)}
                 activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityState={{
+                  selected: isSelected,
+                }}
               >
                 <Text
                   style={[
                     styles.monthText,
                     isSelected && styles.monthTextSelected,
+                    {
+                      color: isSelected ? "#FFFFFF" : colors.text,
+                    },
                   ]}
                 >
                   {month.slice(0, 3)}
@@ -269,17 +362,36 @@ const TimelineBottomSheet = forwardRef(function TimelineBottomSheet(
           })}
         </View>
 
-        {/* CLEAR */}
+        {/* CLEAR TIMELINE FILTER */}
 
         {selectedMonth ? (
           <TouchableOpacity
-            style={styles.clearButton}
+            style={[
+              styles.clearButton,
+              {
+                backgroundColor: colors.background,
+                borderColor: colors.border,
+              },
+            ]}
             onPress={handleClear}
             activeOpacity={0.8}
           >
-            <Ionicons name="close-circle-outline" size={18} color="#34345C" />
+            <Ionicons
+              name="close-circle-outline"
+              size={18}
+              color={colors.primary}
+            />
 
-            <Text style={styles.clearButtonText}>Show all memories</Text>
+            <Text
+              style={[
+                styles.clearButtonText,
+                {
+                  color: colors.primary,
+                },
+              ]}
+            >
+              Show all memories
+            </Text>
           </TouchableOpacity>
         ) : null}
 
@@ -287,19 +399,48 @@ const TimelineBottomSheet = forwardRef(function TimelineBottomSheet(
 
         <View style={styles.actions}>
           <TouchableOpacity
-            style={styles.cancelButton}
+            style={[
+              styles.cancelButton,
+              {
+                backgroundColor: colors.background,
+                borderColor: colors.border,
+              },
+            ]}
             onPress={handleCancel}
             activeOpacity={0.8}
           >
-            <Text style={styles.cancelButtonText}>Cancel</Text>
+            <Text
+              style={[
+                styles.cancelButtonText,
+                {
+                  color: colors.text,
+                },
+              ]}
+            >
+              Cancel
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.doneButton}
+            style={[
+              styles.doneButton,
+              {
+                backgroundColor: colors.primary,
+              },
+            ]}
             onPress={handleDone}
             activeOpacity={0.85}
           >
-            <Text style={styles.doneButtonText}>Done</Text>
+            <Text
+              style={[
+                styles.doneButtonText,
+                {
+                  color: "#FFFFFF",
+                },
+              ]}
+            >
+              Done
+            </Text>
           </TouchableOpacity>
         </View>
       </BottomSheetView>

@@ -51,7 +51,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,
-    borderColor: "#34345C",
+    borderColor: "#FFFFFF",
   },
 
   userName: {

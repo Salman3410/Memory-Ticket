@@ -14,6 +14,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 
 import styles from "../rewardStyles";
+import { useTheme } from "../../../context/ThemeContext";
 
 function DailyBonusCard({
   rewardAmount = 20,
@@ -22,6 +23,14 @@ function DailyBonusCard({
   streak = 0,
   onPress,
 }) {
+  const { theme, isDark } = useTheme();
+  const colors = theme?.colors || {};
+  const screenBackground = colors.background || (isDark ? "#171624" : "#F1F0F6");
+  const surfaceColor = colors.surface || (isDark ? "#211F30" : "#FFFFFF");
+  const textColor = colors.text || (isDark ? "#F7F5FC" : "#242424");
+  const secondaryTextColor = colors.textSecondary || colors.textMuted || (isDark ? "#C4C0D0" : "#707080");
+  const borderColor = colors.border || (isDark ? "#39364D" : "#D9D8E2");
+
   const cardOpacity = useRef(
     new Animated.Value(0),
   ).current;
@@ -269,7 +278,7 @@ function DailyBonusCard({
   return (
     <TouchableOpacity
       style={[
-        styles.dailyCard,
+        styles.dailyCard, { backgroundColor: surfaceColor, borderColor },
         claimed && styles.dailyCardDisabled,
         !available &&
           !claimed &&
@@ -317,30 +326,30 @@ function DailyBonusCard({
                   : "gift"
               }
               size={18}
-              color="#34345C"
+              color={colors.primary || "#34345C"}
             />
           </Animated.View>
 
           {/* CONTENT */}
 
-          <View style={styles.dailyContent}>
-            <View style={styles.dailyTitleRow}>
-              <Text style={styles.dailyTitle}>
+          <View style={[styles.dailyContent, { backgroundColor: surfaceColor, borderColor }]}>
+            <View style={[styles.dailyTitleRow, { backgroundColor: surfaceColor, borderColor }]}>
+              <Text style={[styles.dailyTitle, { color: textColor }]}>
                 Daily bonus
               </Text>
 
               {streak > 0 ? (
                 <View
-                  style={styles.streakPill}
+                  style={[styles.streakPill, { backgroundColor: surfaceColor, borderColor }]}
                 >
                   <Ionicons
                     name="flame-outline"
                     size={10}
-                    color="#E76F51"
+                    color={colors.accent || "#E76F51"}
                   />
 
                   <Text
-                    style={styles.streakText}
+                    style={[styles.streakText, { color: secondaryTextColor }]}
                   >
                     {streak} day
                     {streak === 1
@@ -351,7 +360,7 @@ function DailyBonusCard({
               ) : null}
             </View>
 
-            <Text style={styles.dailyText}>
+            <Text style={[styles.dailyText, { color: secondaryTextColor }]}>
               {claimed
                 ? "You've collected today's bonus."
                 : available
@@ -386,9 +395,7 @@ function DailyBonusCard({
               </Text>
 
               <Text
-                style={
-                  styles.dailyActionLabel
-                }
+                style={[styles.dailyActionLabel, { color: secondaryTextColor }]}
               >
                 {getStatusLabel()}
               </Text>
@@ -408,7 +415,7 @@ function DailyBonusCard({
                 <Ionicons
                   name="arrow-forward"
                   size={15}
-                  color="#E76F51"
+                  color={colors.accent || "#E76F51"}
                 />
               </Animated.View>
             ) : null}

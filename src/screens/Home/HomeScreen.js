@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from "react";
-import { RefreshControl, ScrollView, Text, View } from "react-native";
+import { RefreshControl, ScrollView, StatusBar, Text, View } from "react-native";
+import { useTheme } from "../../context/ThemeContext";
 import { useMemory } from "../../hooks/useMemory";
 import { useCollection } from "../../hooks/useCollection";
 import useRefresh from "../../hooks/useRefresh";
@@ -67,10 +68,11 @@ function HomeScreen({ navigation }) {
   const latestMemory = recentMemories[0];
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background || (isDark ? "#171624" : "#F1F0F6") }]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={colors.background || (isDark ? "#171624" : "#F1F0F6")} />
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { backgroundColor: colors.background || (isDark ? "#171624" : "#F1F0F6") }]}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -108,7 +110,7 @@ function HomeScreen({ navigation }) {
           navigation={navigation}
         />
 
-        <Text style={styles.footerText}>KEEP THE MOMENT. KEEP THE STORY.</Text>
+        <Text style={[styles.footerText, { color: colors.textSecondary || colors.textMuted || (isDark ? "#A6A6B8" : "#737387") }]}>KEEP THE MOMENT. KEEP THE STORY.</Text>
       </ScrollView>
     </View>
   );

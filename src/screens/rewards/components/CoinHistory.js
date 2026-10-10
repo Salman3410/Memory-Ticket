@@ -15,12 +15,20 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 
 import styles from "../rewardStyles";
+import { useTheme } from "../../../context/ThemeContext";
 
 function HistoryRow({
   transaction,
   index,
   isLast,
 }) {
+  const { theme, isDark } = useTheme();
+  const colors = theme?.colors || {};
+  const screenBackground = colors.background || (isDark ? "#171624" : "#F1F0F6");
+  const surfaceColor = colors.surface || (isDark ? "#211F30" : "#FFFFFF");
+  const textColor = colors.text || (isDark ? "#F7F5FC" : "#242424");
+  const secondaryTextColor = colors.textSecondary || colors.textMuted || (isDark ? "#C4C0D0" : "#707080");
+  const borderColor = colors.border || (isDark ? "#39364D" : "#D9D8E2");
   const opacity = useRef(
     new Animated.Value(0),
   ).current;
@@ -238,7 +246,7 @@ function HistoryRow({
         style={styles.activityInfo}
       >
         <Text
-          style={styles.activityTitle}
+          style={[styles.activityTitle, { color: textColor }]}
           numberOfLines={1}
         >
           {content.title}
@@ -249,18 +257,14 @@ function HistoryRow({
         >
           {transaction.description ? (
             <Text
-              style={
-                styles.activitySubtitle
-              }
+              style={[styles.activitySubtitle, { color: textColor }]}
               numberOfLines={1}
             >
               {transaction.description}
             </Text>
           ) : dateLabel ? (
             <Text
-              style={
-                styles.activitySubtitle
-              }
+              style={[styles.activitySubtitle, { color: textColor }]}
             >
               {dateLabel}
             </Text>
@@ -298,6 +302,14 @@ function CoinHistory({
   onRetry,
   limit = 4,
 }) {
+  const { theme, isDark } = useTheme();
+  const colors = theme?.colors || {};
+  const screenBackground = colors.background || (isDark ? "#171624" : "#F1F0F6");
+  const surfaceColor = colors.surface || (isDark ? "#211F30" : "#FFFFFF");
+  const textColor = colors.text || (isDark ? "#F7F5FC" : "#242424");
+  const secondaryTextColor = colors.textSecondary || colors.textMuted || (isDark ? "#C4C0D0" : "#707080");
+  const borderColor = colors.border || (isDark ? "#39364D" : "#D9D8E2");
+
   const recentHistory =
     Array.isArray(history)
       ? history.slice(0, limit)
@@ -310,13 +322,13 @@ function CoinHistory({
       >
         <View>
           <Text
-            style={styles.sectionTitle}
+            style={[styles.sectionTitle, { color: textColor }]}
           >
             Recent activity
           </Text>
 
           <Text
-            style={styles.sectionSubtitle}
+            style={[styles.sectionSubtitle, { color: textColor }]}
           >
             A look at your latest Coins.
           </Text>
@@ -325,29 +337,29 @@ function CoinHistory({
         {loading ? (
           <ActivityIndicator
             size="small"
-            color="#34345C"
+            color={colors.primary || "#34345C"}
           />
         ) : null}
       </View>
 
       {error ? (
         <TouchableOpacity
-          style={styles.messageCard}
+          style={[styles.messageCard, { backgroundColor: surfaceColor, borderColor }]}
           onPress={onRetry}
           activeOpacity={0.8}
         >
           <View
-            style={styles.messageIcon}
+            style={[styles.messageIcon, { backgroundColor: surfaceColor, borderColor }]}
           >
             <Ionicons
               name="refresh-outline"
               size={17}
-              color="#E76F51"
+              color={colors.accent || "#E76F51"}
             />
           </View>
 
           <Text
-            style={styles.messageText}
+            style={[styles.messageText, { color: secondaryTextColor }]}
           >
             {error} Tap to retry.
           </Text>
@@ -355,30 +367,26 @@ function CoinHistory({
       ) : recentHistory.length === 0 &&
         !loading ? (
         <View
-          style={styles.emptyActivity}
+          style={[styles.emptyActivity, { backgroundColor: surfaceColor, borderColor }]}
         >
           <View
-            style={styles.emptyActivityIcon}
+            style={[styles.emptyActivityIcon, { backgroundColor: surfaceColor, borderColor }]}
           >
             <Ionicons
               name="time-outline"
               size={20}
-              color="#34345C"
+              color={colors.primary || "#34345C"}
             />
           </View>
 
           <Text
-            style={
-              styles.emptyActivityTitle
-            }
+            style={[styles.emptyActivityTitle, { color: textColor }]}
           >
             Your story starts here
           </Text>
 
           <Text
-            style={
-              styles.emptyActivityText
-            }
+            style={[styles.emptyActivityText, { color: secondaryTextColor }]}
           >
             Earn or spend Coins and your
             activity will appear here.

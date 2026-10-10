@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTheme } from "../../../context/ThemeContext";
 import {
   View,
   Text,
@@ -9,6 +10,8 @@ import {
   ScrollView,
   ActivityIndicator,
   Image,
+
+  StatusBar,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import styles from "./forgotPasswordStyles";
@@ -16,6 +19,14 @@ import { useAuth } from "../../../hooks/useAuth";
 import { useAppAlert } from "../../../context/AlertContext";
 
 function ForgotPasswordScreen({ navigation }) {
+  const { theme, isDark } = useTheme();
+  const colors = theme?.colors || {};
+  const screenBackground = colors.background || (isDark ? "#171624" : "#F1F0F6");
+  const surfaceColor = colors.surface || (isDark ? "#211F30" : "#FFFFFF");
+  const textColor = colors.text || (isDark ? "#F7F5FC" : "#242424");
+  const secondaryTextColor = colors.textSecondary || colors.textMuted || (isDark ? "#C4C0D0" : "#707080");
+  const borderColor = colors.border || (isDark ? "#39364D" : "#D9D8E2");
+
   const { forgotPassword, verifyOtp, resetPassword } = useAuth();
   const { showAlert } = useAppAlert();
 
@@ -281,8 +292,8 @@ function ForgotPasswordScreen({ navigation }) {
   };
 
   const renderBrand = () => (
-    <View style={styles.brandContainer}>
-      <View style={styles.brandIcon}>
+    <View style={[styles.brandContainer, { backgroundColor: surfaceColor, borderColor }]}>
+      <View style={[styles.brandIcon, { backgroundColor: surfaceColor, borderColor }]}>
         <Image
           source={require("../../../../assets/icon.png")}
           style={styles.logoImage}
@@ -290,31 +301,31 @@ function ForgotPasswordScreen({ navigation }) {
         />
       </View>
 
-      <Text style={styles.brandText}>MEMENTO</Text>
+      <Text style={[styles.brandText, { color: colors.primaryText || "#FFFFFF" }]}>MEMENTO</Text>
     </View>
   );
 
   const renderEmailStep = () => (
     <>
-      <View style={styles.headingContainer}>
-        <Text style={styles.title}>Forgot Password?</Text>
+      <View style={[styles.headingContainer, { backgroundColor: surfaceColor, borderColor }]}>
+        <Text style={[styles.title, { color: textColor }]}>Forgot Password?</Text>
 
-        <Text style={styles.subtitle}>
+        <Text style={[styles.subtitle, { color: textColor }]}>
           Enter your email and we'll send you a verification code.
         </Text>
       </View>
 
-      <View style={styles.formContainer}>
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>EMAIL</Text>
+      <View style={[styles.formContainer, { backgroundColor: surfaceColor, borderColor }]}>
+        <View style={[styles.inputGroup, { backgroundColor: surfaceColor, borderColor }]}>
+          <Text style={[styles.label, { color: secondaryTextColor }]}>EMAIL</Text>
 
-          <View style={styles.inputWrapper}>
+          <View style={[styles.inputWrapper, { backgroundColor: surfaceColor, borderColor,  }]}>
             <Ionicons name="mail-outline" size={17} color="#7E7E88" />
 
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: colors.input || surfaceColor, borderColor, color: textColor }]}
               placeholder="your@email.com"
-              placeholderTextColor="#9A9AA3"
+              placeholderTextColor={colors.textMuted || "#9A9AA3"}
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
@@ -325,9 +336,9 @@ function ForgotPasswordScreen({ navigation }) {
           </View>
         </View>
 
-        {error ? <Text style={styles.errorText}>{error}</Text> : null}
+        {error ? <Text style={[styles.errorText, { color: secondaryTextColor }]}>{error}</Text> : null}
 
-        {message ? <Text style={styles.messageText}>{message}</Text> : null}
+        {message ? <Text style={[styles.messageText, { color: secondaryTextColor }]}>{message}</Text> : null}
 
         <TouchableOpacity
           style={[styles.primaryButton, loading && styles.disabledButton]}
@@ -339,7 +350,7 @@ function ForgotPasswordScreen({ navigation }) {
             <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
             <>
-              <Text style={styles.primaryButtonText}>SEND OTP</Text>
+              <Text style={[styles.primaryButtonText, { color: colors.primaryText || "#FFFFFF" }]}>SEND OTP</Text>
 
               <Ionicons name="arrow-forward" size={19} color="#FFFFFF" />
             </>
@@ -351,26 +362,26 @@ function ForgotPasswordScreen({ navigation }) {
 
   const renderOtpStep = () => (
     <>
-      <View style={styles.headingContainer}>
-        <Text style={styles.title}>Verify OTP</Text>
+      <View style={[styles.headingContainer, { backgroundColor: surfaceColor, borderColor }]}>
+        <Text style={[styles.title, { color: textColor }]}>Verify OTP</Text>
 
-        <Text style={styles.subtitle}>
+        <Text style={[styles.subtitle, { color: textColor }]}>
           Enter the 6-digit OTP sent to{" "}
-          <Text style={styles.emailText}>{email}</Text>
+          <Text style={[styles.emailText, { color: secondaryTextColor }]}>{email}</Text>
         </Text>
       </View>
 
-      <View style={styles.formContainer}>
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>OTP</Text>
+      <View style={[styles.formContainer, { backgroundColor: surfaceColor, borderColor }]}>
+        <View style={[styles.inputGroup, { backgroundColor: surfaceColor, borderColor }]}>
+          <Text style={[styles.label, { color: secondaryTextColor }]}>OTP</Text>
 
-          <View style={styles.inputWrapper}>
+          <View style={[styles.inputWrapper, { backgroundColor: surfaceColor, borderColor,  }]}>
             <Ionicons name="key-outline" size={17} color="#7E7E88" />
 
             <TextInput
               style={styles.otpInput}
               placeholder="Enter 6-digit OTP"
-              placeholderTextColor="#9A9AA3"
+              placeholderTextColor={colors.textMuted || "#9A9AA3"}
               value={otp}
               onChangeText={(value) =>
                 setOtp(value.replace(/[^0-9]/g, "").slice(0, 6))
@@ -382,9 +393,9 @@ function ForgotPasswordScreen({ navigation }) {
           </View>
         </View>
 
-        {error ? <Text style={styles.errorText}>{error}</Text> : null}
+        {error ? <Text style={[styles.errorText, { color: secondaryTextColor }]}>{error}</Text> : null}
 
-        {message ? <Text style={styles.messageText}>{message}</Text> : null}
+        {message ? <Text style={[styles.messageText, { color: secondaryTextColor }]}>{message}</Text> : null}
 
         <TouchableOpacity
           style={[styles.primaryButton, loading && styles.disabledButton]}
@@ -396,15 +407,15 @@ function ForgotPasswordScreen({ navigation }) {
             <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
             <>
-              <Text style={styles.primaryButtonText}>VERIFY OTP</Text>
+              <Text style={[styles.primaryButtonText, { color: colors.primaryText || "#FFFFFF" }]}>VERIFY OTP</Text>
 
               <Ionicons name="checkmark" size={19} color="#FFFFFF" />
             </>
           )}
         </TouchableOpacity>
 
-        <View style={styles.resendSection}>
-          <View style={styles.resendContainer}>
+        <View style={[styles.resendSection, { backgroundColor: surfaceColor, borderColor }]}>
+          <View style={[styles.resendContainer, { backgroundColor: surfaceColor, borderColor }]}>
             <TouchableOpacity
               onPress={handleResendOtp}
               disabled={resendTimer > 0 || loading}
@@ -436,9 +447,9 @@ function ForgotPasswordScreen({ navigation }) {
           disabled={loading}
           activeOpacity={0.7}
         >
-          <Ionicons name="arrow-back" size={16} color="#34345C" />
+          <Ionicons name="arrow-back" size={16} color={colors.primary || "#34345C"} />
 
-          <Text style={styles.backLinkText}>Change email</Text>
+          <Text style={[styles.backLinkText, { color: secondaryTextColor }]}>Change email</Text>
         </TouchableOpacity>
       </View>
     </>
@@ -446,25 +457,25 @@ function ForgotPasswordScreen({ navigation }) {
 
   const renderResetStep = () => (
     <>
-      <View style={styles.headingContainer}>
-        <Text style={styles.title}>New Password</Text>
+      <View style={[styles.headingContainer, { backgroundColor: surfaceColor, borderColor }]}>
+        <Text style={[styles.title, { color: textColor }]}>New Password</Text>
 
-        <Text style={styles.subtitle}>
+        <Text style={[styles.subtitle, { color: textColor }]}>
           Create a new password for your Memento account.
         </Text>
       </View>
 
-      <View style={styles.formContainer}>
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>NEW PASSWORD</Text>
+      <View style={[styles.formContainer, { backgroundColor: surfaceColor, borderColor }]}>
+        <View style={[styles.inputGroup, { backgroundColor: surfaceColor, borderColor }]}>
+          <Text style={[styles.label, { color: secondaryTextColor }]}>NEW PASSWORD</Text>
 
-          <View style={styles.inputWrapper}>
+          <View style={[styles.inputWrapper, { backgroundColor: surfaceColor, borderColor,  }]}>
             <Ionicons name="lock-closed-outline" size={17} color="#7E7E88" />
 
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: colors.input || surfaceColor, borderColor, color: textColor }]}
               placeholder="Enter new password"
-              placeholderTextColor="#9A9AA3"
+              placeholderTextColor={colors.textMuted || "#9A9AA3"}
               value={newPassword}
               onChangeText={setNewPassword}
               secureTextEntry={!showPassword}
@@ -474,7 +485,7 @@ function ForgotPasswordScreen({ navigation }) {
             />
 
             <TouchableOpacity
-              style={styles.passwordButton}
+              style={[styles.passwordButton, { backgroundColor: surfaceColor, borderColor,  }]}
               onPress={() => setShowPassword(!showPassword)}
               disabled={loading}
               activeOpacity={0.7}
@@ -489,16 +500,16 @@ function ForgotPasswordScreen({ navigation }) {
           </View>
         </View>
 
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>CONFIRM PASSWORD</Text>
+        <View style={[styles.inputGroup, { backgroundColor: surfaceColor, borderColor }]}>
+          <Text style={[styles.label, { color: secondaryTextColor }]}>CONFIRM PASSWORD</Text>
 
-          <View style={styles.inputWrapper}>
+          <View style={[styles.inputWrapper, { backgroundColor: surfaceColor, borderColor,  }]}>
             <Ionicons name="lock-closed-outline" size={17} color="#7E7E88" />
 
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: colors.input || surfaceColor, borderColor, color: textColor }]}
               placeholder="Confirm new password"
-              placeholderTextColor="#9A9AA3"
+              placeholderTextColor={colors.textMuted || "#9A9AA3"}
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               secureTextEntry={!showConfirmPassword}
@@ -508,7 +519,7 @@ function ForgotPasswordScreen({ navigation }) {
             />
 
             <TouchableOpacity
-              style={styles.passwordButton}
+              style={[styles.passwordButton, { backgroundColor: surfaceColor, borderColor,  }]}
               onPress={() => setShowConfirmPassword(!showConfirmPassword)}
               disabled={loading}
               activeOpacity={0.7}
@@ -523,11 +534,11 @@ function ForgotPasswordScreen({ navigation }) {
           </View>
         </View>
 
-        <Text style={styles.passwordHint}>
+        <Text style={[styles.passwordHint, { color: secondaryTextColor }]}>
           Password must contain 8 or more characters.
         </Text>
 
-        {error ? <Text style={styles.errorText}>{error}</Text> : null}
+        {error ? <Text style={[styles.errorText, { color: secondaryTextColor }]}>{error}</Text> : null}
 
         <TouchableOpacity
           style={[styles.primaryButton, loading && styles.disabledButton]}
@@ -539,7 +550,7 @@ function ForgotPasswordScreen({ navigation }) {
             <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
             <>
-              <Text style={styles.primaryButtonText}>RESET PASSWORD</Text>
+              <Text style={[styles.primaryButtonText, { color: colors.primaryText || "#FFFFFF" }]}>RESET PASSWORD</Text>
 
               <Ionicons
                 name="checkmark-circle-outline"
@@ -554,14 +565,14 @@ function ForgotPasswordScreen({ navigation }) {
   );
 
   const renderSuccessStep = () => (
-    <View style={styles.successContainer}>
-      <View style={styles.successIcon}>
+    <View style={[styles.successContainer, { backgroundColor: surfaceColor, borderColor }]}>
+      <View style={[styles.successIcon, { backgroundColor: surfaceColor, borderColor }]}>
         <Ionicons name="checkmark" size={38} color="#FFFFFF" />
       </View>
 
-      <Text style={styles.successTitle}>Password Reset</Text>
+      <Text style={[styles.successTitle, { color: textColor }]}>Password Reset</Text>
 
-      <Text style={styles.successText}>
+      <Text style={[styles.successText, { color: secondaryTextColor }]}>
         Your password has been changed successfully. You can now log in with
         your new password.
       </Text>
@@ -571,7 +582,7 @@ function ForgotPasswordScreen({ navigation }) {
         onPress={goToLogin}
         activeOpacity={0.85}
       >
-        <Text style={styles.primaryButtonText}>GO TO LOGIN</Text>
+        <Text style={[styles.primaryButtonText, { color: colors.primaryText || "#FFFFFF" }]}>GO TO LOGIN</Text>
 
         <Ionicons name="arrow-forward" size={19} color="#FFFFFF" />
       </TouchableOpacity>
@@ -580,24 +591,25 @@ function ForgotPasswordScreen({ navigation }) {
 
   return (
     <KeyboardAvoidingView
-      style={styles.keyboardContainer}
+      style={[styles.keyboardContainer, { backgroundColor: screenBackground }]}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <ScrollView
-        contentContainerStyle={styles.scrollContainer}
+        contentContainerStyle={[styles.scrollContainer, { backgroundColor: screenBackground }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: screenBackground }]}>
+          <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={screenBackground} />
           <TouchableOpacity
-            style={styles.topBackButton}
+            style={[styles.topBackButton, { backgroundColor: surfaceColor, borderColor,  }]}
             onPress={goToLogin}
             disabled={loading}
             activeOpacity={0.7}
           >
-            <Ionicons name="arrow-back" size={20} color="#242424" />
+            <Ionicons name="arrow-back" size={20} color={colors.text || "#242424"} />
 
-            <Text style={styles.topBackText}>Back to Login</Text>
+            <Text style={[styles.topBackText, { color: secondaryTextColor }]}>Back to Login</Text>
           </TouchableOpacity>
 
           {renderBrand()}
@@ -610,7 +622,7 @@ function ForgotPasswordScreen({ navigation }) {
 
           {step === "success" && renderSuccessStep()}
 
-          <Text style={styles.tagline}>KEEP YOUR MEMORIES CLOSE</Text>
+          <Text style={[styles.tagline, { color: secondaryTextColor }]}>KEEP YOUR MEMORIES CLOSE</Text>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

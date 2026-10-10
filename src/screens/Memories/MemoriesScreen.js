@@ -5,18 +5,25 @@ import React, {
   useRef,
   useState,
 } from "react";
+
 import {
   FlatList,
   RefreshControl,
+  StatusBar,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+
 import { Ionicons } from "@expo/vector-icons";
+
 import { useMemory } from "../../hooks/useMemory";
 import { useCollection } from "../../hooks/useCollection";
 import useRefresh from "../../hooks/useRefresh";
+
 import { useAppAlert } from "../../context/AlertContext";
+import { useTheme } from "../../context/ThemeContext";
+
 import SearchBar from "../../components/Memories/SearchBar/SearchBar";
 import CollectionStats from "../../components/Memories/CollectionStats/CollectionStats";
 import MemoryFilters from "../../components/Memories/MemoryFilters/MemoryFilters";
@@ -24,7 +31,12 @@ import EmptyMemoryState from "../../components/Memories/EmptyMemoryState/EmptyMe
 import MemoryTicketList from "../../components/Memories/MemoryTicketList/MemoryTicketList";
 import TimelineBottomSheet from "../../components/Memories/TimelineBottomSheet/TimelineBottomSheet";
 import AdvancedSearch from "../../components/Memories/AdvancedSearch/AdvancedSearch";
+
 import styles from "./memoriesStyles";
+
+// ==================================================
+// CONSTANTS
+// ==================================================
 
 const MONTHS = [
   "January",
@@ -49,6 +61,10 @@ const DEFAULT_ADVANCED_FILTERS = {
   collectionId: null,
   searchIn: ["title", "description", "location", "tags", "category"],
 };
+
+// ==================================================
+// HELPERS
+// ==================================================
 
 const normalizeTag = (tag) => {
   if (typeof tag !== "string") {
@@ -84,6 +100,10 @@ const getCollectionMemoryIds = (collection) => {
   );
 };
 
+// ==================================================
+// MEMORIES HEADER
+// ==================================================
+
 const MemoriesHeader = React.memo(function MemoriesHeader({
   searchQuery,
   setSearchQuery,
@@ -101,7 +121,33 @@ const MemoriesHeader = React.memo(function MemoriesHeader({
   onOpenTimeline,
   onOpenAdvancedSearch,
   advancedFilterCount,
+  theme,
+  isDark,
 }) {
+  const themeColors = theme?.colors || {};
+
+  const colors = {
+    background: themeColors.background || (isDark ? "#171724" : "#F1F0F6"),
+
+    surface:
+      themeColors.surface ||
+      themeColors.card ||
+      (isDark ? "#232333" : "#FFFFFF"),
+
+    text: themeColors.text || (isDark ? "#F1F0F6" : "#242424"),
+
+    textSecondary:
+      themeColors.textSecondary ||
+      themeColors.textMuted ||
+      (isDark ? "#A6A6B8" : "#737387"),
+
+    border: themeColors.border || (isDark ? "#38384C" : "#D9D8E2"),
+
+    primary: themeColors.primary || "#34345C",
+
+    accent: themeColors.accent || "#E76F51",
+  };
+
   const getFilterLabel = () => {
     if (timelineMonth) {
       return `${MONTHS[timelineMonth.getMonth()]} ${timelineMonth.getFullYear()}`;
@@ -121,11 +167,38 @@ const MemoriesHeader = React.memo(function MemoriesHeader({
 
   return (
     <>
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.headerEyebrow}>YOUR COLLECTION</Text>
+      {/* HEADER */}
 
-          <Text style={styles.headerTitle}>Memories</Text>
+      <View
+        style={[
+          styles.header,
+          {
+            backgroundColor: colors.background,
+          },
+        ]}
+      >
+        <View>
+          <Text
+            style={[
+              styles.headerEyebrow,
+              {
+                color: colors.accent,
+              },
+            ]}
+          >
+            YOUR COLLECTION
+          </Text>
+
+          <Text
+            style={[
+              styles.headerTitle,
+              {
+                color: colors.text,
+              },
+            ]}
+          >
+            Memories
+          </Text>
         </View>
 
         <View style={styles.headerActions}>
@@ -133,20 +206,31 @@ const MemoriesHeader = React.memo(function MemoriesHeader({
             style={[
               styles.timelineButton,
               timelineMonth && styles.timelineButtonActive,
+              {
+                backgroundColor: timelineMonth
+                  ? colors.primary
+                  : colors.surface,
+                borderColor: colors.border,
+              },
             ]}
             onPress={onOpenTimeline}
             activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel="Filter memories by month"
           >
             <Ionicons
               name="calendar-outline"
               size={19}
-              color={timelineMonth ? "#FFFFFF" : "#34345C"}
+              color={timelineMonth ? "#FFFFFF" : colors.primary}
             />
 
             <Text
               style={[
                 styles.timelineButtonText,
                 timelineMonth && styles.timelineButtonTextActive,
+                {
+                  color: timelineMonth ? "#FFFFFF" : colors.text,
+                },
               ]}
             >
               {timelineMonth
@@ -157,18 +241,28 @@ const MemoriesHeader = React.memo(function MemoriesHeader({
         </View>
       </View>
 
+      {/* SEARCH */}
+
       <SearchBar
         value={searchQuery}
         onChangeText={setSearchQuery}
         placeholder="Search memories..."
         onAdvancedPress={onOpenAdvancedSearch}
         advancedFilterCount={advancedFilterCount}
+        theme={theme}
+        isDark={isDark}
       />
+
+      {/* COLLECTION STATS */}
 
       <CollectionStats
         memoryCount={memoriesCount}
         favoriteCount={favoriteCount}
+        theme={theme}
+        isDark={isDark}
       />
+
+      {/* FILTERS */}
 
       <MemoryFilters
         filter={filter}
@@ -177,14 +271,32 @@ const MemoriesHeader = React.memo(function MemoriesHeader({
         setSortOrder={setSortOrder}
         showSortMenu={showSortMenu}
         setShowSortMenu={setShowSortMenu}
+        theme={theme}
+        isDark={isDark}
       />
 
+      {/* VIEW HEADER */}
+
       <View style={styles.viewHeader}>
-        <Text style={styles.viewTitle}>
+        <Text
+          style={[
+            styles.viewTitle,
+            {
+              color: colors.text,
+            },
+          ]}
+        >
           {selectedTag ? `#${selectedTag}` : getFilterLabel()}
         </Text>
 
-        <Text style={styles.viewCount}>
+        <Text
+          style={[
+            styles.viewCount,
+            {
+              color: colors.textSecondary,
+            },
+          ]}
+        >
           {displayedCount} {displayedCount === 1 ? "TICKET" : "TICKETS"}
         </Text>
       </View>
@@ -192,15 +304,107 @@ const MemoriesHeader = React.memo(function MemoriesHeader({
   );
 });
 
+// ==================================================
+// MEMORIES SCREEN
+// ==================================================
+
 function MemoriesScreen({ navigation, route }) {
   const { memories, loading, toggleFavorite, refreshMemories } = useMemory();
+
   const { collections = [], refreshCollections } = useCollection();
+
   const { showAlert } = useAppAlert();
+  const { theme, isDark } = useTheme();
+
+  // ==================================================
+  // THEME COLORS
+  // ==================================================
+
+  const colors = useMemo(() => {
+    const themeColors = theme?.colors || {};
+
+    return {
+      background: themeColors.background || (isDark ? "#171724" : "#F1F0F6"),
+
+      surface:
+        themeColors.surface ||
+        themeColors.card ||
+        (isDark ? "#232333" : "#FFFFFF"),
+
+      text: themeColors.text || (isDark ? "#F1F0F6" : "#242424"),
+
+      textSecondary:
+        themeColors.textSecondary ||
+        themeColors.textMuted ||
+        (isDark ? "#A6A6B8" : "#737387"),
+
+      border: themeColors.border || (isDark ? "#38384C" : "#D9D8E2"),
+
+      primary: themeColors.primary || "#34345C",
+
+      accent: themeColors.accent || "#E76F51",
+    };
+  }, [theme, isDark]);
+
+  // ==================================================
+  // SCREEN STYLES
+  // ==================================================
+
+  const screenStyles = useMemo(
+    () => ({
+      container: {
+        ...styles.container,
+        backgroundColor: colors.background,
+      },
+
+      scrollContent: {
+        ...styles.scrollContent,
+        backgroundColor: colors.background,
+      },
+
+      loadingState: {
+        ...styles.loadingState,
+        backgroundColor: colors.background,
+      },
+
+      loadingTitle: {
+        ...styles.loadingTitle,
+        color: colors.text,
+      },
+
+      footerText: {
+        ...styles.footerText,
+        color: colors.textSecondary,
+      },
+
+      timelineEmptyState: {
+        ...styles.timelineEmptyState,
+        backgroundColor: colors.background,
+      },
+
+      timelineEmptyTitle: {
+        ...styles.timelineEmptyTitle,
+        color: colors.text,
+      },
+
+      timelineEmptyText: {
+        ...styles.timelineEmptyText,
+        color: colors.textSecondary,
+      },
+    }),
+    [colors],
+  );
+
+  // ==================================================
+  // STATE
+  // ==================================================
+
   const [filter, setFilter] = useState("all");
   const [sortOrder, setSortOrder] = useState("newest");
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTag, setSelectedTag] = useState(null);
+
   const [advancedFilters, setAdvancedFilters] = useState(
     DEFAULT_ADVANCED_FILTERS,
   );
@@ -209,11 +413,19 @@ function MemoriesScreen({ navigation, route }) {
   const [timelineMonth, setTimelineMonth] = useState(null);
   const timelineSheetRef = useRef(null);
 
+  // ==================================================
+  // REFRESH
+  // ==================================================
+
   const refreshMemoriesScreen = useCallback(async () => {
     await Promise.all([refreshMemories(), refreshCollections()]);
   }, [refreshMemories, refreshCollections]);
 
   const { refreshing, onRefresh } = useRefresh(refreshMemoriesScreen);
+
+  // ==================================================
+  // ROUTE FILTER
+  // ==================================================
 
   useEffect(() => {
     if (route?.params?.filter) {
@@ -225,11 +437,13 @@ function MemoriesScreen({ navigation, route }) {
     const routeTag = route?.params?.tag;
 
     if (typeof routeTag === "string" && routeTag.trim()) {
-      const normalizedTag = normalizeTag(routeTag);
-
-      setSelectedTag(normalizedTag);
+      setSelectedTag(normalizeTag(routeTag));
     }
   }, [route?.params?.tag]);
+
+  // ==================================================
+  // MEMORY TIME
+  // ==================================================
 
   const getMemoryTime = useCallback((memory) => {
     const dateValue = memory.createdAt || memory.date;
@@ -254,6 +468,10 @@ function MemoriesScreen({ navigation, route }) {
 
     return Number.isNaN(time) ? 0 : time;
   }, []);
+
+  // ==================================================
+  // AVAILABLE TAGS
+  // ==================================================
 
   const availableTags = useMemo(() => {
     const tagCounts = new Map();
@@ -298,6 +516,10 @@ function MemoriesScreen({ navigation, route }) {
     }
   }, [selectedTag, availableTags]);
 
+  // ==================================================
+  // ADVANCED FILTER COUNT
+  // ==================================================
+
   const advancedFilterCount = useMemo(() => {
     let count = 0;
 
@@ -322,7 +544,6 @@ function MemoriesScreen({ navigation, route }) {
     }
 
     const defaultSearchIn = DEFAULT_ADVANCED_FILTERS.searchIn;
-
     const currentSearchIn = advancedFilters.searchIn || [];
 
     const searchInChanged =
@@ -335,6 +556,10 @@ function MemoriesScreen({ navigation, route }) {
 
     return count;
   }, [advancedFilters]);
+
+  // ==================================================
+  // FILTER AND SORT MEMORIES
+  // ==================================================
 
   const displayedMemories = useMemo(() => {
     let filtered = memories;
@@ -415,7 +640,6 @@ function MemoriesScreen({ navigation, route }) {
 
     if (filter === "recent") {
       const now = Date.now();
-
       const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000;
 
       filtered = filtered.filter((memory) => {
@@ -441,7 +665,6 @@ function MemoriesScreen({ navigation, route }) {
 
     if (advancedFilters.dateRange !== "all") {
       const now = Date.now();
-
       let cutoff = null;
 
       switch (advancedFilters.dateRange) {
@@ -461,7 +684,6 @@ function MemoriesScreen({ navigation, route }) {
           const startOfYear = new Date(new Date().getFullYear(), 0, 1);
 
           cutoff = startOfYear.getTime();
-
           break;
         }
 
@@ -496,7 +718,6 @@ function MemoriesScreen({ navigation, route }) {
 
     if (timelineMonth) {
       const selectedYear = timelineMonth.getFullYear();
-
       const selectedMonth = timelineMonth.getMonth();
 
       filtered = filtered.filter((memory) => {
@@ -543,10 +764,18 @@ function MemoriesScreen({ navigation, route }) {
     getTimelineTime,
   ]);
 
+  // ==================================================
+  // FAVORITE COUNT
+  // ==================================================
+
   const favoriteCount = useMemo(
     () => memories.filter((memory) => memory.favorite === true).length,
     [memories],
   );
+
+  // ==================================================
+  // NAVIGATION HANDLERS
+  // ==================================================
 
   const handleMemoryPress = useCallback(
     (memoryId) => {
@@ -560,6 +789,10 @@ function MemoriesScreen({ navigation, route }) {
   const handleCreateMemory = useCallback(() => {
     navigation.navigate("Create");
   }, [navigation]);
+
+  // ==================================================
+  // FAVORITE HANDLER
+  // ==================================================
 
   const handleToggleFavorite = useCallback(
     async (memory) => {
@@ -594,6 +827,10 @@ function MemoriesScreen({ navigation, route }) {
     [toggleFavorite, showAlert],
   );
 
+  // ==================================================
+  // ADVANCED SEARCH HANDLERS
+  // ==================================================
+
   const handleOpenAdvancedSearch = useCallback(() => {
     advancedSearchRef.current?.open();
   }, []);
@@ -612,6 +849,10 @@ function MemoriesScreen({ navigation, route }) {
     advancedSearchRef.current?.close();
   }, []);
 
+  // ==================================================
+  // TIMELINE HANDLERS
+  // ==================================================
+
   const handleOpenTimeline = useCallback(() => {
     timelineSheetRef.current?.open();
   }, []);
@@ -625,6 +866,10 @@ function MemoriesScreen({ navigation, route }) {
   }, []);
 
   const handleCloseTimeline = useCallback(() => {}, []);
+
+  // ==================================================
+  // LIST HEADER
+  // ==================================================
 
   const headerComponent = useMemo(
     () => (
@@ -645,6 +890,8 @@ function MemoriesScreen({ navigation, route }) {
         onOpenTimeline={handleOpenTimeline}
         onOpenAdvancedSearch={handleOpenAdvancedSearch}
         advancedFilterCount={advancedFilterCount}
+        theme={theme}
+        isDark={isDark}
       />
     ),
     [
@@ -660,8 +907,14 @@ function MemoriesScreen({ navigation, route }) {
       handleOpenTimeline,
       handleOpenAdvancedSearch,
       advancedFilterCount,
+      theme,
+      isDark,
     ],
   );
+
+  // ==================================================
+  // LIST ITEM
+  // ==================================================
 
   const renderItem = useCallback(
     ({ item }) => (
@@ -669,9 +922,11 @@ function MemoriesScreen({ navigation, route }) {
         memory={item}
         onMemoryPress={handleMemoryPress}
         onToggleFavorite={handleToggleFavorite}
+        theme={theme}
+        isDark={isDark}
       />
     ),
-    [handleMemoryPress, handleToggleFavorite],
+    [handleMemoryPress, handleToggleFavorite, theme, isDark],
   );
 
   const keyExtractor = useCallback(
@@ -680,29 +935,37 @@ function MemoriesScreen({ navigation, route }) {
     [],
   );
 
+  // ==================================================
+  // LIST FOOTER
+  // ==================================================
+
   const renderFooter = useCallback(
     () => (
-      <Text style={styles.footerText}>
+      <Text style={screenStyles.footerText}>
         KEEP THE MOMENT.
         {"\n"}
         KEEP THE STORY.
       </Text>
     ),
-    [],
+    [screenStyles.footerText],
   );
+
+  // ==================================================
+  // EMPTY STATE
+  // ==================================================
 
   const renderEmptyState = useCallback(() => {
     if (timelineMonth && !searchQuery.trim()) {
       return (
-        <View style={styles.timelineEmptyState}>
-          <Ionicons name="calendar-outline" size={40} color="#34345C" />
+        <View style={screenStyles.timelineEmptyState}>
+          <Ionicons name="calendar-outline" size={40} color={colors.primary} />
 
-          <Text style={styles.timelineEmptyTitle}>
+          <Text style={screenStyles.timelineEmptyTitle}>
             No memories in {MONTHS[timelineMonth.getMonth()]}{" "}
             {timelineMonth.getFullYear()}
           </Text>
 
-          <Text style={styles.timelineEmptyText}>
+          <Text style={screenStyles.timelineEmptyText}>
             Choose another month to see your memories.
           </Text>
         </View>
@@ -714,25 +977,57 @@ function MemoriesScreen({ navigation, route }) {
         filter={filter}
         searchQuery={searchQuery}
         onCreateMemory={handleCreateMemory}
+        theme={theme}
+        isDark={isDark}
       />
     );
-  }, [timelineMonth, searchQuery, filter, handleCreateMemory]);
+  }, [
+    timelineMonth,
+    searchQuery,
+    filter,
+    handleCreateMemory,
+    screenStyles,
+    colors.primary,
+    theme,
+    isDark,
+  ]);
+
+  // ==================================================
+  // LOADING STATE
+  // ==================================================
 
   if (loading) {
     return (
-      <View style={styles.container}>
-        <View style={styles.loadingState}>
-          <Ionicons name="hourglass-outline" size={30} color="#34345C" />
+      <View style={screenStyles.container}>
+        <StatusBar
+          barStyle={isDark ? "light-content" : "dark-content"}
+          backgroundColor={colors.background}
+        />
 
-          <Text style={styles.loadingTitle}>Loading memories...</Text>
+        <View style={screenStyles.loadingState}>
+          <Ionicons name="hourglass-outline" size={30} color={colors.primary} />
+
+          <Text style={screenStyles.loadingTitle}>Loading memories...</Text>
         </View>
       </View>
     );
   }
 
+  // ==================================================
+  // SCREEN
+  // ==================================================
+
   return (
-    <View style={styles.container}>
+    <View style={screenStyles.container}>
+      <StatusBar
+        barStyle={isDark ? "light-content" : "dark-content"}
+        backgroundColor={colors.background}
+      />
+
       <FlatList
+        style={{
+          backgroundColor: colors.background,
+        }}
         data={displayedMemories}
         renderItem={renderItem}
         keyExtractor={keyExtractor}
@@ -741,7 +1036,7 @@ function MemoriesScreen({ navigation, route }) {
         ListFooterComponent={renderFooter}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={screenStyles.scrollContent}
         initialNumToRender={4}
         maxToRenderPerBatch={4}
         windowSize={5}
@@ -753,12 +1048,14 @@ function MemoriesScreen({ navigation, route }) {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#34345C"
-            colors={["#34345C"]}
-            progressBackgroundColor="#FFFFFF"
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+            progressBackgroundColor={colors.surface}
           />
         }
       />
+
+      {/* ADVANCED SEARCH */}
 
       <AdvancedSearch
         ref={advancedSearchRef}
@@ -767,7 +1064,11 @@ function MemoriesScreen({ navigation, route }) {
         onApply={handleApplyAdvancedSearch}
         availableTags={availableTags}
         collections={collections}
+        theme={theme}
+        isDark={isDark}
       />
+
+      {/* TIMELINE */}
 
       <TimelineBottomSheet
         ref={timelineSheetRef}
@@ -775,6 +1076,8 @@ function MemoriesScreen({ navigation, route }) {
         onApply={handleApplyTimelineMonth}
         onClear={handleClearTimeline}
         onClose={handleCloseTimeline}
+        theme={theme}
+        isDark={isDark}
       />
     </View>
   );

@@ -5,11 +5,13 @@ import {
   Text,
   TouchableOpacity,
   View,
+  StatusBar,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useMemory } from "../../hooks/useMemory";
 import MemoryTicket from "../../components/MemoryTicket/MemoryTicket";
 import { styles } from "./onThisDayStyles";
+import { useTheme } from "../../context/ThemeContext";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const MAX_MEMORIES = 10;
@@ -73,6 +75,14 @@ function formatDate() {
 }
 
 function OnThisDayScreen({ navigation }) {
+  const { theme, isDark } = useTheme();
+  const colors = theme?.colors || {};
+  const screenBackground = colors.background || (isDark ? "#171624" : "#F1F0F6");
+  const surfaceColor = colors.surface || (isDark ? "#211F30" : "#FFFFFF");
+  const textColor = colors.text || (isDark ? "#F7F5FC" : "#242424");
+  const secondaryTextColor = colors.textSecondary || colors.textMuted || (isDark ? "#C4C0D0" : "#707080");
+  const borderColor = colors.border || (isDark ? "#39364D" : "#D9D8E2");
+
   const { memories = [] } = useMemory();
 
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -117,7 +127,7 @@ function OnThisDayScreen({ navigation }) {
       const image = item?.images?.[0] || item?.image || null;
 
       return (
-        <View style={styles.ticketPage}>
+        <View style={[styles.ticketPage, { backgroundColor: screenBackground }]}>
           <TouchableOpacity
             activeOpacity={0.95}
             onPress={() => openMemory(item)}
@@ -127,7 +137,7 @@ function OnThisDayScreen({ navigation }) {
         </View>
       );
     },
-    [openMemory],
+    [openMemory, screenBackground],
   );
 
   const keyExtractor = useCallback((item, index) => {
@@ -138,34 +148,35 @@ function OnThisDayScreen({ navigation }) {
 
   if (!onThisDayMemories.length) {
     return (
-      <View style={styles.container}>
-        <View style={styles.header}>
+      <View style={[styles.container, { backgroundColor: screenBackground }]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={screenBackground} />
+        <View style={[styles.header, { backgroundColor: screenBackground }]}>
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={() => navigation.goBack()}
-            style={styles.backButton}
+            style={[styles.backButton, { backgroundColor: surfaceColor, borderColor }]}
           >
-            <Ionicons name="chevron-back" size={22} color="#34345C" />
+            <Ionicons name="chevron-back" size={22} color={colors.primary || "#34345C"} />
           </TouchableOpacity>
 
-          <Text style={styles.headerTitle}>ON THIS DAY</Text>
+          <Text style={[styles.headerTitle, { color: textColor }]}>ON THIS DAY</Text>
 
           <View style={styles.headerSpacer} />
         </View>
 
-        <View style={styles.emptyContainer}>
-          <View style={styles.emptyTicket}>
+        <View style={[styles.emptyContainer, { backgroundColor: screenBackground }]}>
+          <View style={[styles.emptyTicket, { backgroundColor: surfaceColor, borderColor }]}>
             <View style={styles.emptyIcon}>
-              <Ionicons name="time-outline" size={28} color="#34345C" />
+              <Ionicons name="time-outline" size={28} color={colors.primary || "#34345C"} />
             </View>
 
-            <Text style={styles.emptyTitle}>Nothing from this day</Text>
+            <Text style={[styles.emptyTitle, { color: textColor }]}>Nothing from this day</Text>
 
-            <Text style={styles.emptyText}>
+            <Text style={[styles.emptyText, { color: secondaryTextColor }]}>
               You don't have any memories from {targetDate} in previous years.
             </Text>
 
-            <Text style={styles.emptyHint}>
+            <Text style={[styles.emptyHint, { color: secondaryTextColor }]}>
               Maybe today will become a memory worth keeping.
             </Text>
           </View>
@@ -175,28 +186,29 @@ function OnThisDayScreen({ navigation }) {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: screenBackground }]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={screenBackground} />
 
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: screenBackground }]}>
         <TouchableOpacity
           activeOpacity={0.7}
           onPress={() => navigation.goBack()}
-          style={styles.backButton}
+          style={[styles.backButton, { backgroundColor: surfaceColor, borderColor }]}
         >
-          <Ionicons name="chevron-back" size={22} color="#34345C" />
+          <Ionicons name="chevron-back" size={22} color={colors.primary || "#34345C"} />
         </TouchableOpacity>
 
         <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>ON THIS DAY</Text>
+          <Text style={[styles.headerTitle, { color: textColor }]}>ON THIS DAY</Text>
 
-          <Text style={styles.headerDate}>{targetDate}</Text>
+          <Text style={[styles.headerDate, { color: secondaryTextColor }]}>{targetDate}</Text>
         </View>
 
         <View style={styles.headerSpacer} />
       </View>
 
-      <View style={styles.subtitleWrapper}>
-        <Text style={styles.subtitle}>
+      <View style={[styles.subtitleWrapper, { backgroundColor: surfaceColor, borderColor }]}>
+        <Text style={[styles.subtitle, { color: textColor }]}>
           {onThisDayMemories.length}{" "}
           {onThisDayMemories.length === 1 ? "memory" : "memories"} from this day
           in previous years
@@ -227,15 +239,15 @@ function OnThisDayScreen({ navigation }) {
         contentContainerStyle={styles.ticketListContent}
       />
 
-      <View style={styles.bottomInfo}>
-        <View style={styles.positionBadge}>
-          <Text style={styles.positionText}>
+      <View style={[styles.bottomInfo, { color: secondaryTextColor }]}>
+        <View style={[styles.positionBadge, { backgroundColor: surfaceColor, borderColor }]}>
+          <Text style={[styles.positionText, { color: secondaryTextColor }]}>
             {currentIndex + 1} / {onThisDayMemories.length}
           </Text>
         </View>
 
         {onThisDayMemories.length > 1 && (
-          <Text style={styles.swipeHint}>Swipe to rediscover memories</Text>
+          <Text style={[styles.swipeHint, { color: secondaryTextColor }]}>Swipe to rediscover memories</Text>
         )}
       </View>
     </View>

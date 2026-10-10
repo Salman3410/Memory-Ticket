@@ -4,7 +4,19 @@ import { Ionicons } from "@expo/vector-icons";
 import MemoryTicket from "../../MemoryTicket/MemoryTicket";
 import styles from "./memoryTicketListStyles";
 
-function MemoryTicketList({ memory, onMemoryPress, onToggleFavorite }) {
+function MemoryTicketList({
+  memory,
+  onMemoryPress,
+  onToggleFavorite,
+  theme,
+  isDark,
+}) {
+  const colors = theme?.colors || {};
+  const primaryColor = colors.primary || "#34345C";
+  const accentColor = colors.accent || "#E76F51";
+  const surfaceColor =
+    colors.surface || colors.card || (isDark ? "#232333" : "#FFFFFF");
+  const borderColor = colors.border || (isDark ? "#38384C" : "#D9D8E2");
   const favoriteScale = useRef(new Animated.Value(1)).current;
 
   const handlePress = useCallback(() => {
@@ -12,11 +24,11 @@ function MemoryTicketList({ memory, onMemoryPress, onToggleFavorite }) {
   }, [memory.id, memory.clientMemoryId, onMemoryPress]);
 
   const handleFavorite = useCallback(() => {
-    // Reset in case the user taps quickly
+    // Reset in case the user taps quickly.
     favoriteScale.stopAnimation();
     favoriteScale.setValue(1);
 
-    // Heart pop animation
+    // Heart pop animation.
     Animated.sequence([
       Animated.spring(favoriteScale, {
         toValue: 1.3,
@@ -40,18 +52,34 @@ function MemoryTicketList({ memory, onMemoryPress, onToggleFavorite }) {
       }),
     ]).start();
 
-    // Keep existing favorite logic
+    // Preserve existing favorite logic.
     onToggleFavorite(memory);
   }, [favoriteScale, memory, onToggleFavorite]);
 
   return (
     <View style={styles.memoryTicketWrapper}>
+      {/* TICKET ARTWORK */}
+
       <MemoryTicket memory={memory} compact={true} onPress={handlePress} />
 
+      {/* FAVORITE BUTTON */}
+
       <TouchableOpacity
-        style={styles.ticketFavoriteButton}
+        style={[
+          styles.ticketFavoriteButton,
+
+          // Preserve the current light-mode design.
+          isDark && {
+            backgroundColor: surfaceColor,
+            borderColor,
+          },
+        ]}
         onPress={handleFavorite}
         activeOpacity={0.8}
+        accessibilityRole="button"
+        accessibilityLabel={
+          memory.favorite ? "Remove from favorites" : "Add to favorites"
+        }
       >
         <Animated.View
           style={{
@@ -65,7 +93,7 @@ function MemoryTicketList({ memory, onMemoryPress, onToggleFavorite }) {
           <Ionicons
             name={memory.favorite ? "heart" : "heart-outline"}
             size={20}
-            color={memory.favorite ? "#E76F51" : "#34345C"}
+            color={memory.favorite ? accentColor : primaryColor}
           />
         </Animated.View>
       </TouchableOpacity>

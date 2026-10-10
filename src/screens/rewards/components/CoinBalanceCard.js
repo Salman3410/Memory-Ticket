@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import styles from "../rewardStyles";
+import { useTheme } from "../../../context/ThemeContext";
 
 function CoinBalanceCard({
   coins,
@@ -18,6 +19,14 @@ function CoinBalanceCard({
   error,
   onRetry,
 }) {
+  const { theme, isDark } = useTheme();
+  const colors = theme?.colors || {};
+  const screenBackground = colors.background || (isDark ? "#171624" : "#F1F0F6");
+  const surfaceColor = colors.surface || (isDark ? "#211F30" : "#FFFFFF");
+  const textColor = colors.text || (isDark ? "#F7F5FC" : "#242424");
+  const secondaryTextColor = colors.textSecondary || colors.textMuted || (isDark ? "#C4C0D0" : "#707080");
+  const borderColor = colors.border || (isDark ? "#39364D" : "#D9D8E2");
+
   const cardOpacity = useRef(
     new Animated.Value(0),
   ).current;
@@ -159,7 +168,7 @@ function CoinBalanceCard({
   return (
     <Animated.View
       style={[
-        styles.balanceCard,
+        styles.balanceCard, { backgroundColor: surfaceColor, borderColor },
         {
           opacity: cardOpacity,
           transform: [
@@ -170,16 +179,16 @@ function CoinBalanceCard({
         },
       ]}
     >
-      <View style={styles.balanceTopRow}>
+      <View style={[styles.balanceTopRow, { backgroundColor: surfaceColor, borderColor }]}>
         <View>
-          <Text style={styles.balanceLabel}>
+          <Text style={[styles.balanceLabel, { color: secondaryTextColor }]}>
             MEMENTO COINS
           </Text>
 
           {loading && coins === 0 ? (
             <ActivityIndicator
               size="small"
-              color="#34345C"
+              color={colors.primary || "#34345C"}
               style={styles.balanceLoader}
             />
           ) : (
@@ -215,7 +224,7 @@ function CoinBalanceCard({
           <Ionicons
             name="wallet-outline"
             size={20}
-            color="#34345C"
+            color={colors.primary || "#34345C"}
           />
         </Animated.View>
       </View>
@@ -233,8 +242,8 @@ function CoinBalanceCard({
         ]}
       />
 
-      <View style={styles.balanceBottomRow}>
-        <Text style={styles.balanceHint}>
+      <View style={[styles.balanceBottomRow, { backgroundColor: surfaceColor, borderColor }]}>
+        <Text style={[styles.balanceHint, { color: secondaryTextColor }]}>
           Earn Coins. Unlock little extras.
         </Text>
 
@@ -259,11 +268,11 @@ function CoinBalanceCard({
             <Ionicons
               name="refresh-outline"
               size={15}
-              color="#E76F51"
+              color={colors.accent || "#E76F51"}
             />
 
             <Text
-              style={styles.inlineRetryText}
+              style={[styles.inlineRetryText, { color: secondaryTextColor }]}
             >
               {error}
             </Text>

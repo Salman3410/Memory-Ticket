@@ -1,22 +1,77 @@
+import React from "react";
+
 import { View, Text, TouchableOpacity } from "react-native";
+
 import { Ionicons } from "@expo/vector-icons";
+
 import styles from "./editMemoryHeaderStyles";
 
-function EditMemoryHeader({ onBack }) {
+function EditMemoryHeader({ onBack, theme, isDark }) {
+  const colors = theme?.colors || {};
+
+  const backgroundColor = colors.background || (isDark ? "#171724" : "#F1F0F6");
+
+  const surfaceColor =
+    colors.surface || colors.card || (isDark ? "#232333" : "#FFFFFF");
+
+  const textColor = colors.text || (isDark ? "#F1F0F6" : "#242424");
+
+  const mutedTextColor =
+    colors.textSecondary ||
+    colors.textMuted ||
+    (isDark ? "#A6A6B8" : "#737387");
+
+  const borderColor = colors.border || (isDark ? "#38384C" : "#D9D8E2");
+
+  const accentColor = colors.accent || "#E76F51";
+
   return (
-    <View style={styles.header}>
+    <View
+      style={[
+        styles.header,
+        {
+          backgroundColor,
+        },
+      ]}
+    >
       <TouchableOpacity
-        style={styles.headerButton}
+        style={[
+          styles.headerButton,
+          {
+            backgroundColor: surfaceColor,
+            borderColor,
+          },
+        ]}
         onPress={onBack}
         activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel="Go back"
       >
-        <Ionicons name="arrow-back" size={22} color="#242424" />
+        <Ionicons name="arrow-back" size={22} color={textColor} />
       </TouchableOpacity>
 
       <View style={styles.headerTitleContainer}>
-        <Text style={styles.headerEyebrow}>EDIT MEMORY</Text>
+        <Text
+          style={[
+            styles.headerEyebrow,
+            {
+              color: accentColor,
+            },
+          ]}
+        >
+          EDIT MEMORY
+        </Text>
 
-        <Text style={styles.headerTitle}>Update Ticket</Text>
+        <Text
+          style={[
+            styles.headerTitle,
+            {
+              color: textColor,
+            },
+          ]}
+        >
+          Update Ticket
+        </Text>
       </View>
 
       <View style={styles.headerSpacer} />
