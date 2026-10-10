@@ -154,7 +154,7 @@ const renderItem = useCallback(
       </View>
     );
   },
-  [existingMemoryIds, selectedIds, toggleMemory],
+  [existingMemoryIds, selectedIds, toggleMemory, surfaceColor, borderColor],
 );
 
   const keyExtractor = useCallback(
@@ -175,12 +175,10 @@ const renderItem = useCallback(
         </Text>
       </View>
     ),
-    [],
-  );
-
-  if (loadingCollection) {
+    [surfaceColor, borderColor, textColor, secondaryTextColor],
+  );if (loadingCollection) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={[styles.loadingContainer, { backgroundColor: screenBackground }]}>
         <ActivityIndicator size="large" color={colors.primary || "#34345C"} />
 
         <Text style={[styles.loadingText, { color: secondaryTextColor }]}>Loading memories...</Text>
@@ -198,7 +196,7 @@ const renderItem = useCallback(
           disabled={saving}
           activeOpacity={0.7}
         >
-          <Text style={[styles.cancelText, { color: colors.primaryText || "#FFFFFF" }]}>Cancel</Text>
+          <Text style={[styles.cancelText, { color: colors.primary || "#34345C" }]}>Cancel</Text>
         </TouchableOpacity>
 
         <View style={styles.headerCenter}>

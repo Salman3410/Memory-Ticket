@@ -468,7 +468,7 @@ function ExportPdfScreen({ navigation, route }) {
           onPress={() => navigation.goBack()}
           disabled={generatingPdf}
         >
-          <Text style={[styles.cancelButtonText, { color: colors.primaryText || "#FFFFFF" }]}>CANCEL</Text>
+          <Text style={[styles.cancelButtonText, { color: colors.primary || "#34345C" }]}>CANCEL</Text>
         </TouchableOpacity>
 
         <Text style={[styles.footerHint, { color: secondaryTextColor }]}>

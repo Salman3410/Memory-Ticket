@@ -90,7 +90,7 @@ function CreateCollectionScreen({ navigation }) {
           disabled={saving}
           activeOpacity={0.7}
         >
-          <Text style={[styles.cancelText, { color: colors.primaryText || "#FFFFFF" }]}>Cancel</Text>
+          <Text style={[styles.cancelText, { color: colors.primary || "#34345C" }]}>Cancel</Text>
         </TouchableOpacity>
 
         <Text style={[styles.headerTitle, { color: textColor }]}>New Collection</Text>

@@ -127,7 +127,7 @@ function OnThisDayScreen({ navigation }) {
       const image = item?.images?.[0] || item?.image || null;
 
       return (
-        <View style={styles.ticketPage}>
+        <View style={[styles.ticketPage, { backgroundColor: screenBackground }]}>
           <TouchableOpacity
             activeOpacity={0.95}
             onPress={() => openMemory(item)}
@@ -137,7 +137,7 @@ function OnThisDayScreen({ navigation }) {
         </View>
       );
     },
-    [openMemory],
+    [openMemory, screenBackground],
   );
 
   const keyExtractor = useCallback((item, index) => {
