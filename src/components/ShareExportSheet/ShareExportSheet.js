@@ -119,7 +119,7 @@ const ShareExportSheet = forwardRef(
                 {savingImage ? (
                   <Ionicons name="sync-outline" size={34} color={colors.primary || "#34345C"} />
                 ) : (
-                  <Ionicons name="download-outline" size={36} color="#26353B" />
+                  <Ionicons name="download-outline" size={36} color={colors.primary || "#34345C"} />
                 )}
               </View>
 
@@ -136,12 +136,12 @@ const ShareExportSheet = forwardRef(
             >
               <View style={styles.actionCircle}>
                 {generatingPdf ? (
-                  <Ionicons name="sync-outline" size={34} color="#26353B" />
+                  <Ionicons name="sync-outline" size={34} color={colors.primary || "#34345C"} />
                 ) : (
                   <Ionicons
                     name="document-text-outline"
                     size={34}
-                    color="#26353B"
+                    color={colors.primary || "#34345C"}
                   />
                 )}
               </View>
@@ -161,7 +161,7 @@ const ShareExportSheet = forwardRef(
                 <Ionicons
                   name="ellipsis-horizontal"
                   size={34}
-                  color="#26353B"
+                  color={colors.primary || "#34345C"}
                 />
               </View>
 

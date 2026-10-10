@@ -2,9 +2,11 @@ import React, { useCallback, useEffect, useState } from "react";
 import { useTheme } from "../../context/ThemeContext";
 import {
   ActivityIndicator,
+  StatusBar,
   Text,
   TouchableOpacity,
   View,
+
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 

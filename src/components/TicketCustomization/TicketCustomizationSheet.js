@@ -240,7 +240,7 @@ function TicketCustomizationSheet({
               {saving ? (
                 <Text style={[styles.doneButtonText, { color: colors.primaryText || "#FFFFFF" }]}>SAVING...</Text>
               ) : (
-                <Text style={styles.doneButtonText}>
+                <Text style={[styles.doneButtonText, { color: colors.primaryText || "#FFFFFF" }]}>
                   {onSave ? "SAVE CHANGES" : "DONE"}
                 </Text>
               )}
