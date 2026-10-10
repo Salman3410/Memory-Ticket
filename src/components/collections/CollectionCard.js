@@ -7,8 +7,17 @@ import {
   View,
 } from "react-native";
 import { getMemoryThumbnailUrl } from "../../utils/cloudinary";
+import { useTheme } from "../../context/ThemeContext";
 
 function CollectionCard({ collection, onPress }) {
+  const { theme, isDark } = useTheme();
+  const colors = theme?.colors || {};
+  const screenBackground = colors.background || (isDark ? "#171624" : "#F1F0F6");
+  const surfaceColor = colors.surface || (isDark ? "#211F30" : "#FFFFFF");
+  const textColor = colors.text || (isDark ? "#F7F5FC" : "#242424");
+  const secondaryTextColor = colors.textSecondary || colors.textMuted || (isDark ? "#C4C0D0" : "#707080");
+  const borderColor = colors.border || (isDark ? "#39364D" : "#D9D8E2");
+
   if (!collection) {
     return null;
   }
@@ -34,7 +43,7 @@ function CollectionCard({ collection, onPress }) {
 
   return (
     <TouchableOpacity
-      style={styles.ticket}
+      style={[styles.ticket, { backgroundColor: surfaceColor, borderColor }]}
       onPress={onPress}
       activeOpacity={0.9}
     >
@@ -82,25 +91,25 @@ function CollectionCard({ collection, onPress }) {
       </View>
 
       {/* PERFORATED DIVIDER */}
-      <View style={styles.divider}>
-        <View style={styles.notchLeft} />
+      <View style={[styles.divider, { backgroundColor: surfaceColor }]}>
+        <View style={[styles.notchLeft, { backgroundColor: screenBackground }]} />
 
-        <View style={styles.dashedLine} />
+        <View style={[styles.dashedLine, { borderTopColor: borderColor }]} />
 
-        <View style={styles.notchRight} />
+        <View style={[styles.notchRight, { backgroundColor: screenBackground }]} />
       </View>
 
       {/* COLLECTION CONTENT */}
-      <View style={styles.content}>
+      <View style={[styles.content, { backgroundColor: surfaceColor }]}>
         <View style={styles.titleArea}>
           <Text
-            style={styles.name}
+            style={[styles.name, { color: textColor }]}
             numberOfLines={2}
           >
             {collectionName}
           </Text>
 
-          <Text style={styles.memoryText}>
+          <Text style={[styles.memoryText, { color: secondaryTextColor }]}>
             {memoryCount === 1
               ? "1 MEMORY"
               : `${memoryCount} MEMORIES`}
@@ -109,7 +118,7 @@ function CollectionCard({ collection, onPress }) {
 
         {description ? (
           <Text
-            style={styles.description}
+            style={[styles.description, { color: secondaryTextColor }]}
             numberOfLines={2}
           >
             {description}
@@ -118,7 +127,7 @@ function CollectionCard({ collection, onPress }) {
 
         {/* FOOTER */}
         <View style={styles.ticketFooter}>
-          <Text style={styles.brand}>
+          <Text style={[styles.brand, { color: secondaryTextColor }]}>
             MEMENTO
           </Text>
 

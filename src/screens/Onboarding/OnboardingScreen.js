@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTheme } from "../../context/ThemeContext";
 import {
   Animated,
   Dimensions,
@@ -47,6 +48,11 @@ const slides = [
 ];
 
 function OnboardingScreen({ onComplete }) {
+  const { theme, isDark } = useTheme();
+  const colors = theme?.colors || {};
+  const screenBackground = colors.background || (isDark ? "#171624" : "#F1F0F6");
+  const textColor = colors.text || (isDark ? "#F7F5FC" : "#242424");
+  const secondaryTextColor = colors.textSecondary || colors.textMuted || (isDark ? "#C4C0D0" : "#707080");
   const [activeIndex, setActiveIndex] = useState(0);
 
   const slide = slides[activeIndex];
@@ -286,7 +292,7 @@ function OnboardingScreen({ onComplete }) {
   });
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: screenBackground }]}>
       <StatusBar
         barStyle="light-content"
         backgroundColor="#3B3768"
@@ -308,7 +314,7 @@ function OnboardingScreen({ onComplete }) {
       {/* BOTTOM ORB */}
       <View style={styles.orbBottom} />
 
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: screenBackground }]}>
         {/* HEADER */}
         <View style={styles.header}>
           <View style={styles.brandLockup}>
@@ -470,11 +476,11 @@ function OnboardingScreen({ onComplete }) {
               {slide.eyebrow}
             </Text>
 
-            <Text style={styles.title}>
+            <Text style={[styles.title, { color: textColor }]}>
               {slide.title}
             </Text>
 
-            <Text style={styles.description}>
+            <Text style={[styles.description, { color: secondaryTextColor }]}>
               {slide.description}
             </Text>
           </Animated.View>
@@ -515,7 +521,7 @@ function OnboardingScreen({ onComplete }) {
                 pressed && styles.ctaPressed,
               ]}
             >
-              <Text style={styles.ctaText}>
+              <Text style={[styles.ctaText, { color: colors.primaryText || "#FFFFFF" }]}>
                 {isLast
                   ? "Create my first memory"
                   : "Continue"}
@@ -529,7 +535,7 @@ function OnboardingScreen({ onComplete }) {
             </Pressable>
           </Animated.View>
 
-          <Text style={styles.footerNote}>
+          <Text style={[styles.footerNote, { color: secondaryTextColor }]}>
             Your memories, kept with purpose.
           </Text>
         </View>

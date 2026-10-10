@@ -13,6 +13,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  StatusBar,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useCollection } from "../../hooks/useCollection";
@@ -20,11 +21,20 @@ import useRefresh from "../../hooks/useRefresh";
 import { getMemoryDetailUrl } from "../../utils/cloudinary";
 import MemoryTicketHorizontal from "../../components/MemoryTicket/MemoryTicketHorizontal";
 import { useAppAlert } from "../../context/AlertContext";
+import { useTheme } from "../../context/ThemeContext";
 
 function CollectionDetailsScreen({
   navigation,
   route,
 }) {
+  const { theme, isDark } = useTheme();
+  const colors = theme?.colors || {};
+  const screenBackground = colors.background || (isDark ? "#171624" : "#F1F0F6");
+  const surfaceColor = colors.surface || (isDark ? "#211F30" : "#FFFFFF");
+  const textColor = colors.text || (isDark ? "#F7F5FC" : "#242424");
+  const secondaryTextColor = colors.textSecondary || colors.textMuted || (isDark ? "#C4C0D0" : "#707080");
+  const borderColor = colors.border || (isDark ? "#39364D" : "#D9D8E2");
+
   const {
     getCollectionById,
     removeMemoryFromCollection,
@@ -392,9 +402,7 @@ function CollectionDetailsScreen({
 
         return (
           <View
-            style={
-              styles.memoryItem
-            }
+            style={[styles.memoryItem, { backgroundColor: surfaceColor, borderColor }]}
           >
             <MemoryTicketHorizontal
               memory={item}
@@ -413,9 +421,7 @@ function CollectionDetailsScreen({
             />
 
             <TouchableOpacity
-              style={
-                styles.removeButton
-              }
+              style={[styles.removeButton, { backgroundColor: colors.primary || "#34345C" }]}
               onPress={() =>
                 handleRemoveMemory(
                   item,
@@ -430,9 +436,7 @@ function CollectionDetailsScreen({
               />
 
               <Text
-                style={
-                  styles.removeButtonText
-                }
+                style={[styles.removeButtonText, { color: colors.primaryText || "#FFFFFF" }]}
               >
                 Remove
               </Text>
@@ -443,6 +447,8 @@ function CollectionDetailsScreen({
       [
         navigation,
         handleRemoveMemory,
+        colors,
+        isDark,
       ],
     );
 
@@ -472,13 +478,11 @@ function CollectionDetailsScreen({
       >
         <ActivityIndicator
           size="large"
-          color="#34345C"
+          color={colors.primary || "#34345C"}
         />
 
         <Text
-          style={
-            styles.loadingText
-          }
+          style={[styles.loadingText, { color: secondaryTextColor }]}
         >
           Loading collection...
         </Text>
@@ -498,29 +502,27 @@ function CollectionDetailsScreen({
           style={styles.errorMark}
         >
           <Text
-            style={
-              styles.errorMarkText
-            }
+            style={[styles.errorMarkText, { color: secondaryTextColor }]}
           >
             M
           </Text>
         </View>
 
         <Text
-          style={styles.errorTitle}
+          style={[styles.errorTitle, { color: textColor }]}
         >
           Collection not found
         </Text>
 
         <Text
-          style={styles.errorText}
+          style={[styles.errorText, { color: secondaryTextColor }]}
         >
           This collection could not
           be loaded.
         </Text>
 
         <TouchableOpacity
-          style={styles.backButton}
+          style={[styles.backButton, { backgroundColor: surfaceColor, borderColor }]}
           onPress={() =>
             navigation.goBack()
           }
@@ -533,9 +535,7 @@ function CollectionDetailsScreen({
           />
 
           <Text
-            style={
-              styles.backButtonText
-            }
+            style={[styles.backButtonText, { color: colors.primaryText || "#FFFFFF" }]}
           >
             Go Back
           </Text>
@@ -548,7 +548,8 @@ function CollectionDetailsScreen({
   // SCREEN
   // --------------------------------------------------
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: screenBackground }]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={screenBackground} />
       <FlatList
         data={memories}
         renderItem={renderMemory}
@@ -570,9 +571,9 @@ function CollectionDetailsScreen({
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#34345C"
-            colors={["#34345C"]}
-            progressBackgroundColor="#FFFFFF"
+            tintColor={colors.primary || "#34345C"}
+            colors={[colors.primary || "#34345C"]}
+            progressBackgroundColor={surfaceColor}
           />
         }
         // ------------------------------------------------
@@ -585,9 +586,7 @@ function CollectionDetailsScreen({
               style={styles.topBar}
             >
               <TouchableOpacity
-                style={
-                  styles.topBarButton
-                }
+                style={[styles.topBarButton, { backgroundColor: colors.primary || "#34345C" }]}
                 onPress={() =>
                   navigation.goBack()
                 }
@@ -596,22 +595,18 @@ function CollectionDetailsScreen({
                 <Ionicons
                   name="arrow-back"
                   size={21}
-                  color="#34345C"
+                  color={colors.primary || "#34345C"}
                 />
               </TouchableOpacity>
 
               <Text
-                style={
-                  styles.topBarTitle
-                }
+                style={[styles.topBarTitle, { color: textColor }]}
               >
                 COLLECTION
               </Text>
 
               <TouchableOpacity
-                style={
-                  styles.topBarButton
-                }
+                style={[styles.topBarButton, { backgroundColor: colors.primary || "#34345C" }]}
                 onPress={
                   handleMore
                 }
@@ -623,16 +618,14 @@ function CollectionDetailsScreen({
                 <Ionicons
                   name="ellipsis-horizontal"
                   size={21}
-                  color="#34345C"
+                  color={colors.primary || "#34345C"}
                 />
               </TouchableOpacity>
             </View>
 
             {/* COLLECTION TICKET */}
             <View
-              style={
-                styles.collectionTicket
-              }
+              style={[styles.collectionTicket, { backgroundColor: surfaceColor, borderColor }]}
             >
               {/* COVER */}
               <View
@@ -662,18 +655,14 @@ function CollectionDetailsScreen({
                       }
                     >
                       <Text
-                        style={
-                          styles.logoText
-                        }
+                        style={[styles.logoText, { color: secondaryTextColor }]}
                       >
                         M
                       </Text>
                     </View>
 
                     <Text
-                      style={
-                        styles.placeholderText
-                      }
+                      style={[styles.placeholderText, { color: secondaryTextColor }]}
                     >
                       MEMENTO
                     </Text>
@@ -687,27 +676,19 @@ function CollectionDetailsScreen({
                 />
 
                 <View
-                  style={
-                    styles.ticketTopRow
-                  }
+                  style={[styles.ticketTopRow, { backgroundColor: surfaceColor, borderColor }]}
                 >
                   <Text
-                    style={
-                      styles.collectionLabel
-                    }
+                    style={[styles.collectionLabel, { color: secondaryTextColor }]}
                   >
                     MEMENTO COLLECTION
                   </Text>
 
                   <View
-                    style={
-                      styles.countBadge
-                    }
+                    style={[styles.countBadge, { backgroundColor: surfaceColor, borderColor }]}
                   >
                     <Text
-                      style={
-                        styles.countBadgeText
-                      }
+                      style={[styles.countBadgeText, { color: secondaryTextColor }]}
                     >
                       {memoryCount}
                     </Text>
@@ -720,9 +701,7 @@ function CollectionDetailsScreen({
                   }
                 >
                   <Text
-                    style={
-                      styles.coverBottomLabel
-                    }
+                    style={[styles.coverBottomLabel, { color: secondaryTextColor }]}
                   >
                     A PLACE FOR YOUR MOMENTS
                   </Text>
@@ -761,9 +740,7 @@ function CollectionDetailsScreen({
                 }
               >
                 <View
-                  style={
-                    styles.ticketHeading
-                  }
+                  style={[styles.ticketHeading, { color: textColor }]}
                 >
                   <View
                     style={
@@ -780,22 +757,16 @@ function CollectionDetailsScreen({
                   </View>
 
                   <View
-                    style={
-                      styles.headingText
-                    }
+                    style={[styles.headingText, { color: secondaryTextColor }]}
                   >
                     <Text
-                      style={
-                        styles.ticketEyebrow
-                      }
+                      style={[styles.ticketEyebrow, { color: secondaryTextColor }]}
                     >
                       COLLECTION
                     </Text>
 
                     <Text
-                      style={
-                        styles.collectionName
-                      }
+                      style={[styles.collectionName, { color: textColor }]}
                       numberOfLines={2}
                     >
                       {collection.name ||
@@ -806,9 +777,7 @@ function CollectionDetailsScreen({
 
                 {collection.description ? (
                   <Text
-                    style={
-                      styles.description
-                    }
+                    style={[styles.description, { color: secondaryTextColor }]}
                     numberOfLines={4}
                   >
                     {collection.description}
@@ -816,23 +785,17 @@ function CollectionDetailsScreen({
                 ) : null}
 
                 <View
-                  style={
-                    styles.ticketInfoRow
-                  }
+                  style={[styles.ticketInfoRow, { backgroundColor: surfaceColor, borderColor }]}
                 >
                   <View>
                     <Text
-                      style={
-                        styles.infoLabel
-                      }
+                      style={[styles.infoLabel, { color: secondaryTextColor }]}
                     >
                       MEMORIES
                     </Text>
 
                     <Text
-                      style={
-                        styles.infoValue
-                      }
+                      style={[styles.infoValue, { color: textColor }]}
                     >
                       {memoryCount}
                     </Text>
@@ -875,9 +838,7 @@ function CollectionDetailsScreen({
                 </View>
 
                 <TouchableOpacity
-                  style={
-                    styles.addButton
-                  }
+                  style={[styles.addButton, { backgroundColor: colors.primary || "#34345C" }]}
                   onPress={
                     handleAddMemories
                   }
@@ -890,9 +851,7 @@ function CollectionDetailsScreen({
                   />
 
                   <Text
-                    style={
-                      styles.addButtonText
-                    }
+                    style={[styles.addButtonText, { color: colors.primaryText || "#FFFFFF" }]}
                   >
                     Add Memories
                   </Text>
@@ -908,31 +867,23 @@ function CollectionDetailsScreen({
             >
               <View>
                 <Text
-                  style={
-                    styles.sectionEyebrow
-                  }
+                  style={[styles.sectionEyebrow, { color: secondaryTextColor }]}
                 >
                   YOUR STORIES
                 </Text>
 
                 <Text
-                  style={
-                    styles.sectionTitle
-                  }
+                  style={[styles.sectionTitle, { color: textColor }]}
                 >
                   Memories
                 </Text>
               </View>
 
               <View
-                style={
-                  styles.sectionCount
-                }
+                style={[styles.sectionCount, { color: secondaryTextColor }]}
               >
                 <Text
-                  style={
-                    styles.sectionCountText
-                  }
+                  style={[styles.sectionCountText, { color: secondaryTextColor }]}
                 >
                   {memoryCount}
                 </Text>
@@ -949,39 +900,31 @@ function CollectionDetailsScreen({
             <Ionicons
               name="images-outline"
               size={38}
-              color="#34345C"
+              color={colors.primary || "#34345C"}
             />
 
             <Text
-              style={
-                styles.emptyTitle
-              }
+              style={[styles.emptyTitle, { color: textColor }]}
             >
               No memories yet
             </Text>
 
             <Text
-              style={
-                styles.emptyText
-              }
+              style={[styles.emptyText, { color: secondaryTextColor }]}
             >
               Add memories to start
               building this collection.
             </Text>
 
             <TouchableOpacity
-              style={
-                styles.emptyAddButton
-              }
+              style={[styles.emptyAddButton, { backgroundColor: colors.primary || "#34345C" }]}
               onPress={
                 handleAddMemories
               }
               activeOpacity={0.85}
             >
               <Text
-                style={
-                  styles.emptyAddButtonText
-                }
+                style={[styles.emptyAddButtonText, { color: colors.primaryText || "#FFFFFF" }]}
               >
                 Add Memories
               </Text>

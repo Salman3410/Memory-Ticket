@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTheme } from "../../context/ThemeContext";
 import {
   View,
   Text,
@@ -6,6 +7,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Image,
+  StatusBar,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Asset } from "expo-asset";
@@ -60,6 +62,14 @@ const getClassicBackBase64 = async () => {
 };
 
 function ExportPdfScreen({ navigation, route }) {
+  const { theme, isDark } = useTheme();
+  const colors = theme?.colors || {};
+  const screenBackground = colors.background || (isDark ? "#171624" : "#F1F0F6");
+  const surfaceColor = colors.surface || (isDark ? "#211F30" : "#FFFFFF");
+  const textColor = colors.text || (isDark ? "#F7F5FC" : "#242424");
+  const secondaryTextColor = colors.textSecondary || colors.textMuted || (isDark ? "#C4C0D0" : "#707080");
+  const borderColor = colors.border || (isDark ? "#39364D" : "#D9D8E2");
+
   const { getMemoryById } = useMemory();
   const { showAlert } = useAppAlert();
 
@@ -296,46 +306,48 @@ function ExportPdfScreen({ navigation, route }) {
 
   if (!memory) {
     return (
-      <View style={styles.notFound}>
-        <Ionicons name="sad-outline" size={45} color="#34345C" />
+      <View style={[styles.notFound, { backgroundColor: screenBackground }]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={screenBackground} />
+        <Ionicons name="sad-outline" size={45} color={colors.primary || "#34345C"} />
 
-        <Text style={styles.notFoundTitle}>Memory not found</Text>
+        <Text style={[styles.notFoundTitle, { color: textColor }]}>Memory not found</Text>
 
         <TouchableOpacity
           style={styles.backButtonLarge}
           onPress={() => navigation.goBack()}
         >
-          <Text style={styles.backButtonText}>GO BACK</Text>
+          <Text style={[styles.backButtonText, { color: colors.primaryText || "#FFFFFF" }]}>GO BACK</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: screenBackground }]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={screenBackground} />
       {/* HEADER */}
 
       <View style={styles.header}>
         <TouchableOpacity
-          style={styles.headerButton}
+          style={[styles.headerButton, { backgroundColor: surfaceColor, borderColor,  }]}
           onPress={() => navigation.goBack()}
           activeOpacity={0.8}
         >
-          <Ionicons name="arrow-back" size={22} color="#242424" />
+          <Ionicons name="arrow-back" size={22} color={colors.text || "#242424"} />
         </TouchableOpacity>
 
         <View style={styles.headerCenter}>
-          <Text style={styles.eyebrow}>EXPORT PDF</Text>
+          <Text style={[styles.eyebrow, { color: secondaryTextColor }]}>EXPORT PDF</Text>
 
-          <Text style={styles.headerTitle}>Choose your ticket back</Text>
+          <Text style={[styles.headerTitle, { color: textColor }]}>Choose your ticket back</Text>
         </View>
 
         <TouchableOpacity
-          style={styles.headerButton}
+          style={[styles.headerButton, { backgroundColor: surfaceColor, borderColor,  }]}
           onPress={() => navigation.goBack()}
           activeOpacity={0.8}
         >
-          <Ionicons name="close" size={22} color="#242424" />
+          <Ionicons name="close" size={22} color={colors.text || "#242424"} />
         </TouchableOpacity>
       </View>
 
@@ -344,13 +356,13 @@ function ExportPdfScreen({ navigation, route }) {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.description}>
+        <Text style={[styles.description, { color: secondaryTextColor }]}>
           Choose the back design for your Memento ticket.
         </Text>
 
         {/* TICKET BACK */}
 
-        <Text style={styles.sectionLabel}>TICKET BACK</Text>
+        <Text style={[styles.sectionLabel, { color: secondaryTextColor }]}>TICKET BACK</Text>
 
         <View style={styles.optionsRow}>
           {PDF_BACK_OPTIONS.map((option) => {
@@ -380,15 +392,15 @@ function ExportPdfScreen({ navigation, route }) {
                   />
 
                   {selected && (
-                    <View style={styles.selectedBadge}>
+                    <View style={[styles.selectedBadge, { backgroundColor: surfaceColor, borderColor }]}>
                       <Ionicons name="checkmark" size={13} color="#FFFFFF" />
                     </View>
                   )}
                 </View>
 
-                <Text style={styles.optionTitle}>{option.title}</Text>
+                <Text style={[styles.optionTitle, { color: textColor }]}>{option.title}</Text>
 
-                <Text style={styles.optionDescription}>
+                <Text style={[styles.optionDescription, { color: secondaryTextColor }]}>
                   {option.description}
                 </Text>
               </TouchableOpacity>
@@ -398,27 +410,27 @@ function ExportPdfScreen({ navigation, route }) {
 
         {/* PAPER INFO */}
 
-        <View style={styles.paperInfo}>
-          <View style={styles.paperInfoItem}>
-            <Ionicons name="document-outline" size={16} color="#34345C" />
+        <View style={[styles.paperInfo, { backgroundColor: surfaceColor, borderColor,  }]}>
+          <View style={[styles.paperInfoItem, { backgroundColor: surfaceColor, borderColor }]}>
+            <Ionicons name="document-outline" size={16} color={colors.primary || "#34345C"} />
 
-            <Text style={styles.paperInfoText}>A7</Text>
+            <Text style={[styles.paperInfoText, { color: secondaryTextColor }]}>A7</Text>
           </View>
 
           <View style={styles.paperInfoDivider} />
 
-          <View style={styles.paperInfoItem}>
-            <Ionicons name="resize-outline" size={16} color="#34345C" />
+          <View style={[styles.paperInfoItem, { backgroundColor: surfaceColor, borderColor }]}>
+            <Ionicons name="resize-outline" size={16} color={colors.primary || "#34345C"} />
 
-            <Text style={styles.paperInfoText}>74 × 105 mm</Text>
+            <Text style={[styles.paperInfoText, { color: secondaryTextColor }]}>74 × 105 mm</Text>
           </View>
 
           <View style={styles.paperInfoDivider} />
 
-          <View style={styles.paperInfoItem}>
-            <Ionicons name="copy-outline" size={16} color="#34345C" />
+          <View style={[styles.paperInfoItem, { backgroundColor: surfaceColor, borderColor }]}>
+            <Ionicons name="copy-outline" size={16} color={colors.primary || "#34345C"} />
 
-            <Text style={styles.paperInfoText}>2 pages</Text>
+            <Text style={[styles.paperInfoText, { color: secondaryTextColor }]}>2 pages</Text>
           </View>
         </View>
 
@@ -426,8 +438,7 @@ function ExportPdfScreen({ navigation, route }) {
 
         <TouchableOpacity
           style={[
-            styles.exportButton,
-            generatingPdf && styles.exportButtonDisabled,
+            styles.exportButton, { backgroundColor: colors.primary || "#34345C" }, generatingPdf && styles.exportButtonDisabled,
           ]}
           onPress={handleExportPdf}
           disabled={generatingPdf}
@@ -437,7 +448,7 @@ function ExportPdfScreen({ navigation, route }) {
             <>
               <ActivityIndicator size="small" color="#FFFFFF" />
 
-              <Text style={styles.exportButtonText}>CREATING PDF...</Text>
+              <Text style={[styles.exportButtonText, { color: colors.primaryText || "#FFFFFF" }]}>CREATING PDF...</Text>
             </>
           ) : (
             <>
@@ -447,20 +458,20 @@ function ExportPdfScreen({ navigation, route }) {
                 color="#FFFFFF"
               />
 
-              <Text style={styles.exportButtonText}>EXPORT PDF</Text>
+              <Text style={[styles.exportButtonText, { color: colors.primaryText || "#FFFFFF" }]}>EXPORT PDF</Text>
             </>
           )}
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.cancelButton}
+          style={[styles.cancelButton, { backgroundColor: surfaceColor, borderColor,  }]}
           onPress={() => navigation.goBack()}
           disabled={generatingPdf}
         >
-          <Text style={styles.cancelButtonText}>CANCEL</Text>
+          <Text style={[styles.cancelButtonText, { color: colors.primaryText || "#FFFFFF" }]}>CANCEL</Text>
         </TouchableOpacity>
 
-        <Text style={styles.footerHint}>
+        <Text style={[styles.footerHint, { color: secondaryTextColor }]}>
           Page 1 uses the exact ticket captured from Memory Details. Page 2 uses
           the classic Memento ticket back.
         </Text>

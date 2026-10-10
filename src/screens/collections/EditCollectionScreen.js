@@ -1,4 +1,5 @@
-import { useCallback, useState } from "react";
+import {
+useCallback, useState } from "react";
 
 import {
   ActivityIndicator,
@@ -9,6 +10,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  StatusBar,
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
@@ -18,8 +20,17 @@ import { useCollection } from "../../hooks/useCollection";
 import MementoLogo from "../../components/common/MementoLogo";
 
 import styles from "./editCollectionStyles";
+import { useTheme } from "../../context/ThemeContext";
 
 function EditCollectionScreen({ route, navigation }) {
+  const { theme, isDark } = useTheme();
+  const colors = theme?.colors || {};
+  const screenBackground = colors.background || (isDark ? "#171624" : "#F1F0F6");
+  const surfaceColor = colors.surface || (isDark ? "#211F30" : "#FFFFFF");
+  const textColor = colors.text || (isDark ? "#F7F5FC" : "#242424");
+  const secondaryTextColor = colors.textSecondary || colors.textMuted || (isDark ? "#C4C0D0" : "#707080");
+  const borderColor = colors.border || (isDark ? "#39364D" : "#D9D8E2");
+
   const { collectionId, collection } = route.params || {};
 
   const { updateCollection } = useCollection();
@@ -68,21 +79,22 @@ function EditCollectionScreen({ route, navigation }) {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: screenBackground }]}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={screenBackground} />
       {/* HEADER */}
 
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: screenBackground }]}>
         <TouchableOpacity
           onPress={handleCancel}
           disabled={saving}
           activeOpacity={0.7}
         >
-          <Text style={styles.cancelText}>Cancel</Text>
+          <Text style={[styles.cancelText, { color: colors.primaryText || "#FFFFFF" }]}>Cancel</Text>
         </TouchableOpacity>
 
-        <Text style={styles.headerTitle}>Edit Collection</Text>
+        <Text style={[styles.headerTitle, { color: textColor }]}>Edit Collection</Text>
 
         <View style={styles.headerSpacer} />
       </View>
@@ -94,18 +106,18 @@ function EditCollectionScreen({ route, navigation }) {
       >
         {/* CURRENT COLLECTION */}
 
-        <View style={styles.previewTicket}>
+        <View style={[styles.previewTicket, { backgroundColor: surfaceColor, borderColor }]}>
           <View style={styles.previewTop}>
             <MementoLogo size={58} borderRadius={29} />
 
-            <View style={styles.previewText}>
-              <Text style={styles.previewLabel}>EDITING COLLECTION</Text>
+            <View style={[styles.previewText, { color: secondaryTextColor }]}>
+              <Text style={[styles.previewLabel, { color: secondaryTextColor }]}>EDITING COLLECTION</Text>
 
-              <Text style={styles.previewName} numberOfLines={2}>
+              <Text style={[styles.previewName, { color: textColor }]} numberOfLines={2}>
                 {name.trim() || "Your Collection"}
               </Text>
 
-              <Text style={styles.previewCount}>
+              <Text style={[styles.previewCount, { color: secondaryTextColor }]}>
                 {memoryCount === 1 ? "1 MEMORY" : `${memoryCount} MEMORIES`}
               </Text>
             </View>
@@ -113,7 +125,7 @@ function EditCollectionScreen({ route, navigation }) {
 
           <View style={styles.previewDivider} />
 
-          <View style={styles.previewFooter}>
+          <View style={[styles.previewFooter, { color: secondaryTextColor }]}>
             <Text style={styles.previewBrand}>MEMENTO</Text>
 
             <View style={styles.previewBarcode}>
@@ -127,17 +139,17 @@ function EditCollectionScreen({ route, navigation }) {
         {/* NAME */}
 
         <View style={styles.fieldContainer}>
-          <Text style={styles.label}>COLLECTION NAME</Text>
+          <Text style={[styles.label, { color: secondaryTextColor }]}>COLLECTION NAME</Text>
 
-          <View style={styles.inputWithIcon}>
-            <Ionicons name="albums-outline" size={17} color="#7E7E88" />
+          <View style={[styles.inputWithIcon, { backgroundColor: surfaceColor, borderColor }]}>
+            <Ionicons name="albums-outline" size={17} color={colors.textMuted || "#7E7E88"} />
 
             <TextInput
               value={name}
               onChangeText={setName}
               placeholder="Collection name"
-              placeholderTextColor="#9A9AA3"
-              style={styles.input}
+              placeholderTextColor={colors.textMuted || "#9A9AA3"}
+              style={[styles.input, { backgroundColor: colors.input || surfaceColor, borderColor, color: textColor }]}
               maxLength={100}
               autoCapitalize="sentences"
               autoCorrect={false}
@@ -145,32 +157,32 @@ function EditCollectionScreen({ route, navigation }) {
             />
           </View>
 
-          <Text style={styles.characterCount}>{name.length}/100</Text>
+          <Text style={[styles.characterCount, { color: secondaryTextColor }]}>{name.length}/100</Text>
         </View>
 
         {/* DESCRIPTION */}
 
         <View style={styles.fieldContainer}>
-          <Text style={styles.label}>DESCRIPTION</Text>
+          <Text style={[styles.label, { color: secondaryTextColor }]}>DESCRIPTION</Text>
 
           <TextInput
             value={description}
             onChangeText={setDescription}
             placeholder="Add a short description"
-            placeholderTextColor="#9A9AA3"
-            style={styles.descriptionInput}
+            placeholderTextColor={colors.textMuted || "#9A9AA3"}
+            style={[styles.descriptionInput, { backgroundColor: colors.input || surfaceColor, borderColor, color: textColor }]}
             maxLength={200}
             multiline
             textAlignVertical="top"
           />
 
-          <Text style={styles.characterCount}>{description.length}/200</Text>
+          <Text style={[styles.characterCount, { color: secondaryTextColor }]}>{description.length}/200</Text>
         </View>
       </ScrollView>
 
       {/* FOOTER */}
 
-      <View style={styles.footer}>
+      <View style={[styles.footer, { color: secondaryTextColor }]}>
         <TouchableOpacity
           style={[styles.saveButton, isDisabled && styles.saveButtonDisabled]}
           onPress={handleSave}
@@ -180,7 +192,7 @@ function EditCollectionScreen({ route, navigation }) {
           {saving ? (
             <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
-            <Text style={styles.saveButtonText}>Save Changes</Text>
+            <Text style={[styles.saveButtonText, { color: colors.primaryText || "#FFFFFF" }]}>Save Changes</Text>
           )}
         </TouchableOpacity>
       </View>

@@ -15,12 +15,21 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 
 import styles from "../rewardStyles";
+import { useTheme } from "../../../context/ThemeContext";
 
 function WatchAdCard({
   rewardAmount = 10,
   loading = false,
   onPress,
 }) {
+  const { theme, isDark } = useTheme();
+  const colors = theme?.colors || {};
+  const screenBackground = colors.background || (isDark ? "#171624" : "#F1F0F6");
+  const surfaceColor = colors.surface || (isDark ? "#211F30" : "#FFFFFF");
+  const textColor = colors.text || (isDark ? "#F7F5FC" : "#242424");
+  const secondaryTextColor = colors.textSecondary || colors.textMuted || (isDark ? "#C4C0D0" : "#707080");
+  const borderColor = colors.border || (isDark ? "#39364D" : "#D9D8E2");
+
   const cardOpacity = useRef(
     new Animated.Value(0),
   ).current;
@@ -243,7 +252,7 @@ function WatchAdCard({
   return (
     <Animated.View
       style={[
-        styles.earnCard,
+        styles.earnCard, { backgroundColor: surfaceColor, borderColor },
         {
           opacity: cardOpacity,
           transform: [
@@ -281,12 +290,12 @@ function WatchAdCard({
 
       {/* TEXT */}
 
-      <View style={styles.earnContent}>
-        <Text style={styles.earnTitle}>
+      <View style={[styles.earnContent, { backgroundColor: surfaceColor, borderColor }]}>
+        <Text style={[styles.earnTitle, { color: textColor }]}>
           Watch & earn
         </Text>
 
-        <Text style={styles.earnText}>
+        <Text style={[styles.earnText, { color: secondaryTextColor }]}>
           Watch a rewarded ad
         </Text>
       </View>
@@ -305,11 +314,11 @@ function WatchAdCard({
           },
         ]}
       >
-        <Text style={styles.earnRewardText}>
+        <Text style={[styles.earnRewardText, { color: secondaryTextColor }]}>
           +{rewardAmount}
         </Text>
 
-        <Text style={styles.earnRewardLabel}>
+        <Text style={[styles.earnRewardLabel, { color: secondaryTextColor }]}>
           Coins
         </Text>
       </Animated.View>

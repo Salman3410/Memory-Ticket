@@ -5,6 +5,7 @@ import {
   useRef,
 } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
+import { useTheme } from "../../context/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import {
   BottomSheetModal,
@@ -99,30 +100,30 @@ const ShareExportSheet = forwardRef(
         enableOverDrag={false}
         backdropComponent={renderBackdrop}
         onDismiss={handleDismiss}
-        backgroundStyle={styles.sheet}
-        handleIndicatorStyle={styles.handle}
+        backgroundStyle={[styles.sheet, { backgroundColor: surfaceColor }]}
+        handleIndicatorStyle={[styles.handle, { backgroundColor: borderColor }]}
       >
-        <BottomSheetView style={styles.content}>
+        <BottomSheetView style={[styles.content, { backgroundColor: surfaceColor }]}>
 
-          <Text style={styles.title}>Memento</Text>
+          <Text style={[styles.title, { color: textColor }]}>Memento</Text>
 
           <View style={styles.optionsRow}>
 
             <TouchableOpacity
-              style={styles.option}
+              style={[styles.option, { backgroundColor: surfaceColor }]}
               onPress={handleSaveImage}
               disabled={savingImage || generatingPdf}
               activeOpacity={0.8}
             >
-              <View style={styles.actionCircle}>
+              <View style={[styles.actionCircle, { backgroundColor: colors.surfaceSecondary || (isDark ? "#292740" : "#F1F0F6"), borderColor }]}>
                 {savingImage ? (
-                  <Ionicons name="sync-outline" size={34} color="#26353B" />
+                  <Ionicons name="sync-outline" size={34} color={colors.primary || "#34345C"} />
                 ) : (
                   <Ionicons name="download-outline" size={36} color="#26353B" />
                 )}
               </View>
 
-              <Text style={styles.optionText}>
+              <Text style={[styles.optionText, { color: secondaryTextColor }]}>
                 {savingImage ? "Saving..." : "Save image"}
               </Text>
             </TouchableOpacity>

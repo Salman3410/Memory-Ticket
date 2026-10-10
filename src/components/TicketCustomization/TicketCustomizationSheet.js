@@ -1,4 +1,5 @@
 import React from "react";
+import { useTheme } from "../../context/ThemeContext";
 
 import { Modal, View, Text, ScrollView, TouchableOpacity } from "react-native";
 
@@ -44,14 +45,14 @@ function TicketCustomizationSheet({
 
     return (
       <TouchableOpacity
-        style={styles.optionRow}
+        style={[styles.optionRow, { borderBottomColor: colors.divider || borderColor }]}
         onPress={() => toggleOption(key)}
         activeOpacity={0.8}
       >
         <View style={styles.optionTextContainer}>
-          <Text style={styles.optionLabel}>{label}</Text>
+          <Text style={[styles.optionLabel, { color: textColor }]}>{label}</Text>
 
-          <Text style={styles.optionState}>
+          <Text style={[styles.optionState, { color: secondaryTextColor }]}>
             {enabled ? "VISIBLE" : "HIDDEN"}
           </Text>
         </View>
@@ -59,7 +60,7 @@ function TicketCustomizationSheet({
         <Ionicons
           name={enabled ? "checkmark-circle" : "ellipse-outline"}
           size={24}
-          color={enabled ? "#34345C" : "#B8B7C1"}
+          color={enabled ? (colors.primary || "#34345C") : (colors.textMuted || "#B8B7C1")}
         />
       </TouchableOpacity>
     );
@@ -76,34 +77,34 @@ function TicketCustomizationSheet({
         }
       }}
     >
-      <View style={styles.overlay}>
-        <View style={styles.sheet}>
+      <View style={[styles.overlay, { backgroundColor: "rgba(0,0,0,0.62)" }]}>
+        <View style={[styles.sheet, { backgroundColor: surfaceColor, borderColor }]}>
           {/* HEADER */}
 
-          <View style={styles.header}>
+          <View style={[styles.header, { borderBottomColor: colors.divider || borderColor }]}>
             <View>
-              <Text style={styles.eyebrow}>MEMENTO</Text>
+              <Text style={[styles.eyebrow, { color: colors.accent || "#E76F51" }]}>MEMENTO</Text>
 
-              <Text style={styles.title}>{title}</Text>
+              <Text style={[styles.title, { color: textColor }]}>{title}</Text>
             </View>
 
             <TouchableOpacity
-              style={styles.closeButton}
+              style={[styles.closeButton, { backgroundColor: colors.surfaceSecondary || (isDark ? "#292740" : "#F1F0F6"), borderColor }]}
               onPress={onClose}
               disabled={saving}
               activeOpacity={0.8}
             >
-              <Ionicons name="close" size={22} color="#242424" />
+              <Ionicons name="close" size={22} color={colors.text || "#242424"} />
             </TouchableOpacity>
           </View>
 
           <ScrollView
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.scrollContent}
+            contentContainerStyle={[styles.scrollContent, { backgroundColor: surfaceColor }]}
           >
             {/* TICKET STYLE */}
 
-            <Text style={styles.sectionLabel}>TICKET STYLE</Text>
+            <Text style={[styles.sectionLabel, { color: secondaryTextColor }]}>TICKET STYLE</Text>
 
             <View style={styles.styleGrid}>
               {TICKET_STYLE_OPTIONS.map((styleOption) => {
@@ -115,7 +116,7 @@ function TicketCustomizationSheet({
                     style={[
                       styles.styleCard,
 
-                      selected && styles.styleCardActive,
+                      selected && [styles.styleCardActive, { borderColor: colors.primary || "#34345C" }],
                     ]}
                     onPress={() =>
                       updateCustomization({
@@ -150,11 +151,11 @@ function TicketCustomizationSheet({
                     </View>
 
                     <View style={styles.styleCardText}>
-                      <Text style={styles.styleCardTitle}>
+                      <Text style={[styles.styleCardTitle, { color: textColor }]}>
                         {styleOption.label}
                       </Text>
 
-                      <Text style={styles.styleCardDescription}>
+                      <Text style={[styles.styleCardDescription, { color: secondaryTextColor }]}>
                         {styleOption.description}
                       </Text>
                     </View>
@@ -171,7 +172,7 @@ function TicketCustomizationSheet({
 
             {/* ACCENT COLOR */}
 
-            <Text style={[styles.sectionLabel, styles.accentSectionLabel]}>
+            <Text style={[styles.sectionLabel, styles.accentSectionLabel, { color: secondaryTextColor }]}>
               ACCENT COLOR
             </Text>
 
@@ -206,7 +207,7 @@ function TicketCustomizationSheet({
                       )}
                     </View>
 
-                    <Text style={styles.accentLabel}>{accent.label}</Text>
+                    <Text style={[styles.accentLabel, { color: secondaryTextColor }]}>{accent.label}</Text>
                   </TouchableOpacity>
                 );
               })}
@@ -214,7 +215,7 @@ function TicketCustomizationSheet({
 
             {/* CONTENT VISIBILITY */}
 
-            <Text style={[styles.sectionLabel, styles.contentSectionLabel]}>
+            <Text style={[styles.sectionLabel, styles.contentSectionLabel, { color: secondaryTextColor }]}>
               SHOW ON TICKET
             </Text>
 
@@ -231,13 +232,13 @@ function TicketCustomizationSheet({
             {/* ACTION */}
 
             <TouchableOpacity
-              style={[styles.doneButton, saving && styles.doneButtonDisabled]}
+              style={[styles.doneButton, { backgroundColor: colors.primary || "#34345C" }, saving && styles.doneButtonDisabled]}
               onPress={onSave || onClose}
               disabled={saving}
               activeOpacity={0.85}
             >
               {saving ? (
-                <Text style={styles.doneButtonText}>SAVING...</Text>
+                <Text style={[styles.doneButtonText, { color: colors.primaryText || "#FFFFFF" }]}>SAVING...</Text>
               ) : (
                 <Text style={styles.doneButtonText}>
                   {onSave ? "SAVE CHANGES" : "DONE"}
