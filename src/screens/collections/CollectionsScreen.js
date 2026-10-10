@@ -8,6 +8,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  StatusBar,
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
@@ -16,8 +17,17 @@ import { useCollection } from "../../hooks/useCollection";
 import useRefresh from "../../hooks/useRefresh";
 
 import CollectionCardComponent from "../../components/collections/CollectionCard";
+import { useTheme } from "../../context/ThemeContext";
 
 function CollectionsScreen({ navigation }) {
+  const { theme, isDark } = useTheme();
+  const colors = theme?.colors || {};
+  const screenBackground = colors.background || (isDark ? "#171624" : "#F1F0F6");
+  const surfaceColor = colors.surface || (isDark ? "#211F30" : "#FFFFFF");
+  const textColor = colors.text || (isDark ? "#F7F5FC" : "#242424");
+  const secondaryTextColor = colors.textSecondary || colors.textMuted || (isDark ? "#C4C0D0" : "#707080");
+  const borderColor = colors.border || (isDark ? "#39364D" : "#D9D8E2");
+
   const { collections, loading, refreshCollections } = useCollection();
 
   // --------------------------------------------------
@@ -102,77 +112,78 @@ function CollectionsScreen({ navigation }) {
     }
 
     return (
-      <View style={styles.emptyState}>
+      <View style={[styles.emptyState, { backgroundColor: surfaceColor, borderColor }]}>
         <View style={styles.emptyMark}>
-          <Text style={styles.emptyMarkText}>+</Text>
+          <Text style={[styles.emptyMarkText, { color: secondaryTextColor }]}>+</Text>
         </View>
 
-        <Text style={styles.emptyTitle}>Give your memories a place</Text>
+        <Text style={[styles.emptyTitle, { color: textColor }]}>Give your memories a place</Text>
 
-        <Text style={styles.emptyText}>
+        <Text style={[styles.emptyText, { color: secondaryTextColor }]}>
           Create a collection for trips, people, events, or anything you want to
           remember together.
         </Text>
 
         <TouchableOpacity
-          style={styles.emptyButton}
+          style={[styles.emptyButton, { backgroundColor: colors.primary || "#34345C" }]}
           onPress={handleCreateCollection}
           activeOpacity={0.85}
         >
-          <Text style={styles.emptyButtonText}>Create Collection</Text>
+          <Text style={[styles.emptyButtonText, { color: colors.primaryText || "#FFFFFF" }]}>Create Collection</Text>
         </TouchableOpacity>
       </View>
     );
-  }, [loading, handleCreateCollection]);
+  }, [loading, handleCreateCollection, colors, isDark]);
 
   // --------------------------------------------------
   // SCREEN
   // --------------------------------------------------
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: screenBackground }]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={screenBackground} />
       {/* HEADER */}
 
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: screenBackground }]}>
         <View style={styles.headerLeft}>
           <TouchableOpacity
-            style={styles.backButton}
+            style={[styles.backButton, { backgroundColor: surfaceColor, borderColor }]}
             onPress={handleGoBack}
             activeOpacity={0.8}
           >
-            <Ionicons name="arrow-back" size={20} color="#34345C" />
+            <Ionicons name="arrow-back" size={20} color={colors.primary || "#34345C"} />
           </TouchableOpacity>
 
           <View style={styles.headerContent}>
-            <Text style={styles.eyebrow}>YOUR STORIES</Text>
+            <Text style={[styles.eyebrow, { color: secondaryTextColor }]}>YOUR STORIES</Text>
 
-            <Text style={styles.title}>Collections</Text>
+            <Text style={[styles.title, { color: textColor }]}>Collections</Text>
 
-            <Text style={styles.subtitle}>
+            <Text style={[styles.subtitle, { color: textColor }]}>
               Keep moments that belong together.
             </Text>
           </View>
         </View>
 
         <TouchableOpacity
-          style={styles.createButton}
+          style={[styles.createButton, { backgroundColor: colors.primary || "#34345C" }]}
           onPress={handleCreateCollection}
           activeOpacity={0.85}
         >
-          <Text style={styles.createButtonText}>+</Text>
+          <Text style={[styles.createButtonText, { color: colors.primaryText || "#FFFFFF" }]}>+</Text>
         </TouchableOpacity>
       </View>
 
       {/* SUMMARY */}
 
       {!loading && collections.length > 0 ? (
-        <View style={styles.summaryRow}>
-          <Text style={styles.summaryText}>
+        <View style={[styles.summaryRow, { backgroundColor: surfaceColor, borderColor }]}>
+          <Text style={[styles.summaryText, { color: secondaryTextColor }]}>
             {collections.length}{" "}
             {collections.length === 1 ? "collection" : "collections"}
           </Text>
 
-          <Text style={styles.summaryHint}>Your memories, together</Text>
+          <Text style={[styles.summaryHint, { color: secondaryTextColor }]}>Your memories, together</Text>
         </View>
       ) : null}
 
@@ -180,9 +191,9 @@ function CollectionsScreen({ navigation }) {
 
       {loading && collections.length === 0 ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#34345C" />
+          <ActivityIndicator size="large" color={colors.primary || "#34345C"} />
 
-          <Text style={styles.loadingText}>Loading collections...</Text>
+          <Text style={[styles.loadingText, { color: secondaryTextColor }]}>Loading collections...</Text>
         </View>
       ) : (
         <FlatList
@@ -205,9 +216,9 @@ function CollectionsScreen({ navigation }) {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor="#34345C"
-              colors={["#34345C"]}
-              progressBackgroundColor="#FFFFFF"
+              tintColor={colors.primary || "#34345C"}
+              colors={[colors.primary || "#34345C"]}
+              progressBackgroundColor={surfaceColor}
             />
           }
           ListEmptyComponent={renderEmpty}

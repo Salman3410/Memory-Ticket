@@ -16,6 +16,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 import RewardCard from "./RewardCard";
 import styles from "../rewardStyles";
+import { useTheme } from "../../../context/ThemeContext";
 
 function RewardStore({
   rewards = [],
@@ -27,6 +28,14 @@ function RewardStore({
   onRedeem,
   onRetry,
 }) {
+  const { theme, isDark } = useTheme();
+  const colors = theme?.colors || {};
+  const screenBackground = colors.background || (isDark ? "#171624" : "#F1F0F6");
+  const surfaceColor = colors.surface || (isDark ? "#211F30" : "#FFFFFF");
+  const textColor = colors.text || (isDark ? "#F7F5FC" : "#242424");
+  const secondaryTextColor = colors.textSecondary || colors.textMuted || (isDark ? "#C4C0D0" : "#707080");
+  const borderColor = colors.border || (isDark ? "#39364D" : "#D9D8E2");
+
   const sectionOpacity = useRef(
     new Animated.Value(0)
   ).current;
@@ -147,8 +156,8 @@ function RewardStore({
     >
       {/* STORE HEADER */}
       <View style={styles.sectionHeader}>
-        <View style={styles.storeHeaderContent}>
-          <View style={styles.storeTitleRow}>
+        <View style={[styles.storeHeaderContent, { backgroundColor: surfaceColor, borderColor }]}>
+          <View style={[styles.storeTitleRow, { backgroundColor: surfaceColor, borderColor }]}>
             <Animated.View
               style={[
                 styles.storeIcon,
@@ -164,24 +173,24 @@ function RewardStore({
               <Ionicons
                 name="bag-handle-outline"
                 size={18}
-                color="#34345C"
+                color={colors.primary || "#34345C"}
               />
             </Animated.View>
 
             <View>
-              <Text style={styles.sectionTitle}>
+              <Text style={[styles.sectionTitle, { color: textColor }]}>
                 Store
               </Text>
 
-              <Text style={styles.sectionSubtitle}>
+              <Text style={[styles.sectionSubtitle, { color: textColor }]}>
                 Spend Coins on Memento extras.
               </Text>
             </View>
           </View>
 
           {hasRewards ? (
-            <View style={styles.rewardCountPill}>
-              <Text style={styles.rewardCountText}>
+            <View style={[styles.rewardCountPill, { backgroundColor: surfaceColor, borderColor }]}>
+              <Text style={[styles.rewardCountText, { color: secondaryTextColor }]}>
                 {affordableCount > 0
                   ? `${affordableCount} available`
                   : `${rewards.length} items`}
@@ -193,7 +202,7 @@ function RewardStore({
         {loading ? (
           <ActivityIndicator
             size="small"
-            color="#34345C"
+            color={colors.primary || "#34345C"}
             style={styles.storeLoader}
           />
         ) : null}
@@ -220,36 +229,36 @@ function RewardStore({
             onPressOut={handleRetryPressOut}
             activeOpacity={1}
           >
-            <View style={styles.messageIcon}>
+            <View style={[styles.messageIcon, { backgroundColor: surfaceColor, borderColor }]}>
               <Ionicons
                 name="alert-circle-outline"
                 size={21}
-                color="#E76F51"
+                color={colors.accent || "#E76F51"}
               />
             </View>
 
             <View
-              style={styles.storeMessageContent}
+              style={[styles.storeMessageContent, { backgroundColor: surfaceColor, borderColor }]}
             >
               <Text
-                style={styles.storeMessageTitle}
+                style={[styles.storeMessageTitle, { color: textColor }]}
               >
                 Couldn't load rewards
               </Text>
 
-              <Text style={styles.messageText}>
+              <Text style={[styles.messageText, { color: secondaryTextColor }]}>
                 {error}
               </Text>
 
-              <View style={styles.retryRow}>
-                <Text style={styles.retryText}>
+              <View style={[styles.retryRow, { backgroundColor: surfaceColor, borderColor }]}>
+                <Text style={[styles.retryText, { color: secondaryTextColor }]}>
                   Try again
                 </Text>
 
                 <Ionicons
                   name="arrow-forward"
                   size={14}
-                  color="#34345C"
+                  color={colors.primary || "#34345C"}
                 />
               </View>
             </View>
@@ -265,20 +274,20 @@ function RewardStore({
         </View>
       ) : !hasRewards ? (
         /* EMPTY */
-        <View style={styles.storeEmptyCard}>
-          <View style={styles.storeEmptyIcon}>
+        <View style={[styles.storeEmptyCard, { backgroundColor: surfaceColor, borderColor }]}>
+          <View style={[styles.storeEmptyIcon, { backgroundColor: surfaceColor, borderColor }]}>
             <Ionicons
               name="gift-outline"
               size={24}
-              color="#34345C"
+              color={colors.primary || "#34345C"}
             />
           </View>
 
-          <Text style={styles.storeEmptyTitle}>
+          <Text style={[styles.storeEmptyTitle, { color: textColor }]}>
             Nothing here yet
           </Text>
 
-          <Text style={styles.storeEmptyText}>
+          <Text style={[styles.storeEmptyText, { color: secondaryTextColor }]}>
             New Memento rewards will appear here soon.
           </Text>
         </View>
@@ -398,6 +407,13 @@ function RewardGridItem({
 function RewardSkeleton({
   delay = 0,
 }) {
+  const { theme, isDark } = useTheme();
+  const colors = theme?.colors || {};
+  const screenBackground = colors.background || (isDark ? "#171624" : "#F1F0F6");
+  const surfaceColor = colors.surface || (isDark ? "#211F30" : "#FFFFFF");
+  const textColor = colors.text || (isDark ? "#F7F5FC" : "#242424");
+  const secondaryTextColor = colors.textSecondary || colors.textMuted || (isDark ? "#C4C0D0" : "#707080");
+  const borderColor = colors.border || (isDark ? "#39364D" : "#D9D8E2");
   const opacity = useRef(
     new Animated.Value(0.45)
   ).current;
@@ -442,12 +458,12 @@ function RewardSkeleton({
       ]}
     >
       <View style={styles.skeletonTop}>
-        <View style={styles.skeletonIcon} />
+        <View style={[styles.skeletonIcon, { backgroundColor: surfaceColor, borderColor }]} />
 
-        <View style={styles.skeletonPill} />
+        <View style={[styles.skeletonPill, { backgroundColor: surfaceColor, borderColor }]} />
       </View>
 
-      <View style={styles.skeletonTitle} />
+      <View style={[styles.skeletonTitle, { color: textColor }]} />
 
       <View style={styles.skeletonLine} />
 
@@ -461,7 +477,7 @@ function RewardSkeleton({
       <View style={styles.skeletonBottom}>
         <View style={styles.skeletonCost} />
 
-        <View style={styles.skeletonButton} />
+        <View style={[styles.skeletonButton, { backgroundColor: surfaceColor, borderColor }]} />
       </View>
     </Animated.View>
   );

@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
+import { useTheme } from "../../context/ThemeContext";
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
+
+  StatusBar,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, {
@@ -23,6 +26,14 @@ const AnimatedView =
   Animated.createAnimatedComponent(View);
 
 function SignupScreen({ navigation }) {
+  const { theme, isDark } = useTheme();
+  const colors = theme?.colors || {};
+  const screenBackground = colors.background || (isDark ? "#171624" : "#F1F0F6");
+  const surfaceColor = colors.surface || (isDark ? "#211F30" : "#FFFFFF");
+  const textColor = colors.text || (isDark ? "#F7F5FC" : "#242424");
+  const secondaryTextColor = colors.textSecondary || colors.textMuted || (isDark ? "#C4C0D0" : "#707080");
+  const borderColor = colors.border || (isDark ? "#39364D" : "#D9D8E2");
+
   const { signup } = useAuth();
   const { showAlert } = useAppAlert();
 
@@ -250,49 +261,47 @@ function SignupScreen({ navigation }) {
   return (
     <KeyboardAwareScrollView
       bottomOffset={20}
-      contentContainerStyle={
-        styles.scrollContainer
-      }
+      contentContainerStyle={[styles.scrollContainer, { backgroundColor: screenBackground }]}
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
     >
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={screenBackground} />
       <AnimatedView
         style={[
-          styles.container,
-          contentAnimatedStyle,
+          styles.container, { backgroundColor: screenBackground }, contentAnimatedStyle,
         ]}
       >
         {/* Heading */}
-        <View style={styles.headingContainer}>
-          <Text style={styles.title}>
+        <View style={[styles.headingContainer, { backgroundColor: surfaceColor, borderColor }]}>
+          <Text style={[styles.title, { color: textColor }]}>
             Create Account
           </Text>
 
-          <Text style={styles.subtitle}>
+          <Text style={[styles.subtitle, { color: textColor }]}>
             Start turning your moments into memories.
           </Text>
         </View>
 
         {/* Form */}
-        <View style={styles.formContainer}>
+        <View style={[styles.formContainer, { backgroundColor: surfaceColor, borderColor }]}>
           {/* Name */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>
+          <View style={[styles.inputGroup, { backgroundColor: surfaceColor, borderColor }]}>
+            <Text style={[styles.label, { color: secondaryTextColor }]}>
               NAME
             </Text>
 
-            <View style={styles.inputWrapper}>
+            <View style={[styles.inputWrapper, { backgroundColor: surfaceColor, borderColor,  }]}>
               <Ionicons
                 name="person-outline"
                 size={20}
-                color="#707080"
-                style={styles.inputIcon}
+                color={colors.textSecondary || colors.textMuted || "#707080"}
+                style={[styles.inputIcon, { backgroundColor: surfaceColor, borderColor }]}
               />
 
               <TextInput
-                style={styles.input}
+                style={[styles.input, { backgroundColor: colors.input || surfaceColor, borderColor, color: textColor }]}
                 placeholder="Your name"
-                placeholderTextColor="#A39C92"
+                placeholderTextColor={colors.textMuted || "#A39C92"}
                 value={name}
                 onChangeText={setName}
                 autoCapitalize="words"
@@ -304,23 +313,23 @@ function SignupScreen({ navigation }) {
           </View>
 
           {/* Email */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>
+          <View style={[styles.inputGroup, { backgroundColor: surfaceColor, borderColor }]}>
+            <Text style={[styles.label, { color: secondaryTextColor }]}>
               EMAIL
             </Text>
 
-            <View style={styles.inputWrapper}>
+            <View style={[styles.inputWrapper, { backgroundColor: surfaceColor, borderColor,  }]}>
               <Ionicons
                 name="mail-outline"
                 size={20}
-                color="#707080"
-                style={styles.inputIcon}
+                color={colors.textSecondary || colors.textMuted || "#707080"}
+                style={[styles.inputIcon, { backgroundColor: surfaceColor, borderColor }]}
               />
 
               <TextInput
-                style={styles.input}
+                style={[styles.input, { backgroundColor: colors.input || surfaceColor, borderColor, color: textColor }]}
                 placeholder="your@email.com"
-                placeholderTextColor="#A39C92"
+                placeholderTextColor={colors.textMuted || "#A39C92"}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -333,23 +342,23 @@ function SignupScreen({ navigation }) {
           </View>
 
           {/* Password */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>
+          <View style={[styles.inputGroup, { backgroundColor: surfaceColor, borderColor }]}>
+            <Text style={[styles.label, { color: secondaryTextColor }]}>
               PASSWORD
             </Text>
 
-            <View style={styles.inputWrapper}>
+            <View style={[styles.inputWrapper, { backgroundColor: surfaceColor, borderColor,  }]}>
               <Ionicons
                 name="lock-closed-outline"
                 size={20}
-                color="#707080"
-                style={styles.inputIcon}
+                color={colors.textSecondary || colors.textMuted || "#707080"}
+                style={[styles.inputIcon, { backgroundColor: surfaceColor, borderColor }]}
               />
 
               <TextInput
-                style={styles.input}
+                style={[styles.input, { backgroundColor: colors.input || surfaceColor, borderColor, color: textColor }]}
                 placeholder="Create a password"
-                placeholderTextColor="#A39C92"
+                placeholderTextColor={colors.textMuted || "#A39C92"}
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={
@@ -362,9 +371,7 @@ function SignupScreen({ navigation }) {
               />
 
               <TouchableOpacity
-                style={
-                  styles.passwordButton
-                }
+                style={[styles.passwordButton, { backgroundColor: surfaceColor, borderColor,  }]}
                 onPress={() =>
                   setShowPassword(
                     (prev) => !prev,
@@ -380,30 +387,30 @@ function SignupScreen({ navigation }) {
                       : "eye-outline"
                   }
                   size={20}
-                  color="#707080"
+                  color={colors.textSecondary || colors.textMuted || "#707080"}
                 />
               </TouchableOpacity>
             </View>
           </View>
 
           {/* Confirm Password */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>
+          <View style={[styles.inputGroup, { backgroundColor: surfaceColor, borderColor }]}>
+            <Text style={[styles.label, { color: secondaryTextColor }]}>
               CONFIRM PASSWORD
             </Text>
 
-            <View style={styles.inputWrapper}>
+            <View style={[styles.inputWrapper, { backgroundColor: surfaceColor, borderColor,  }]}>
               <Ionicons
                 name="shield-checkmark-outline"
                 size={20}
-                color="#707080"
-                style={styles.inputIcon}
+                color={colors.textSecondary || colors.textMuted || "#707080"}
+                style={[styles.inputIcon, { backgroundColor: surfaceColor, borderColor }]}
               />
 
               <TextInput
-                style={styles.input}
+                style={[styles.input, { backgroundColor: colors.input || surfaceColor, borderColor, color: textColor }]}
                 placeholder="Confirm your password"
-                placeholderTextColor="#A39C92"
+                placeholderTextColor={colors.textMuted || "#A39C92"}
                 value={confirmPassword}
                 onChangeText={
                   setConfirmPassword
@@ -421,9 +428,7 @@ function SignupScreen({ navigation }) {
               />
 
               <TouchableOpacity
-                style={
-                  styles.passwordButton
-                }
+                style={[styles.passwordButton, { backgroundColor: surfaceColor, borderColor,  }]}
                 onPress={() =>
                   setShowConfirmPassword(
                     (prev) => !prev,
@@ -439,7 +444,7 @@ function SignupScreen({ navigation }) {
                       : "eye-outline"
                   }
                   size={20}
-                  color="#707080"
+                  color={colors.textSecondary || colors.textMuted || "#707080"}
                 />
               </TouchableOpacity>
             </View>
@@ -451,8 +456,7 @@ function SignupScreen({ navigation }) {
           >
             <TouchableOpacity
               style={[
-                styles.loginButton,
-                isLoading && {
+                styles.loginButton, { backgroundColor: colors.primary || "#34345C" }, isLoading && {
                   opacity: 0.7,
                 },
               ]}
@@ -474,9 +478,7 @@ function SignupScreen({ navigation }) {
               ) : (
                 <>
                   <Text
-                    style={
-                      styles.loginButtonText
-                    }
+                    style={[styles.loginButtonText, { color: colors.primaryText || "#FFFFFF" }]}
                   >
                     CREATE ACCOUNT
                   </Text>
@@ -493,7 +495,7 @@ function SignupScreen({ navigation }) {
         </View>
 
         {/* Tagline */}
-        <Text style={styles.tagline}>
+        <Text style={[styles.tagline, { color: secondaryTextColor }]}>
           YOUR STORY STARTS HERE
         </Text>
       </AnimatedView>

@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import styles from "../rewardStyles";
+import { useTheme } from "../../../context/ThemeContext";
 
 function getRewardMeta(category) {
   switch (category) {
@@ -75,6 +76,14 @@ function RewardCard({
   redeemingRewardId = null,
   onRedeem,
 }) {
+  const { theme, isDark } = useTheme();
+  const colors = theme?.colors || {};
+  const screenBackground = colors.background || (isDark ? "#171624" : "#F1F0F6");
+  const surfaceColor = colors.surface || (isDark ? "#211F30" : "#FFFFFF");
+  const textColor = colors.text || (isDark ? "#F7F5FC" : "#242424");
+  const secondaryTextColor = colors.textSecondary || colors.textMuted || (isDark ? "#C4C0D0" : "#707080");
+  const borderColor = colors.border || (isDark ? "#39364D" : "#D9D8E2");
+
   const buttonScale = useRef(
     new Animated.Value(1)
   ).current;
@@ -207,7 +216,7 @@ function RewardCard({
   return (
     <View
       style={[
-        styles.rewardCard,
+        styles.rewardCard, { backgroundColor: surfaceColor, borderColor },
 
         owned &&
           styles.rewardCardOwned,
@@ -247,7 +256,7 @@ function RewardCard({
                 : meta.icon
             }
             size={20}
-            color="#34345C"
+            color={colors.primary || "#34345C"}
           />
         </Animated.View>
 
@@ -278,9 +287,9 @@ function RewardCard({
           CONTENT
       ----------------------------------------- */}
 
-      <View style={styles.rewardContent}>
+      <View style={[styles.rewardContent, { backgroundColor: surfaceColor, borderColor }]}>
         <Text
-          style={styles.rewardName}
+          style={[styles.rewardName, { color: textColor }]}
           numberOfLines={1}
         >
           {reward?.name ||
@@ -288,7 +297,7 @@ function RewardCard({
         </Text>
 
         <Text
-          style={styles.rewardDescription}
+          style={[styles.rewardDescription, { color: secondaryTextColor }]}
           numberOfLines={2}
         >
           {reward?.description ||
@@ -304,44 +313,44 @@ function RewardCard({
         <View style={styles.costBlock}>
           {owned ? (
             <>
-              <View style={styles.ownedRow}>
+              <View style={[styles.ownedRow, { backgroundColor: surfaceColor, borderColor }]}>
                 <Ionicons
                   name="checkmark-circle"
                   size={15}
-                  color="#34345C"
+                  color={colors.primary || "#34345C"}
                 />
 
                 <Text
-                  style={styles.ownedText}
+                  style={[styles.ownedText, { color: secondaryTextColor }]}
                 >
                   Owned
                 </Text>
               </View>
 
               <Text
-                style={styles.lifetimeLabel}
+                style={[styles.lifetimeLabel, { color: secondaryTextColor }]}
               >
                 Lifetime access
               </Text>
             </>
           ) : (
             <>
-              <View style={styles.costRow}>
+              <View style={[styles.costRow, { backgroundColor: surfaceColor, borderColor }]}>
                 <Ionicons
                   name="ellipse"
                   size={9}
-                  color="#E76F51"
+                  color={colors.accent || "#E76F51"}
                 />
 
                 <Text
-                  style={styles.costValue}
+                  style={[styles.costValue, { color: textColor }]}
                 >
                   {cost}
                 </Text>
               </View>
 
               <Text
-                style={styles.costLabel}
+                style={[styles.costLabel, { color: secondaryTextColor }]}
               >
                 Coins
               </Text>
@@ -408,7 +417,7 @@ function RewardCard({
               <Ionicons
                 name="checkmark"
                 size={17}
-                color="#34345C"
+                color={colors.primary || "#34345C"}
               />
             ) : (
               <>
@@ -450,39 +459,39 @@ function RewardCard({
 
       {owned ? (
         <View
-          style={styles.rewardStatusRow}
+          style={[styles.rewardStatusRow, { backgroundColor: surfaceColor, borderColor }]}
         >
           <Ionicons
             name="infinite-outline"
             size={13}
-            color="#34345C"
+            color={colors.primary || "#34345C"}
           />
 
           <Text
-            style={styles.rewardStatusText}
+            style={[styles.rewardStatusText, { color: secondaryTextColor }]}
           >
             Yours forever
           </Text>
         </View>
       ) : active && affordable ? (
         <View
-          style={styles.rewardStatusRow}
+          style={[styles.rewardStatusRow, { backgroundColor: surfaceColor, borderColor }]}
         >
           <Ionicons
             name="checkmark-circle"
             size={13}
-            color="#34345C"
+            color={colors.primary || "#34345C"}
           />
 
           <Text
-            style={styles.rewardStatusText}
+            style={[styles.rewardStatusText, { color: secondaryTextColor }]}
           >
             Ready to redeem
           </Text>
         </View>
       ) : active ? (
         <View
-          style={styles.rewardShortageRow}
+          style={[styles.rewardShortageRow, { backgroundColor: surfaceColor, borderColor }]}
         >
           <Ionicons
             name="information-circle-outline"
@@ -491,14 +500,14 @@ function RewardCard({
           />
 
           <Text
-            style={styles.rewardShortageText}
+            style={[styles.rewardShortageText, { color: secondaryTextColor }]}
           >
             {remainingCoins} more Coins needed
           </Text>
         </View>
       ) : (
         <View
-          style={styles.rewardShortageRow}
+          style={[styles.rewardShortageRow, { backgroundColor: surfaceColor, borderColor }]}
         >
           <Ionicons
             name="time-outline"
@@ -507,7 +516,7 @@ function RewardCard({
           />
 
           <Text
-            style={styles.rewardShortageText}
+            style={[styles.rewardShortageText, { color: secondaryTextColor }]}
           >
             Currently unavailable
           </Text>

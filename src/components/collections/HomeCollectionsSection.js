@@ -9,6 +9,7 @@ import {
 } from "react-native";
 
 import CollectionPreviewCard from "./CollectionPreviewCard";
+import { useTheme } from "../../context/ThemeContext";
 
 function HomeCollectionsSection({
   collections,
@@ -16,10 +17,18 @@ function HomeCollectionsSection({
   onCreate,
   onCollectionPress,
 }) {
+  const { theme, isDark } = useTheme();
+  const colors = theme?.colors || {};
+  const screenBackground = colors.background || (isDark ? "#171624" : "#F1F0F6");
+  const surfaceColor = colors.surface || (isDark ? "#211F30" : "#FFFFFF");
+  const textColor = colors.text || (isDark ? "#F7F5FC" : "#242424");
+  const secondaryTextColor = colors.textSecondary || colors.textMuted || (isDark ? "#C4C0D0" : "#707080");
+  const borderColor = colors.border || (isDark ? "#39364D" : "#D9D8E2");
+
   const renderItem = useCallback(
     ({ item }) => {
       return (
-        <View style={styles.item}>
+        <View style={[styles.item, { backgroundColor: surfaceColor, borderColor }]}>
           <CollectionPreviewCard
             collection={item}
             onPress={() => onCollectionPress(item)}
@@ -36,13 +45,13 @@ function HomeCollectionsSection({
   );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: screenBackground }]}>
       {/* SECTION HEADER */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.eyebrow}>YOUR STORIES</Text>
+          <Text style={[styles.eyebrow, { color: secondaryTextColor }]}>YOUR STORIES</Text>
 
-          <Text style={styles.title}>Collections</Text>
+          <Text style={[styles.title, { color: textColor }]}>Collections</Text>
         </View>
 
         <View style={styles.headerActions}>
@@ -53,11 +62,11 @@ function HomeCollectionsSection({
           ) : null}
 
           <TouchableOpacity
-            style={styles.addButton}
+            style={[styles.addButton, { backgroundColor: colors.primary || '#34345C', borderColor }, { backgroundColor: surfaceColor, borderColor }]}
             onPress={onCreate}
             activeOpacity={0.85}
           >
-            <Text style={styles.addText}>+</Text>
+            <Text style={[styles.addText, { color: colors.primaryText || "#FFFFFF" }]}>+</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -74,12 +83,12 @@ function HomeCollectionsSection({
               <Text style={styles.emptyPlus}>+</Text>
             </View>
 
-            <View style={styles.emptyTopText}>
-              <Text style={styles.emptyLabel}>NEW COLLECTION</Text>
+            <View style={[styles.emptyTopText, { color: secondaryTextColor }]}>
+              <Text style={[styles.emptyLabel, { color: secondaryTextColor }]}>NEW COLLECTION</Text>
 
-              <Text style={styles.emptyTitle}>Give your memories a place</Text>
+              <Text style={[styles.emptyTitle, { color: textColor }]}>Give your memories a place</Text>
 
-              <Text style={styles.emptyDescription}>
+              <Text style={[styles.emptyDescription, { color: secondaryTextColor }]}>
                 Bring related moments together.
               </Text>
             </View>
@@ -89,8 +98,8 @@ function HomeCollectionsSection({
             <View style={styles.emptyDash} />
           </View>
 
-          <View style={styles.emptyFooter}>
-            <Text style={styles.emptyBrand}>MEMENTO</Text>
+          <View style={[styles.emptyFooter, { color: secondaryTextColor }]}>
+            <Text style={[styles.emptyBrand, { color: secondaryTextColor }]}>MEMENTO</Text>
 
             <View style={styles.emptyBarcode}>
               {[5, 2, 4, 3, 6, 2].map((width, index) => (

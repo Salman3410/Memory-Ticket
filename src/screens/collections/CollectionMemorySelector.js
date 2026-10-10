@@ -6,13 +6,23 @@ import {
   Text,
   TouchableOpacity,
   View,
+  StatusBar,
 } from "react-native";
 import { useMemory } from "../../hooks/useMemory";
 import { useCollection } from "../../hooks/useCollection";
 import MementoLogo from "../../components/common/MementoLogo";
 import MemoryTicketHorizontal from "../../components/MemoryTicket/MemoryTicketHorizontal";
+import { useTheme } from "../../context/ThemeContext";
 
 function CollectionMemorySelector({ route, navigation }) {
+  const { theme, isDark } = useTheme();
+  const colors = theme?.colors || {};
+  const screenBackground = colors.background || (isDark ? "#171624" : "#F1F0F6");
+  const surfaceColor = colors.surface || (isDark ? "#211F30" : "#FFFFFF");
+  const textColor = colors.text || (isDark ? "#F7F5FC" : "#242424");
+  const secondaryTextColor = colors.textSecondary || colors.textMuted || (isDark ? "#C4C0D0" : "#707080");
+  const borderColor = colors.border || (isDark ? "#39364D" : "#D9D8E2");
+
   const { collectionId } = route.params || {};
 
   const { memories } = useMemory();
@@ -134,7 +144,7 @@ const renderItem = useCallback(
     const selected = selectedIds.includes(id);
 
     return (
-      <View style={styles.memoryItem}>
+      <View style={[styles.memoryItem, { backgroundColor: surfaceColor, borderColor }]}>
         <MemoryTicketHorizontal
           memory={item}
           selected={selected}
@@ -144,7 +154,7 @@ const renderItem = useCallback(
       </View>
     );
   },
-  [existingMemoryIds, selectedIds, toggleMemory],
+  [existingMemoryIds, selectedIds, toggleMemory, surfaceColor, borderColor],
 );
 
   const keyExtractor = useCallback(
@@ -154,46 +164,45 @@ const renderItem = useCallback(
 
   const renderEmpty = useCallback(
     () => (
-      <View style={styles.emptyState}>
+      <View style={[styles.emptyState, { backgroundColor: surfaceColor, borderColor }]}>
         <MementoLogo size={58} borderRadius={29} />
 
-        <Text style={styles.emptyTitle}>No memories available</Text>
+        <Text style={[styles.emptyTitle, { color: textColor }]}>No memories available</Text>
 
-        <Text style={styles.emptyText}>
+        <Text style={[styles.emptyText, { color: secondaryTextColor }]}>
           Create some memories first, then you can add their tickets to this
           collection.
         </Text>
       </View>
     ),
-    [],
-  );
-
-  if (loadingCollection) {
+    [surfaceColor, borderColor, textColor, secondaryTextColor],
+  );if (loadingCollection) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#34345C" />
+      <View style={[styles.loadingContainer, { backgroundColor: screenBackground }]}>
+        <ActivityIndicator size="large" color={colors.primary || "#34345C"} />
 
-        <Text style={styles.loadingText}>Loading memories...</Text>
+        <Text style={[styles.loadingText, { color: secondaryTextColor }]}>Loading memories...</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: screenBackground }]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={screenBackground} />
       {/* HEADER */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: screenBackground }]}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           disabled={saving}
           activeOpacity={0.7}
         >
-          <Text style={styles.cancelText}>Cancel</Text>
+          <Text style={[styles.cancelText, { color: colors.primary || "#34345C" }]}>Cancel</Text>
         </TouchableOpacity>
 
         <View style={styles.headerCenter}>
-          <Text style={styles.headerEyebrow}>COLLECTION</Text>
+          <Text style={[styles.headerEyebrow, { color: secondaryTextColor }]}>COLLECTION</Text>
 
-          <Text style={styles.headerTitle}>Add Memories</Text>
+          <Text style={[styles.headerTitle, { color: textColor }]}>Add Memories</Text>
         </View>
 
         <View style={styles.headerSpacer} />
@@ -202,11 +211,11 @@ const renderItem = useCallback(
       {/* COLLECTION INFO */}
       {collection ? (
         <View style={styles.collectionHeader}>
-          <Text style={styles.collectionName} numberOfLines={1}>
+          <Text style={[styles.collectionName, { color: textColor }]} numberOfLines={1}>
             {collection.name}
           </Text>
 
-          <Text style={styles.collectionHint}>
+          <Text style={[styles.collectionHint, { color: secondaryTextColor }]}>
             Choose the memory tickets you want to keep here.
           </Text>
         </View>
@@ -231,8 +240,8 @@ const renderItem = useCallback(
       />
 
       {/* FOOTER */}
-      <View style={styles.footer}>
-        <View style={styles.selectedSummary}>
+      <View style={[styles.footer, { color: secondaryTextColor }]}>
+        <View style={[styles.selectedSummary, { backgroundColor: surfaceColor, borderColor }]}>
           <View
             style={[
               styles.selectedDot,
@@ -240,7 +249,7 @@ const renderItem = useCallback(
             ]}
           />
 
-          <Text style={styles.selectedText}>
+          <Text style={[styles.selectedText, { color: colors.primaryText || "#FFFFFF" }]}>
             {selectedIds.length === 0
               ? "Select memory tickets"
               : `${selectedIds.length} ${
@@ -261,7 +270,7 @@ const renderItem = useCallback(
           {saving ? (
             <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
-            <Text style={styles.addButtonText}>Add to Collection</Text>
+            <Text style={[styles.addButtonText, { color: colors.primaryText || "#FFFFFF" }]}>Add to Collection</Text>
           )}
         </TouchableOpacity>
       </View>
