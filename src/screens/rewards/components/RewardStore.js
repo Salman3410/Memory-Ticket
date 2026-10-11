@@ -1,0 +1,485 @@
+import {
+  useEffect,
+  useRef,
+} from "react";
+
+import {
+  ActivityIndicator,
+  Animated,
+  Easing,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+
+import { Ionicons } from "@expo/vector-icons";
+
+import RewardCard from "./RewardCard";
+import styles from "../rewardStyles";
+import { useTheme } from "../../../context/ThemeContext";
+
+function RewardStore({
+  rewards = [],
+  coins = 0,
+  loading = false,
+  error = null,
+  redeemLoading = false,
+  redeemingRewardId = null,
+  onRedeem,
+  onRetry,
+}) {
+  const { theme, isDark } = useTheme();
+  const colors = theme?.colors || {};
+  const screenBackground = colors.background || (isDark ? "#171624" : "#F1F0F6");
+  const surfaceColor = colors.surface || (isDark ? "#211F30" : "#FFFFFF");
+  const textColor = colors.text || (isDark ? "#F7F5FC" : "#242424");
+  const secondaryTextColor = colors.textSecondary || colors.textMuted || (isDark ? "#C4C0D0" : "#707080");
+  const borderColor = colors.border || (isDark ? "#39364D" : "#D9D8E2");
+
+  const sectionOpacity = useRef(
+    new Animated.Value(0)
+  ).current;
+
+  const sectionTranslateY = useRef(
+    new Animated.Value(16)
+  ).current;
+
+  const headerIconScale = useRef(
+    new Animated.Value(1)
+  ).current;
+
+  const errorScale = useRef(
+    new Animated.Value(1)
+  ).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(sectionOpacity, {
+        toValue: 1,
+        duration: 450,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      }),
+      Animated.timing(sectionTranslateY, {
+        toValue: 0,
+        duration: 450,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [
+    sectionOpacity,
+    sectionTranslateY,
+  ]);
+
+  useEffect(() => {
+    if (!loading) {
+      return;
+    }
+
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(headerIconScale, {
+          toValue: 1.08,
+          duration: 700,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(headerIconScale, {
+          toValue: 1,
+          duration: 700,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+
+    animation.start();
+
+    return () => {
+      animation.stop();
+    };
+  }, [
+    loading,
+    headerIconScale,
+  ]);
+
+  const hasRewards = rewards.length > 0;
+
+  const affordableCount = rewards.filter((reward) => {
+    if (!reward) {
+      return false;
+    }
+
+    if (reward.owned === true) {
+      return false;
+    }
+
+    if (reward.active === false) {
+      return false;
+    }
+
+    return Number(reward.cost || 0) <= coins;
+  }).length;
+
+  const handleRetryPressIn = () => {
+    Animated.spring(errorScale, {
+      toValue: 0.98,
+      friction: 7,
+      tension: 140,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handleRetryPressOut = () => {
+    Animated.spring(errorScale, {
+      toValue: 1,
+      friction: 6,
+      tension: 120,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  return (
+    <Animated.View
+      style={[
+        styles.storeSection,
+        {
+          opacity: sectionOpacity,
+          transform: [
+            {
+              translateY: sectionTranslateY,
+            },
+          ],
+        },
+      ]}
+    >
+      {/* STORE HEADER */}
+      <View style={styles.sectionHeader}>
+        <View style={[styles.storeHeaderContent, { backgroundColor: surfaceColor, borderColor }]}>
+          <View style={[styles.storeTitleRow, { backgroundColor: surfaceColor, borderColor }]}>
+            <Animated.View
+              style={[
+                styles.storeIcon,
+                {
+                  transform: [
+                    {
+                      scale: headerIconScale,
+                    },
+                  ],
+                },
+              ]}
+            >
+              <Ionicons
+                name="bag-handle-outline"
+                size={18}
+                color={colors.primary || "#34345C"}
+              />
+            </Animated.View>
+
+            <View>
+              <Text style={[styles.sectionTitle, { color: textColor }]}>
+                Store
+              </Text>
+
+              <Text style={[styles.sectionSubtitle, { color: textColor }]}>
+                Spend Coins on Memento extras.
+              </Text>
+            </View>
+          </View>
+
+          {hasRewards ? (
+            <View style={[styles.rewardCountPill, { backgroundColor: surfaceColor, borderColor }]}>
+              <Text style={[styles.rewardCountText, { color: secondaryTextColor }]}>
+                {affordableCount > 0
+                  ? `${affordableCount} available`
+                  : `${rewards.length} items`}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+
+        {loading ? (
+          <ActivityIndicator
+            size="small"
+            color={colors.primary || "#34345C"}
+            style={styles.storeLoader}
+          />
+        ) : null}
+      </View>
+
+      {/* ERROR */}
+      {error ? (
+        <Animated.View
+          style={{
+            transform: [
+              {
+                scale: errorScale,
+              },
+            ],
+          }}
+        >
+          <TouchableOpacity
+            style={[
+              styles.messageCard,
+              styles.storeErrorCard,
+            ]}
+            onPress={onRetry}
+            onPressIn={handleRetryPressIn}
+            onPressOut={handleRetryPressOut}
+            activeOpacity={1}
+          >
+            <View style={[styles.messageIcon, { backgroundColor: surfaceColor, borderColor }]}>
+              <Ionicons
+                name="alert-circle-outline"
+                size={21}
+                color={colors.accent || "#E76F51"}
+              />
+            </View>
+
+            <View
+              style={[styles.storeMessageContent, { backgroundColor: surfaceColor, borderColor }]}
+            >
+              <Text
+                style={[styles.storeMessageTitle, { color: textColor }]}
+              >
+                Couldn't load rewards
+              </Text>
+
+              <Text style={[styles.messageText, { color: secondaryTextColor }]}>
+                {error}
+              </Text>
+
+              <View style={[styles.retryRow, { backgroundColor: surfaceColor, borderColor }]}>
+                <Text style={[styles.retryText, { color: secondaryTextColor }]}>
+                  Try again
+                </Text>
+
+                <Ionicons
+                  name="arrow-forward"
+                  size={14}
+                  color={colors.primary || "#34345C"}
+                />
+              </View>
+            </View>
+          </TouchableOpacity>
+        </Animated.View>
+      ) : loading && !hasRewards ? (
+        /* INITIAL LOADING */
+        <View style={styles.rewardGrid}>
+          <RewardSkeleton />
+          <RewardSkeleton delay={100} />
+          <RewardSkeleton delay={180} />
+          <RewardSkeleton delay={260} />
+        </View>
+      ) : !hasRewards ? (
+        /* EMPTY */
+        <View style={[styles.storeEmptyCard, { backgroundColor: surfaceColor, borderColor }]}>
+          <View style={[styles.storeEmptyIcon, { backgroundColor: surfaceColor, borderColor }]}>
+            <Ionicons
+              name="gift-outline"
+              size={24}
+              color={colors.primary || "#34345C"}
+            />
+          </View>
+
+          <Text style={[styles.storeEmptyTitle, { color: textColor }]}>
+            Nothing here yet
+          </Text>
+
+          <Text style={[styles.storeEmptyText, { color: secondaryTextColor }]}>
+            New Memento rewards will appear here soon.
+          </Text>
+        </View>
+      ) : (
+        /* REWARD GRID */
+        <View style={styles.rewardGrid}>
+          {rewards.map((reward, index) => {
+            const rewardId =
+              reward?._id || reward?.id;
+
+            return (
+              <RewardGridItem
+                key={
+                  rewardId ||
+                  `reward-${index}`
+                }
+                reward={reward}
+                index={index}
+                coins={coins}
+                redeemLoading={redeemLoading}
+                redeemingRewardId={
+                  redeemingRewardId
+                }
+                onRedeem={onRedeem}
+              />
+            );
+          })}
+        </View>
+      )}
+    </Animated.View>
+  );
+}
+
+function RewardGridItem({
+  reward,
+  index,
+  coins,
+  redeemLoading,
+  redeemingRewardId,
+  onRedeem,
+}) {
+  const opacity = useRef(
+    new Animated.Value(0)
+  ).current;
+
+  const translateY = useRef(
+    new Animated.Value(20)
+  ).current;
+
+  const scale = useRef(
+    new Animated.Value(0.97)
+  ).current;
+
+  useEffect(() => {
+    const delay = Math.min(index * 75, 450);
+
+    Animated.parallel([
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 380,
+        delay,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      }),
+
+      Animated.timing(translateY, {
+        toValue: 0,
+        duration: 430,
+        delay,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+
+      Animated.spring(scale, {
+        toValue: 1,
+        delay,
+        friction: 8,
+        tension: 70,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [
+    index,
+    opacity,
+    translateY,
+    scale,
+  ]);
+
+  return (
+    <Animated.View
+      style={{
+        width: "48.5%",
+        opacity,
+        transform: [
+          {
+            translateY,
+          },
+          {
+            scale,
+          },
+        ],
+      }}
+    >
+      <RewardCard
+        reward={reward}
+        coins={coins}
+        redeemLoading={redeemLoading}
+        redeemingRewardId={
+          redeemingRewardId
+        }
+        onRedeem={onRedeem}
+      />
+    </Animated.View>
+  );
+}
+
+function RewardSkeleton({
+  delay = 0,
+}) {
+  const { theme, isDark } = useTheme();
+  const colors = theme?.colors || {};
+  const screenBackground = colors.background || (isDark ? "#171624" : "#F1F0F6");
+  const surfaceColor = colors.surface || (isDark ? "#211F30" : "#FFFFFF");
+  const surfaceSecondary = colors.surfaceSecondary || (isDark ? "#292740" : "#F1F0F6");
+  const textColor = colors.text || (isDark ? "#F7F5FC" : "#242424");
+  const secondaryTextColor = colors.textSecondary || colors.textMuted || (isDark ? "#C4C0D0" : "#707080");
+  const borderColor = colors.border || (isDark ? "#39364D" : "#D9D8E2");
+  const opacity = useRef(
+    new Animated.Value(0.45)
+  ).current;
+
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacity, {
+          toValue: 0.8,
+          duration: 700,
+          delay,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+
+        Animated.timing(opacity, {
+          toValue: 0.45,
+          duration: 700,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+
+    animation.start();
+
+    return () => {
+      animation.stop();
+    };
+  }, [
+    delay,
+    opacity,
+  ]);
+
+  return (
+    <Animated.View
+      style={[
+        styles.rewardSkeleton,
+        { opacity, backgroundColor: surfaceColor, borderColor },
+      ]}
+    >
+      <View style={styles.skeletonTop}>
+        <View style={[styles.skeletonIcon, { backgroundColor: surfaceSecondary, borderColor }]} />
+
+        <View style={[styles.skeletonPill, { backgroundColor: surfaceSecondary, borderColor }]} />
+      </View>
+
+      <View style={[styles.skeletonTitle, { backgroundColor: surfaceSecondary }]} />
+
+      <View style={[styles.skeletonLine, { backgroundColor: surfaceSecondary }]} />
+
+      <View
+        style={[
+          styles.skeletonLine,
+          styles.skeletonLineShort,
+        ]}
+      />
+
+      <View style={styles.skeletonBottom}>
+        <View style={[styles.skeletonCost, { backgroundColor: surfaceSecondary }]} />
+
+        <View style={[styles.skeletonButton, { backgroundColor: surfaceSecondary, borderColor }]} />
+      </View>
+    </Animated.View>
+  );
+}
+
+export default RewardStore;
