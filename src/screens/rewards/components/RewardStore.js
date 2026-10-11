@@ -411,6 +411,7 @@ function RewardSkeleton({
   const colors = theme?.colors || {};
   const screenBackground = colors.background || (isDark ? "#171624" : "#F1F0F6");
   const surfaceColor = colors.surface || (isDark ? "#211F30" : "#FFFFFF");
+  const surfaceSecondary = colors.surfaceSecondary || (isDark ? "#292740" : "#F1F0F6");
   const textColor = colors.text || (isDark ? "#F7F5FC" : "#242424");
   const secondaryTextColor = colors.textSecondary || colors.textMuted || (isDark ? "#C4C0D0" : "#707080");
   const borderColor = colors.border || (isDark ? "#39364D" : "#D9D8E2");
@@ -452,20 +453,18 @@ function RewardSkeleton({
     <Animated.View
       style={[
         styles.rewardSkeleton,
-        {
-          opacity,
-        },
+        { opacity, backgroundColor: surfaceColor, borderColor },
       ]}
     >
       <View style={styles.skeletonTop}>
-        <View style={[styles.skeletonIcon, { backgroundColor: surfaceColor, borderColor }]} />
+        <View style={[styles.skeletonIcon, { backgroundColor: surfaceSecondary, borderColor }]} />
 
-        <View style={[styles.skeletonPill, { backgroundColor: surfaceColor, borderColor }]} />
+        <View style={[styles.skeletonPill, { backgroundColor: surfaceSecondary, borderColor }]} />
       </View>
 
-      <View style={[styles.skeletonTitle, { color: textColor }]} />
+      <View style={[styles.skeletonTitle, { backgroundColor: surfaceSecondary }]} />
 
-      <View style={styles.skeletonLine} />
+      <View style={[styles.skeletonLine, { backgroundColor: surfaceSecondary }]} />
 
       <View
         style={[
@@ -475,9 +474,9 @@ function RewardSkeleton({
       />
 
       <View style={styles.skeletonBottom}>
-        <View style={styles.skeletonCost} />
+        <View style={[styles.skeletonCost, { backgroundColor: surfaceSecondary }]} />
 
-        <View style={[styles.skeletonButton, { backgroundColor: surfaceColor, borderColor }]} />
+        <View style={[styles.skeletonButton, { backgroundColor: surfaceSecondary, borderColor }]} />
       </View>
     </Animated.View>
   );

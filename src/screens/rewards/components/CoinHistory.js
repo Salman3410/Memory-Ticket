@@ -257,14 +257,14 @@ function HistoryRow({
         >
           {transaction.description ? (
             <Text
-              style={[styles.activitySubtitle, { color: textColor }]}
+              style={[styles.activitySubtitle, { color: secondaryTextColor }]}
               numberOfLines={1}
             >
               {transaction.description}
             </Text>
           ) : dateLabel ? (
             <Text
-              style={[styles.activitySubtitle, { color: textColor }]}
+              style={[styles.activitySubtitle, { color: secondaryTextColor }]}
             >
               {dateLabel}
             </Text>
@@ -328,7 +328,7 @@ function CoinHistory({
           </Text>
 
           <Text
-            style={[styles.sectionSubtitle, { color: textColor }]}
+            style={[styles.sectionSubtitle, { color: secondaryTextColor }]}
           >
             A look at your latest Coins.
           </Text>

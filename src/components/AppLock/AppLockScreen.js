@@ -6,7 +6,6 @@ import {
   Text,
   TouchableOpacity,
   View,
-
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -65,7 +64,7 @@ function AppLockScreen({ onUnlocked }) {
       <Text style={[styles.title, { color: textColor }]}>Memento is locked</Text>
       <Text style={[styles.subtitle, { color: secondaryTextColor }]}>Unlock Memento to access your memories.</Text>
       {loading ? (
-        <ActivityIndicator size="small" color="#34345C" />
+        <ActivityIndicator size="small" color={colors.primary || "#34345C"} />
       ) : (
         <TouchableOpacity style={[styles.button, { backgroundColor: colors.primary || "#34345C" }]} onPress={unlock} activeOpacity={0.85}>
           <Ionicons name="finger-print-outline" size={19} color={colors.primaryText || "#FFFFFF"} />
