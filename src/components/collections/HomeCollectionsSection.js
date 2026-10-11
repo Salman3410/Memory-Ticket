@@ -36,7 +36,7 @@ function HomeCollectionsSection({
         </View>
       );
     },
-    [onCollectionPress],
+    [onCollectionPress, surfaceColor, borderColor],
   );
 
   const keyExtractor = useCallback(
@@ -57,12 +57,12 @@ function HomeCollectionsSection({
         <View style={styles.headerActions}>
           {collections.length > 0 ? (
             <TouchableOpacity onPress={onViewAll} activeOpacity={0.7}>
-              <Text style={styles.viewAll}>View All</Text>
+              <Text style={[styles.viewAll, { color: colors.primary || "#34345C" }]}>View All</Text>
             </TouchableOpacity>
           ) : null}
 
           <TouchableOpacity
-            style={[styles.addButton, { backgroundColor: colors.primary || '#34345C', borderColor }, { backgroundColor: surfaceColor, borderColor }]}
+            style={[styles.addButton, { backgroundColor: colors.primary || "#34345C", borderColor: colors.primary || "#34345C" }]}
             onPress={onCreate}
             activeOpacity={0.85}
           >
@@ -74,16 +74,16 @@ function HomeCollectionsSection({
       {/* EMPTY STATE */}
       {collections.length === 0 ? (
         <TouchableOpacity
-          style={styles.emptyTicket}
+          style={[styles.emptyTicket, { backgroundColor: surfaceColor, borderColor }]}
           onPress={onCreate}
           activeOpacity={0.9}
         >
-          <View style={styles.emptyTop}>
-            <View style={styles.emptyMark}>
-              <Text style={styles.emptyPlus}>+</Text>
+          <View style={[styles.emptyTop, { backgroundColor: surfaceColor }]}>
+            <View style={[styles.emptyMark, { backgroundColor: colors.primary || "#34345C" }]}>
+              <Text style={[styles.emptyPlus, { color: colors.primaryText || "#FFFFFF" }]}>+</Text>
             </View>
 
-            <View style={[styles.emptyTopText, { color: secondaryTextColor }]}>
+            <View style={styles.emptyTopText}>
               <Text style={[styles.emptyLabel, { color: secondaryTextColor }]}>NEW COLLECTION</Text>
 
               <Text style={[styles.emptyTitle, { color: textColor }]}>Give your memories a place</Text>
@@ -94,11 +94,11 @@ function HomeCollectionsSection({
             </View>
           </View>
 
-          <View style={styles.emptyDivider}>
-            <View style={styles.emptyDash} />
+          <View style={[styles.emptyDivider, { backgroundColor: surfaceColor }]}>
+            <View style={[styles.emptyDash, { borderTopColor: borderColor }]} />
           </View>
 
-          <View style={[styles.emptyFooter, { color: secondaryTextColor }]}>
+          <View style={[styles.emptyFooter, { backgroundColor: surfaceColor }]}>
             <Text style={[styles.emptyBrand, { color: secondaryTextColor }]}>MEMENTO</Text>
 
             <View style={styles.emptyBarcode}>

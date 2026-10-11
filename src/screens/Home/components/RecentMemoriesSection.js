@@ -8,6 +8,7 @@ function RecentMemoriesSection({ recentMemories, loading, navigation }) {
   const colors = theme?.colors || {};
   const screenBackground = colors.background || (isDark ? "#171624" : "#F1F0F6");
   const surfaceColor = colors.surface || (isDark ? "#211F30" : "#FFFFFF");
+  const surfaceSecondary = colors.surfaceSecondary || (isDark ? "#292740" : "#F1F0F6");
   const textColor = colors.text || (isDark ? "#F7F5FC" : "#242424");
   const secondaryTextColor = colors.textSecondary || colors.textMuted || (isDark ? "#C4C0D0" : "#707080");
   const borderColor = colors.border || (isDark ? "#39364D" : "#D9D8E2");
@@ -35,7 +36,7 @@ function RecentMemoriesSection({ recentMemories, loading, navigation }) {
         </View>
       ) : recentMemories.length === 0 ? (
         <View style={[styles.emptyCard, { backgroundColor: surfaceColor, borderColor }]}>
-          <View style={[styles.emptyIcon, { backgroundColor: surfaceColor, borderColor }]}>
+          <View style={[styles.emptyIcon, { backgroundColor: surfaceSecondary, borderColor: "transparent" }]}>
             {/* Empty state will be extracted next */}
           </View>
 
@@ -46,7 +47,7 @@ function RecentMemoriesSection({ recentMemories, loading, navigation }) {
           </Text>
 
           <TouchableOpacity
-            style={[styles.emptyButton, { backgroundColor: colors.primary || '#34345C', borderColor }, { backgroundColor: surfaceColor, borderColor }]}
+            style={[styles.emptyButton, { backgroundColor: colors.primary || "#34345C", borderColor: colors.primary || "#34345C" }]}
             onPress={() => navigation.navigate("Create")}
             activeOpacity={0.85}
           >
