@@ -1,20 +1,23 @@
-import React from "react";
-
+import React, { useMemo } from "react";
 import {
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-
 import { Ionicons } from "@expo/vector-icons";
+import { useTheme } from "../../../context/ThemeContext";
+import { createDashboardStyles } from "../dashboardStyles";
 
-import { styles } from "../dashboardStyles";
+function OnThisDayCard({ memories = [], onPress }) {
+  const { theme, isDark } = useTheme();
 
-function OnThisDayCard({
-  memories = [],
-  onPress,
-}) {
+  const styles = useMemo(
+    () => createDashboardStyles(theme, isDark),
+    [theme, isDark]
+  );
+
   const hasMemories = memories.length > 0;
+  const primaryColor = theme.colors.primary;
 
   return (
     <TouchableOpacity
@@ -27,7 +30,7 @@ function OnThisDayCard({
           <Ionicons
             name="time-outline"
             size={18}
-            color="#34345C"
+            color={primaryColor}
           />
         </View>
 
@@ -57,11 +60,10 @@ function OnThisDayCard({
       <Ionicons
         name="chevron-forward"
         size={19}
-        color="#34345C"
+        color={primaryColor}
       />
     </TouchableOpacity>
   );
 }
 
 export default React.memo(OnThisDayCard);
-

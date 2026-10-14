@@ -1,8 +1,8 @@
 import React, { useMemo } from "react";
 import { Image, Text, TouchableOpacity, View } from "react-native";
-
+import { useTheme } from "../../../context/ThemeContext";
 import { getMemoryThumbnailUrl } from "../../../utils/cloudinary";
-import { styles } from "../dashboardStyles";
+import { createDashboardStyles } from "../dashboardStyles";
 
 function formatDate(value) {
   if (!value) {
@@ -23,6 +23,13 @@ function formatDate(value) {
 }
 
 function DashboardMemoryCard({ memory, onPress }) {
+  const { theme, isDark } = useTheme();
+
+  const styles = useMemo(
+    () => createDashboardStyles(theme, isDark),
+    [theme, isDark]
+  );
+
   const imageUri = useMemo(() => {
     const uri = memory?.images?.[0] || memory?.image || null;
 
@@ -30,7 +37,6 @@ function DashboardMemoryCard({ memory, onPress }) {
   }, [memory]);
 
   const date = formatDate(memory?.createdAt || memory?.date);
-
   const location = memory?.locationData?.city || memory?.location || "";
 
   return (
@@ -58,7 +64,9 @@ function DashboardMemoryCard({ memory, onPress }) {
           {memory?.title || "Untitled memory"}
         </Text>
 
-        {!!date && <Text style={styles.memoryDate}>{date}</Text>}
+        {!!date && (
+          <Text style={styles.memoryDate}>{date}</Text>
+        )}
 
         {!!location && (
           <Text numberOfLines={1} style={styles.memoryLocation}>

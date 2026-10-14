@@ -1,12 +1,9 @@
 import React, { useMemo } from "react";
-
 import { Image, Text, TouchableOpacity, View } from "react-native";
-
 import { Ionicons } from "@expo/vector-icons";
-
+import { useTheme } from "../../../context/ThemeContext";
 import { getMemoryDetailUrl } from "../../../utils/cloudinary";
-
-import { styles } from "../dashboardStyles";
+import { createDashboardStyles } from "../dashboardStyles";
 
 function formatDate(memory) {
   const value = memory?.createdAt || memory?.date;
@@ -29,6 +26,13 @@ function formatDate(memory) {
 }
 
 function DashboardSpotlightCard({ memory, onPress }) {
+  const { theme, isDark } = useTheme();
+
+  const styles = useMemo(
+    () => createDashboardStyles(theme, isDark),
+    [theme, isDark]
+  );
+
   const imageUri = useMemo(() => {
     const image = memory?.images?.[0] || memory?.image || null;
 
@@ -36,8 +40,11 @@ function DashboardSpotlightCard({ memory, onPress }) {
   }, [memory]);
 
   const location = memory?.locationData?.city || memory?.location || "";
-
   const date = formatDate(memory);
+
+  const primaryColor = theme.colors.primary;
+  const placeholderColor =
+    theme.colors.textSecondary || (isDark ? "#B7B6C8" : "#777681");
 
   return (
     <TouchableOpacity
@@ -54,12 +61,18 @@ function DashboardSpotlightCard({ memory, onPress }) {
           />
         ) : (
           <View style={styles.spotlightPlaceholder}>
-            <Ionicons name="image-outline" size={34} color="#777681" />
+            <Ionicons
+              name="image-outline"
+              size={34}
+              color={placeholderColor}
+            />
           </View>
         )}
 
         <View style={styles.spotlightBadge}>
-          <Text style={styles.spotlightBadgeText}>MEMORY SPOTLIGHT</Text>
+          <Text style={styles.spotlightBadgeText}>
+            MEMORY SPOTLIGHT
+          </Text>
         </View>
       </View>
 
@@ -69,13 +82,24 @@ function DashboardSpotlightCard({ memory, onPress }) {
             {memory?.title || "A moment worth remembering"}
           </Text>
 
-          {date && <Text style={styles.spotlightDate}>{date}</Text>}
+          {date && (
+            <Text style={styles.spotlightDate}>
+              {date}
+            </Text>
+          )}
 
           {location && (
             <View style={styles.spotlightLocationRow}>
-              <Ionicons name="location-outline" size={13} color="#34345C" />
+              <Ionicons
+                name="location-outline"
+                size={13}
+                color={primaryColor}
+              />
 
-              <Text numberOfLines={1} style={styles.spotlightLocation}>
+              <Text
+                numberOfLines={1}
+                style={styles.spotlightLocation}
+              >
                 {location}
               </Text>
             </View>
@@ -83,7 +107,11 @@ function DashboardSpotlightCard({ memory, onPress }) {
         </View>
 
         <View style={styles.spotlightArrow}>
-          <Ionicons name="chevron-forward" size={18} color="#34345C" />
+          <Ionicons
+            name="chevron-forward"
+            size={18}
+            color={primaryColor}
+          />
         </View>
       </View>
     </TouchableOpacity>

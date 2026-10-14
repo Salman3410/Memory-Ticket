@@ -1,9 +1,15 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Text, View } from "react-native";
+import { useTheme } from "../../../context/ThemeContext";
+import { createDashboardStyles } from "../dashboardStyles";
+function PlacesPreview({ places = [] }) {
+  const { theme, isDark } = useTheme();
 
-import { styles } from "../dashboardStyles";
+  const styles = useMemo(
+    () => createDashboardStyles(theme, isDark),
+    [theme, isDark]
+  );
 
-function PlacesPreview({ places }) {
   return (
     <View style={styles.placesCard}>
       {places.map((place, index) => (

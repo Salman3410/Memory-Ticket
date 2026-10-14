@@ -1,15 +1,23 @@
-import React from "react";
-
+import React, { useMemo } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
+import { useTheme } from "../../../context/ThemeContext";
+import { createDashboardStyles } from "../dashboardStyles";
 
-import { styles } from "../dashboardStyles";
+function CollectionsPreview({ collections = [], onPress }) {
+  const { theme, isDark } = useTheme();
 
-function CollectionsPreview({ collections, onPress }) {
+  const styles = useMemo(
+    () => createDashboardStyles(theme, isDark),
+    [theme, isDark]
+  );
+
   return (
     <View style={styles.collectionsGrid}>
       {collections.map((collection, index) => {
         const name =
-          collection?.name || collection?.title || `Collection ${index + 1}`;
+          collection?.name ||
+          collection?.title ||
+          `Collection ${index + 1}`;
 
         const count =
           collection?.memoryCount ??
@@ -19,12 +27,19 @@ function CollectionsPreview({ collections, onPress }) {
 
         return (
           <TouchableOpacity
-            key={collection?.id || collection?._id || `${name}-${index}`}
+            key={
+              collection?.id ||
+              collection?._id ||
+              `${name}-${index}`
+            }
             activeOpacity={0.8}
             onPress={() => onPress?.(collection)}
             style={styles.collectionCard}
           >
-            <Text numberOfLines={1} style={styles.collectionName}>
+            <Text
+              numberOfLines={1}
+              style={styles.collectionName}
+            >
               {name}
             </Text>
 
