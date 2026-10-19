@@ -235,7 +235,11 @@ export async function deleteMemory(token, memoryId) {
   });
 }
 
-export async function toggleFavorite(token, memoryId) {
+export async function toggleFavorite(
+  token,
+  memoryId,
+  isFavorite,
+) {
   if (!memoryId) {
     return {
       success: false,
@@ -243,9 +247,17 @@ export async function toggleFavorite(token, memoryId) {
     };
   }
 
+  if (typeof isFavorite !== "boolean") {
+    return {
+      success: false,
+      message: "Favorite state must be a boolean.",
+    };
+  }
+
   return apiRequest(`/memories/${memoryId}/favorite`, {
     method: "PATCH",
     token,
+    body: { isFavorite },
   });
 }
 

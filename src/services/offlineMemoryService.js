@@ -2,15 +2,27 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as FileSystem from "expo-file-system/legacy";
 import * as ImageManipulator from "expo-image-manipulator";
 
-const PENDING_MEMORIES_KEY = "@memory_ticket_pending_memories";
-const LOCAL_MEMORIES_KEY = "@memory_ticket_local_memories";
-const OFFLINE_IMAGES_DIRECTORY = `${FileSystem.documentDirectory}memory-ticket-offline/`;
+const PENDING_MEMORIES_KEY =
+  "@memory_ticket_pending_memories";
+
+const LOCAL_MEMORIES_KEY =
+  "@memory_ticket_local_memories";
+
+const PENDING_MEMORY_OPERATIONS_KEY =
+  "@memory_ticket_pending_memory_operations";
+
+const OFFLINE_IMAGES_DIRECTORY =
+  `${FileSystem.documentDirectory}memory-ticket-offline/`;
 
 const MAX_IMAGE_SIZE = 1600;
 const IMAGE_QUALITY = 0.8;
 
 let pendingMemoriesCache = null;
 let localMemoriesCache = null;
+let pendingMemoryOperationsCache = null;
+
+let pendingMemoryOperationsWritePromise =
+  Promise.resolve();
 
 let pendingWritePromise = Promise.resolve();
 let localWritePromise = Promise.resolve();
@@ -446,4 +458,170 @@ export const getOfflineMemories = async () => {
   }
 
   return unique;
+};
+
+export const getPendingMemoryOperations = async () => {
+  if (pendingMemoryOperationsCache !== null) {
+    return pendingMemoryOperationsCache;
+  }
+
+  try {
+    const raw = await AsyncStorage.getItem(
+      PENDING_MEMORY_OPERATIONS_KEY,
+    );
+
+    if (!raw) {
+      pendingMemoryOperationsCache = [];
+      return pendingMemoryOperationsCache;
+    }
+    const parsed = JSON.parse(raw);
+
+    pendingMemoryOperationsCache = Array.isArray(parsed)
+      ? parsed
+      : [];
+    return pendingMemoryOperationsCache;
+  } catch (error) {
+    console.error(
+      "Get pending memory operations error:",
+      error,
+    );
+    pendingMemoryOperationsCache = [];
+    return pendingMemoryOperationsCache;
+  }
+};
+
+const writePendingMemoryOperations = (operations) => {
+  pendingMemoryOperationsCache = Array.isArray(operations)
+    ? operations
+    : [];
+
+  pendingMemoryOperationsWritePromise =
+    pendingMemoryOperationsWritePromise
+      .catch(() => {})
+      .then(() =>
+        AsyncStorage.setItem(
+          PENDING_MEMORY_OPERATIONS_KEY,
+          JSON.stringify(pendingMemoryOperationsCache),
+        ),
+      );
+
+  return pendingMemoryOperationsWritePromise.then(
+    () => pendingMemoryOperationsCache,
+  );
+};
+
+const getOperationMemoryKey = (operation) =>
+  String(
+    operation.clientMemoryId ||
+      operation.memoryId ||
+      "",
+  );
+
+export const addPendingMemoryOperation = async (
+  operation,
+) => {
+  const allowedTypes = [
+    "update",
+    "favorite",
+    "delete",
+  ];
+
+  if (
+    !operation?.type ||
+    !allowedTypes.includes(operation.type)
+  ) {
+    throw new Error(
+      "Unsupported pending memory operation.",
+    );
+  }
+
+  const targetKey = getOperationMemoryKey(operation);
+
+  if (!targetKey) {
+    throw new Error(
+      "A memory ID is required for a queued operation.",
+    );
+  }
+
+  const now = Date.now();
+
+  const normalized = {
+    ...operation,
+    operationId:
+      operation.operationId ||
+      `mutation-${now}-${Math.random()
+        .toString(36)
+        .slice(2, 10)}`,
+    createdAt: operation.createdAt || now,
+    updatedAt: now,
+  };
+
+  const current = await getPendingMemoryOperations();
+  let next = current.slice();
+
+  if (operation.type === "delete") {
+    next = next.filter(
+      (item) =>
+        getOperationMemoryKey(item) !== targetKey,
+    );
+    next.push(normalized);
+    return writePendingMemoryOperations(next);
+  }
+
+  const existingIndex = next.findIndex(
+    (item) =>
+      getOperationMemoryKey(item) === targetKey &&
+      item.type === operation.type,
+  );
+
+  if (existingIndex >= 0) {
+    const existing = next[existingIndex];
+    next[existingIndex] = {
+      ...existing,
+      ...normalized,
+      operationId: normalized.operationId,
+      createdAt: now,
+      payload:
+        operation.type === "update"
+          ? {
+              ...(existing.payload || {}),
+              ...(operation.payload || {}),
+            }
+          : normalized.payload,
+    };
+  } else {
+    next.push(normalized);
+  }
+  next.sort(
+    (a, b) =>
+      Number(a.createdAt || 0) -
+      Number(b.createdAt || 0),
+  );
+  return writePendingMemoryOperations(next);
+};
+
+export const removePendingMemoryOperation = async (
+  operationId,
+) => {
+  const current = await getPendingMemoryOperations();
+  const next = current.filter(
+    (operation) =>
+      operation.operationId !== operationId,
+  );
+
+  return writePendingMemoryOperations(next);
+};
+
+export const clearPendingMemoryOperations = async () => {
+  pendingMemoryOperationsCache = [];
+  pendingMemoryOperationsWritePromise =
+    pendingMemoryOperationsWritePromise
+      .catch(() => {})
+      .then(() =>
+        AsyncStorage.removeItem(
+          PENDING_MEMORY_OPERATIONS_KEY,
+        ),
+      );
+
+  return pendingMemoryOperationsWritePromise;
 };
