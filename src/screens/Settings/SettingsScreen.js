@@ -376,6 +376,8 @@ function SettingsScreen({ navigation }) {
           icon="lock-closed-outline"
         />
 
+        <AppearanceSection />
+
         <StorageSection
           memories={memories}
           storageSize={storageSize}
@@ -383,8 +385,6 @@ function SettingsScreen({ navigation }) {
           formatStorageSize={formatStorageSize}
           onClearStorage={handleClearStorage}
         />
-
-        <AppearanceSection />
 
         <AccountSection
           navigation={navigation}

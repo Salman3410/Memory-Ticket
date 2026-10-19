@@ -1,5 +1,4 @@
 import { useEffect } from "react";
-
 import {
   View,
   Text,
@@ -16,15 +15,48 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
+import { useTheme } from "../context/ThemeContext";
+
 import LoginScreen from "../screens/Auth/LoginScreen";
 import SignupScreen from "../screens/Auth/SignupScreen";
 
 const Tab = createMaterialTopTabNavigator();
 
-const AnimatedView =
-  Animated.createAnimatedComponent(View);
+const AnimatedView = Animated.createAnimatedComponent(View);
 
 function AuthTabs() {
+  const { theme, isDark } = useTheme();
+  const colors = theme?.colors || {};
+
+  const backgroundColor =
+    colors.background || (isDark ? "#171624" : "#F1F0F6");
+
+  const surfaceColor =
+    colors.surface || (isDark ? "#211F30" : "#FFFFFF");
+
+  const textColor =
+    colors.text || (isDark ? "#F7F5FC" : "#242424");
+
+  const secondaryTextColor =
+    colors.textSecondary ||
+    colors.textMuted ||
+    (isDark ? "#C4C0D0" : "#8B8A98");
+
+  const borderColor =
+    colors.border || (isDark ? "#39364D" : "#D9D8E2");
+
+  const primaryColor =
+    colors.primary || (isDark ? "#C8C2FF" : "#34345C");
+
+  const styles = createStyles({
+    backgroundColor,
+    surfaceColor,
+    textColor,
+    secondaryTextColor,
+    borderColor,
+    primaryColor,
+  });
+
   const brandOpacity = useSharedValue(0);
   const brandY = useSharedValue(10);
 
@@ -38,18 +70,12 @@ function AuthTabs() {
       duration: 450,
       easing: Easing.out(Easing.cubic),
     });
-  }, []);
+  }, [brandOpacity, brandY]);
 
-  const brandAnimatedStyle = useAnimatedStyle(() => {
-    return {
-      opacity: brandOpacity.value,
-      transform: [
-        {
-          translateY: brandY.value,
-        },
-      ],
-    };
-  });
+  const brandAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: brandOpacity.value,
+    transform: [{ translateY: brandY.value }],
+  }));
 
   return (
     <View style={styles.authTabsContainer}>
@@ -79,6 +105,10 @@ function AuthTabs() {
         screenOptions={{
           swipeEnabled: true,
 
+          sceneStyle: {
+            backgroundColor,
+          },
+
           tabBarStyle: styles.tabBar,
 
           tabBarContentContainerStyle:
@@ -90,11 +120,9 @@ function AuthTabs() {
           tabBarLabelStyle:
             styles.tabBarLabel,
 
-          tabBarActiveTintColor:
-            "#34345C",
+          tabBarActiveTintColor: primaryColor,
 
-          tabBarInactiveTintColor:
-            "#8B8A98",
+          tabBarInactiveTintColor: secondaryTextColor,
 
           tabBarIndicatorStyle:
             styles.tabBarIndicator,
@@ -102,8 +130,7 @@ function AuthTabs() {
           tabBarIndicatorContainerStyle:
             styles.tabBarIndicatorContainer,
 
-          tabBarPressColor:
-            "transparent",
+          tabBarPressColor: "transparent",
 
           tabBarPressOpacity: 0.7,
 
@@ -132,101 +159,96 @@ function AuthTabs() {
   );
 }
 
-const styles = StyleSheet.create({
-  authTabsContainer: {
-    flex: 1,
-    backgroundColor: "#F1F0F6",
-  },
+function createStyles({
+  backgroundColor,
+  surfaceColor,
+  textColor,
+  secondaryTextColor,
+  borderColor,
+  primaryColor,
+}) {
+  return StyleSheet.create({
+    authTabsContainer: {
+      flex: 1,
+      backgroundColor,
+    },
 
-  // =========================
-  // MEMENTO BRAND
-  // =========================
+    // MEMENTO BRAND
+    brandContainer: {
+      alignItems: "center",
+      justifyContent: "center",
+      marginBottom: 8,
+      paddingTop: 70,
+    },
 
-  brandContainer: {
-    alignItems: "center",
-    justifyContent: "center",
+    brandIcon: {
+      width: 62,
+      height: 62,
+      alignItems: "center",
+      justifyContent: "center",
+      overflow: "hidden",
+      borderRadius: 18,
+      backgroundColor: surfaceColor,
+      borderWidth: 1,
+      borderColor,
+    },
 
-    marginBottom: 8,
+    logoImage: {
+      width: 62,
+      height: 62,
+      maxWidth: 62,
+      maxHeight: 62,
+    },
 
-    paddingTop: 70,
-  },
+    brandText: {
+      marginTop: 10,
+      fontSize: 18,
+      fontWeight: "800",
+      letterSpacing: 3,
+      color: textColor,
+    },
 
-  brandIcon: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
+    // TOP TAB BAR
+    tabBar: {
+      height: 58,
+      backgroundColor,
+      elevation: 0,
+      shadowColor: "transparent",
+      shadowOpacity: 0,
+      shadowRadius: 0,
+      borderBottomWidth: 1,
+      borderBottomColor: borderColor,
+    },
 
-  logoImage: {
-    width: 58,
-    height: 58,
-    borderRadius: 30,
-  },
+    tabBarContent: {
+      paddingHorizontal: 18,
+      paddingTop: 6,
+      paddingBottom: 6,
+    },
 
-  brandText: {
-    marginTop: 10,
+    tabBarItem: {
+      minHeight: 46,
+      justifyContent: "center",
+    },
 
-    fontSize: 18,
-    fontWeight: "800",
+    tabBarLabel: {
+      fontSize: 12,
+      fontWeight: "700",
+      letterSpacing: 1,
+      textAlign: "center",
+    },
 
-    letterSpacing: 3,
+    tabBarIndicatorContainer: {
+      paddingHorizontal: 18,
+    },
 
-    color: "#34345C",
-  },
-
-  // =========================
-  // TOP TAB BAR
-  // =========================
-
-  tabBar: {
-    height: 58,
-
-    backgroundColor: "#F1F0F6",
-
-    elevation: 0,
-
-    shadowColor: "transparent",
-    shadowOpacity: 0,
-    shadowRadius: 0,
-
-    borderBottomWidth: 0,
-  },
-
-  tabBarContent: {
-    paddingHorizontal: 18,
-
-    paddingTop: 6,
-    paddingBottom: 6,
-  },
-
-  tabBarItem: {
-    minHeight: 46,
-
-    justifyContent: "center",
-  },
-
-  tabBarLabel: {
-    fontSize: 12,
-
-    fontWeight: "700",
-
-    letterSpacing: 1,
-
-    textAlign: "center",
-  },
-
-  tabBarIndicatorContainer: {
-    paddingHorizontal: 18,
-  },
-
-  tabBarIndicator: {
-    height: 3,
-
-    backgroundColor: "#34345C",
-
-    borderRadius: 3,
-
-    marginHorizontal: 34,
-  },
-});
+    tabBarIndicator: {
+      height: 3,
+      backgroundColor: primaryColor,
+      borderRadius: 3,
+      marginHorizontal: 34,
+    },
+  });
+}
 
 export default AuthTabs;

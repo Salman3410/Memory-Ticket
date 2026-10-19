@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from "react";
 
 import {
-ActivityIndicator,
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -15,18 +15,44 @@ ActivityIndicator,
 import { Ionicons } from "@expo/vector-icons";
 
 import { useCollection } from "../../hooks/useCollection";
-
-import styles from "./createCollectionStyles";
 import { useTheme } from "../../context/ThemeContext";
+import styles from "./createCollectionStyles";
 
 function CreateCollectionScreen({ navigation }) {
   const { theme, isDark } = useTheme();
   const colors = theme?.colors || {};
-  const screenBackground = colors.background || (isDark ? "#171624" : "#F1F0F6");
-  const surfaceColor = colors.surface || (isDark ? "#211F30" : "#FFFFFF");
-  const textColor = colors.text || (isDark ? "#F7F5FC" : "#242424");
-  const secondaryTextColor = colors.textSecondary || colors.textMuted || (isDark ? "#C4C0D0" : "#707080");
-  const borderColor = colors.border || (isDark ? "#39364D" : "#D9D8E2");
+
+  const screenBackground =
+    colors.background || (isDark ? "#171624" : "#F1F0F6");
+
+  const surfaceColor =
+    colors.surface || (isDark ? "#211F30" : "#FFFFFF");
+
+  const textColor =
+    colors.text || (isDark ? "#F7F5FC" : "#242424");
+
+  const secondaryTextColor =
+    colors.textSecondary ||
+    colors.textMuted ||
+    (isDark ? "#C4C0D0" : "#707080");
+
+  const mutedTextColor =
+    colors.textMuted || (isDark ? "#89849C" : "#9A99A5");
+
+  const borderColor =
+    colors.border || (isDark ? "#39364D" : "#D9D8E2");
+
+  const inputBackground =
+    colors.input || (isDark ? "#292638" : "#F8F8FA");
+
+  const primaryColor =
+    colors.primary || (isDark ? "#C8C2FF" : "#34345C");
+
+  const primaryTextColor =
+    colors.primaryText || (isDark ? "#25223D" : "#FFFFFF");
+
+  const disabledButtonColor =
+    isDark ? "#383548" : "#D9D8E2";
 
   const { createCollection } = useCollection();
 
@@ -38,7 +64,7 @@ function CreateCollectionScreen({ navigation }) {
     const trimmedName = name.trim();
     const trimmedDescription = description.trim();
 
-    if (!trimmedName) {
+    if (!trimmedName || saving) {
       return;
     }
 
@@ -64,7 +90,7 @@ function CreateCollectionScreen({ navigation }) {
     } finally {
       setSaving(false);
     }
-  }, [name, description, createCollection, navigation]);
+  }, [name, description, saving, createCollection, navigation]);
 
   const handleCancel = useCallback(() => {
     if (saving) {
@@ -78,77 +104,204 @@ function CreateCollectionScreen({ navigation }) {
 
   return (
     <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: screenBackground }]}
+      style={[
+        styles.container,
+        { flex: 1, backgroundColor: screenBackground },
+      ]}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={screenBackground} />
-      {/* HEADER */}
+      <StatusBar
+        barStyle={isDark ? "light-content" : "dark-content"}
+        backgroundColor={screenBackground}
+      />
 
-      <View style={[styles.header, { backgroundColor: screenBackground }]}>
+      {/* HEADER */}
+      <View
+        style={[
+          styles.header,
+          {
+            backgroundColor: screenBackground,
+            borderBottomColor: borderColor,
+          },
+        ]}
+      >
         <TouchableOpacity
           onPress={handleCancel}
           disabled={saving}
           activeOpacity={0.7}
+          style={styles.headerAction}
         >
-          <Text style={[styles.cancelText, { color: colors.primary || "#34345C" }]}>Cancel</Text>
+          <Text
+            style={[
+              styles.cancelText,
+              { color: primaryColor },
+            ]}
+          >
+            Cancel
+          </Text>
         </TouchableOpacity>
 
-        <Text style={[styles.headerTitle, { color: textColor }]}>New Collection</Text>
+        <Text
+          style={[
+            styles.headerTitle,
+            { color: textColor },
+          ]}
+        >
+          New Collection
+        </Text>
 
-        <View style={styles.headerSpacer} />
+        <View
+          style={[
+            styles.headerSpacer,
+            { backgroundColor: "transparent" },
+          ]}
+        />
       </View>
 
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          { backgroundColor: screenBackground },
+        ]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {/* PREVIEW */}
-
-        <View style={[styles.previewTicket, { backgroundColor: surfaceColor, borderColor }]}>
+        {/* COLLECTION TICKET PREVIEW */}
+        <View
+          style={[
+            styles.previewTicket,
+            {
+              backgroundColor: surfaceColor,
+              borderColor,
+            },
+          ]}
+        >
           <View style={styles.previewTop}>
-            <View style={styles.previewMark}>
-              <Text style={[styles.previewMarkText, { color: secondaryTextColor }]}>M</Text>
+            <View
+              style={[
+                styles.previewMark,
+                {
+                  backgroundColor: inputBackground,
+                  borderColor,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.previewMarkText,
+                  { color: primaryColor },
+                ]}
+              >
+                M
+              </Text>
             </View>
 
-            <View style={[styles.previewText, { color: secondaryTextColor }]}>
-              <Text style={[styles.previewLabel, { color: secondaryTextColor }]}>NEW COLLECTION</Text>
+            <View style={styles.previewText}>
+              <Text
+                style={[
+                  styles.previewLabel,
+                  { color: secondaryTextColor },
+                ]}
+              >
+                NEW COLLECTION
+              </Text>
 
-              <Text style={[styles.previewName, { color: textColor }]} numberOfLines={2}>
+              <Text
+                style={[
+                  styles.previewName,
+                  { color: textColor },
+                ]}
+                numberOfLines={2}
+              >
                 {name.trim() || "Your Collection"}
               </Text>
 
-              <Text style={[styles.previewCount, { color: secondaryTextColor }]}>0 MEMORIES</Text>
+              <Text
+                style={[
+                  styles.previewCount,
+                  { color: secondaryTextColor },
+                ]}
+              >
+                0 MEMORIES
+              </Text>
             </View>
           </View>
 
-          <View style={styles.previewDivider} />
+          <View
+            style={[
+              styles.previewDivider,
+              { borderTopColor: borderColor },
+            ]}
+          />
 
-          <View style={[styles.previewFooter, { color: secondaryTextColor }]}>
-            <Text style={styles.previewBrand}>MEMENTO</Text>
+          <View style={styles.previewFooter}>
+            <Text
+              style={[
+                styles.previewBrand,
+                { color: secondaryTextColor },
+              ]}
+            >
+              MEMENTO
+            </Text>
 
             <View style={styles.previewBarcode}>
               {[4, 2, 5, 3, 6, 2].map((width, index) => (
-                <View key={index} style={[styles.previewBar, { width }]} />
+                <View
+                  key={index}
+                  style={[
+                    styles.previewBar,
+                    {
+                      width,
+                      backgroundColor: primaryColor,
+                    },
+                  ]}
+                />
               ))}
             </View>
           </View>
         </View>
 
-        {/* NAME */}
-
+        {/* COLLECTION NAME */}
         <View style={styles.fieldContainer}>
-          <Text style={[styles.label, { color: secondaryTextColor }]}>COLLECTION NAME</Text>
+          <Text
+            style={[
+              styles.label,
+              { color: secondaryTextColor },
+            ]}
+          >
+            COLLECTION NAME
+          </Text>
 
-          <View style={[styles.inputWithIcon, { backgroundColor: surfaceColor, borderColor }]}>
-            <Ionicons name="albums-outline" size={17} color={colors.textMuted || "#7E7E88"} />
+          <View
+            style={[
+              styles.inputWithIcon,
+              {
+                backgroundColor: inputBackground,
+                borderColor,
+              },
+            ]}
+          >
+            <Ionicons
+              name="albums-outline"
+              size={19}
+              color={secondaryTextColor}
+            />
 
             <TextInput
               value={name}
               onChangeText={setName}
               placeholder="e.g. Turkey Trip"
-              placeholderTextColor={colors.textMuted || "#9A9AA3"}
-              style={[styles.input, { backgroundColor: colors.input || surfaceColor, borderColor, color: textColor }]}
+              placeholderTextColor={mutedTextColor}
+              style={[
+                styles.input,
+                {
+                  flex: 1,
+                  minWidth: 0,
+                  backgroundColor: inputBackground,
+                  color: textColor,
+                  borderColor: "transparent",
+                },
+              ]}
               maxLength={100}
               autoFocus
               autoCapitalize="sentences"
@@ -157,34 +310,88 @@ function CreateCollectionScreen({ navigation }) {
             />
           </View>
 
-          <Text style={[styles.characterCount, { color: secondaryTextColor }]}>{name.length}/100</Text>
+          <Text
+            style={[
+              styles.characterCount,
+              { color: secondaryTextColor },
+            ]}
+          >
+            {name.length}/100
+          </Text>
         </View>
 
         {/* DESCRIPTION */}
-
         <View style={styles.fieldContainer}>
-          <Text style={[styles.label, { color: secondaryTextColor }]}>DESCRIPTION</Text>
+          <Text
+            style={[
+              styles.label,
+              { color: secondaryTextColor },
+            ]}
+          >
+            DESCRIPTION
+          </Text>
 
           <TextInput
             value={description}
             onChangeText={setDescription}
             placeholder="Add a short description"
-            placeholderTextColor={colors.textMuted || "#9A9AA3"}
-            style={[styles.descriptionInput, { backgroundColor: colors.input || surfaceColor, borderColor, color: textColor }]}
+            placeholderTextColor={mutedTextColor}
+            style={[
+              styles.descriptionInput,
+              {
+                backgroundColor: inputBackground,
+                borderColor,
+                color: textColor,
+              },
+            ]}
             maxLength={200}
             multiline
             textAlignVertical="top"
           />
 
-          <Text style={[styles.characterCount, { color: secondaryTextColor }]}>{description.length}/200</Text>
+          <Text
+            style={[
+              styles.characterCount,
+              { color: secondaryTextColor },
+            ]}
+          >
+            {description.length}/200
+          </Text>
         </View>
 
-        {/* HELPER */}
+        {/* HELPER SECTION */}
+        <View
+          style={[
+            styles.helper,
+            {
+              backgroundColor: surfaceColor,
+              borderColor,
+            },
+          ]}
+        >
+          <View style={styles.helperHeadingRow}>
+            <Ionicons
+              name="ticket-outline"
+              size={18}
+              color={primaryColor}
+            />
 
-        <View style={[styles.helper, { color: secondaryTextColor }]}>
-          <Text style={[styles.helperTitle, { color: textColor }]}>BUILD YOUR TICKET</Text>
+            <Text
+              style={[
+                styles.helperTitle,
+                { color: textColor },
+              ]}
+            >
+              BUILD YOUR TICKET
+            </Text>
+          </View>
 
-          <Text style={[styles.helperText, { color: secondaryTextColor }]}>
+          <Text
+            style={[
+              styles.helperText,
+              { color: secondaryTextColor },
+            ]}
+          >
             Add memories after creating the collection. The same memory can
             belong to multiple collections.
           </Text>
@@ -192,21 +399,59 @@ function CreateCollectionScreen({ navigation }) {
       </ScrollView>
 
       {/* FOOTER */}
-
-      <View style={[styles.footer, { color: secondaryTextColor }]}>
+      <View
+        style={[
+          styles.footer,
+          {
+            backgroundColor: screenBackground,
+            borderTopColor: borderColor,
+          },
+        ]}
+      >
         <TouchableOpacity
           style={[
             styles.createButton,
-            isDisabled && styles.createButtonDisabled,
+            {
+              backgroundColor: isDisabled
+                ? disabledButtonColor
+                : primaryColor,
+              opacity: saving ? 0.8 : 1,
+            },
           ]}
           onPress={handleCreate}
           disabled={isDisabled}
           activeOpacity={0.85}
         >
           {saving ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
+            <ActivityIndicator
+              size="small"
+              color={isDisabled ? secondaryTextColor : primaryTextColor}
+            />
           ) : (
-            <Text style={[styles.createButtonText, { color: colors.primaryText || "#FFFFFF" }]}>Create Collection</Text>
+            <>
+              <Text
+                style={[
+                  styles.createButtonText,
+                  {
+                    color: isDisabled
+                      ? secondaryTextColor
+                      : primaryTextColor,
+                  },
+                ]}
+              >
+                Create Collection
+              </Text>
+
+              <Ionicons
+                name="arrow-forward"
+                size={18}
+                color={
+                  isDisabled
+                    ? secondaryTextColor
+                    : primaryTextColor
+                }
+              />
+            </>
           )}
         </TouchableOpacity>
       </View>

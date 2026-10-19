@@ -1,313 +1,270 @@
 import { StyleSheet } from "react-native";
 
 const styles = StyleSheet.create({
-  // --------------------------------
   // CONTAINER
-  // --------------------------------
-
   container: {
     flex: 1,
     backgroundColor: "#F1F0F6",
   },
 
-  // --------------------------------
   // HEADER
-  // --------------------------------
-
   header: {
-    height: 80,
-
-    paddingTop: 20,
+    minHeight: 64,
+    marginTop:20,
     paddingHorizontal: 20,
-
+    paddingVertical: 12,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "#D9D8E2",
+  },
 
-    borderBottomWidth: 1,
-    borderBottomColor: "#E1E0E8",
+  headerAction: {
+    width: 64,
+    minHeight: 40,
+    justifyContent: "center",
   },
 
   cancelText: {
-    fontSize: 12,
-    fontWeight: "800",
+    fontSize: 13,
+    fontWeight: "700",
     color: "#34345C",
   },
 
   headerTitle: {
-    fontSize: 18,
-    fontWeight: "800",
+    flex: 1,
+    fontSize: 16,
+    fontWeight: "700",
     color: "#242424",
+    textAlign: "center",
   },
 
   headerSpacer: {
-    width: 52,
+    width: 64,
+    minHeight: 40,
   },
 
-  // --------------------------------
-  // CONTENT
-  // --------------------------------
-
+  // SCROLL CONTENT
   content: {
-    padding: 20,
-    paddingBottom: 35,
+    flexGrow: 1,
+    paddingHorizontal: 20,
+    paddingTop: 22,
+    paddingBottom: 28,
   },
 
-  // --------------------------------
-  // PREVIEW
-  // --------------------------------
-
+  // COLLECTION TICKET PREVIEW
   previewTicket: {
+    width: "100%",
     overflow: "hidden",
-
+    marginBottom: 28,
     borderRadius: 16,
-
+    borderWidth: 1,
+    borderColor: "#D9D8E2",
     backgroundColor: "#FFFFFF",
-
-    marginBottom: 26,
   },
 
   previewTop: {
-    minHeight: 120,
-
-    padding: 17,
-
+    minHeight: 112,
+    paddingHorizontal: 16,
+    paddingVertical: 18,
     flexDirection: "row",
     alignItems: "center",
   },
 
   previewMark: {
-    width: 58,
-    height: 58,
-
-    borderRadius: 29,
-
+    width: 52,
+    height: 52,
+    flexShrink: 0,
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: "#D9D8E2",
     alignItems: "center",
     justifyContent: "center",
-
-    backgroundColor: "#34345C",
+    backgroundColor: "#F8F8FA",
   },
 
   previewMarkText: {
     fontSize: 21,
     fontWeight: "800",
-
-    color: "#FFFFFF",
+    color: "#34345C",
   },
 
   previewText: {
     flex: 1,
+    minWidth: 0,
     marginLeft: 14,
   },
 
   previewLabel: {
-    fontSize: 8,
-    fontWeight: "900",
-    letterSpacing: 1.5,
-
+    fontSize: 9,
+    fontWeight: "800",
+    letterSpacing: 1.2,
     color: "#E76F51",
   },
 
   previewName: {
-    marginTop: 4,
-
-    fontSize: 18,
-    lineHeight: 22,
+    marginTop: 5,
+    fontSize: 17,
+    lineHeight: 23,
     fontWeight: "800",
-
     color: "#242424",
   },
 
   previewCount: {
-    marginTop: 4,
-
-    fontSize: 8,
-    fontWeight: "900",
+    marginTop: 5,
+    fontSize: 9,
+    fontWeight: "800",
     letterSpacing: 1,
-
     color: "#34345C",
   },
 
   previewDivider: {
-    marginHorizontal: 17,
-
+    marginHorizontal: 16,
     borderTopWidth: 1,
-    borderTopColor: "#CECDD6",
+    borderTopColor: "#D9D8E2",
     borderStyle: "dashed",
   },
 
   previewFooter: {
-    paddingHorizontal: 17,
+    minHeight: 42,
+    paddingHorizontal: 16,
     paddingVertical: 11,
-
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
 
   previewBrand: {
-    fontSize: 7,
-    fontWeight: "900",
-    letterSpacing: 1.4,
-
-    color: "#9999A1",
+    fontSize: 8,
+    fontWeight: "800",
+    letterSpacing: 1.3,
+    color: "#898895",
   },
 
   previewBarcode: {
     height: 16,
-
     flexDirection: "row",
-
+    alignItems: "stretch",
     gap: 2,
   },
 
   previewBar: {
     height: "100%",
-
     backgroundColor: "#34345C",
   },
 
-  // --------------------------------
-  // FIELDS
-  // --------------------------------
-
+  // FORM FIELDS
   fieldContainer: {
-    marginBottom: 20,
+    width: "100%",
+    marginBottom: 22,
   },
 
   label: {
-    marginBottom: 8,
-
+    marginBottom: 9,
     fontSize: 10,
-    fontWeight: "900",
-    letterSpacing: 1.3,
-
-    color: "#242424",
+    fontWeight: "800",
+    letterSpacing: 1.2,
+    color: "#707080",
   },
 
-  // --------------------------------
-  // NAME INPUT
-  // --------------------------------
-
+  // COLLECTION NAME INPUT
   inputWithIcon: {
-    height: 48,
-
-    paddingHorizontal: 12,
-
-    borderRadius: 10,
-
+    minHeight: 52,
+    paddingHorizontal: 13,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#D9D8E2",
     backgroundColor: "#F8F8FA",
-
     flexDirection: "row",
     alignItems: "center",
-
-    gap: 9,
+    gap: 10,
   },
 
   input: {
     flex: 1,
-
-    height: "100%",
-
+    minWidth: 0,
+    height: 50,
+    paddingHorizontal: 0,
     paddingVertical: 0,
-
-    fontSize: 12,
-
+    fontSize: 14,
     color: "#242424",
   },
 
-  // --------------------------------
-  // DESCRIPTION
-  // --------------------------------
-
+  // DESCRIPTION INPUT
   descriptionInput: {
-    minHeight: 110,
-
-    paddingHorizontal: 13,
+    width: "100%",
+    minHeight: 112,
+    paddingHorizontal: 14,
     paddingTop: 13,
     paddingBottom: 13,
-
-    borderRadius: 10,
-
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#D9D8E2",
     backgroundColor: "#F8F8FA",
-
-    fontSize: 12,
-    lineHeight: 19,
-
+    fontSize: 14,
+    lineHeight: 21,
     color: "#242424",
-
     textAlignVertical: "top",
   },
 
-  // --------------------------------
-  // CHARACTER COUNT
-  // --------------------------------
-
+  // CHARACTER COUNTS
   characterCount: {
-    marginTop: 5,
-
+    marginTop: 7,
     alignSelf: "flex-end",
-
-    fontSize: 10,
-
-    color: "#9A9AA3",
+    fontSize: 11,
+    color: "#898895",
   },
 
-  // --------------------------------
-  // HELPER
-  // --------------------------------
-
+  // HELPER SECTION
   helper: {
-    padding: 14,
+    width: "100%",
+    padding: 15,
+    borderRadius: 13,
+    borderWidth: 1,
+    borderColor: "#D9D8E2",
+    backgroundColor: "#FFFFFF",
+  },
 
-    borderRadius: 10,
-
-    backgroundColor: "#E9E8F1",
+  helperHeadingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 9,
   },
 
   helperTitle: {
-    fontSize: 8,
-
-    fontWeight: "900",
-
-    letterSpacing: 1.4,
-
+    flexShrink: 1,
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 1.1,
     color: "#34345C",
   },
 
   helperText: {
-    marginTop: 6,
-
-    fontSize: 11,
-
-    lineHeight: 18,
-
-    color: "#666666",
+    marginTop: 9,
+    fontSize: 12,
+    lineHeight: 19,
+    color: "#707080",
   },
 
-  // --------------------------------
-  // FOOTER
-  // --------------------------------
-
+  // BOTTOM FOOTER
   footer: {
     paddingHorizontal: 20,
-    paddingTop: 11,
-    paddingBottom: 20,
-
+    paddingTop: 12,
+    paddingBottom: 16,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: "#D9D8E2",
     backgroundColor: "#F1F0F6",
-
-    borderTopWidth: 1,
-    borderTopColor: "#E1E0E8",
   },
 
   createButton: {
-    height: 48,
-
-    borderRadius: 10,
-
+    minHeight: 52,
+    paddingHorizontal: 18,
+    borderRadius: 13,
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-
+    gap: 9,
     backgroundColor: "#34345C",
   },
 
@@ -316,12 +273,9 @@ const styles = StyleSheet.create({
   },
 
   createButtonText: {
-    fontSize: 10,
-
-    fontWeight: "900",
-
-    letterSpacing: 1,
-
+    fontSize: 12,
+    fontWeight: "800",
+    letterSpacing: 0.5,
     color: "#FFFFFF",
   },
 });

@@ -7,11 +7,10 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Image,
-
   StatusBar,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import styles from "./authStyles";
+import { createAuthStyles } from "./authStyles";
 import { useAuth } from "../../hooks/useAuth";
 import { useAppAlert } from "../../context/AlertContext";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
@@ -19,11 +18,38 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 function VerifySignupOtpScreen({ navigation, route }) {
   const { theme, isDark } = useTheme();
   const colors = theme?.colors || {};
-  const screenBackground = colors.background || (isDark ? "#171624" : "#F1F0F6");
-  const surfaceColor = colors.surface || (isDark ? "#211F30" : "#FFFFFF");
-  const textColor = colors.text || (isDark ? "#F7F5FC" : "#242424");
-  const secondaryTextColor = colors.textSecondary || colors.textMuted || (isDark ? "#C4C0D0" : "#707080");
-  const borderColor = colors.border || (isDark ? "#39364D" : "#D9D8E2");
+
+  const screenBackground =
+    colors.background || (isDark ? "#171624" : "#F1F0F6");
+
+  const surfaceColor =
+    colors.surface || (isDark ? "#211F30" : "#FFFFFF");
+
+  const textColor =
+    colors.text || (isDark ? "#F7F5FC" : "#242424");
+
+  const secondaryTextColor =
+    colors.textSecondary ||
+    colors.textMuted ||
+    (isDark ? "#C4C0D0" : "#707080");
+
+  const mutedTextColor =
+    colors.textMuted || (isDark ? "#89849C" : "#9A99A5");
+
+  const borderColor =
+    colors.border || (isDark ? "#39364D" : "#D9D8E2");
+
+  const inputBackground =
+    colors.input || (isDark ? "#292638" : "#F8F8FA");
+
+  const primaryColor =
+    colors.primary || (isDark ? "#C8C2FF" : "#34345C");
+
+  const primaryTextColor =
+    colors.primaryText || (isDark ? "#25223D" : "#FFFFFF");
+
+  // Generate styles with the currently selected theme.
+  const styles = createAuthStyles(colors, isDark);
 
   const { verifySignupOtp, resendSignupOtp } = useAuth();
   const { showAlert } = useAppAlert();
@@ -141,30 +167,69 @@ function VerifySignupOtpScreen({ navigation, route }) {
     }
   };
 
+  const isResendDisabled = countdown > 0 || resending || isLoading;
+
   return (
     <KeyboardAwareScrollView
       bottomOffset={20}
-      contentContainerStyle={[styles.scrollContainer, { backgroundColor: screenBackground }]}
+      contentContainerStyle={[
+        styles.scrollContainer,
+        { backgroundColor: screenBackground },
+      ]}
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
     >
-      <View style={[styles.container, { backgroundColor: screenBackground }]}>
-        <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={screenBackground} />
+      <View
+        style={[
+          styles.container,
+          { backgroundColor: screenBackground },
+        ]}
+      >
+        <StatusBar
+          barStyle={isDark ? "light-content" : "dark-content"}
+          backgroundColor={screenBackground}
+        />
+
         {/* Back Button */}
         <TouchableOpacity
-          style={[styles.backButton, { backgroundColor: surfaceColor, borderColor,  }]}
+          style={[
+            styles.backButton,
+            {
+              backgroundColor: surfaceColor,
+              borderColor,
+            },
+          ]}
           onPress={() => navigation.goBack()}
           disabled={isLoading || resending}
           activeOpacity={0.7}
         >
-          <Ionicons name="arrow-back" size={22} color={colors.text || "#242424"} />
+          <Ionicons
+            name="arrow-back"
+            size={20}
+            color={textColor}
+          />
 
-          <Text style={[styles.backText, { color: secondaryTextColor }]}>Back</Text>
+          <Text
+            style={[
+              styles.backText,
+              { color: secondaryTextColor },
+            ]}
+          >
+            Back
+          </Text>
         </TouchableOpacity>
 
-        {/* Brand */}
-        <View style={[styles.signupBrandContainer, { backgroundColor: surfaceColor, borderColor }]}>
-          <View style={[styles.brandIcon, { backgroundColor: surfaceColor, borderColor }]}>
+        {/* Compact Brand */}
+        <View style={styles.signupBrandContainer}>
+          <View
+            style={[
+              styles.brandIcon,
+              {
+                backgroundColor: surfaceColor,
+                borderColor,
+              },
+            ]}
+          >
             <Image
               source={require("../../../assets/icon.png")}
               style={styles.logoImage}
@@ -172,51 +237,95 @@ function VerifySignupOtpScreen({ navigation, route }) {
             />
           </View>
 
-          <Text style={[styles.brandText, { color: colors.primaryText || "#FFFFFF" }]}>MEMENTO</Text>
+          <Text
+            style={[
+              styles.brandText,
+              { color: textColor },
+            ]}
+          >
+            MEMENTO
+          </Text>
         </View>
 
         {/* Heading */}
-        <View style={[styles.headingContainer, { backgroundColor: surfaceColor, borderColor }]}>
-          <Text style={[styles.title, { color: textColor }]}>Verify Your Email</Text>
-
-          <Text style={[styles.subtitle, { color: textColor }]}>
-            We sent a 6-digit verification code to
+        <View style={styles.headingContainer}>
+          <Text
+            style={[
+              styles.title,
+              { color: textColor },
+            ]}
+          >
+            Verify Your Email
           </Text>
 
           <Text
             style={[
               styles.subtitle,
-              {
-                fontWeight: "600",
-                marginTop: 6,
-              },
+              { color: secondaryTextColor },
+            ]}
+          >
+            We sent a 6-digit verification code to:
+          </Text>
+
+          <Text
+            style={[
+              styles.emailText,
+              { color: textColor },
             ]}
           >
             {email}
           </Text>
         </View>
 
-        {/* Form */}
-        <View style={[styles.formContainer, { backgroundColor: surfaceColor, borderColor }]}>
-          {/* OTP */}
-          <View style={[styles.inputGroup, { backgroundColor: surfaceColor, borderColor }]}>
-            <Text style={[styles.label, { color: secondaryTextColor }]}>VERIFICATION CODE</Text>
+        {/* OTP Form Card */}
+        <View
+          style={[
+            styles.formContainer,
+            {
+              backgroundColor: surfaceColor,
+              borderColor,
+            },
+          ]}
+        >
+          <View style={styles.inputGroup}>
+            <Text
+              style={[
+                styles.label,
+                { color: secondaryTextColor },
+              ]}
+            >
+              VERIFICATION CODE
+            </Text>
 
-            <View style={[styles.inputWrapper, { backgroundColor: surfaceColor, borderColor,  }]}>
+            <View
+              style={[
+                styles.inputWrapper,
+                {
+                  backgroundColor: inputBackground,
+                  borderColor,
+                },
+              ]}
+            >
               <Ionicons
                 name="shield-checkmark-outline"
                 size={20}
-                color={colors.textSecondary || colors.textMuted || "#707080"}
-                style={[styles.inputIcon, { backgroundColor: surfaceColor, borderColor }]}
+                color={secondaryTextColor}
+                style={styles.inputIcon}
               />
 
               <TextInput
-                style={[styles.input, { backgroundColor: colors.input || surfaceColor, borderColor, color: textColor }]}
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: inputBackground,
+                    color: textColor,
+                  },
+                ]}
                 placeholder="Enter 6-digit OTP"
-                placeholderTextColor={colors.textMuted || "#A39C92"}
+                placeholderTextColor={mutedTextColor}
                 value={otp}
-                onChangeText={(text) =>
-                  setOtp(text.replace(/\D/g, "").slice(0, 6))
+                onChangeText={(value) =>
+                  setOtp(value.replace(/\D/g, "").slice(0, 6))
                 }
                 keyboardType="number-pad"
                 maxLength={6}
@@ -231,51 +340,73 @@ function VerifySignupOtpScreen({ navigation, route }) {
           {/* Verify Button */}
           <TouchableOpacity
             style={[
-              styles.loginButton, { backgroundColor: colors.primary || "#34345C" }, isLoading && {
-                opacity: 0.7,
-              },
+              styles.loginButton,
+              { backgroundColor: primaryColor },
+              (isLoading || resending) && { opacity: 0.7 },
             ]}
             onPress={handleVerify}
-            disabled={isLoading}
+            disabled={isLoading || resending}
             activeOpacity={0.85}
           >
             {isLoading ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
+              <ActivityIndicator
+                size="small"
+                color={primaryTextColor}
+              />
             ) : (
               <>
-                <Text style={[styles.loginButtonText, { color: colors.primaryText || "#FFFFFF" }]}>VERIFY EMAIL</Text>
+                <Text
+                  style={[
+                    styles.loginButtonText,
+                    { color: primaryTextColor },
+                  ]}
+                >
+                  VERIFY EMAIL
+                </Text>
 
-                <Ionicons name="checkmark" size={20} color="#FFFFFF" />
+                <Ionicons
+                  name="checkmark"
+                  size={20}
+                  color={primaryTextColor}
+                />
               </>
             )}
           </TouchableOpacity>
+        </View>
 
-          {/* Resend */}
-          <View style={[styles.resendSection, { backgroundColor: surfaceColor, borderColor }]}>
-            <TouchableOpacity
-              onPress={handleResend}
-              disabled={countdown > 0 || resending || isLoading}
-              activeOpacity={0.7}
+        {/* Resend OTP */}
+        <View style={styles.resendSection}>
+          <TouchableOpacity
+            onPress={handleResend}
+            disabled={isResendDisabled}
+            activeOpacity={0.7}
+          >
+            <Text
+              style={[
+                styles.resendText,
+                {
+                  color: isResendDisabled
+                    ? mutedTextColor
+                    : primaryColor,
+                },
+              ]}
             >
-              <Text
-                style={[
-                  styles.resendText,
-                  (countdown > 0 || resending || isLoading) &&
-                    styles.resendDisabled,
-                ]}
-              >
-                {resending
-                  ? "SENDING..."
-                  : countdown > 0
-                    ? `RESEND CODE IN ${countdown}s`
-                    : "RESEND CODE"}
-              </Text>
-            </TouchableOpacity>
-
-            <Text style={styles.spamCheck}>
-              Didn't receive the code? Check your spam folder.
+              {resending
+                ? "SENDING..."
+                : countdown > 0
+                  ? `RESEND CODE IN ${countdown}s`
+                  : "RESEND CODE"}
             </Text>
-          </View>
+          </TouchableOpacity>
+
+          <Text
+            style={[
+              styles.spamCheck,
+              { color: secondaryTextColor },
+            ]}
+          >
+            Didn't receive the code? Check your spam folder.
+          </Text>
         </View>
       </View>
     </KeyboardAwareScrollView>

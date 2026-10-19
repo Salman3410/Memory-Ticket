@@ -635,21 +635,62 @@ function MemoryDetailsScreen({ navigation, route }) {
           </View>
         )}
 
-        {/* TAGS */}
+        
+{/* TAGS */}
 
-        {tags.length > 0 && (
-          <View style={[detailStyles.tagsSection, { backgroundColor: surfaceColor, borderColor }]}>
-            <Text style={[detailStyles.tagsLabel, { color: secondaryTextColor }]}>TAGS</Text>
+{tags.length > 0 && (
+  <View
+    style={[
+      detailStyles.tagsSection,
+      {
+        backgroundColor: surfaceColor,
+        borderColor,
+      },
+    ]}
+  >
+    <Text
+      style={[
+        detailStyles.tagsLabel,
+        {
+          color: secondaryTextColor,
+        },
+      ]}
+    >
+      TAGS
+    </Text>
 
-            <View style={detailStyles.tagsContainer}>
-              {tags.map((tag) => (
-                <View key={tag} style={[detailStyles.tagChip, { backgroundColor: surfaceColor, borderColor }]}>
-                  <Text style={[detailStyles.tagText, { color: secondaryTextColor }]}>#{tag}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        )}
+    <View style={detailStyles.tagsContainer}>
+      {tags.map((tag) => (
+        <View
+          key={tag}
+          style={[
+            detailStyles.tagChip,
+            {
+              backgroundColor:
+                colors.surfaceSecondary ||
+                (isDark ? "#292740" : "#F1F0F6"),
+              borderColor,
+            },
+          ]}
+        >
+          <Text
+            style={[
+              detailStyles.tagText,
+              {
+                color:
+                  colors.primary ||
+                  (isDark ? "#C8C2FF" : "#34345C"),
+              },
+            ]}
+          >
+            #{tag}
+          </Text>
+        </View>
+      ))}
+    </View>
+  </View>
+)}
+
 
         {/* CUSTOMIZE TICKET */}
 
@@ -690,18 +731,42 @@ function MemoryDetailsScreen({ navigation, route }) {
 
           <Text style={[styles.editText, { color: secondaryTextColor }]}>EDIT MEMORY</Text>
         </TouchableOpacity>
-
+ 
         {/* DELETE MEMORY */}
 
         <TouchableOpacity
-          style={[styles.deleteButton, { backgroundColor: colors.primary || "#34345C" }]}
+          style={[
+            styles.deleteButton,
+            {        
+              backgroundColor: isDark
+                ? colors.surfaceSecondary || "#292740"
+                : "#FFF7F6",
+              borderColor: isDark
+                ? colors.danger || "#FF7772"
+                : "#F3D3CF",
+            },
+          ]}
           onPress={handleDelete}
           activeOpacity={0.8}
-        >
-          <Ionicons name="trash-outline" size={18} color="#D9534F" />
+          >
+          <Ionicons
+            name="trash-outline"
+            size={18}
+            color={colors.danger || "#D9534F"}
+          />
 
-          <Text style={[styles.deleteText, { color: secondaryTextColor }]}>DELETE MEMORY</Text>
+          <Text
+            style={[
+              styles.deleteText,
+              {
+                color: colors.danger || "#D9534F",
+              },
+            ]}
+          >
+            DELETE MEMORY
+          </Text>
         </TouchableOpacity>
+
 
         <Text style={[styles.footerText, { color: secondaryTextColor }]}>KEEP THE MOMENT. KEEP THE STORY.</Text>
       </ScrollView>
@@ -769,40 +834,36 @@ const detailStyles =
     },
 
     tagsSection: {
-      marginHorizontal: 22,
-      marginTop: 16,
+    marginHorizontal: 22,
+    marginTop: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderRadius: 14,
     },
 
     tagsLabel: {
-      fontSize: 9,
-      fontWeight: "900",
-      letterSpacing: 1.5,
-      color: "#707080",
-      marginBottom: 8,
+    fontSize: 9,
+    fontWeight: "900",
+    letterSpacing: 1.5,
+    marginBottom: 10,
     },
 
     tagsContainer: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      gap: 7,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
     },
 
     tagChip: {
-      backgroundColor:
-        "transparent",
-
-      paddingHorizontal: 0,
-      paddingVertical: 2,
-
-      borderBottomWidth: 1,
-      borderBottomColor:
-        "#34345C",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderRadius: 8,
     },
 
     tagText: {
-      color: "#34345C",
-      fontSize: 11,
-      fontWeight: "700",
+    fontSize: 11,
+    fontWeight: "700",
     },
 
     customizeButton: {

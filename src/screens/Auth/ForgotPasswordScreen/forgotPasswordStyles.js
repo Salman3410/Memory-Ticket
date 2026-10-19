@@ -3,8 +3,6 @@ import { StyleSheet } from "react-native";
 const styles = StyleSheet.create({
   keyboardContainer: {
     flex: 1,
-
-    backgroundColor: "#F1F0F6",
   },
 
   scrollContainer: {
@@ -12,85 +10,54 @@ const styles = StyleSheet.create({
   },
 
   container: {
-    flex: 1,
-
+    flexGrow: 1,
     paddingHorizontal: 28,
-
     paddingTop: 28,
     paddingBottom: 30,
   },
 
   topBackButton: {
     flexDirection: "row",
-
     alignItems: "center",
-
     alignSelf: "flex-start",
-
     marginBottom: 34,
-
-    paddingTop: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+    marginTop:20
   },
 
   topBackText: {
     fontSize: 12,
-
     fontWeight: "700",
-
-    color: "#242424",
-
     marginLeft: 7,
   },
 
   brandContainer: {
     alignItems: "center",
-
     marginBottom: 44,
   },
 
   brandIcon: {
-    width: 72,
-    height: 72,
-
-    borderRadius: 22,
-
-    backgroundColor: "#34345C",
-
+    width: 62,
+    height: 62,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-
     marginBottom: 14,
-
     overflow: "hidden",
   },
 
   logoImage: {
     width: 62,
     height: 62,
-
     resizeMode: "contain",
   },
 
   brandText: {
     fontSize: 25,
-
     fontWeight: "800",
-
     letterSpacing: 5,
-
-    color: "#242424",
-  },
-
-  brandSubText: {
-    fontSize: 13,
-
-    fontWeight: "700",
-
-    letterSpacing: 7,
-
-    color: "#34345C",
-
-    marginTop: 2,
   },
 
   headingContainer: {
@@ -99,28 +66,18 @@ const styles = StyleSheet.create({
 
   title: {
     fontSize: 32,
-
     fontWeight: "800",
-
-    color: "#242424",
-
     letterSpacing: -0.8,
-
     marginBottom: 8,
   },
 
   subtitle: {
     fontSize: 14,
-
     lineHeight: 21,
-
-    color: "#707080",
   },
 
   emailText: {
     fontWeight: "700",
-
-    color: "#34345C",
   },
 
   formContainer: {
@@ -133,97 +90,57 @@ const styles = StyleSheet.create({
 
   label: {
     fontSize: 10,
-
     fontWeight: "900",
-
     letterSpacing: 1.4,
-
-    color: "#242424",
-
     marginBottom: 8,
   },
 
   inputWrapper: {
-    height: 48,
-
+    minHeight: 48,
     paddingHorizontal: 12,
-
     borderRadius: 10,
-
-    backgroundColor: "#F8F8FA",
-
     flexDirection: "row",
-
     alignItems: "center",
-
     gap: 9,
   },
 
   input: {
     flex: 1,
-
-    height: "100%",
-
+    minHeight: 46,
     paddingVertical: 0,
-
     fontSize: 12,
-
-    color: "#242424",
   },
 
   otpInput: {
     flex: 1,
-
-    height: "100%",
-
+    minHeight: 46,
     paddingVertical: 0,
-
     fontSize: 20,
-
     fontWeight: "800",
-
     letterSpacing: 5,
-
-    color: "#242424",
-
     textAlign: "left",
   },
 
   passwordButton: {
-    width: 28,
-
-    height: 28,
-
+    width: 32,
+    height: 32,
     alignItems: "center",
-
     justifyContent: "center",
   },
 
   primaryButton: {
-    height: 48,
-
+    minHeight: 48,
     borderRadius: 10,
-
-    backgroundColor: "#34345C",
-
     flexDirection: "row",
-
     alignItems: "center",
-
     justifyContent: "center",
-
     gap: 9,
-
     paddingHorizontal: 18,
   },
 
   primaryButtonText: {
-    color: "#FFFFFF",
-
     fontSize: 10,
-
     fontWeight: "900",
-
     letterSpacing: 1.5,
   },
 
@@ -233,155 +150,96 @@ const styles = StyleSheet.create({
 
   errorText: {
     fontSize: 11,
-
     lineHeight: 17,
-
-    color: "#C94A4A",
-
     marginTop: -2,
-
     marginBottom: 16,
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    overflow: "hidden",
   },
 
   messageText: {
     fontSize: 11,
-
     lineHeight: 17,
-
-    color: "#4C704C",
-
     marginTop: -2,
-
     marginBottom: 16,
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    overflow: "hidden",
   },
 
   passwordHint: {
     fontSize: 10,
-
     lineHeight: 17,
-
-    color: "#707080",
-
     marginTop: -2,
-
     marginBottom: 20,
   },
 
   resendSection: {
     alignItems: "center",
-
     marginTop: 22,
-  },
-
-  resendContainer: {
-    flexDirection: "row",
-
-    alignItems: "center",
-
-    justifyContent: "center",
   },
 
   resendText: {
     fontSize: 12,
-
     fontWeight: "800",
-
-    color: "#34345C",
-
-    marginLeft: 5,
-  },
-
-  resendDisabled: {
-    color: "#A39C92",
   },
 
   spamCheck: {
     marginTop: 8,
-
     fontSize: 10,
-
     lineHeight: 16,
-
-    color: "#A39C92",
-
     textAlign: "center",
   },
 
   backLink: {
     flexDirection: "row",
-
     alignItems: "center",
-
     justifyContent: "center",
-
     marginTop: 22,
   },
 
   backLinkText: {
     fontSize: 11,
-
     fontWeight: "700",
-
-    color: "#34345C",
-
     marginLeft: 5,
   },
 
   successContainer: {
     alignItems: "center",
-
     paddingTop: 20,
   },
 
   successIcon: {
     width: 78,
     height: 78,
-
     borderRadius: 22,
-
-    backgroundColor: "#34345C",
-
     alignItems: "center",
     justifyContent: "center",
-
     marginBottom: 24,
   },
 
   successTitle: {
     fontSize: 28,
-
     fontWeight: "800",
-
-    color: "#242424",
-
     textAlign: "center",
-
     marginBottom: 12,
   },
 
   successText: {
     fontSize: 14,
-
     lineHeight: 22,
-
-    color: "#707080",
-
     textAlign: "center",
-
     marginBottom: 30,
   },
 
   tagline: {
     textAlign: "center",
-
     fontSize: 9,
-
     fontWeight: "800",
-
     letterSpacing: 2.5,
-
-    color: "#A39C92",
-
     marginTop: 40,
   },
 });

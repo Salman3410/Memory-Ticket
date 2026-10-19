@@ -1,5 +1,4 @@
-import React, { useCallback } from "react";
-
+import { useCallback } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -10,55 +9,91 @@ import {
   View,
   StatusBar,
 } from "react-native";
-
 import { Ionicons } from "@expo/vector-icons";
-
+import { useFocusEffect } from "@react-navigation/native";
 import { useCollection } from "../../hooks/useCollection";
 import useRefresh from "../../hooks/useRefresh";
-
 import CollectionCardComponent from "../../components/collections/CollectionCard";
 import { useTheme } from "../../context/ThemeContext";
 
 function CollectionsScreen({ navigation }) {
   const { theme, isDark } = useTheme();
   const colors = theme?.colors || {};
-  const screenBackground = colors.background || (isDark ? "#171624" : "#F1F0F6");
-  const surfaceColor = colors.surface || (isDark ? "#211F30" : "#FFFFFF");
-  const textColor = colors.text || (isDark ? "#F7F5FC" : "#242424");
-  const secondaryTextColor = colors.textSecondary || colors.textMuted || (isDark ? "#C4C0D0" : "#707080");
-  const borderColor = colors.border || (isDark ? "#39364D" : "#D9D8E2");
 
-  const { collections, loading, refreshCollections } = useCollection();
+  // Theme colors
+  const screenBackground =
+    colors.background || (isDark ? "#171624" : "#F1F0F6");
 
-  // --------------------------------------------------
-  // REFRESH
-  // --------------------------------------------------
+  const surfaceColor =
+    colors.surface || (isDark ? "#211F30" : "#FFFFFF");
+
+  const textColor =
+    colors.text || (isDark ? "#F7F5FC" : "#242424");
+
+  const secondaryTextColor =
+    colors.textSecondary ||
+    colors.textMuted ||
+    (isDark ? "#C4C0D0" : "#707080");
+
+  const borderColor =
+    colors.border || (isDark ? "#39364D" : "#D9D8E2");
+
+  const primaryColor =
+    colors.primary || (isDark ? "#C8C2FF" : "#34345C");
+
+  const primaryTextColor =
+    colors.primaryText || (isDark ? "#25223D" : "#FFFFFF");
+
+  const {
+    collections,
+    loading,
+    refreshCollections,
+  } = useCollection();
+
+  const collectionList = Array.isArray(collections)
+    ? collections
+    : [];
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+
+      const refreshOnFocus = async () => {
+        try {
+          await refreshCollections();
+        } catch (error) {
+          if (active) {
+            console.error(
+              "Failed to refresh collections on focus:",
+              error,
+            );
+          }
+        }
+      };
+
+      refreshOnFocus();
+
+      return () => {
+        active = false;
+      };
+    }, [refreshCollections]),
+  );
 
   const refreshCollectionsScreen = useCallback(async () => {
     await refreshCollections();
   }, [refreshCollections]);
 
-  const { refreshing, onRefresh } = useRefresh(refreshCollectionsScreen);
-
-  // --------------------------------------------------
-  // GO BACK
-  // --------------------------------------------------
+  const { refreshing, onRefresh } = useRefresh(
+    refreshCollectionsScreen,
+  );
 
   const handleGoBack = useCallback(() => {
     navigation.goBack();
   }, [navigation]);
 
-  // --------------------------------------------------
-  // CREATE COLLECTION
-  // --------------------------------------------------
-
   const handleCreateCollection = useCallback(() => {
     navigation.navigate("CreateCollection");
   }, [navigation]);
-
-  // --------------------------------------------------
-  // COLLECTION PRESS
-  // --------------------------------------------------
 
   const handleCollectionPress = useCallback(
     (collection) => {
@@ -66,7 +101,6 @@ function CollectionsScreen({ navigation }) {
 
       if (!collectionId) {
         console.warn("Collection ID missing:", collection);
-
         return;
       }
 
@@ -77,34 +111,21 @@ function CollectionsScreen({ navigation }) {
     [navigation],
   );
 
-  // --------------------------------------------------
-  // RENDER ITEM
-  // --------------------------------------------------
-
   const renderItem = useCallback(
-    ({ item }) => {
-      return (
-        <CollectionCardComponent
-          collection={item}
-          onPress={() => handleCollectionPress(item)}
-        />
-      );
-    },
+    ({ item }) => (
+      <CollectionCardComponent
+        collection={item}
+        onPress={() => handleCollectionPress(item)}
+      />
+    ),
     [handleCollectionPress],
   );
 
-  // --------------------------------------------------
-  // KEY EXTRACTOR
-  // --------------------------------------------------
-
   const keyExtractor = useCallback(
-    (item, index) => String(item?._id || item?.id || index),
+    (item, index) =>
+      String(item?._id || item?.id || index),
     [],
   );
-
-  // --------------------------------------------------
-  // EMPTY STATE
-  // --------------------------------------------------
 
   const renderEmpty = useCallback(() => {
     if (loading) {
@@ -112,112 +133,257 @@ function CollectionsScreen({ navigation }) {
     }
 
     return (
-      <View style={[styles.emptyState, { backgroundColor: surfaceColor, borderColor }]}>
-        <View style={styles.emptyMark}>
-          <Text style={[styles.emptyMarkText, { color: secondaryTextColor }]}>+</Text>
+      <View
+        style={[
+          styles.emptyState,
+          { backgroundColor: screenBackground },
+        ]}
+      >
+        <View
+          style={[
+            styles.emptyMark,
+            {
+              backgroundColor: surfaceColor,
+              borderColor,
+            },
+          ]}
+        >
+          <Ionicons
+            name="albums-outline"
+            size={30}
+            color={primaryColor}
+          />
         </View>
 
-        <Text style={[styles.emptyTitle, { color: textColor }]}>Give your memories a place</Text>
+        <Text
+          style={[
+            styles.emptyTitle,
+            { color: textColor },
+          ]}
+        >
+          Give your memories a place
+        </Text>
 
-        <Text style={[styles.emptyText, { color: secondaryTextColor }]}>
-          Create a collection for trips, people, events, or anything you want to
-          remember together.
+        <Text
+          style={[
+            styles.emptyText,
+            { color: secondaryTextColor },
+          ]}
+        >
+          Create a collection for trips, people, events, or anything you want
+          to remember together.
         </Text>
 
         <TouchableOpacity
-          style={[styles.emptyButton, { backgroundColor: colors.primary || "#34345C" }]}
+          style={[
+            styles.emptyButton,
+            { backgroundColor: primaryColor },
+          ]}
           onPress={handleCreateCollection}
           activeOpacity={0.85}
         >
-          <Text style={[styles.emptyButtonText, { color: colors.primaryText || "#FFFFFF" }]}>Create Collection</Text>
+          <Ionicons
+            name="add"
+            size={18}
+            color={primaryTextColor}
+          />
+
+          <Text
+            style={[
+              styles.emptyButtonText,
+              { color: primaryTextColor },
+            ]}
+          >
+            Create Collection
+          </Text>
         </TouchableOpacity>
       </View>
     );
-  }, [loading, handleCreateCollection, colors, isDark]);
-
-  // --------------------------------------------------
-  // SCREEN
-  // --------------------------------------------------
+  }, [
+    loading,
+    screenBackground,
+    surfaceColor,
+    borderColor,
+    primaryColor,
+    primaryTextColor,
+    textColor,
+    secondaryTextColor,
+    handleCreateCollection,
+  ]);
 
   return (
-    <View style={[styles.container, { backgroundColor: screenBackground }]}>
-      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={screenBackground} />
-      {/* HEADER */}
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: screenBackground },
+      ]}
+    >
+      <StatusBar
+        barStyle={isDark ? "light-content" : "dark-content"}
+        backgroundColor={screenBackground}
+      />
 
-      <View style={[styles.header, { backgroundColor: screenBackground }]}>
+      {/* HEADER */}
+      <View
+        style={[
+          styles.header,
+          { backgroundColor: screenBackground },
+        ]}
+      >
         <View style={styles.headerLeft}>
           <TouchableOpacity
-            style={[styles.backButton, { backgroundColor: surfaceColor, borderColor }]}
+            style={[
+              styles.backButton,
+              {
+                backgroundColor: surfaceColor,
+                borderColor,
+              },
+            ]}
             onPress={handleGoBack}
             activeOpacity={0.8}
           >
-            <Ionicons name="arrow-back" size={20} color={colors.primary || "#34345C"} />
+            <Ionicons
+              name="arrow-back"
+              size={20}
+              color={textColor}
+            />
           </TouchableOpacity>
 
           <View style={styles.headerContent}>
-            <Text style={[styles.eyebrow, { color: secondaryTextColor }]}>YOUR STORIES</Text>
+            <Text
+              style={[
+                styles.eyebrow,
+                { color: secondaryTextColor },
+              ]}
+            >
+              YOUR STORIES
+            </Text>
 
-            <Text style={[styles.title, { color: textColor }]}>Collections</Text>
+            <Text
+              style={[
+                styles.title,
+                { color: textColor },
+              ]}
+            >
+              Collections
+            </Text>
 
-            <Text style={[styles.subtitle, { color: textColor }]}>
+            <Text
+              style={[
+                styles.subtitle,
+                { color: secondaryTextColor },
+              ]}
+            >
               Keep moments that belong together.
             </Text>
           </View>
         </View>
 
         <TouchableOpacity
-          style={[styles.createButton, { backgroundColor: colors.primary || "#34345C" }]}
+          style={[
+            styles.createButton,
+            { backgroundColor: primaryColor },
+          ]}
           onPress={handleCreateCollection}
           activeOpacity={0.85}
         >
-          <Text style={[styles.createButtonText, { color: colors.primaryText || "#FFFFFF" }]}>+</Text>
+          <Ionicons
+            name="add"
+            size={25}
+            color={primaryTextColor}
+          />
         </TouchableOpacity>
       </View>
 
-      {/* SUMMARY */}
+      {/* COLLECTION SUMMARY */}
+      {!loading && collectionList.length > 0 ? (
+        <View
+          style={[
+            styles.summaryRow,
+            {
+              backgroundColor: screenBackground,
+              borderBottomColor: borderColor,
+            },
+          ]}
+        >
+          <View style={styles.summaryLeft}>
+            <Ionicons
+              name="albums-outline"
+              size={16}
+              color={secondaryTextColor}
+            />
 
-      {!loading && collections.length > 0 ? (
-        <View style={[styles.summaryRow, { backgroundColor: surfaceColor, borderColor }]}>
-          <Text style={[styles.summaryText, { color: secondaryTextColor }]}>
-            {collections.length}{" "}
-            {collections.length === 1 ? "collection" : "collections"}
+            <Text
+              style={[
+                styles.summaryText,
+                { color: textColor },
+              ]}
+            >
+              {collectionList.length}{" "}
+              {collectionList.length === 1
+                ? "collection"
+                : "collections"}
+            </Text>
+          </View>
+
+          <Text
+            style={[
+              styles.summaryHint,
+              { color: secondaryTextColor },
+            ]}
+          >
+            Your memories, together
           </Text>
-
-          <Text style={[styles.summaryHint, { color: secondaryTextColor }]}>Your memories, together</Text>
         </View>
       ) : null}
 
       {/* INITIAL LOADING */}
+      {loading && collectionList.length === 0 ? (
+        <View
+          style={[
+            styles.loadingContainer,
+            { backgroundColor: screenBackground },
+          ]}
+        >
+          <ActivityIndicator
+            size="large"
+            color={primaryColor}
+          />
 
-      {loading && collections.length === 0 ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary || "#34345C"} />
-
-          <Text style={[styles.loadingText, { color: secondaryTextColor }]}>Loading collections...</Text>
+          <Text
+            style={[
+              styles.loadingText,
+              { color: secondaryTextColor },
+            ]}
+          >
+            Loading collections...
+          </Text>
         </View>
       ) : (
         <FlatList
-          data={collections}
+          data={collectionList}
           renderItem={renderItem}
           keyExtractor={keyExtractor}
           numColumns={2}
           columnWrapperStyle={
-            collections.length > 1 ? styles.columnWrapper : undefined
+            collectionList.length > 1
+              ? styles.columnWrapper
+              : undefined
           }
-          contentContainerStyle={
-            collections.length === 0 ? styles.emptyList : styles.listContent
-          }
+          contentContainerStyle={[
+            collectionList.length === 0
+              ? styles.emptyList
+              : styles.listContent,
+            { backgroundColor: screenBackground },
+          ]}
+          style={{ backgroundColor: screenBackground }}
           showsVerticalScrollIndicator={false}
-          // ------------------------------
-          // PULL TO REFRESH
-          // ------------------------------
-
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor={colors.primary || "#34345C"}
-              colors={[colors.primary || "#34345C"]}
+              tintColor={primaryColor}
+              colors={[primaryColor]}
               progressBackgroundColor={surfaceColor}
             />
           }
@@ -239,10 +405,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#F1F0F6",
   },
 
+  // HEADER
   header: {
     paddingHorizontal: 20,
     paddingTop: 40,
-    paddingBottom: 14,
+    paddingBottom: 18,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -250,84 +417,86 @@ const styles = StyleSheet.create({
 
   headerLeft: {
     flex: 1,
+    minWidth: 0,
     flexDirection: "row",
     alignItems: "center",
   },
 
   backButton: {
-    width: 38,
-    height: 38,
+    width: 40,
+    height: 40,
     marginRight: 12,
-    borderRadius: 19,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#D9D8E2",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#FFFFFF",
   },
 
   headerContent: {
     flex: 1,
-    paddingRight: 14,
+    minWidth: 0,
+    paddingRight: 5,
   },
 
   eyebrow: {
-    fontSize: 10,
-    fontWeight: "700",
+    fontSize: 9,
+    fontWeight: "800",
     letterSpacing: 1.5,
-    color: "#E76F51",
   },
 
   title: {
-    marginTop: 5,
-    fontSize: 30,
-    fontWeight: "700",
-    color: "#242424",
+    marginTop: 4,
+    fontSize: 27,
+    fontWeight: "800",
+    letterSpacing: -0.5,
   },
 
   subtitle: {
     marginTop: 4,
-    fontSize: 13,
-    lineHeight: 19,
-    color: "#737373",
+    fontSize: 12,
+    lineHeight: 18,
   },
 
   createButton: {
-    width: 46,
-    height: 46,
+    width: 44,
+    height: 44,
     marginLeft: 10,
-    borderRadius: 23,
+    borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#34345C",
   },
 
-  createButtonText: {
-    marginTop: -2,
-    fontSize: 27,
-    fontWeight: "300",
-    color: "#FFFFFF",
-  },
-
+  // SUMMARY
   summaryRow: {
+    minHeight: 45,
     paddingHorizontal: 20,
-    paddingBottom: 14,
+    paddingBottom: 12,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+
+  summaryLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
   },
 
   summaryText: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#34345C",
   },
 
   summaryHint: {
-    fontSize: 11,
-    color: "#9A9A9A",
+    fontSize: 10,
   },
 
+  // COLLECTION GRID
   listContent: {
     paddingHorizontal: 14,
+    paddingTop: 14,
     paddingBottom: 32,
   },
 
@@ -336,6 +505,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
 
+  // LOADING
   loadingContainer: {
     flex: 1,
     alignItems: "center",
@@ -343,11 +513,11 @@ const styles = StyleSheet.create({
   },
 
   loadingText: {
-    marginTop: 9,
+    marginTop: 10,
     fontSize: 13,
-    color: "#777777",
   },
 
+  // EMPTY STATE
   emptyList: {
     flexGrow: 1,
     paddingHorizontal: 20,
@@ -358,51 +528,48 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 28,
+    paddingHorizontal: 8,
+    paddingVertical: 40,
   },
 
   emptyMark: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 66,
+    height: 66,
+    borderRadius: 21,
+    borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#34345C",
-  },
-
-  emptyMarkText: {
-    fontSize: 31,
-    fontWeight: "300",
-    color: "#FFFFFF",
   },
 
   emptyTitle: {
     marginTop: 18,
     fontSize: 20,
-    fontWeight: "700",
-    color: "#242424",
+    lineHeight: 27,
+    fontWeight: "800",
     textAlign: "center",
   },
 
   emptyText: {
-    marginTop: 8,
+    maxWidth: 300,
+    marginTop: 9,
     fontSize: 13,
     lineHeight: 20,
-    color: "#707070",
     textAlign: "center",
   },
 
   emptyButton: {
-    marginTop: 20,
-    paddingHorizontal: 21,
-    paddingVertical: 12,
-    borderRadius: 11,
-    backgroundColor: "#34345C",
+    minHeight: 46,
+    marginTop: 22,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
   },
 
   emptyButtonText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "800",
   },
 });
