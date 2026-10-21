@@ -15,7 +15,6 @@ import {
   setAppLockEnabled,
   getBiometricSupport,
 } from "../../services/appLockService";
-import { syncMementoWidget } from "../../services/widgetService";
 import SettingsHeader from "./components/SettingsHeader";
 import PreferenceRow from "./components/PreferenceRow";
 import StorageSection from "./components/StorageSection";
