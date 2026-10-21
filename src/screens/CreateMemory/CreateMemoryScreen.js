@@ -1,29 +1,76 @@
+
 import { useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
   StatusBar,
 } from "react-native";
+
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
+
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+
 import { useTheme } from "../../context/ThemeContext";
 import { useAppAlert } from "../../context/AlertContext";
+
 import CreateMemoryHeader from "./components/CreateMemoryHeader";
 import PhotoSection from "./components/PhotoSection";
 import MemoryForm from "./components/MemoryForm";
 import DescriptionInput from "./components/DescriptionInput";
 import PreviewButton from "./components/PreviewButton";
+import MemoryDatePicker from "./components/MemoryDatePicker";
+
 import TagsInput from "../../components/TagsInput/TagsInput";
+
 import styles from "./createMemoryStyles";
+
 import { getNetworkInfo } from "../../services/networkService";
 import { normalizeTicketCustomization } from "../../utils/ticketCustomization";
 
 const MAX_IMAGES = 5;
 
+/**
+ * Normalize a date to local noon.
+ * This keeps the chosen calendar day consistent
+ * when storing the date as an ISO string.
+ */
+function normalizeMemoryDate(value) {
+  let date;
+
+  if (value instanceof Date) {
+    date = value;
+  } else if (
+    typeof value === "string" &&
+    /^\d{4}-\d{2}-\d{2}$/.test(value)
+  ) {
+    const [year, month, day] = value.split("-").map(Number);
+
+    date = new Date(year, month - 1, day, 12, 0, 0, 0);
+  } else {
+    date = value ? new Date(value) : new Date();
+  }
+
+  if (Number.isNaN(date.getTime())) {
+    date = new Date();
+  }
+
+  return new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate(),
+    12,
+    0,
+    0,
+    0,
+  );
+}
+
 function CreateMemoryScreen({ navigation, route }) {
   const { showAlert } = useAppAlert();
   const { theme, isDark } = useTheme();
+
+  const editMemory = route?.params?.editMemory;
 
   const screenStyles = useMemo(() => {
     const colors = theme?.colors || {};
@@ -56,26 +103,37 @@ function CreateMemoryScreen({ navigation, route }) {
     };
   }, [theme, isDark]);
 
+  // Photos
   const [images, setImages] = useState([]);
   const [activeImage, setActiveImage] = useState(0);
 
+  // Memory details
   const [title, setTitle] = useState("");
 
+  const [memoryDate, setMemoryDate] = useState(() =>
+    normalizeMemoryDate(
+      editMemory?.date || editMemory?.createdAt,
+    ),
+  );
+
+  const [description, setDescription] = useState("");
+  const [tags, setTags] = useState([]);
+
+  // Network and location
   const [network, setNetwork] = useState(null);
 
   const [location, setLocation] = useState("");
   const [locationData, setLocationData] = useState(null);
   const [locationCaptured, setLocationCaptured] = useState(false);
 
-  const [description, setDescription] = useState("");
-  const [tags, setTags] = useState([]);
-
-  const [ticketCustomization, setTicketCustomization] = useState(() =>
-    normalizeTicketCustomization(),
+  // Ticket customization
+  const [ticketCustomization, setTicketCustomization] = useState(
+    () => normalizeTicketCustomization(),
   );
 
-  const editMemory = route?.params?.editMemory;
-
+  /**
+   * Restore an existing memory when editing.
+   */
   useEffect(() => {
     if (!editMemory) {
       return;
@@ -92,30 +150,44 @@ function CreateMemoryScreen({ navigation, route }) {
 
     setTitle(editMemory.title || "");
 
-    // Keep the existing manual location.
+    setMemoryDate(
+      normalizeMemoryDate(
+        editMemory.date || editMemory.createdAt,
+      ),
+    );
+
     setLocation(editMemory.location || "");
 
-    // Keep existing GPS data.
     setLocationData(editMemory.locationData || null);
     setLocationCaptured(!!editMemory.locationData);
 
-    // Keep existing network information.
     setNetwork(
-      editMemory.network || editMemory.environment?.network || null,
+      editMemory.network ||
+        editMemory.environment?.network ||
+        null,
     );
 
     setDescription(editMemory.description || "");
 
-    setTags(Array.isArray(editMemory.tags) ? editMemory.tags : []);
+    setTags(
+      Array.isArray(editMemory.tags)
+        ? editMemory.tags
+        : [],
+    );
 
-    // Keep existing ticket customization.
-    setTicketCustomization(normalizeTicketCustomization(editMemory));
+    setTicketCustomization(
+      normalizeTicketCustomization(editMemory),
+    );
 
+    // Consume the edit parameter after restoring the form.
     navigation.setParams({
       editMemory: undefined,
     });
   }, [editMemory, navigation]);
 
+  /**
+   * Capture network and location information.
+   */
   useEffect(() => {
     let cancelled = false;
 
@@ -130,6 +202,7 @@ function CreateMemoryScreen({ navigation, route }) {
         console.warn("Network info capture failed:", error);
       }
 
+      // Preserve an existing location while editing.
       if (editMemory?.locationData) {
         return;
       }
@@ -142,9 +215,10 @@ function CreateMemoryScreen({ navigation, route }) {
           return;
         }
 
-        const currentLocation = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Balanced,
-        });
+        const currentLocation =
+          await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.Balanced,
+          });
 
         if (cancelled) {
           return;
@@ -162,7 +236,10 @@ function CreateMemoryScreen({ navigation, route }) {
 
           addressData = addresses?.[0] || null;
         } catch (geocodeError) {
-          console.warn("Reverse geocoding failed:", geocodeError);
+          console.warn(
+            "Reverse geocoding failed:",
+            geocodeError,
+          );
         }
 
         if (cancelled) {
@@ -190,7 +267,10 @@ function CreateMemoryScreen({ navigation, route }) {
           addressData,
         });
       } catch (error) {
-        console.warn("Automatic location capture failed:", error);
+        console.warn(
+          "Automatic location capture failed:",
+          error,
+        );
       }
     };
 
@@ -201,6 +281,9 @@ function CreateMemoryScreen({ navigation, route }) {
     };
   }, [editMemory]);
 
+  /**
+   * Select photos from the gallery.
+   */
   const pickImages = async () => {
     try {
       const permission =
@@ -211,7 +294,8 @@ function CreateMemoryScreen({ navigation, route }) {
           type: "warning",
           icon: "images-outline",
           title: "Permission Required",
-          message: "Please allow photo library access to select photos.",
+          message:
+            "Please allow photo library access to select photos.",
           confirmText: "OK",
         });
 
@@ -232,12 +316,13 @@ function CreateMemoryScreen({ navigation, route }) {
         return;
       }
 
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ["images"],
-        allowsMultipleSelection: true,
-        selectionLimit: remainingSlots,
-        quality: 0.8,
-      });
+      const result =
+        await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ["images"],
+          allowsMultipleSelection: true,
+          selectionLimit: remainingSlots,
+          quality: 0.8,
+        });
 
       if (result.canceled || !result.assets?.length) {
         return;
@@ -269,6 +354,9 @@ function CreateMemoryScreen({ navigation, route }) {
     }
   };
 
+  /**
+   * Take a photo using the camera.
+   */
   const takePhoto = async () => {
     try {
       if (images.length >= MAX_IMAGES) {
@@ -291,7 +379,8 @@ function CreateMemoryScreen({ navigation, route }) {
           type: "warning",
           icon: "camera-outline",
           title: "Permission Required",
-          message: "Please allow camera access to take a photo.",
+          message:
+            "Please allow camera access to take a photo.",
           confirmText: "OK",
         });
 
@@ -332,9 +421,11 @@ function CreateMemoryScreen({ navigation, route }) {
     }
   };
 
+  /**
+   * Capture the current location manually.
+   */
   const handleLocationPress = async () => {
     try {
-      // Already captured.
       if (locationCaptured) {
         return;
       }
@@ -359,9 +450,10 @@ function CreateMemoryScreen({ navigation, route }) {
         return;
       }
 
-      const currentLocation = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
+      const currentLocation =
+        await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
 
       const { latitude, longitude } = currentLocation.coords;
 
@@ -375,7 +467,10 @@ function CreateMemoryScreen({ navigation, route }) {
 
         addressData = addresses?.[0] || null;
       } catch (geocodeError) {
-        console.warn("Reverse geocoding failed:", geocodeError);
+        console.warn(
+          "Reverse geocoding failed:",
+          geocodeError,
+        );
       }
 
       setLocationData({
@@ -412,9 +507,14 @@ function CreateMemoryScreen({ navigation, route }) {
     }
   };
 
+  /**
+   * Remove an image.
+   */
   const removeImage = (index) => {
     setImages((currentImages) =>
-      currentImages.filter((_, imageIndex) => imageIndex !== index),
+      currentImages.filter(
+        (_, imageIndex) => imageIndex !== index,
+      ),
     );
 
     setActiveImage((currentIndex) => {
@@ -432,9 +532,14 @@ function CreateMemoryScreen({ navigation, route }) {
     });
   };
 
+  /**
+   * Update the active image when scrolling.
+   */
   const handleImageScroll = (event) => {
     const offsetX = event.nativeEvent.contentOffset.x;
-    const pageWidth = event.nativeEvent.layoutMeasurement.width;
+
+    const pageWidth =
+      event.nativeEvent.layoutMeasurement.width;
 
     if (!pageWidth) {
       return;
@@ -447,19 +552,33 @@ function CreateMemoryScreen({ navigation, route }) {
     );
   };
 
+  /**
+   * Reset the form after navigating to the ticket preview.
+   */
   const resetForm = () => {
     setImages([]);
     setActiveImage(0);
+
     setTitle("");
+    setMemoryDate(normalizeMemoryDate());
+
     setNetwork(null);
+
     setLocation("");
     setLocationData(null);
+    setLocationCaptured(false);
+
     setDescription("");
     setTags([]);
-    setLocationCaptured(false);
-    setTicketCustomization(normalizeTicketCustomization());
+
+    setTicketCustomization(
+      normalizeTicketCustomization(),
+    );
   };
 
+  /**
+   * Validate the form and open the ticket preview.
+   */
   const handleCreateMemory = () => {
     if (!images.length) {
       showAlert({
@@ -497,6 +616,9 @@ function CreateMemoryScreen({ navigation, route }) {
       return;
     }
 
+    // Preserve the selected calendar date.
+    const normalizedDate = normalizeMemoryDate(memoryDate);
+
     const draftMemory = {
       title: title.trim(),
       location: location.trim(),
@@ -504,11 +626,13 @@ function CreateMemoryScreen({ navigation, route }) {
       network,
       description: description.trim(),
       tags: [...tags],
+
       image: images[0] || null,
       images: [...images],
-      date: new Date().toISOString(),
 
-      // Ticket customization.
+      date: normalizedDate.toISOString(),
+
+      // Ticket customization
       ticketStyle: ticketCustomization.ticketStyle,
       ticketAccent: ticketCustomization.ticketAccent,
       ticketOptions: {
@@ -559,6 +683,16 @@ function CreateMemoryScreen({ navigation, route }) {
           location={location}
           setLocation={setLocation}
           onLocationPress={handleLocationPress}
+          theme={theme}
+          isDark={isDark}
+        />
+
+        {/* Opens the date-picker bottom sheet */}
+        <MemoryDatePicker
+          value={memoryDate}
+          onChange={(selectedDate) => {
+            setMemoryDate(normalizeMemoryDate(selectedDate));
+          }}
           theme={theme}
           isDark={isDark}
         />
