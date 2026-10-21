@@ -2,6 +2,7 @@
   "expo": {
     "name": "Memento",
     "slug": "MemoryTicket",
+    "scheme": "memento",
     "version": "2.5.0",
     "orientation": "portrait",
     "icon": "./assets/Memento-icon.png",

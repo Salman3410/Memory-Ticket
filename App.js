@@ -29,6 +29,7 @@ import RootNavigator from "./src/navigation/RootNavigator";
 import MementoSplashScreen from "./src/components/Splash/SplashScreen";
 import AppLockScreen from "./src/components/AppLock/AppLockScreen";
 import OnboardingScreen from "./src/screens/Onboarding/OnboardingScreen";
+import { Linking } from "react-native";
 
 const ONBOARDING_SEEN_KEY = "memory_ticket_onboarding_seen";
 const navigationRef = createNavigationContainerRef();
@@ -48,6 +49,9 @@ function AppContent() {
   const [navigationStateVersion, setNavigationStateVersion] =
     useState(0);
   const [pendingNotification, setPendingNotification] = useState(null);
+  const [pendingWidgetMemoryId, setPendingWidgetMemoryId] =
+  useState(null);
+
   const nativeSplashHidden = useRef(false);
   const pendingNotificationKeyRef = useRef(null);
 
@@ -254,6 +258,117 @@ function AppContent() {
       },
     );
   }
+
+  const queueWidgetDeepLink = useCallback((url) => {
+  if (typeof url !== "string") {
+    return;
+  }
+
+  const match = url.match(
+    /^memento:\/\/memory\/([^/?#]+)/i,
+  );
+
+  if (!match) {
+    return;
+  }
+
+  try {
+    const memoryId = decodeURIComponent(match[1]);
+
+    if (memoryId) {
+      setPendingWidgetMemoryId(memoryId);
+    }
+  } catch (error) {
+    console.warn(
+      "Unable to parse Memento widget link:",
+      error,
+    );
+  }
+  }, []);
+
+  useEffect(() => {
+  if (!pendingWidgetMemoryId) {
+    return;
+  }
+
+  if (
+    loading ||
+    !appReadyCheck({
+      showMementoSplash,
+      appLockReady,
+      onboardingReady,
+      navigationReady,
+      memoriesLoading,
+    }) ||
+    !navigationRef.isReady()
+  ) {
+    return;
+  }
+
+  // Keep the pending link until the user can access memories.
+  if (!hasSeenOnboarding || !user || appLocked) {
+    return;
+  }
+
+  const rootState = navigationRef.getRootState();
+  const routeNames = rootState?.routeNames || [];
+
+  if (
+    !routeNames.includes("MainTabs") ||
+    !routeNames.includes("MemoryDetails")
+  ) {
+    return;
+  }
+
+  navigationRef.navigate("MemoryDetails", {
+    memoryId: pendingWidgetMemoryId,
+  });
+
+  setPendingWidgetMemoryId(null);
+}, [
+  pendingWidgetMemoryId,
+  loading,
+  user,
+  appLocked,
+  appLockReady,
+  onboardingReady,
+  hasSeenOnboarding,
+  showMementoSplash,
+  memoriesLoading,
+  navigationReady,
+  navigationStateVersion,
+  ]);
+
+
+useEffect(() => {
+  let mounted = true;
+
+  Linking.getInitialURL()
+    .then((url) => {
+      if (mounted && url) {
+        queueWidgetDeepLink(url);
+      }
+    })
+    .catch((error) => {
+      console.warn(
+        "Unable to read the initial widget link:",
+        error,
+      );
+    });
+
+  const subscription = Linking.addEventListener(
+    "url",
+    ({ url }) => {
+      queueWidgetDeepLink(url);
+    },
+  );
+
+  return () => {
+    mounted = false;
+    subscription.remove();
+  };
+}, [queueWidgetDeepLink]);
+
 
   const appReady =
     !loading &&
