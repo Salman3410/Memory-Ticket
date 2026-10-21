@@ -104,16 +104,45 @@ function MemoryTicket({
     memory.id?.toString().slice(-6) ||
     "000000";
 
-  const images = Array.isArray(memory.images)
+  const localImages = Array.isArray(memory.localImages)
+  ? memory.localImages
+  : [];
+
+const remoteImages =
+  Array.isArray(memory.images) && memory.images.length
     ? memory.images
     : memory.image
       ? [memory.image]
       : [];
 
+  const images = localImages.length
+    ? localImages
+    : remoteImages;
+
   const isSingleImageMode = Boolean(image);
 
+  const matchingImageIndex =
+    typeof image === "string"
+      ? remoteImages.findIndex(
+          (uri) =>
+            uri === image ||
+            getMemoryThumbnailUrl(uri) === image,
+        )
+      : -1;
+
+  const resolvedSingleImage =
+    typeof image === "string" &&
+    /^(file|content):\/\//i.test(image)
+      ? image
+        : matchingImageIndex >= 0 &&
+          localImages[matchingImageIndex]
+        ? localImages[matchingImageIndex]
+        : localImages.length === 1
+        ? localImages[0]
+        : image;
+
   const displayImages = isSingleImageMode
-    ? [image]
+    ? [resolvedSingleImage]
     : images;
 
   const displayImageSources = useMemo(

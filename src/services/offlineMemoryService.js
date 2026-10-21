@@ -17,6 +17,18 @@ const OFFLINE_IMAGES_DIRECTORY =
 const MAX_IMAGE_SIZE = 1600;
 const IMAGE_QUALITY = 0.8;
 
+const hashString = (value) => {
+  let hash = 2166136261;
+  const input = String(value);
+
+  for (let i = 0; i < input.length; i++) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return (hash >>> 0).toString(16);
+};
+
 let pendingMemoriesCache = null;
 let localMemoriesCache = null;
 let pendingMemoryOperationsCache = null;
@@ -32,27 +44,37 @@ let offlineDirectoryPromise = null;
 const ensureOfflineDirectory = async () => {
   if (!offlineDirectoryPromise) {
     offlineDirectoryPromise = (async () => {
-      const directoryInfo = await FileSystem.getInfoAsync(
-        OFFLINE_IMAGES_DIRECTORY,
-      );
+      const directoryInfo =
+        await FileSystem.getInfoAsync(
+          OFFLINE_IMAGES_DIRECTORY,
+        );
 
       if (!directoryInfo.exists) {
-        await FileSystem.makeDirectoryAsync(OFFLINE_IMAGES_DIRECTORY, {
-          intermediates: true,
-        });
+        await FileSystem.makeDirectoryAsync(
+          OFFLINE_IMAGES_DIRECTORY,
+          {
+            intermediates: true,
+          },
+        );
       }
-    })();
+    })().catch((error) => {
+      offlineDirectoryPromise = null;
+      throw error;
+    });
   }
 
   return offlineDirectoryPromise;
 };
 
 export const generateClientMemoryId = () => {
-  return `memory-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  return `memory-${Date.now()}-${Math.random()
+    .toString(36)
+    .slice(2, 10)}`;
 };
 
 const getFileName = (uri, index) => {
-  const fallbackName = `image-${Date.now()}-${index}.jpg`;
+  const fallbackName =
+    `image-${Date.now()}-${index}.jpg`;
 
   if (!uri || typeof uri !== "string") {
     return fallbackName;
@@ -69,96 +91,202 @@ export const compressImage = async (uri) => {
   }
 
   try {
-    const result = await ImageManipulator.manipulateAsync(
-      uri,
-      [
-        {
-          resize: {
-            width: MAX_IMAGE_SIZE,
+    const result =
+      await ImageManipulator.manipulateAsync(
+        uri,
+        [
+          {
+            resize: {
+              width: MAX_IMAGE_SIZE,
+            },
           },
+        ],
+        {
+          compress: IMAGE_QUALITY,
+          format: ImageManipulator.SaveFormat.JPEG,
         },
-      ],
-      {
-        compress: IMAGE_QUALITY,
-        format: ImageManipulator.SaveFormat.JPEG,
-      },
-    );
+      );
 
     return result.uri;
   } catch (error) {
     console.error("Image compression error:", error);
-
     return uri;
   }
 };
 
-export const persistImage = async (uri, clientMemoryId, index) => {
-  if (!uri) {
+export const persistImage = async (
+  uri,
+  clientMemoryId,
+  index,
+) => {
+  if (!uri || typeof uri !== "string") {
     throw new Error("Image URI is required.");
   }
 
   await ensureOfflineDirectory();
 
   if (uri.startsWith(OFFLINE_IMAGES_DIRECTORY)) {
-    return uri;
+    const localInfo =
+      await FileSystem.getInfoAsync(uri);
+
+    if (
+      localInfo.exists &&
+      (localInfo.size ?? 0) > 0
+    ) {
+      return uri;
+    }
+
+    throw new Error(
+      "The saved local image file is missing.",
+    );
   }
 
-  const compressedUri = await compressImage(uri);
+  const safeMemoryId = String(
+    clientMemoryId || generateClientMemoryId(),
+  ).replace(/[^a-zA-Z0-9-_]/g, "_");
 
-  const originalName = getFileName(uri, index);
+  const destination =
+    `${OFFLINE_IMAGES_DIRECTORY}` +
+    `${safeMemoryId}-${index}-${hashString(uri)}.jpg`;
 
-  const baseName = originalName
-    .replace(/\.[^/.]+$/, "")
-    .replace(/[^a-zA-Z0-9-_]/g, "_");
+  const destinationInfo =
+    await FileSystem.getInfoAsync(destination);
 
-  const fileName = `${clientMemoryId}-${index}-${baseName}.jpg`;
-
-  const destination = `${OFFLINE_IMAGES_DIRECTORY}${fileName}`;
-
-  const existing = await FileSystem.getInfoAsync(destination);
-
-  if (existing.exists) {
+  if (
+    destinationInfo.exists &&
+    (destinationInfo.size ?? 0) > 0
+  ) {
     return destination;
   }
 
-  await FileSystem.copyAsync({
-    from: compressedUri,
-    to: destination,
-  });
+  let sourceUri = uri;
+  let downloadedTempUri = null;
+  let compressedUri = null;
 
-  if (
-    compressedUri !== uri &&
-    !compressedUri.startsWith(OFFLINE_IMAGES_DIRECTORY)
-  ) {
+  try {
+    if (/^https?:\/\//i.test(uri)) {
+      const tempDirectory =
+        FileSystem.cacheDirectory ||
+        FileSystem.documentDirectory;
+
+      if (!tempDirectory) {
+        throw new Error(
+          "No writable directory is available.",
+        );
+      }
+
+      downloadedTempUri =
+        `${tempDirectory}` +
+        `memento-download-${hashString(uri)}-` +
+        `${Date.now()}-${Math.random()
+          .toString(36)
+          .slice(2, 8)}.jpg`;
+
+      const downloadResult =
+        await FileSystem.downloadAsync(
+          uri,
+          downloadedTempUri,
+        );
+
+      sourceUri = downloadResult.uri;
+    }
+
+    compressedUri =
+      await compressImage(sourceUri);
+
+    await FileSystem.copyAsync({
+      from: compressedUri,
+      to: destination,
+    });
+
+    const savedInfo =
+      await FileSystem.getInfoAsync(destination);
+
+    if (
+      !savedInfo.exists ||
+      (savedInfo.size ?? 0) <= 0
+    ) {
+      throw new Error(
+        "The image was not saved correctly.",
+      );
+    }
+
+    return destination;
+  } catch (error) {
     try {
-      await FileSystem.deleteAsync(compressedUri, {
+      await FileSystem.deleteAsync(destination, {
         idempotent: true,
       });
-    } catch (error) {
-      console.log("Unable to delete temporary compressed image:", error);
+    } catch {}
+
+    throw error;
+  } finally {
+    const temporaryFiles = new Set();
+
+    if (downloadedTempUri) {
+      temporaryFiles.add(downloadedTempUri);
+    }
+
+    if (
+      compressedUri &&
+      compressedUri !== sourceUri &&
+      compressedUri !== uri &&
+      !compressedUri.startsWith(
+        OFFLINE_IMAGES_DIRECTORY,
+      )
+    ) {
+      temporaryFiles.add(compressedUri);
+    }
+
+    for (const temporaryUri of temporaryFiles) {
+      try {
+        await FileSystem.deleteAsync(
+          temporaryUri,
+          {
+            idempotent: true,
+          },
+        );
+      } catch {}
     }
   }
-
-  return destination;
 };
 
 export const persistMemoryImages = async (memory) => {
-  const clientMemoryId = memory.clientMemoryId || generateClientMemoryId();
+  const clientMemoryId = String(
+    memory.clientMemoryId ||
+      memory._id ||
+      memory.id ||
+      generateClientMemoryId(),
+  );
 
-  const images = Array.isArray(memory.images)
-    ? memory.images
-    : memory.image
-      ? [memory.image]
-      : [];
+  const images =
+    Array.isArray(memory.images) &&
+    memory.images.length
+      ? memory.images
+      : Array.isArray(memory.localImages) &&
+          memory.localImages.length
+        ? memory.localImages
+        : memory.image
+          ? [memory.image]
+          : [];
 
   if (!images.length) {
-    throw new Error("At least one image is required.");
+    throw new Error(
+      "At least one image is required.",
+    );
   }
 
+  // Memento supports up to five images per memory.
   const limitedImages = images.slice(0, 5);
 
   const localImages = await Promise.all(
-    limitedImages.map((uri, index) => persistImage(uri, clientMemoryId, index)),
+    limitedImages.map((uri, index) =>
+      persistImage(
+        uri,
+        clientMemoryId,
+        index,
+      ),
+    ),
   );
 
   return {
@@ -173,7 +301,9 @@ export const getPendingMemories = async () => {
   }
 
   try {
-    const raw = await AsyncStorage.getItem(PENDING_MEMORIES_KEY);
+    const raw = await AsyncStorage.getItem(
+      PENDING_MEMORIES_KEY,
+    );
 
     if (!raw) {
       pendingMemoriesCache = [];
@@ -182,11 +312,16 @@ export const getPendingMemories = async () => {
 
     const parsed = JSON.parse(raw);
 
-    pendingMemoriesCache = Array.isArray(parsed) ? parsed : [];
+    pendingMemoriesCache = Array.isArray(parsed)
+      ? parsed
+      : [];
 
     return pendingMemoriesCache;
   } catch (error) {
-    console.error("Get pending memories error:", error);
+    console.error(
+      "Get pending memories error:",
+      error,
+    );
 
     pendingMemoriesCache = [];
 
@@ -195,7 +330,9 @@ export const getPendingMemories = async () => {
 };
 
 const writePendingMemories = (memories) => {
-  const next = Array.isArray(memories) ? memories : [];
+  const next = Array.isArray(memories)
+    ? memories
+    : [];
 
   pendingMemoriesCache = next;
 
@@ -208,7 +345,9 @@ const writePendingMemories = (memories) => {
       ),
     );
 
-  return pendingWritePromise.then(() => pendingMemoriesCache);
+  return pendingWritePromise.then(
+    () => pendingMemoriesCache,
+  );
 };
 
 export const savePendingMemories = async (memories) => {
@@ -219,7 +358,9 @@ export const addPendingMemory = async (memory) => {
   const current = await getPendingMemories();
 
   const index = current.findIndex(
-    (item) => item.clientMemoryId === memory.clientMemoryId,
+    (item) =>
+      item.clientMemoryId ===
+      memory.clientMemoryId,
   );
 
   let next;
@@ -238,11 +379,14 @@ export const addPendingMemory = async (memory) => {
   return writePendingMemories(next);
 };
 
-export const removePendingMemory = async (clientMemoryId) => {
+export const removePendingMemory = async (
+  clientMemoryId,
+) => {
   const current = await getPendingMemories();
 
   const next = current.filter(
-    (memory) => memory.clientMemoryId !== clientMemoryId,
+    (memory) =>
+      memory.clientMemoryId !== clientMemoryId,
   );
 
   return writePendingMemories(next);
@@ -254,7 +398,9 @@ export const getLocalMemories = async () => {
   }
 
   try {
-    const raw = await AsyncStorage.getItem(LOCAL_MEMORIES_KEY);
+    const raw = await AsyncStorage.getItem(
+      LOCAL_MEMORIES_KEY,
+    );
 
     if (!raw) {
       localMemoriesCache = [];
@@ -263,11 +409,16 @@ export const getLocalMemories = async () => {
 
     const parsed = JSON.parse(raw);
 
-    localMemoriesCache = Array.isArray(parsed) ? parsed : [];
+    localMemoriesCache = Array.isArray(parsed)
+      ? parsed
+      : [];
 
     return localMemoriesCache;
   } catch (error) {
-    console.error("Get local memories error:", error);
+    console.error(
+      "Get local memories error:",
+      error,
+    );
 
     localMemoriesCache = [];
 
@@ -276,7 +427,9 @@ export const getLocalMemories = async () => {
 };
 
 const writeLocalMemories = (memories) => {
-  const next = Array.isArray(memories) ? memories : [];
+  const next = Array.isArray(memories)
+    ? memories
+    : [];
 
   localMemoriesCache = next;
 
@@ -289,7 +442,9 @@ const writeLocalMemories = (memories) => {
       ),
     );
 
-  return localWritePromise.then(() => localMemoriesCache);
+  return localWritePromise.then(
+    () => localMemoriesCache,
+  );
 };
 
 export const saveLocalMemories = async (memories) => {
@@ -298,8 +453,14 @@ export const saveLocalMemories = async (memories) => {
 
 const findLocalMemoryIndex = (memories, memory) => {
   return memories.findIndex((item) => {
-    if (memory.clientMemoryId && item.clientMemoryId) {
-      return item.clientMemoryId === memory.clientMemoryId;
+    if (
+      memory.clientMemoryId &&
+      item.clientMemoryId
+    ) {
+      return (
+        item.clientMemoryId ===
+        memory.clientMemoryId
+      );
     }
 
     return item.id === memory.id;
@@ -311,7 +472,10 @@ export const upsertLocalMemory = async (memory) => {
 
   const next = current.slice();
 
-  const index = findLocalMemoryIndex(next, memory);
+  const index = findLocalMemoryIndex(
+    next,
+    memory,
+  );
 
   if (index >= 0) {
     next[index] = {
@@ -325,7 +489,9 @@ export const upsertLocalMemory = async (memory) => {
   return writeLocalMemories(next);
 };
 
-export const upsertLocalMemories = async (memories) => {
+export const upsertLocalMemories = async (
+  memories,
+) => {
   if (!Array.isArray(memories)) {
     return getLocalMemories();
   }
@@ -340,10 +506,15 @@ export const upsertLocalMemories = async (memories) => {
 
   const indexMap = new Map();
 
-  for (let index = 0; index < next.length; index += 1) {
+  for (
+    let index = 0;
+    index < next.length;
+    index += 1
+  ) {
     const item = next[index];
 
-    const key = item.clientMemoryId || item.id;
+    const key =
+      item.clientMemoryId || item.id;
 
     if (key) {
       indexMap.set(key, index);
@@ -351,7 +522,8 @@ export const upsertLocalMemories = async (memories) => {
   }
 
   for (const memory of memories) {
-    const key = memory.clientMemoryId || memory.id;
+    const key =
+      memory.clientMemoryId || memory.id;
 
     if (!key) {
       continue;
@@ -367,9 +539,12 @@ export const upsertLocalMemories = async (memories) => {
     } else {
       next.unshift(memory);
 
-      // Keep map indexes valid.
+      // Keep map indexes valid after inserting at the beginning.
       for (const [mapKey, mapIndex] of indexMap) {
-        indexMap.set(mapKey, mapIndex + 1);
+        indexMap.set(
+          mapKey,
+          mapIndex + 1,
+        );
       }
 
       indexMap.set(key, 0);
@@ -379,12 +554,20 @@ export const upsertLocalMemories = async (memories) => {
   return writeLocalMemories(next);
 };
 
-export const removeLocalMemory = async (memoryId, clientMemoryId = null) => {
+export const removeLocalMemory = async (
+  memoryId,
+  clientMemoryId = null,
+) => {
   const current = await getLocalMemories();
 
   const next = current.filter((memory) => {
-    if (clientMemoryId && memory.clientMemoryId) {
-      return memory.clientMemoryId !== clientMemoryId;
+    if (
+      clientMemoryId &&
+      memory.clientMemoryId
+    ) {
+      return (
+        memory.clientMemoryId !== clientMemoryId
+      );
     }
 
     return memory.id !== memoryId;
@@ -393,7 +576,9 @@ export const removeLocalMemory = async (memoryId, clientMemoryId = null) => {
   return writeLocalMemories(next);
 };
 
-export const removeLocalMemories = async (memories) => {
+export const removeLocalMemories = async (
+  memories,
+) => {
   if (!Array.isArray(memories)) {
     return getLocalMemories();
   }
@@ -401,7 +586,8 @@ export const removeLocalMemories = async (memories) => {
   const ids = new Set();
 
   for (const memory of memories) {
-    const key = memory.clientMemoryId || memory.id;
+    const key =
+      memory.clientMemoryId || memory.id;
 
     if (key) {
       ids.add(key);
@@ -415,7 +601,8 @@ export const removeLocalMemories = async (memories) => {
   const current = await getLocalMemories();
 
   const next = current.filter((memory) => {
-    const key = memory.clientMemoryId || memory.id;
+    const key =
+      memory.clientMemoryId || memory.id;
 
     return !ids.has(key);
   });
@@ -428,7 +615,11 @@ export const clearLocalMemories = async () => {
 
   localWritePromise = localWritePromise
     .catch(() => {})
-    .then(() => AsyncStorage.removeItem(LOCAL_MEMORIES_KEY));
+    .then(() =>
+      AsyncStorage.removeItem(
+        LOCAL_MEMORIES_KEY,
+      ),
+    );
 
   return localWritePromise;
 };
@@ -446,8 +637,10 @@ export const getOfflineMemories = async () => {
   const unique = [];
   const seen = new Set();
 
+  // Pending entries take priority over older local entries.
   for (const memory of [...pending, ...local]) {
-    const key = memory.clientMemoryId || memory.id;
+    const key =
+      memory.clientMemoryId || memory.id;
 
     if (!key || seen.has(key)) {
       continue;
@@ -460,40 +653,49 @@ export const getOfflineMemories = async () => {
   return unique;
 };
 
-export const getPendingMemoryOperations = async () => {
-  if (pendingMemoryOperationsCache !== null) {
-    return pendingMemoryOperationsCache;
-  }
-
-  try {
-    const raw = await AsyncStorage.getItem(
-      PENDING_MEMORY_OPERATIONS_KEY,
-    );
-
-    if (!raw) {
-      pendingMemoryOperationsCache = [];
+export const getPendingMemoryOperations =
+  async () => {
+    if (pendingMemoryOperationsCache !== null) {
       return pendingMemoryOperationsCache;
     }
-    const parsed = JSON.parse(raw);
 
-    pendingMemoryOperationsCache = Array.isArray(parsed)
-      ? parsed
+    try {
+      const raw = await AsyncStorage.getItem(
+        PENDING_MEMORY_OPERATIONS_KEY,
+      );
+
+      if (!raw) {
+        pendingMemoryOperationsCache = [];
+        return pendingMemoryOperationsCache;
+      }
+
+      const parsed = JSON.parse(raw);
+
+      pendingMemoryOperationsCache =
+        Array.isArray(parsed)
+          ? parsed
+          : [];
+
+      return pendingMemoryOperationsCache;
+    } catch (error) {
+      console.error(
+        "Get pending memory operations error:",
+        error,
+      );
+
+      pendingMemoryOperationsCache = [];
+
+      return pendingMemoryOperationsCache;
+    }
+  };
+
+const writePendingMemoryOperations = (
+  operations,
+) => {
+  pendingMemoryOperationsCache =
+    Array.isArray(operations)
+      ? operations
       : [];
-    return pendingMemoryOperationsCache;
-  } catch (error) {
-    console.error(
-      "Get pending memory operations error:",
-      error,
-    );
-    pendingMemoryOperationsCache = [];
-    return pendingMemoryOperationsCache;
-  }
-};
-
-const writePendingMemoryOperations = (operations) => {
-  pendingMemoryOperationsCache = Array.isArray(operations)
-    ? operations
-    : [];
 
   pendingMemoryOperationsWritePromise =
     pendingMemoryOperationsWritePromise
@@ -501,7 +703,9 @@ const writePendingMemoryOperations = (operations) => {
       .then(() =>
         AsyncStorage.setItem(
           PENDING_MEMORY_OPERATIONS_KEY,
-          JSON.stringify(pendingMemoryOperationsCache),
+          JSON.stringify(
+            pendingMemoryOperationsCache,
+          ),
         ),
       );
 
@@ -535,7 +739,8 @@ export const addPendingMemoryOperation = async (
     );
   }
 
-  const targetKey = getOperationMemoryKey(operation);
+  const targetKey =
+    getOperationMemoryKey(operation);
 
   if (!targetKey) {
     throw new Error(
@@ -547,16 +752,20 @@ export const addPendingMemoryOperation = async (
 
   const normalized = {
     ...operation,
+
     operationId:
       operation.operationId ||
       `mutation-${now}-${Math.random()
         .toString(36)
         .slice(2, 10)}`,
+
     createdAt: operation.createdAt || now,
     updatedAt: now,
   };
 
-  const current = await getPendingMemoryOperations();
+  const current =
+    await getPendingMemoryOperations();
+
   let next = current.slice();
 
   if (operation.type === "delete") {
@@ -564,7 +773,9 @@ export const addPendingMemoryOperation = async (
       (item) =>
         getOperationMemoryKey(item) !== targetKey,
     );
+
     next.push(normalized);
+
     return writePendingMemoryOperations(next);
   }
 
@@ -576,11 +787,14 @@ export const addPendingMemoryOperation = async (
 
   if (existingIndex >= 0) {
     const existing = next[existingIndex];
+
     next[existingIndex] = {
       ...existing,
       ...normalized,
+
       operationId: normalized.operationId,
       createdAt: now,
+
       payload:
         operation.type === "update"
           ? {
@@ -592,36 +806,41 @@ export const addPendingMemoryOperation = async (
   } else {
     next.push(normalized);
   }
+
   next.sort(
     (a, b) =>
       Number(a.createdAt || 0) -
       Number(b.createdAt || 0),
   );
-  return writePendingMemoryOperations(next);
-};
-
-export const removePendingMemoryOperation = async (
-  operationId,
-) => {
-  const current = await getPendingMemoryOperations();
-  const next = current.filter(
-    (operation) =>
-      operation.operationId !== operationId,
-  );
 
   return writePendingMemoryOperations(next);
 };
 
-export const clearPendingMemoryOperations = async () => {
-  pendingMemoryOperationsCache = [];
-  pendingMemoryOperationsWritePromise =
-    pendingMemoryOperationsWritePromise
-      .catch(() => {})
-      .then(() =>
-        AsyncStorage.removeItem(
-          PENDING_MEMORY_OPERATIONS_KEY,
-        ),
-      );
+export const removePendingMemoryOperation =
+  async (operationId) => {
+    const current =
+      await getPendingMemoryOperations();
 
-  return pendingMemoryOperationsWritePromise;
-};
+    const next = current.filter(
+      (operation) =>
+        operation.operationId !== operationId,
+    );
+
+    return writePendingMemoryOperations(next);
+  };
+
+export const clearPendingMemoryOperations =
+  async () => {
+    pendingMemoryOperationsCache = [];
+
+    pendingMemoryOperationsWritePromise =
+      pendingMemoryOperationsWritePromise
+        .catch(() => {})
+        .then(() =>
+          AsyncStorage.removeItem(
+            PENDING_MEMORY_OPERATIONS_KEY,
+          ),
+        );
+
+    return pendingMemoryOperationsWritePromise;
+  };

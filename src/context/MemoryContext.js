@@ -6,16 +6,12 @@ import {
   useRef,
   useState,
 } from "react";
-
 import { useAuth } from "../hooks/useAuth";
-
 import {
   getNetworkInfo,
   addNetworkListener,
 } from "../services/networkService";
-
 import { getCurrentLocation } from "../services/locationService";
-
 import {
   getMemories as getMemoriesApi,
   createMemory as createMemoryApi,
@@ -24,7 +20,6 @@ import {
   deleteAllMemories as deleteAllMemoriesApi,
   toggleFavorite as toggleFavoriteApi,
 } from "../api/memoryApi";
-
 import {
   generateClientMemoryId,
   persistMemoryImages,
@@ -42,14 +37,12 @@ import {
   removeLocalMemory,
   clearLocalMemories,
 } from "../services/offlineMemoryService";
-
 import {
   normalizeTicketCustomization,
 } from "../utils/ticketCustomization";
 
 export const MemoryContext = createContext(null);
 
-// Unknown network status must not accidentally trigger an upload.
 const isNetworkOnline = (networkInfo) =>
   Boolean(
     networkInfo &&
@@ -78,6 +71,23 @@ const findMatchingMemory = (memoryMap, memory) => {
   return null;
 };
 
+const getMemoryImageUris = (memory) => {
+  if (Array.isArray(memory?.images) && memory.images.length) {
+    return memory.images
+      .filter(
+        (uri) =>
+          typeof uri === "string" && uri.length > 0,
+      )
+      .slice(0, 5);
+  }
+
+  if (typeof memory?.image === "string" && memory.image) {
+    return [memory.image];
+  }
+
+  return [];
+};
+
 export function MemoryProvider({ children }) {
   const { token, loading: authLoading } = useAuth();
 
@@ -85,28 +95,24 @@ export function MemoryProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
 
-  // All synchronization attempts share one active promise.
   const syncPromiseRef = useRef(null);
   const syncRequestedRef = useRef(false);
 
-  // Track memories whose images are still being prepared.
   const preparingMemoryIdsRef = useRef(new Set());
 
-  // Prevent a cancelled creation from being re-added by image preparation.
   const cancelledMemoryIdsRef = useRef(new Set());
-
-  // --------------------------------------------------
-  // NORMALIZE MEMORY
-  // --------------------------------------------------
 
   const normalizeMemory = useCallback((memory) => {
     if (!memory) {
       return null;
     }
 
-    const images = Array.isArray(memory.images)
-      ? memory.images
-      : [];
+    const images =
+      Array.isArray(memory.images) && memory.images.length
+        ? memory.images
+        : memory.image
+          ? [memory.image]
+          : [];
 
     const tags = Array.isArray(memory.tags)
       ? [
@@ -140,10 +146,8 @@ export function MemoryProvider({ children }) {
 
       favorite:
         memory.isFavorite === true ||
-        (
-          memory.isFavorite == null &&
-          memory.favorite === true
-        ),
+        (memory.isFavorite == null &&
+          memory.favorite === true),
 
       locationData: memory.locationData || null,
 
@@ -193,7 +197,12 @@ export function MemoryProvider({ children }) {
             return null;
           }
 
-          if (local?.localImages?.length) {
+          // Prefer the newly cached image paths.
+          // Retain previously saved paths if no new paths exist.
+          if (
+            !normalized.localImages?.length &&
+            local?.localImages?.length
+          ) {
             normalized.localImages = local.localImages;
           }
 
@@ -244,14 +253,16 @@ export function MemoryProvider({ children }) {
         .filter(Boolean);
 
       const serverKeys = new Set(
-        mergedServer.flatMap((memory) => getMemoryKeys(memory)),
+        mergedServer.flatMap((memory) =>
+          getMemoryKeys(memory),
+        ),
       );
 
       const remainingPending = pendingMemories
         .filter(
           (memory) =>
-            !getMemoryKeys(memory).some(
-              (key) => serverKeys.has(key),
+            !getMemoryKeys(memory).some((key) =>
+              serverKeys.has(key),
             ),
         )
         .map((memory) => {
@@ -263,7 +274,8 @@ export function MemoryProvider({ children }) {
 
           if (memory.localImages?.length) {
             normalized.images = memory.localImages;
-            normalized.image = memory.localImages[0] || null;
+            normalized.image =
+              memory.localImages[0] || null;
             normalized.localImages = memory.localImages;
           }
 
@@ -296,7 +308,9 @@ export function MemoryProvider({ children }) {
 
       const pendingDeleteKeys = new Set(
         pendingOperations
-          .filter((operation) => operation.type === "delete")
+          .filter(
+            (operation) => operation.type === "delete",
+          )
           .flatMap((operation) =>
             [
               operation.clientMemoryId,
@@ -309,8 +323,8 @@ export function MemoryProvider({ children }) {
 
       const visibleMemories = offlineMemories.filter(
         (memory) =>
-          !getMemoryKeys(memory).some(
-            (key) => pendingDeleteKeys.has(key),
+          !getMemoryKeys(memory).some((key) =>
+            pendingDeleteKeys.has(key),
           ),
       );
 
@@ -318,9 +332,11 @@ export function MemoryProvider({ children }) {
         .map((memory) => {
           const result = normalizeMemory(memory);
 
+          // Use local image files when loading offline records.
           if (result && memory.localImages?.length) {
             result.images = memory.localImages;
-            result.image = memory.localImages[0] || null;
+            result.image =
+              memory.localImages[0] || null;
             result.localImages = memory.localImages;
           }
 
@@ -339,7 +355,7 @@ export function MemoryProvider({ children }) {
   }, [token, normalizeMemory]);
 
   // --------------------------------------------------
-  // REFRESH SERVER MEMORIES
+  // REFRESH SERVER MEMORIES AND CACHE THEIR IMAGES
   // --------------------------------------------------
 
   const refreshServerMemories = useCallback(async () => {
@@ -372,7 +388,9 @@ export function MemoryProvider({ children }) {
 
       const pendingDeleteKeys = new Set(
         pendingOperations
-          .filter((operation) => operation.type === "delete")
+          .filter(
+            (operation) => operation.type === "delete",
+          )
           .flatMap((operation) =>
             [
               operation.clientMemoryId,
@@ -385,8 +403,8 @@ export function MemoryProvider({ children }) {
 
       const visibleServerMemories = backendMemories.filter(
         (memory) =>
-          !getMemoryKeys(memory).some(
-            (key) => pendingDeleteKeys.has(key),
+          !getMemoryKeys(memory).some((key) =>
+            pendingDeleteKeys.has(key),
           ),
       );
 
@@ -398,118 +416,211 @@ export function MemoryProvider({ children }) {
         }
       }
 
-      const normalizedServer = visibleServerMemories
-        .map((memory) => {
-          const normalized = normalizeMemory(memory);
+      // Cache images for existing memories fetched from the server.
+      // Process three memories at a time to limit concurrent downloads.
+      const serverMemoriesWithCachedImages = [];
+      const batchSize = 3;
 
-          if (!normalized) {
-            return null;
-          }
+      for (
+        let offset = 0;
+        offset < visibleServerMemories.length;
+        offset += batchSize
+      ) {
+        const batch = visibleServerMemories.slice(
+          offset,
+          offset + batchSize,
+        );
 
-          const local = findMatchingMemory(localMap, memory);
+        const cachedBatch = await Promise.all(
+          batch.map(async (memory) => {
+            const local = findMatchingMemory(
+              localMap,
+              memory,
+            );
 
-          const memoryKeys = getMemoryKeys(memory);
+            const sourceImages =
+              getMemoryImageUris(memory);
 
-          const hasQueuedMutation = pendingOperations.some(
-            (operation) => {
-              if (operation.type === "delete") {
-                return false;
-              }
+            if (!sourceImages.length) {
+              return {
+                ...memory,
+                localImages: local?.localImages || [],
+              };
+            }
 
-              const operationKeys = [
-                operation.clientMemoryId,
-                operation.memoryId,
-              ]
-                .filter(Boolean)
-                .map(String);
+            try {
+              const { localImages } =
+                await persistMemoryImages({
+                  ...memory,
 
-              return memoryKeys.some((key) =>
-                operationKeys.includes(key),
+                  clientMemoryId:
+                    memory.clientMemoryId ||
+                    memory._id ||
+                    memory.id,
+
+                  images: sourceImages,
+                });
+
+              return {
+                ...memory,
+                localImages,
+              };
+            } catch (error) {
+              console.warn(
+                `Unable to cache images for memory ${
+                  memory._id || memory.id || "unknown"
+                }:`,
+                error,
               );
-            },
+
+              // Keep existing local files if the download fails.
+              return {
+                ...memory,
+                localImages: local?.localImages || [],
+              };
+            }
+          }),
+        );
+
+        serverMemoriesWithCachedImages.push(
+          ...cachedBatch,
+        );
+      }
+
+      // Normalize the server records without losing cached image paths.
+      const normalizedServer =
+        serverMemoriesWithCachedImages
+          .map((memory) => {
+            const normalized =
+              normalizeMemory(memory);
+
+            if (!normalized) {
+              return null;
+            }
+
+            const local = findMatchingMemory(
+              localMap,
+              memory,
+            );
+
+            const memoryKeys =
+              getMemoryKeys(memory);
+
+            const hasQueuedMutation =
+              pendingOperations.some((operation) => {
+                if (operation.type === "delete") {
+                  return false;
+                }
+
+                const operationKeys = [
+                  operation.clientMemoryId,
+                  operation.memoryId,
+                ]
+                  .filter(Boolean)
+                  .map(String);
+
+                return memoryKeys.some((key) =>
+                  operationKeys.includes(key),
+                );
+              });
+
+            // Preserve local edits and favorites waiting to sync.
+            if (local && hasQueuedMutation) {
+              Object.assign(normalized, local, {
+                id: normalized.id || local.id,
+
+                _id: normalized._id || local._id,
+
+                clientMemoryId:
+                  local.clientMemoryId ||
+                  normalized.clientMemoryId,
+
+                // New paths must not be overwritten by older paths.
+                localImages:
+                  memory.localImages?.length
+                    ? memory.localImages
+                    : local.localImages || [],
+
+                hasPendingChanges: true,
+              });
+            }
+
+            if (
+              !Object.prototype.hasOwnProperty.call(
+                memory,
+                "tags",
+              ) &&
+              Array.isArray(local?.tags)
+            ) {
+              normalized.tags = local.tags;
+            }
+
+            if (
+              !Object.prototype.hasOwnProperty.call(
+                memory,
+                "ticketStyle",
+              ) &&
+              local?.ticketStyle
+            ) {
+              normalized.ticketStyle =
+                local.ticketStyle;
+            }
+
+            if (
+              !Object.prototype.hasOwnProperty.call(
+                memory,
+                "ticketAccent",
+              ) &&
+              local?.ticketAccent
+            ) {
+              normalized.ticketAccent =
+                local.ticketAccent;
+            }
+
+            if (
+              !Object.prototype.hasOwnProperty.call(
+                memory,
+                "ticketOptions",
+              ) &&
+              local?.ticketOptions
+            ) {
+              normalized.ticketOptions = {
+                ...local.ticketOptions,
+              };
+            }
+
+            return normalized;
+          })
+          .filter(Boolean);
+
+      // Keep newly cached local paths, falling back to existing paths.
+      const serverWithLocalImages =
+        normalizedServer.map((memory) => {
+          const local = findMatchingMemory(
+            localMap,
+            memory,
           );
 
-          // Preserve optimistic local changes while their operations
-          // are still waiting to be synchronized.
-          if (local && hasQueuedMutation) {
-            Object.assign(normalized, local, {
-              id: normalized.id || local.id,
-              _id: normalized._id || local._id,
-              clientMemoryId:
-                local.clientMemoryId ||
-                normalized.clientMemoryId,
-              localImages: local.localImages || [],
-              hasPendingChanges: true,
-            });
-          }
+          const localImages =
+            memory.localImages?.length
+              ? memory.localImages
+              : local?.localImages || [];
 
-          if (
-            !Object.prototype.hasOwnProperty.call(
-              memory,
-              "tags",
-            ) &&
-            Array.isArray(local?.tags)
-          ) {
-            normalized.tags = local.tags;
-          }
+          return localImages.length
+            ? {
+                ...memory,
+                localImages,
+              }
+            : memory;
+        });
 
-          if (
-            !Object.prototype.hasOwnProperty.call(
-              memory,
-              "ticketStyle",
-            ) &&
-            local?.ticketStyle
-          ) {
-            normalized.ticketStyle = local.ticketStyle;
-          }
-
-          if (
-            !Object.prototype.hasOwnProperty.call(
-              memory,
-              "ticketAccent",
-            ) &&
-            local?.ticketAccent
-          ) {
-            normalized.ticketAccent = local.ticketAccent;
-          }
-
-          if (
-            !Object.prototype.hasOwnProperty.call(
-              memory,
-              "ticketOptions",
-            ) &&
-            local?.ticketOptions
-          ) {
-            normalized.ticketOptions = {
-              ...local.ticketOptions,
-            };
-          }
-
-          return normalized;
-        })
-        .filter(Boolean);
-
-      const serverWithLocalImages = normalizedServer.map(
-        (memory) => {
-          const local = findMatchingMemory(localMap, memory);
-
-          if (local?.localImages?.length) {
-            return {
-              ...memory,
-              localImages: local.localImages,
-            };
-          }
-
-          return memory;
-        },
-      );
-
-      const visiblePendingMemories = pendingMemories.filter(
-        (memory) =>
-          !getMemoryKeys(memory).some(
-            (key) => pendingDeleteKeys.has(key),
-          ),
-      );
+      const visiblePendingMemories =
+        pendingMemories.filter(
+          (memory) =>
+            !getMemoryKeys(memory).some((key) =>
+              pendingDeleteKeys.has(key),
+            ),
+        );
 
       const merged = mergeMemories(
         serverWithLocalImages,
@@ -519,6 +630,8 @@ export function MemoryProvider({ children }) {
 
       setMemories(merged);
 
+      // Persist the server record and its local image paths together.
+      // These records will be loaded again if the app starts offline.
       await upsertLocalMemories(
         serverWithLocalImages.map((memory) => ({
           ...memory,
@@ -528,7 +641,10 @@ export function MemoryProvider({ children }) {
 
       return true;
     } catch (error) {
-      console.error("Refresh server memories error:", error);
+      console.error(
+        "Refresh server memories error:",
+        error,
+      );
 
       return false;
     }
@@ -549,11 +665,14 @@ export function MemoryProvider({ children }) {
     setLoading(true);
 
     try {
+      // Load the saved local state first, including offline images.
       await loadLocalMemories();
 
       setLoading(false);
 
-      const network = await getNetworkInfo().catch(() => null);
+      const network = await getNetworkInfo().catch(
+        () => null,
+      );
 
       if (isNetworkOnline(network)) {
         await refreshServerMemories();
@@ -563,7 +682,11 @@ export function MemoryProvider({ children }) {
 
       setLoading(false);
     }
-  }, [token, loadLocalMemories, refreshServerMemories]);
+  }, [
+    token,
+    loadLocalMemories,
+    refreshServerMemories,
+  ]);
 
   // --------------------------------------------------
   // SYNC ONE PENDING MEMORY
@@ -579,7 +702,8 @@ export function MemoryProvider({ children }) {
         return null;
       }
 
-      const clientMemoryId = pendingMemory.clientMemoryId;
+      const clientMemoryId =
+        pendingMemory.clientMemoryId;
 
       if (!clientMemoryId) {
         console.error(
@@ -605,7 +729,9 @@ export function MemoryProvider({ children }) {
         }
 
         const serverMemory = result.data?.memory;
-        const savedMemory = normalizeMemory(serverMemory);
+
+        const savedMemory =
+          normalizeMemory(serverMemory);
 
         if (!savedMemory) {
           console.error(
@@ -626,11 +752,14 @@ export function MemoryProvider({ children }) {
             tags: pendingMemory.tags,
           });
 
-          savedMemory.tags = normalizedTags?.tags || [];
+          savedMemory.tags =
+            normalizedTags?.tags || [];
         }
 
         const customization =
-          normalizeTicketCustomization(pendingMemory);
+          normalizeTicketCustomization(
+            pendingMemory,
+          );
 
         if (
           !Object.prototype.hasOwnProperty.call(
@@ -638,7 +767,8 @@ export function MemoryProvider({ children }) {
             "ticketStyle",
           )
         ) {
-          savedMemory.ticketStyle = customization.ticketStyle;
+          savedMemory.ticketStyle =
+            customization.ticketStyle;
         }
 
         if (
@@ -647,7 +777,8 @@ export function MemoryProvider({ children }) {
             "ticketAccent",
           )
         ) {
-          savedMemory.ticketAccent = customization.ticketAccent;
+          savedMemory.ticketAccent =
+            customization.ticketAccent;
         }
 
         if (
@@ -663,16 +794,20 @@ export function MemoryProvider({ children }) {
 
         const syncedMemory = {
           ...savedMemory,
+
           clientMemoryId,
-          localImages: Array.isArray(pendingMemory.localImages)
+
+          localImages: Array.isArray(
+            pendingMemory.localImages,
+          )
             ? pendingMemory.localImages
             : [],
+
           syncReady: true,
           syncStatus: "synced",
         };
 
-        // Save first. Only remove the retry entry after the local
-        // copy of the confirmed server record is safely persisted.
+        // Persist the confirmed server record before removing the queue item.
         await upsertLocalMemory(syncedMemory);
         await removePendingMemory(clientMemoryId);
 
@@ -688,10 +823,11 @@ export function MemoryProvider({ children }) {
             return [syncedMemory, ...current];
           }
 
-          return current.map((memory, currentIndex) =>
-            currentIndex === index
-              ? syncedMemory
-              : memory,
+          return current.map(
+            (memory, currentIndex) =>
+              currentIndex === index
+                ? syncedMemory
+                : memory,
           );
         });
 
@@ -714,7 +850,8 @@ export function MemoryProvider({ children }) {
       return;
     }
 
-    const operations = await getPendingMemoryOperations();
+    const operations =
+      await getPendingMemoryOperations();
 
     if (!operations.length) {
       return;
@@ -733,22 +870,24 @@ export function MemoryProvider({ children }) {
           .map(String),
       );
 
-      // An edit to a new memory must wait until its create
-      // operation has returned a server ID.
-      const createStillPending = pendingCreates.some(
-        (memory) =>
-          operation.clientMemoryId &&
-          memory.clientMemoryId === operation.clientMemoryId,
-      );
+      // An edit to a new memory must wait until its create operation syncs.
+      const createStillPending =
+        pendingCreates.some(
+          (memory) =>
+            operation.clientMemoryId &&
+            memory.clientMemoryId ===
+              operation.clientMemoryId,
+        );
 
       if (createStillPending) {
         continue;
       }
 
-      const localMemory = localMemories.find((memory) =>
-        getMemoryKeys(memory).some((key) =>
-          operationKeys.has(key),
-        ),
+      const localMemory = localMemories.find(
+        (memory) =>
+          getMemoryKeys(memory).some((key) =>
+            operationKeys.has(key),
+          ),
       );
 
       const targetMemoryId =
@@ -797,7 +936,8 @@ export function MemoryProvider({ children }) {
         if (!result?.success) {
           console.warn(
             `Memory ${operation.type} sync failed:`,
-            result?.message || "Unknown API error.",
+            result?.message ||
+              "Unknown API error.",
           );
 
           break;
@@ -834,10 +974,14 @@ export function MemoryProvider({ children }) {
           const syncedMemory = {
             ...(localMemory || {}),
             ...normalizedServerMemory,
+
             clientMemoryId:
               operation.clientMemoryId ||
               localMemory?.clientMemoryId,
-            localImages: localMemory?.localImages || [],
+
+            localImages:
+              localMemory?.localImages || [],
+
             hasPendingChanges: false,
             syncStatus: "synced",
           };
@@ -874,8 +1018,11 @@ export function MemoryProvider({ children }) {
             !Array.isArray(serverMemory?.images) ||
             serverMemory.images.length === 0
           ) {
-            syncedMemory.images = localMemory?.images || [];
-            syncedMemory.image = syncedMemory.images[0] || null;
+            syncedMemory.images =
+              localMemory?.images || [];
+
+            syncedMemory.image =
+              syncedMemory.images[0] || null;
           }
 
           if (
@@ -885,7 +1032,8 @@ export function MemoryProvider({ children }) {
             ) &&
             localMemory?.ticketStyle
           ) {
-            syncedMemory.ticketStyle = localMemory.ticketStyle;
+            syncedMemory.ticketStyle =
+              localMemory.ticketStyle;
           }
 
           if (
@@ -895,7 +1043,8 @@ export function MemoryProvider({ children }) {
             ) &&
             localMemory?.ticketAccent
           ) {
-            syncedMemory.ticketAccent = localMemory.ticketAccent;
+            syncedMemory.ticketAccent =
+              localMemory.ticketAccent;
           }
 
           if (
@@ -913,26 +1062,28 @@ export function MemoryProvider({ children }) {
           await upsertLocalMemory(syncedMemory);
 
           setMemories((current) => {
-            const index = current.findIndex((memory) =>
-              getMemoryKeys(memory).some(
-                (key) =>
-                  operationKeys.has(key) ||
-                  key === String(
-                    syncedMemory.id ||
-                      syncedMemory._id ||
-                      "",
-                  ),
-              ),
+            const index = current.findIndex(
+              (memory) =>
+                getMemoryKeys(memory).some(
+                  (key) =>
+                    operationKeys.has(key) ||
+                    key === String(
+                      syncedMemory.id ||
+                        syncedMemory._id ||
+                        "",
+                    ),
+                ),
             );
 
             if (index === -1) {
               return [syncedMemory, ...current];
             }
 
-            return current.map((memory, currentIndex) =>
-              currentIndex === index
-                ? syncedMemory
-                : memory,
+            return current.map(
+              (memory, currentIndex) =>
+                currentIndex === index
+                  ? syncedMemory
+                  : memory,
             );
           });
         }
@@ -959,14 +1110,16 @@ export function MemoryProvider({ children }) {
   // --------------------------------------------------
 
   const runSyncQueuePass = useCallback(async () => {
-    const network = await getNetworkInfo().catch((error) => {
-      console.warn(
-        "Unable to check network before sync:",
-        error,
-      );
+    const network = await getNetworkInfo().catch(
+      (error) => {
+        console.warn(
+          "Unable to check network before sync:",
+          error,
+        );
 
-      return null;
-    });
+        return null;
+      },
+    );
 
     if (!isNetworkOnline(network)) {
       return;
@@ -974,8 +1127,7 @@ export function MemoryProvider({ children }) {
 
     let pending = await getPendingMemories();
 
-    // Recover queued records interrupted during image preparation,
-    // for example if the app closed before preparation finished.
+    // Recover records interrupted during image preparation.
     for (const memory of pending) {
       if (
         memory.syncReady !== false ||
@@ -988,7 +1140,8 @@ export function MemoryProvider({ children }) {
       }
 
       const sourceImages =
-        Array.isArray(memory.images) && memory.images.length
+        Array.isArray(memory.images) &&
+        memory.images.length
           ? memory.images
           : Array.isArray(memory.localImages)
             ? memory.localImages
@@ -999,16 +1152,19 @@ export function MemoryProvider({ children }) {
       }
 
       try {
-        const { localImages } = await persistMemoryImages({
-          ...memory,
-          images: sourceImages,
-          clientMemoryId: memory.clientMemoryId,
-        });
+        const { localImages } =
+          await persistMemoryImages({
+            ...memory,
+            images: sourceImages,
+            clientMemoryId: memory.clientMemoryId,
+          });
 
         const readyMemory = {
           ...memory,
+
           images: localImages,
           localImages,
+
           syncReady: true,
           syncStatus: "pending",
         };
@@ -1018,7 +1174,8 @@ export function MemoryProvider({ children }) {
 
         setMemories((current) =>
           current.map((item) =>
-            item.clientMemoryId === readyMemory.clientMemoryId ||
+            item.clientMemoryId ===
+              readyMemory.clientMemoryId ||
             item.id === readyMemory.clientMemoryId
               ? {
                   ...item,
@@ -1135,16 +1292,18 @@ export function MemoryProvider({ children }) {
       return undefined;
     }
 
-    const subscription = addNetworkListener((networkInfo) => {
-      if (!isNetworkOnline(networkInfo)) {
-        return;
-      }
+    const subscription = addNetworkListener(
+      (networkInfo) => {
+        if (!isNetworkOnline(networkInfo)) {
+          return;
+        }
 
-      void (async () => {
-        await syncPendingMemories();
-        await refreshServerMemories();
-      })();
-    });
+        void (async () => {
+          await syncPendingMemories();
+          await refreshServerMemories();
+        })();
+      },
+    );
 
     void syncPendingMemories();
 
@@ -1175,13 +1334,12 @@ export function MemoryProvider({ children }) {
           memory?.clientMemoryId ||
           generateClientMemoryId();
 
-        const networkPromise = getNetworkInfo().catch(
-          (error) => {
+        const networkPromise =
+          getNetworkInfo().catch((error) => {
             console.warn("Network info error:", error);
 
             return null;
-          },
-        );
+          });
 
         const locationPromise = memory?.locationData
           ? Promise.resolve(memory.locationData)
@@ -1202,11 +1360,12 @@ export function MemoryProvider({ children }) {
           locationPromise,
         ]);
 
-        const originalImages = Array.isArray(memory?.images)
-          ? memory.images.slice(0, 5)
-          : memory?.image
-            ? [memory.image]
-            : [];
+        const originalImages =
+          Array.isArray(memory?.images)
+            ? memory.images.slice(0, 5)
+            : memory?.image
+              ? [memory.image]
+              : [];
 
         if (!originalImages.length) {
           throw new Error(
@@ -1219,6 +1378,7 @@ export function MemoryProvider({ children }) {
 
         const localMemoryData = {
           ...memory,
+
           clientMemoryId,
 
           location:
@@ -1250,7 +1410,8 @@ export function MemoryProvider({ children }) {
           },
         };
 
-        const localMemory = normalizeMemory(localMemoryData);
+        const localMemory =
+          normalizeMemory(localMemoryData);
 
         if (!localMemory) {
           throw new Error(
@@ -1263,27 +1424,31 @@ export function MemoryProvider({ children }) {
           ...current,
         ]);
 
-        preparingMemoryIdsRef.current.add(clientMemoryId);
+        preparingMemoryIdsRef.current.add(
+          clientMemoryId,
+        );
 
         try {
           // Save the retry record first.
           await addPendingMemory(localMemoryData);
           await upsertLocalMemory(localMemoryData);
         } catch (storageError) {
-          preparingMemoryIdsRef.current.delete(clientMemoryId);
+          preparingMemoryIdsRef.current.delete(
+            clientMemoryId,
+          );
 
           throw storageError;
         }
 
-        // Image persistence runs in the background so the UI can
-        // display the new memory without waiting for cloud upload.
+        // Prepare local files in the background.
         void (async () => {
           try {
-            const { localImages } = await persistMemoryImages({
-              ...localMemoryData,
-              images: originalImages,
-              clientMemoryId,
-            });
+            const { localImages } =
+              await persistMemoryImages({
+                ...localMemoryData,
+                images: originalImages,
+                clientMemoryId,
+              });
 
             if (
               cancelledMemoryIdsRef.current.has(
@@ -1293,20 +1458,23 @@ export function MemoryProvider({ children }) {
               return;
             }
 
-            // Preserve edits/favorite changes that may have been
-            // made while image preparation was running.
-            const currentQueue = await getPendingMemories();
+            // Preserve edits made during image preparation.
+            const currentQueue =
+              await getPendingMemories();
 
-            const currentQueuedMemory = currentQueue.find(
-              (item) =>
-                item.clientMemoryId === clientMemoryId,
-            );
+            const currentQueuedMemory =
+              currentQueue.find(
+                (item) =>
+                  item.clientMemoryId === clientMemoryId,
+              );
 
             const persistedMemory = {
               ...localMemoryData,
               ...(currentQueuedMemory || {}),
+
               images: localImages,
               localImages,
+
               syncReady: true,
               syncStatus: "pending",
             };
@@ -1321,9 +1489,11 @@ export function MemoryProvider({ children }) {
                   ? {
                       ...item,
                       ...persistedMemory,
+
                       images: localImages,
                       image: localImages[0] || null,
                       localImages,
+
                       syncReady: true,
                       syncStatus: "pending",
                     }
@@ -1371,10 +1541,6 @@ export function MemoryProvider({ children }) {
     [token, normalizeMemory, syncPendingMemories],
   );
 
-  // --------------------------------------------------
-  // UPDATE MEMORY
-  // --------------------------------------------------
-
   const updateMemory = useCallback(
     async (memoryId, updatedData) => {
       if (!token) {
@@ -1395,10 +1561,11 @@ export function MemoryProvider({ children }) {
         throw new Error("Memory not found.");
       }
 
-      const customization = normalizeTicketCustomization({
-        ...existingMemory,
-        ...updatedData,
-      });
+      const customization =
+        normalizeTicketCustomization({
+          ...existingMemory,
+          ...updatedData,
+        });
 
       const finalUpdatedData = {
         ...updatedData,
@@ -1411,7 +1578,8 @@ export function MemoryProvider({ children }) {
         },
       };
 
-      const pendingCreates = await getPendingMemories();
+      const pendingCreates =
+        await getPendingMemories();
 
       const isPendingCreate = Boolean(
         existingMemory.clientMemoryId &&
@@ -1428,9 +1596,11 @@ export function MemoryProvider({ children }) {
 
         id: existingMemory.id,
         _id: existingMemory._id,
-        clientMemoryId: existingMemory.clientMemoryId,
+        clientMemoryId:
+          existingMemory.clientMemoryId,
 
-        localImages: existingMemory.localImages || [],
+        localImages:
+          existingMemory.localImages || [],
 
         syncStatus: isPendingCreate
           ? "pending"
@@ -1448,8 +1618,7 @@ export function MemoryProvider({ children }) {
       }
 
       if (isPendingCreate) {
-        // Merge edits into the create request instead of queuing
-        // a separate update before the server ID exists.
+        // Merge edits into the create request while it is pending.
         await upsertLocalMemory(updatedMemory);
         await addPendingMemory(updatedMemory);
       } else {
@@ -1457,10 +1626,14 @@ export function MemoryProvider({ children }) {
 
         await addPendingMemoryOperation({
           type: "update",
+
           memoryId:
-            existingMemory._id || existingMemory.id,
+            existingMemory._id ||
+            existingMemory.id,
+
           clientMemoryId:
             existingMemory.clientMemoryId || null,
+
           payload: finalUpdatedData,
         });
       }
@@ -1488,10 +1661,6 @@ export function MemoryProvider({ children }) {
     ],
   );
 
-  // --------------------------------------------------
-  // DELETE MEMORY
-  // --------------------------------------------------
-
   const deleteMemory = useCallback(
     async (memoryId) => {
       if (!token) {
@@ -1511,7 +1680,8 @@ export function MemoryProvider({ children }) {
       const clientMemoryId =
         existingMemory?.clientMemoryId || null;
 
-      const pendingCreates = await getPendingMemories();
+      const pendingCreates =
+        await getPendingMemories();
 
       const isPendingCreate = Boolean(
         clientMemoryId &&
@@ -1554,8 +1724,8 @@ export function MemoryProvider({ children }) {
         return true;
       }
 
-      // Keep a persistent delete operation. Refreshes hide the memory
-      // until the server deletion is confirmed.
+      // Keep a persistent delete operation so refreshes hide the
+      // record until deletion is confirmed by the server.
       await addPendingMemoryOperation({
         type: "delete",
 
@@ -1593,10 +1763,6 @@ export function MemoryProvider({ children }) {
     [token, memories, syncPendingMemories],
   );
 
-  // --------------------------------------------------
-  // TOGGLE FAVORITE
-  // --------------------------------------------------
-
   const toggleFavorite = useCallback(
     async (memoryId) => {
       if (!token) {
@@ -1613,15 +1779,18 @@ export function MemoryProvider({ children }) {
         throw new Error("Memory not found.");
       }
 
-      const nextFavorite = !existingMemory.favorite;
+      const nextFavorite =
+        !existingMemory.favorite;
 
       const optimisticMemory = {
         ...existingMemory,
+
         favorite: nextFavorite,
         isFavorite: nextFavorite,
       };
 
-      const pendingCreates = await getPendingMemories();
+      const pendingCreates =
+        await getPendingMemories();
 
       const isPendingCreate = Boolean(
         existingMemory.clientMemoryId &&
@@ -1635,6 +1804,7 @@ export function MemoryProvider({ children }) {
       if (isPendingCreate) {
         const pendingMemory = {
           ...optimisticMemory,
+
           syncStatus: "pending",
           syncReady: existingMemory.syncReady,
         };
@@ -1656,6 +1826,7 @@ export function MemoryProvider({ children }) {
 
       const locallyUpdated = {
         ...optimisticMemory,
+
         hasPendingChanges: true,
         syncStatus: "synced",
       };
@@ -1691,10 +1862,6 @@ export function MemoryProvider({ children }) {
     [token, memories, syncPendingMemories],
   );
 
-  // --------------------------------------------------
-  // GET MEMORY BY ID
-  // --------------------------------------------------
-
   const getMemoryById = useCallback(
     (memoryId) =>
       memories.find(
@@ -1705,17 +1872,9 @@ export function MemoryProvider({ children }) {
     [memories],
   );
 
-  // --------------------------------------------------
-  // MANUAL SYNC
-  // --------------------------------------------------
-
   const syncNow = useCallback(async () => {
     await syncPendingMemories();
   }, [syncPendingMemories]);
-
-  // --------------------------------------------------
-  // CLEAR MEMORIES
-  // --------------------------------------------------
 
   const clearMemories = useCallback(async () => {
     if (!token) {
@@ -1748,30 +1907,23 @@ export function MemoryProvider({ children }) {
 
     return {
       success: true,
-      deletedCount: result.data?.deletedCount || 0,
+      deletedCount:
+        result.data?.deletedCount || 0,
     };
   }, [token]);
-
-  // --------------------------------------------------
-  // CONTEXT VALUE
-  // --------------------------------------------------
 
   const contextValue = useMemo(
     () => ({
       memories,
       loading,
       syncing,
-
       addMemory,
       updateMemory,
       deleteMemory,
       toggleFavorite,
-
       getMemoryById,
-
       loadMemories,
       refreshMemories: loadMemories,
-
       syncNow,
       clearMemories,
     }),
