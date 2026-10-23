@@ -1,6 +1,3 @@
-
-import React from "react";
-
 import {
   FlexWidget,
   ImageWidget,
@@ -25,9 +22,7 @@ function formatWidgetDate(value) {
   });
 }
 
-export function MementoMemoryWidget({
-  memory = null,
-}) {
+export function MementoMemoryWidget({ memory = null }) {
   const memoryId = memory?.id
     ? String(memory.id)
     : null;
@@ -53,9 +48,7 @@ export function MementoMemoryWidget({
     <FlexWidget
       clickAction={deepLink ? "OPEN_URI" : "OPEN_APP"}
       clickActionData={
-        deepLink
-          ? { uri: deepLink }
-          : undefined
+        deepLink ? { uri: deepLink } : undefined
       }
       accessibilityLabel={
         memoryId
@@ -65,119 +58,170 @@ export function MementoMemoryWidget({
       style={{
         width: "match_parent",
         height: "match_parent",
-        flexDirection: "row",
-        alignItems: "center",
+        flexDirection: "column",
         backgroundColor: "#34345C",
-        borderRadius: 18,
-        padding: 12,
+        borderRadius: 22,
+        padding: 11,
         overflow: "hidden",
       }}
     >
-      {remoteImage ? (
-        <ImageWidget
-          image={remoteImage}
-          imageWidth={76}
-          imageHeight={76}
-          resizeMode="cover"
-          radius={12}
-          style={{
-            marginRight: 12,
-          }}
-        />
-      ) : (
+      {/* Rabbit-inspired header */}
+      <FlexWidget
+        style={{
+          width: "match_parent",
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: 9,
+        }}
+      >
         <FlexWidget
           style={{
-            width: 76,
-            height: 76,
-            backgroundColor: "#E76F51",
-            borderRadius: 12,
+            flexDirection: "row",
             alignItems: "center",
-            justifyContent: "center",
-            marginRight: 12,
           }}
         >
           <TextWidget
-            text="M"
+            text="🐇"
             style={{
-              color: "#FFFFFF",
-              fontSize: 34,
-              fontWeight: "800",
-              textAlign: "center",
+              fontSize: 19,
+              marginRight: 5,
             }}
           />
 
           <TextWidget
-            text="TICKET"
+            text="MEMENTO"
             style={{
               color: "#FFFFFF",
-              fontSize: 9,
-              fontWeight: "700",
-              letterSpacing: 1.5,
+              fontSize: 10,
+              fontWeight: "800",
+              letterSpacing: 1,
             }}
           />
         </FlexWidget>
-      )}
 
+        <FlexWidget
+          style={{
+            width: 25,
+            height: 25,
+            borderRadius: 9,
+            backgroundColor: "#E76F51",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <TextWidget
+            text="♥"
+            style={{
+              color: "#FFFFFF",
+              fontSize: 13,
+              fontWeight: "700",
+            }}
+          />
+        </FlexWidget>
+      </FlexWidget>
+
+      {/* Memory thumbnail and information */}
       <FlexWidget
         style={{
+          width: "match_parent",
           flex: 1,
-          flexDirection: "column",
-          justifyContent: "center",
-          alignItems: "flex-start",
+          flexDirection: "row",
+          alignItems: "center",
         }}
       >
-        <TextWidget
-          text="MEMENTO  •  MEMORY TICKET"
-          maxLines={1}
-          truncate="END"
-          style={{
-            color: "#F3B39F",
-            fontSize: 9,
-            fontWeight: "800",
-            letterSpacing: 1,
-            marginBottom: 6,
-          }}
-        />
+        {remoteImage ? (
+          <ImageWidget
+            image={remoteImage}
+            imageWidth={42}
+            imageHeight={48}
+            resizeMode="cover"
+            radius={9}
+            style={{
+              marginRight: 8,
+            }}
+          />
+        ) : (
+          <FlexWidget
+            style={{
+              width: 42,
+              height: 48,
+              borderRadius: 9,
+              backgroundColor: "#E76F51",
+              alignItems: "center",
+              justifyContent: "center",
+              marginRight: 8,
+            }}
+          >
+            <TextWidget
+              text="✦"
+              style={{
+                color: "#FFFFFF",
+                fontSize: 25,
+                fontWeight: "700",
+              }}
+            />
+          </FlexWidget>
+        )}
 
-        <TextWidget
-          text={title}
-          maxLines={2}
-          truncate="END"
+        <FlexWidget
           style={{
-            color: "#FFFFFF",
-            fontSize: 16,
-            fontWeight: "700",
-            lineHeight: 19,
+            flex: 1,
+            flexDirection: "column",
+            alignItems: "flex-start",
+            justifyContent: "center",
           }}
-        />
+        >
+          <TextWidget
+            text="YOUR MEMORY"
+            maxLines={1}
+            truncate="END"
+            style={{
+              color: "#F3B39F",
+              fontSize: 8,
+              fontWeight: "800",
+              letterSpacing: 0.7,
+              marginBottom: 4,
+            }}
+          />
 
-        <TextWidget
-          text={date}
-          maxLines={1}
-          truncate="END"
-          style={{
-            color: "#D8D5E8",
-            fontSize: 11,
-            marginTop: 7,
-          }}
-        />
+          <TextWidget
+            text={title}
+            maxLines={2}
+            truncate="END"
+            style={{
+              color: "#FFFFFF",
+              fontSize: 12,
+              fontWeight: "700",
+              lineHeight: 15,
+            }}
+          />
 
-        <TextWidget
-          text={
-            memoryId
-              ? "TAP TO RELIVE"
-              : "OPEN MEMENTO"
-          }
-          maxLines={1}
-          style={{
-            color: "#F3B39F",
-            fontSize: 9,
-            fontWeight: "800",
-            letterSpacing: 1,
-            marginTop: 9,
-          }}
-        />
+          <TextWidget
+            text={date}
+            maxLines={1}
+            truncate="END"
+            style={{
+              color: "#D8D5E8",
+              fontSize: 9,
+              marginTop: 5,
+            }}
+          />
+        </FlexWidget>
       </FlexWidget>
+
+      {/* Small bottom prompt */}
+      <TextWidget
+        text={memoryId ? "TAP TO RELIVE ↗" : "OPEN MEMENTO ↗"}
+        maxLines={1}
+        style={{
+          color: "#F3B39F",
+          fontSize: 9,
+          fontWeight: "800",
+          letterSpacing: 0.7,
+          marginTop: 7,
+        }}
+      />
     </FlexWidget>
   );
 }

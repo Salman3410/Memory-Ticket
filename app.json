@@ -71,10 +71,10 @@
             {
               "name": "Memento",
               "label": "Memento",
-              "minWidth": "180dp",
-              "minHeight": "100dp",
+              "minWidth": "118dp",
+              "minHeight": "118dp",
               "description": "Your memories at a glance",
-              "targetCellWidth": 3,
+              "targetCellWidth": 2,
               "targetCellHeight": 2,
               "updatePeriodMillis": 1800000
             }

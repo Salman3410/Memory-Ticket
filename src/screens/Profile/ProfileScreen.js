@@ -1,15 +1,10 @@
-import React from "react";
-
 import { View, Text, ScrollView, StatusBar } from "react-native";
-
 import { useMemory } from "../../hooks/useMemory";
 import { useAuth } from "../../hooks/useAuth";
 import { useRewards } from "../../hooks/useRewards";
-
 import { useSubscription } from "../../context/SubscriptionContext";
 import { useAppAlert } from "../../context/AlertContext";
 import { useTheme } from "../../context/ThemeContext";
-
 import ProfileCard from "../../components/Profile/Card/ProfileCard";
 import ProfileStats from "../../components/Profile/Stats/ProfileStats";
 import ProfileMenu from "../../components/Profile/Menu/ProfileMenu";
@@ -33,10 +28,6 @@ function ProfileScreen({ navigation }) {
     tickets: memories.length,
     favorites: memories.filter((memory) => memory.favorite).length,
   };
-
-  // --------------------------------------------------
-  // NAVIGATION
-  // --------------------------------------------------
 
   const handleEditProfile = () => {
     navigation.getParent()?.navigate("EditProfile");
@@ -64,10 +55,6 @@ function ProfileScreen({ navigation }) {
       showClose: true,
     });
   };
-
-  // --------------------------------------------------
-  // LOGOUT
-  // --------------------------------------------------
 
   const handleLogout = () => {
     showAlert({
@@ -97,17 +84,13 @@ function ProfileScreen({ navigation }) {
     });
   };
 
-  // --------------------------------------------------
-  // ACCOUNT MENU
-  // --------------------------------------------------
-
   const accountMenuItems = [
     {
       title: "Memento Premium",
       subtitle: isPremium
         ? "Premium is active"
         : "Unlock advanced Memento features",
-      icon: "sparkles-outline",
+      icon: "card-outline",
       onPress: handlePremium,
     },
     {
