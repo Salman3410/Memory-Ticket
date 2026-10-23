@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { useTheme } from "../../context/ThemeContext";
 import {
   Animated,
   Dimensions,
@@ -12,6 +11,8 @@ import {
   View,
 } from "react-native";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import { useTheme } from "../../context/ThemeContext";
+import TactileButton from "../../components/common/TactileButton";
 
 const { width } = Dimensions.get("window");
 
@@ -25,7 +26,6 @@ const slides = [
     accent: "#E76F51",
     cardLabel: "A moment worth keeping",
   },
-
   {
     eyebrow: "YOUR STORY, IN FULL",
     title: "Keep the story with the snapshot.",
@@ -35,7 +35,6 @@ const slides = [
     accent: "#FF8E72",
     cardLabel: "Paris · 12 Oct 2024",
   },
-
   {
     eyebrow: "MADE TO LAST",
     title: "Your memories. Your ticket.",
@@ -50,9 +49,19 @@ const slides = [
 function OnboardingScreen({ onComplete }) {
   const { theme, isDark } = useTheme();
   const colors = theme?.colors || {};
-  const screenBackground = colors.background || (isDark ? "#171624" : "#F1F0F6");
+
+  const screenBackground =
+    colors.background || (isDark ? "#171624" : "#F1F0F6");
+
   const textColor = colors.text || (isDark ? "#F7F5FC" : "#242424");
-  const secondaryTextColor = colors.textSecondary || colors.textMuted || (isDark ? "#C4C0D0" : "#707080");
+
+  const secondaryTextColor =
+    colors.textSecondary ||
+    colors.textMuted ||
+    (isDark ? "#C4C0D0" : "#707080");
+
+  const brandColor = isDark ? "#FFFDF7" : "#34345C";
+
   const [activeIndex, setActiveIndex] = useState(0);
 
   const slide = slides[activeIndex];
@@ -74,10 +83,9 @@ function OnboardingScreen({ onComplete }) {
   const orbScale = useRef(new Animated.Value(1)).current;
   const orbOpacity = useRef(new Animated.Value(0.12)).current;
 
-  const buttonScale = useRef(new Animated.Value(1)).current;
-
   const isTransitioning = useRef(false);
 
+  // Decorative background animations.
   useEffect(() => {
     const dotOneAnimation = Animated.loop(
       Animated.sequence([
@@ -123,7 +131,6 @@ function OnboardingScreen({ onComplete }) {
             useNativeDriver: true,
           }),
         ]),
-
         Animated.sequence([
           Animated.timing(orbOpacity, {
             toValue: 0.18,
@@ -148,8 +155,9 @@ function OnboardingScreen({ onComplete }) {
       dotTwoAnimation.stop();
       orbAnimation.stop();
     };
-  }, []);
+  }, [dotOneY, dotTwoY, orbScale, orbOpacity]);
 
+  // Animate the ticket and copy when the active slide changes.
   useEffect(() => {
     contentOpacity.setValue(0);
     contentX.setValue(28);
@@ -161,7 +169,7 @@ function OnboardingScreen({ onComplete }) {
     copyOpacity.setValue(0);
     copyY.setValue(25);
 
-    Animated.parallel([
+    const entranceAnimation = Animated.parallel([
       Animated.timing(contentOpacity, {
         toValue: 1,
         duration: 420,
@@ -216,10 +224,25 @@ function OnboardingScreen({ onComplete }) {
         delay: 100,
         useNativeDriver: true,
       }),
-    ]).start(() => {
+    ]);
+
+    entranceAnimation.start(() => {
       isTransitioning.current = false;
     });
-  }, [activeIndex]);
+
+    return () => {
+      entranceAnimation.stop();
+    };
+  }, [
+    activeIndex,
+    contentOpacity,
+    contentX,
+    ticketScale,
+    ticketY,
+    ticketRotation,
+    copyOpacity,
+    copyY,
+  ]);
 
   const goTo = (nextIndex) => {
     if (
@@ -259,24 +282,6 @@ function OnboardingScreen({ onComplete }) {
     onComplete?.();
   };
 
-  const handlePressIn = () => {
-    Animated.spring(buttonScale, {
-      toValue: 0.97,
-      damping: 15,
-      stiffness: 300,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const handlePressOut = () => {
-    Animated.spring(buttonScale, {
-      toValue: 1,
-      damping: 12,
-      stiffness: 250,
-      useNativeDriver: true,
-    }).start();
-  };
-
   const handleCTA = () => {
     if (isLast) {
       finish();
@@ -292,10 +297,15 @@ function OnboardingScreen({ onComplete }) {
   });
 
   return (
-    <View style={[styles.container, { backgroundColor: screenBackground }]}>
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: screenBackground },
+      ]}
+    >
       <StatusBar
-        barStyle="light-content"
-        backgroundColor="#3B3768"
+        barStyle={isDark ? "light-content" : "dark-content"}
+        backgroundColor={screenBackground}
       />
 
       {/* TOP ORB */}
@@ -312,29 +322,58 @@ function OnboardingScreen({ onComplete }) {
       />
 
       {/* BOTTOM ORB */}
-      <View style={styles.orbBottom} />
+      <View
+        style={[
+          styles.orbBottom,
+          {
+            backgroundColor: isDark ? "#8076BA" : "#9D8CFF",
+          },
+        ]}
+      />
 
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: screenBackground }]}>
+      <SafeAreaView
+        style={[
+          styles.safeArea,
+          { backgroundColor: screenBackground },
+        ]}
+      >
         {/* HEADER */}
         <View style={styles.header}>
           <View style={styles.brandLockup}>
             <Image
               source={require("../../../assets/splash-logo.png")}
               style={styles.logo}
+              resizeMode="contain"
             />
 
-            <Text style={styles.brand}>MEMENTO</Text>
+            <Text
+              style={[
+                styles.brand,
+                { color: brandColor },
+              ]}
+            >
+              MEMENTO
+            </Text>
           </View>
 
-          {!isLast ? (
+          {!isLast && (
             <Pressable
               onPress={finish}
               hitSlop={12}
               style={styles.skipButton}
+              accessibilityRole="button"
+              accessibilityLabel="Skip onboarding"
             >
-              <Text style={styles.skipText}>Close</Text>
+              <Text
+                style={[
+                  styles.skipText,
+                  { color: secondaryTextColor },
+                ]}
+              >
+                Close
+              </Text>
             </Pressable>
-          ) : null}
+          )}
         </View>
 
         {/* MAIN CONTENT */}
@@ -347,7 +386,7 @@ function OnboardingScreen({ onComplete }) {
             },
           ]}
         >
-          {/* ILLUSTRATION */}
+          {/* TICKET ILLUSTRATION */}
           <View style={styles.illustrationArea}>
             <Animated.View
               style={[
@@ -361,6 +400,7 @@ function OnboardingScreen({ onComplete }) {
                 },
               ]}
             >
+              {/* TICKET HEADER */}
               <View style={styles.ticketTopRow}>
                 <View
                   style={[
@@ -387,7 +427,7 @@ function OnboardingScreen({ onComplete }) {
                 />
               </View>
 
-              {/* IMAGE AREA */}
+              {/* TICKET IMAGE */}
               <View style={styles.ticketImage}>
                 <View style={styles.sun} />
                 <View style={styles.hillBack} />
@@ -396,14 +436,17 @@ function OnboardingScreen({ onComplete }) {
                 <Text style={styles.ticketSparkle}>✦</Text>
               </View>
 
-              {/* FOOTER */}
+              {/* TICKET FOOTER */}
               <View style={styles.ticketFooter}>
-                <View>
+                <View style={styles.ticketFooterCopy}>
                   <Text style={styles.ticketLabel}>
                     MEMENTO / 001
                   </Text>
 
-                  <Text style={styles.ticketTitle}>
+                  <Text
+                    style={styles.ticketTitle}
+                    numberOfLines={2}
+                  >
                     {slide.cardLabel}
                   </Text>
                 </View>
@@ -415,9 +458,7 @@ function OnboardingScreen({ onComplete }) {
                         key={index}
                         style={[
                           styles.bar,
-                          {
-                            width: size,
-                          },
+                          { width: size },
                         ]}
                       />
                     )
@@ -450,12 +491,17 @@ function OnboardingScreen({ onComplete }) {
               ]}
             />
 
-            <Text style={styles.illustrationCaption}>
+            <Text
+              style={[
+                styles.illustrationCaption,
+                { color: secondaryTextColor },
+              ]}
+            >
               A little more than a photo
             </Text>
           </View>
 
-          {/* COPY */}
+          {/* SLIDE COPY */}
           <Animated.View
             style={[
               styles.copy,
@@ -468,19 +514,27 @@ function OnboardingScreen({ onComplete }) {
             <Text
               style={[
                 styles.eyebrow,
-                {
-                  color: slide.accent,
-                },
+                { color: slide.accent },
               ]}
             >
               {slide.eyebrow}
             </Text>
 
-            <Text style={[styles.title, { color: textColor }]}>
+            <Text
+              style={[
+                styles.title,
+                { color: textColor },
+              ]}
+            >
               {slide.title}
             </Text>
 
-            <Text style={[styles.description, { color: secondaryTextColor }]}>
+            <Text
+              style={[
+                styles.description,
+                { color: secondaryTextColor },
+              ]}
+            >
               {slide.description}
             </Text>
           </Animated.View>
@@ -489,53 +543,51 @@ function OnboardingScreen({ onComplete }) {
         {/* FOOTER */}
         <View style={styles.footer}>
           {/* PAGINATION */}
-          <View style={styles.pagination}>
-            {slides.map((_, index) => (
-              <Animated.View
-                key={index}
+          <View
+            style={styles.pagination}
+            accessibilityLabel={`Slide ${activeIndex + 1} of ${slides.length}`}
+          >
+            {slides.map((item, index) => (
+              <View
+                key={item.eyebrow}
                 style={[
                   styles.paginationDot,
-                  index === activeIndex &&
+                  index === activeIndex && [
                     styles.paginationDotActive,
-
-                  index === activeIndex && {
-                    backgroundColor: slide.accent,
-                  },
+                    { backgroundColor: slide.accent },
+                  ],
                 ]}
               />
             ))}
           </View>
 
-          {/* CTA */}
-          <Animated.View
-            style={{
-              transform: [{ scale: buttonScale }],
-            }}
+          {/* PRIMARY CTA */}
+          <TactileButton
+            label={
+              isLast
+                ? "Create my first memory"
+                : "Continue"
+            }
+            onPress={handleCTA}
+            icon={isLast ? "checkmark" : "arrow-forward"}
+            iconPosition="right"
+            color="#FFFDF7"
+            textColor="#3B3768"
+            iconColor="#3B3768"
+            height={58}
+            borderRadius={17}
+            depth={3}
+            style={styles.ctaWrapper}
+            contentStyle={styles.cta}
+            textStyle={styles.ctaText}
+          />
+
+          <Text
+            style={[
+              styles.footerNote,
+              { color: secondaryTextColor },
+            ]}
           >
-            <Pressable
-              onPress={handleCTA}
-              onPressIn={handlePressIn}
-              onPressOut={handlePressOut}
-              style={({ pressed }) => [
-                styles.cta,
-                pressed && styles.ctaPressed,
-              ]}
-            >
-              <Text style={[styles.ctaText, { color: colors.primaryText || "#FFFFFF" }]}>
-                {isLast
-                  ? "Create my first memory"
-                  : "Continue"}
-              </Text>
-
-              <Feather
-                name={isLast ? "check" : "arrow-right"}
-                size={19}
-                color="#3B3768"
-              />
-            </Pressable>
-          </Animated.View>
-
-          <Text style={[styles.footerNote, { color: secondaryTextColor }]}>
             Your memories, kept with purpose.
           </Text>
         </View>
@@ -547,7 +599,6 @@ function OnboardingScreen({ onComplete }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#3B3768",
     overflow: "hidden",
   },
 
@@ -574,7 +625,6 @@ const styles = StyleSheet.create({
     width: 280,
     height: 280,
     borderRadius: 999,
-    backgroundColor: "#8076BA",
     opacity: 0.16,
     bottom: -150,
     left: -130,
@@ -599,7 +649,6 @@ const styles = StyleSheet.create({
   },
 
   brand: {
-    color: "#FFFDF7",
     fontSize: 12,
     fontWeight: "800",
     letterSpacing: 2.4,
@@ -611,7 +660,6 @@ const styles = StyleSheet.create({
   },
 
   skipText: {
-    color: "#D7D3E8",
     fontSize: 14,
     fontWeight: "600",
   },
@@ -633,7 +681,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFDF7",
     borderRadius: 19,
     padding: 17,
-
     shadowColor: "#17152F",
     shadowOffset: {
       width: 0,
@@ -641,7 +688,6 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.28,
     shadowRadius: 25,
-
     elevation: 12,
   },
 
@@ -732,6 +778,11 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
     justifyContent: "space-between",
     paddingTop: 16,
+    gap: 10,
+  },
+
+  ticketFooterCopy: {
+    flex: 1,
   },
 
   ticketLabel: {
@@ -782,7 +833,6 @@ const styles = StyleSheet.create({
   },
 
   illustrationCaption: {
-    color: "#A8A4BD",
     fontSize: 12,
     fontWeight: "600",
     letterSpacing: 0.2,
@@ -801,7 +851,6 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    color: "#FFFDF7",
     fontSize: 34,
     lineHeight: 39,
     fontWeight: "800",
@@ -810,7 +859,6 @@ const styles = StyleSheet.create({
   },
 
   description: {
-    color: "#D7D3E8",
     fontSize: 16,
     lineHeight: 24,
     marginTop: 15,
@@ -839,18 +887,19 @@ const styles = StyleSheet.create({
     width: 27,
   },
 
+  ctaWrapper: {
+    width: "100%",
+    marginBottom: 0,
+  },
+
   cta: {
-    height: 58,
+    minHeight: 58,
     borderRadius: 17,
     backgroundColor: "#FFFDF7",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 12,
-  },
-
-  ctaPressed: {
-    opacity: 0.92,
   },
 
   ctaText: {
@@ -861,7 +910,6 @@ const styles = StyleSheet.create({
 
   footerNote: {
     textAlign: "center",
-    color: "#9D98BB",
     fontSize: 11,
     fontWeight: "600",
     marginTop: 13,

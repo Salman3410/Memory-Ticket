@@ -1,7 +1,6 @@
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import {
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -15,19 +14,30 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 
 import { useCollection } from "../../hooks/useCollection";
-import MementoLogo from "../../components/common/MementoLogo";
-import styles from "./editCollectionStyles";
 import { useTheme } from "../../context/ThemeContext";
+import { useAppAlert } from "../../context/AlertContext";
+
+import MementoLogo from "../../components/common/MementoLogo";
+import TactileButton from "../../components/common/TactileButton";
+
+import styles from "./editCollectionStyles";
 
 function EditCollectionScreen({ route, navigation }) {
   const { theme, isDark } = useTheme();
+  const { showAlert } = useAppAlert();
   const colors = theme?.colors || {};
+
+  // --------------------------------------------------
+  // THEME COLORS
+  // --------------------------------------------------
 
   const screenBackground =
     colors.background || (isDark ? "#171624" : "#F1F0F6");
 
   const surfaceColor =
-    colors.surface || (isDark ? "#211F30" : "#FFFFFF");
+    colors.surface ||
+    colors.card ||
+    (isDark ? "#211F30" : "#FFFFFF");
 
   const textColor =
     colors.text || (isDark ? "#F7F5FC" : "#242424");
@@ -51,18 +61,23 @@ function EditCollectionScreen({ route, navigation }) {
 
   const primaryTextColor =
     colors.primaryText ||
-    (isDark && primaryColor === "#C8C2FF" ? "#25223D" : "#FFFFFF");
-
-  const disabledButtonColor =
-    isDark ? "#383548" : "#D9D8E2";
+    (isDark && primaryColor === "#C8C2FF"
+      ? "#25223D"
+      : "#FFFFFF");
 
   const { collectionId, collection } = route.params || {};
   const { updateCollection } = useCollection();
 
+  // --------------------------------------------------
+  // FORM STATE
+  // --------------------------------------------------
+
   const [name, setName] = useState(collection?.name || "");
+
   const [description, setDescription] = useState(
     collection?.description || "",
   );
+
   const [saving, setSaving] = useState(false);
 
   const memoryCount =
@@ -71,54 +86,273 @@ function EditCollectionScreen({ route, navigation }) {
       ? collection.memories.length
       : 0);
 
+  // --------------------------------------------------
+  // THEMED STYLES
+  // --------------------------------------------------
+
+  const themedStyles = useMemo(
+    () => ({
+      container: {
+        ...styles.container,
+        backgroundColor: screenBackground,
+      },
+
+      header: {
+        ...styles.header,
+        backgroundColor: screenBackground,
+        borderBottomColor: borderColor,
+      },
+
+      content: {
+        ...styles.content,
+        backgroundColor: screenBackground,
+      },
+
+      previewTicket: {
+        ...styles.previewTicket,
+        backgroundColor: surfaceColor,
+        borderColor,
+      },
+
+      logoContainer: {
+        ...styles.logoContainer,
+        backgroundColor: inputBackground,
+        borderColor,
+      },
+
+      previewLabel: {
+        ...styles.previewLabel,
+        color: secondaryTextColor,
+      },
+
+      previewName: {
+        ...styles.previewName,
+        color: textColor,
+      },
+
+      previewCount: {
+        ...styles.previewCount,
+        color: secondaryTextColor,
+      },
+
+      previewDivider: {
+        ...styles.previewDivider,
+        borderTopColor: borderColor,
+      },
+
+      previewBrand: {
+        ...styles.previewBrand,
+        color: secondaryTextColor,
+      },
+
+      label: {
+        ...styles.label,
+        color: secondaryTextColor,
+      },
+
+      inputWithIcon: {
+        ...styles.inputWithIcon,
+        backgroundColor: inputBackground,
+        borderColor,
+      },
+
+      input: {
+        ...styles.input,
+        backgroundColor: inputBackground,
+        color: textColor,
+      },
+
+      descriptionInput: {
+        ...styles.descriptionInput,
+        backgroundColor: inputBackground,
+        borderColor,
+        color: textColor,
+      },
+
+      characterCount: {
+        ...styles.characterCount,
+        color: secondaryTextColor,
+      },
+
+      infoCard: {
+        ...styles.infoCard,
+        backgroundColor: surfaceColor,
+        borderColor,
+      },
+
+      infoTitle: {
+        ...styles.infoTitle,
+        color: textColor,
+      },
+
+      infoDescription: {
+        ...styles.infoDescription,
+        color: secondaryTextColor,
+      },
+
+      footer: {
+        ...styles.footer,
+        backgroundColor: screenBackground,
+        borderTopColor: borderColor,
+      },
+
+      cancelText: {
+        ...styles.cancelText,
+        color: primaryColor,
+      },
+
+      headerTitle: {
+        ...styles.headerTitle,
+        color: textColor,
+      },
+    }),
+    [
+      screenBackground,
+      surfaceColor,
+      textColor,
+      secondaryTextColor,
+      borderColor,
+      inputBackground,
+      primaryColor,
+    ],
+  );
+
+  // --------------------------------------------------
+  // FORM VALIDATION AND SAVE
+  // --------------------------------------------------
+
   const handleSave = useCallback(async () => {
     const trimmedName = name.trim();
     const trimmedDescription = description.trim();
 
-    if (!trimmedName || !collectionId || saving) {
+    if (saving) {
+      return;
+    }
+
+    if (!trimmedName) {
+      showAlert({
+        type: "warning",
+        icon: "text-outline",
+        title: "Collection Name Required",
+        message: "Enter a name for your collection before saving.",
+        confirmText: "OK",
+        showCancel: false,
+      });
+
+      return;
+    }
+
+    if (!collectionId) {
+      showAlert({
+        type: "danger",
+        icon: "alert-circle-outline",
+        title: "Collection Not Found",
+        message:
+          "The collection could not be identified. Return to your collections and try again.",
+        confirmText: "OK",
+        showCancel: false,
+      });
+
       return;
     }
 
     try {
       setSaving(true);
 
-      await updateCollection(collectionId, {
+      const result = await updateCollection(collectionId, {
         name: trimmedName,
         description: trimmedDescription,
       });
 
+      if (result?.success === false) {
+        throw new Error(
+          result.message || "Unable to update this collection.",
+        );
+      }
+
       navigation.goBack();
     } catch (error) {
       console.error("Update collection error:", error);
+
+      showAlert({
+        type: "danger",
+        icon: "close-circle-outline",
+        title: "Update Failed",
+        message:
+          error?.message ||
+          "Unable to save your collection changes. Please try again.",
+        confirmText: "OK",
+        showCancel: false,
+      });
     } finally {
       setSaving(false);
     }
   }, [
     name,
     description,
-    collectionId,
     saving,
+    collectionId,
     updateCollection,
     navigation,
+    showAlert,
   ]);
+
+  // --------------------------------------------------
+  // CANCEL / UNSAVED CHANGES
+  // --------------------------------------------------
 
   const handleCancel = useCallback(() => {
     if (saving) {
       return;
     }
 
-    navigation.goBack();
-  }, [navigation, saving]);
+    const originalName = collection?.name || "";
+    const originalDescription = collection?.description || "";
+
+    const hasChanges =
+      name !== originalName ||
+      description !== originalDescription;
+
+    if (!hasChanges) {
+      navigation.goBack();
+      return;
+    }
+
+    showAlert({
+      type: "warning",
+      icon: "alert-circle-outline",
+      title: "Discard Changes?",
+      message:
+        "Your collection has unsaved changes. Do you want to leave without saving them?",
+      cancelText: "Keep Editing",
+      confirmText: "Discard",
+      showCancel: true,
+      onConfirm: () => {
+        navigation.goBack();
+      },
+    });
+  }, [
+    saving,
+    collection,
+    name,
+    description,
+    navigation,
+    showAlert,
+  ]);
+
+  // --------------------------------------------------
+  // BUTTON STATE
+  // --------------------------------------------------
 
   const isNameEmpty = !name.trim();
-  const isDisabled = isNameEmpty || saving;
+
+  // --------------------------------------------------
+  // SCREEN
+  // --------------------------------------------------
 
   return (
     <KeyboardAvoidingView
-      style={[
-        styles.container,
-        { backgroundColor: screenBackground },
-      ]}
+      style={themedStyles.container}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <StatusBar
@@ -127,36 +361,23 @@ function EditCollectionScreen({ route, navigation }) {
       />
 
       {/* HEADER */}
-      <View
-        style={[
-          styles.header,
-          {
-            backgroundColor: screenBackground,
-            borderBottomColor: borderColor,
-          },
-        ]}
-      >
+
+      <View style={themedStyles.header}>
         <TouchableOpacity
           style={styles.headerAction}
           onPress={handleCancel}
           disabled={saving}
           activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Cancel editing"
         >
-          <Text
-            style={[
-              styles.cancelText,
-              { color: primaryColor },
-            ]}
-          >
+          <Text style={themedStyles.cancelText}>
             Cancel
           </Text>
         </TouchableOpacity>
 
         <Text
-          style={[
-            styles.headerTitle,
-            { color: textColor },
-          ]}
+          style={themedStyles.headerTitle}
           numberOfLines={1}
         >
           Edit Collection
@@ -166,63 +387,32 @@ function EditCollectionScreen({ route, navigation }) {
       </View>
 
       <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={[
-          styles.content,
-          { backgroundColor: screenBackground },
-        ]}
+        style={styles.scrollView}
+        contentContainerStyle={themedStyles.content}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
         {/* COLLECTION TICKET PREVIEW */}
-        <View
-          style={[
-            styles.previewTicket,
-            {
-              backgroundColor: surfaceColor,
-              borderColor,
-            },
-          ]}
-        >
+
+        <View style={themedStyles.previewTicket}>
           <View style={styles.previewTop}>
-            <View
-              style={[
-                styles.logoContainer,
-                {
-                  backgroundColor: inputBackground,
-                  borderColor,
-                },
-              ]}
-            >
+            <View style={themedStyles.logoContainer}>
               <MementoLogo size={42} borderRadius={13} />
             </View>
 
             <View style={styles.previewText}>
-              <Text
-                style={[
-                  styles.previewLabel,
-                  { color: secondaryTextColor },
-                ]}
-              >
+              <Text style={themedStyles.previewLabel}>
                 EDITING COLLECTION
               </Text>
 
               <Text
-                style={[
-                  styles.previewName,
-                  { color: textColor },
-                ]}
+                style={themedStyles.previewName}
                 numberOfLines={2}
               >
                 {name.trim() || "Your Collection"}
               </Text>
 
-              <Text
-                style={[
-                  styles.previewCount,
-                  { color: secondaryTextColor },
-                ]}
-              >
+              <Text style={themedStyles.previewCount}>
                 {memoryCount === 1
                   ? "1 MEMORY"
                   : `${memoryCount} MEMORIES`}
@@ -230,20 +420,10 @@ function EditCollectionScreen({ route, navigation }) {
             </View>
           </View>
 
-          <View
-            style={[
-              styles.previewDivider,
-              { borderTopColor: borderColor },
-            ]}
-          />
+          <View style={themedStyles.previewDivider} />
 
           <View style={styles.previewFooter}>
-            <Text
-              style={[
-                styles.previewBrand,
-                { color: secondaryTextColor },
-              ]}
-            >
+            <Text style={themedStyles.previewBrand}>
               MEMENTO
             </Text>
 
@@ -265,25 +445,13 @@ function EditCollectionScreen({ route, navigation }) {
         </View>
 
         {/* COLLECTION NAME */}
+
         <View style={styles.fieldContainer}>
-          <Text
-            style={[
-              styles.label,
-              { color: secondaryTextColor },
-            ]}
-          >
+          <Text style={themedStyles.label}>
             COLLECTION NAME
           </Text>
 
-          <View
-            style={[
-              styles.inputWithIcon,
-              {
-                backgroundColor: inputBackground,
-                borderColor,
-              },
-            ]}
-          >
+          <View style={themedStyles.inputWithIcon}>
             <Ionicons
               name="albums-outline"
               size={19}
@@ -295,38 +463,25 @@ function EditCollectionScreen({ route, navigation }) {
               onChangeText={setName}
               placeholder="Collection name"
               placeholderTextColor={mutedTextColor}
-              style={[
-                styles.input,
-                {
-                  backgroundColor: inputBackground,
-                  color: textColor,
-                },
-              ]}
+              style={themedStyles.input}
               maxLength={100}
               autoCapitalize="sentences"
               autoCorrect={false}
               returnKeyType="next"
+              editable={!saving}
+              accessibilityLabel="Collection name"
             />
           </View>
 
-          <Text
-            style={[
-              styles.characterCount,
-              { color: secondaryTextColor },
-            ]}
-          >
+          <Text style={themedStyles.characterCount}>
             {name.length}/100
           </Text>
         </View>
 
         {/* DESCRIPTION */}
+
         <View style={styles.fieldContainer}>
-          <Text
-            style={[
-              styles.label,
-              { color: secondaryTextColor },
-            ]}
-          >
+          <Text style={themedStyles.label}>
             DESCRIPTION
           </Text>
 
@@ -335,39 +490,22 @@ function EditCollectionScreen({ route, navigation }) {
             onChangeText={setDescription}
             placeholder="Add a short description"
             placeholderTextColor={mutedTextColor}
-            style={[
-              styles.descriptionInput,
-              {
-                backgroundColor: inputBackground,
-                borderColor,
-                color: textColor,
-              },
-            ]}
+            style={themedStyles.descriptionInput}
             maxLength={200}
             multiline
             textAlignVertical="top"
+            editable={!saving}
+            accessibilityLabel="Collection description"
           />
 
-          <Text
-            style={[
-              styles.characterCount,
-              { color: secondaryTextColor },
-            ]}
-          >
+          <Text style={themedStyles.characterCount}>
             {description.length}/200
           </Text>
         </View>
 
         {/* MEMORY INFORMATION */}
-        <View
-          style={[
-            styles.infoCard,
-            {
-              backgroundColor: surfaceColor,
-              borderColor,
-            },
-          ]}
-        >
+
+        <View style={themedStyles.infoCard}>
           <Ionicons
             name="images-outline"
             size={20}
@@ -375,21 +513,11 @@ function EditCollectionScreen({ route, navigation }) {
           />
 
           <View style={styles.infoTextContainer}>
-            <Text
-              style={[
-                styles.infoTitle,
-                { color: textColor },
-              ]}
-            >
+            <Text style={themedStyles.infoTitle}>
               Memories stay safe
             </Text>
 
-            <Text
-              style={[
-                styles.infoDescription,
-                { color: secondaryTextColor },
-              ]}
-            >
+            <Text style={themedStyles.infoDescription}>
               Updating this collection changes its details, not the memories
               saved inside it.
             </Text>
@@ -398,61 +526,37 @@ function EditCollectionScreen({ route, navigation }) {
       </ScrollView>
 
       {/* FOOTER */}
-      <View
-        style={[
-          styles.footer,
-          {
-            backgroundColor: screenBackground,
-            borderTopColor: borderColor,
-          },
-        ]}
-      >
-        <TouchableOpacity
-          style={[
-            styles.saveButton,
-            {
-              backgroundColor: isNameEmpty
-                ? disabledButtonColor
-                : primaryColor,
-              opacity: saving ? 0.8 : 1,
-            },
-          ]}
-          onPress={handleSave}
-          disabled={isDisabled}
-          activeOpacity={0.85}
-        >
-          {saving ? (
-            <ActivityIndicator
-              size="small"
-              color={primaryTextColor}
-            />
-          ) : (
-            <>
-              <Ionicons
-                name="checkmark"
-                size={18}
-                color={
-                  isNameEmpty
-                    ? mutedTextColor
-                    : primaryTextColor
-                }
-              />
 
-              <Text
-                style={[
-                  styles.saveButtonText,
-                  {
-                    color: isNameEmpty
-                      ? mutedTextColor
-                      : primaryTextColor,
-                  },
-                ]}
-              >
-                Save Changes
-              </Text>
-            </>
-          )}
-        </TouchableOpacity>
+      <View style={themedStyles.footer}>
+        <TactileButton
+          label="SAVE CHANGES"
+          onPress={handleSave}
+          icon="checkmark"
+          color={primaryColor}
+          textColor={primaryTextColor}
+          iconColor={primaryTextColor}
+          height={52}
+          borderRadius={13}
+          depth={3}
+          loading={saving}
+          loadingText="SAVING CHANGES..."
+          disabled={saving}
+          style={styles.saveButtonWrapper}
+          contentStyle={styles.saveButton}
+          textStyle={styles.saveButtonText}
+          accessibilityHint="Save your collection name and description"
+        />
+
+        {isNameEmpty ? (
+          <Text
+            style={[
+              styles.validationHint,
+              { color: secondaryTextColor },
+            ]}
+          >
+            A collection name is required.
+          </Text>
+        ) : null}
       </View>
     </KeyboardAvoidingView>
   );

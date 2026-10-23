@@ -1,11 +1,12 @@
 import React from "react";
 
-import { View, Text, TouchableOpacity } from "react-native";
+import { View, Text } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
 
 import PhotoPreview from "./PhotoPreview";
 import PhotoPlaceholder from "./PhotoPlaceholder";
+import TactileButton from "../../../components/common/TactileButton";
 
 import styles from "../createMemoryStyles";
 
@@ -23,7 +24,8 @@ function PhotoSection({
 }) {
   const colors = theme?.colors || {};
 
-  const textColor = colors.text || (isDark ? "#F1F0F6" : "#242424");
+  const textColor =
+    colors.text || (isDark ? "#F1F0F6" : "#242424");
 
   const mutedTextColor =
     colors.textSecondary ||
@@ -31,12 +33,14 @@ function PhotoSection({
     (isDark ? "#A6A6B8" : "#737387");
 
   const surfaceColor =
-    colors.surface || colors.card || (isDark ? "#232333" : "#FFFFFF");
+    colors.surface ||
+    colors.card ||
+    (isDark ? "#232333" : "#FFFFFF");
 
-  const borderColor = colors.border || (isDark ? "#38384C" : "#D9D8E2");
+  const borderColor =
+    colors.border || (isDark ? "#38384C" : "#D9D8E2");
 
   const primaryColor = colors.primary || "#34345C";
-
   const accentColor = colors.accent || "#E76F51";
 
   return (
@@ -46,9 +50,7 @@ function PhotoSection({
         <Text
           style={[
             styles.sectionTitle,
-            {
-              color: textColor,
-            },
+            { color: textColor },
           ]}
         >
           Photos
@@ -57,9 +59,7 @@ function PhotoSection({
         <Text
           style={[
             styles.stepText,
-            {
-              color: mutedTextColor,
-            },
+            { color: mutedTextColor },
           ]}
         >
           {images.length}/{MAX_IMAGES}
@@ -80,49 +80,58 @@ function PhotoSection({
           {/* ADD MORE PHOTOS */}
           {images.length < MAX_IMAGES && (
             <View style={styles.addMoreRow}>
-              <TouchableOpacity
-                style={[
+              <TactileButton
+                label="ADD MORE"
+                onPress={pickImages}
+                icon="images-outline"
+                iconPosition="left"
+                color={surfaceColor}
+                textColor={textColor}
+                iconColor={isDark ? "#B8B8D0" : primaryColor}
+                height={44}
+                borderRadius={10}
+                depth={2}
+                style={{
+                  flex: 1,
+                  width: "auto",
+                  marginBottom: 0,
+                }}
+                contentStyle={[
                   styles.addMoreButton,
                   {
+                    width: "100%",
                     backgroundColor: surfaceColor,
                     borderColor,
                   },
                 ]}
-                onPress={pickImages}
-                activeOpacity={0.8}
-              >
-                <Ionicons
-                  name="images-outline"
-                  size={18}
-                  color={isDark ? "#B8B8D0" : primaryColor}
-                />
+                textStyle={styles.addMoreText}
+              />
 
-                <Text
-                  style={[
-                    styles.addMoreText,
-                    {
-                      color: textColor,
-                    },
-                  ]}
-                >
-                  ADD MORE
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
+              <TactileButton
+                label="CAMERA"
+                onPress={takePhoto}
+                icon="camera-outline"
+                iconPosition="left"
+                color={accentColor}
+                textColor="#FFFFFF"
+                iconColor="#FFFFFF"
+                height={44}
+                borderRadius={10}
+                depth={2}
+                style={{
+                  flex: 1,
+                  width: "auto",
+                  marginBottom: 0,
+                }}
+                contentStyle={[
                   styles.addCameraButton,
                   {
+                    width: "100%",
                     backgroundColor: accentColor,
                   },
                 ]}
-                onPress={takePhoto}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="camera-outline" size={18} color="#FFFFFF" />
-
-                <Text style={styles.addCameraText}>CAMERA</Text>
-              </TouchableOpacity>
+                textStyle={styles.addCameraText}
+              />
             </View>
           )}
 
@@ -138,9 +147,7 @@ function PhotoSection({
               <Text
                 style={[
                   styles.swipeHintText,
-                  {
-                    color: mutedTextColor,
-                  },
+                  { color: mutedTextColor },
                 ]}
               >
                 Swipe to view photos
@@ -149,9 +156,7 @@ function PhotoSection({
               <Text
                 style={[
                   styles.swipeCountText,
-                  {
-                    color: textColor,
-                  },
+                  { color: textColor },
                 ]}
               >
                 {activeImage + 1}/{images.length}

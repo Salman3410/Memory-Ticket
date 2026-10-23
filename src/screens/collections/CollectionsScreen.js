@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+
 import {
   ActivityIndicator,
   FlatList,
@@ -9,23 +10,35 @@ import {
   View,
   StatusBar,
 } from "react-native";
+
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
+
 import { useCollection } from "../../hooks/useCollection";
 import useRefresh from "../../hooks/useRefresh";
+
 import CollectionCardComponent from "../../components/collections/CollectionCard";
+import TactileButton from "../../components/common/TactileButton";
+
 import { useTheme } from "../../context/ThemeContext";
+import { useAppAlert } from "../../context/AlertContext";
 
 function CollectionsScreen({ navigation }) {
   const { theme, isDark } = useTheme();
+  const { showAlert } = useAppAlert();
   const colors = theme?.colors || {};
 
-  // Theme colors
+  // --------------------------------------------------
+  // THEME COLORS
+  // --------------------------------------------------
+
   const screenBackground =
     colors.background || (isDark ? "#171624" : "#F1F0F6");
 
   const surfaceColor =
-    colors.surface || (isDark ? "#211F30" : "#FFFFFF");
+    colors.surface ||
+    colors.card ||
+    (isDark ? "#211F30" : "#FFFFFF");
 
   const textColor =
     colors.text || (isDark ? "#F7F5FC" : "#242424");
@@ -42,7 +55,14 @@ function CollectionsScreen({ navigation }) {
     colors.primary || (isDark ? "#C8C2FF" : "#34345C");
 
   const primaryTextColor =
-    colors.primaryText || (isDark ? "#25223D" : "#FFFFFF");
+    colors.primaryText ||
+    (isDark && primaryColor === "#C8C2FF"
+      ? "#25223D"
+      : "#FFFFFF");
+
+  // --------------------------------------------------
+  // COLLECTION CONTEXT
+  // --------------------------------------------------
 
   const {
     collections,
@@ -54,6 +74,26 @@ function CollectionsScreen({ navigation }) {
     ? collections
     : [];
 
+  // --------------------------------------------------
+  // CUSTOM ALERT HELPERS
+  // --------------------------------------------------
+
+  const showRefreshError = useCallback(() => {
+    showAlert({
+      type: "danger",
+      icon: "cloud-offline-outline",
+      title: "Unable to Refresh Collections",
+      message:
+        "Your collections could not be refreshed. Check your connection and try again.",
+      confirmText: "OK",
+      showCancel: false,
+    });
+  }, [showAlert]);
+
+  // --------------------------------------------------
+  // REFRESH WHEN SCREEN FOCUSES
+  // --------------------------------------------------
+
   useFocusEffect(
     useCallback(() => {
       let active = true;
@@ -62,11 +102,13 @@ function CollectionsScreen({ navigation }) {
         try {
           await refreshCollections();
         } catch (error) {
+          console.error(
+            "Failed to refresh collections on focus:",
+            error,
+          );
+
           if (active) {
-            console.error(
-              "Failed to refresh collections on focus:",
-              error,
-            );
+            showRefreshError();
           }
         }
       };
@@ -76,16 +118,29 @@ function CollectionsScreen({ navigation }) {
       return () => {
         active = false;
       };
-    }, [refreshCollections]),
+    }, [refreshCollections, showRefreshError]),
   );
 
+  // --------------------------------------------------
+  // PULL TO REFRESH
+  // --------------------------------------------------
+
   const refreshCollectionsScreen = useCallback(async () => {
-    await refreshCollections();
-  }, [refreshCollections]);
+    try {
+      await refreshCollections();
+    } catch (error) {
+      console.error("Failed to refresh collections:", error);
+      showRefreshError();
+    }
+  }, [refreshCollections, showRefreshError]);
 
   const { refreshing, onRefresh } = useRefresh(
     refreshCollectionsScreen,
   );
+
+  // --------------------------------------------------
+  // NAVIGATION
+  // --------------------------------------------------
 
   const handleGoBack = useCallback(() => {
     navigation.goBack();
@@ -97,10 +152,22 @@ function CollectionsScreen({ navigation }) {
 
   const handleCollectionPress = useCallback(
     (collection) => {
-      const collectionId = collection?._id || collection?.id;
+      const collectionId =
+        collection?._id || collection?.id;
 
       if (!collectionId) {
         console.warn("Collection ID missing:", collection);
+
+        showAlert({
+          type: "warning",
+          icon: "information-circle-outline",
+          title: "Collection Unavailable",
+          message:
+            "This collection could not be opened because its ID is missing.",
+          confirmText: "OK",
+          showCancel: false,
+        });
+
         return;
       }
 
@@ -108,8 +175,12 @@ function CollectionsScreen({ navigation }) {
         collectionId,
       });
     },
-    [navigation],
+    [navigation, showAlert],
   );
+
+  // --------------------------------------------------
+  // COLLECTION CARD
+  // --------------------------------------------------
 
   const renderItem = useCallback(
     ({ item }) => (
@@ -126,6 +197,10 @@ function CollectionsScreen({ navigation }) {
       String(item?._id || item?.id || index),
     [],
   );
+
+  // --------------------------------------------------
+  // EMPTY STATE
+  // --------------------------------------------------
 
   const renderEmpty = useCallback(() => {
     if (loading) {
@@ -174,29 +249,21 @@ function CollectionsScreen({ navigation }) {
           to remember together.
         </Text>
 
-        <TouchableOpacity
-          style={[
-            styles.emptyButton,
-            { backgroundColor: primaryColor },
-          ]}
+        <TactileButton
+          label="CREATE COLLECTION"
           onPress={handleCreateCollection}
-          activeOpacity={0.85}
-        >
-          <Ionicons
-            name="add"
-            size={18}
-            color={primaryTextColor}
-          />
-
-          <Text
-            style={[
-              styles.emptyButtonText,
-              { color: primaryTextColor },
-            ]}
-          >
-            Create Collection
-          </Text>
-        </TouchableOpacity>
+          icon="add"
+          color={primaryColor}
+          textColor={primaryTextColor}
+          iconColor={primaryTextColor}
+          height={46}
+          borderRadius={12}
+          depth={3}
+          style={styles.emptyButtonWrapper}
+          contentStyle={styles.emptyButton}
+          textStyle={styles.emptyButtonText}
+          accessibilityHint="Create a collection to organize your memories"
+        />
       </View>
     );
   }, [
@@ -211,6 +278,10 @@ function CollectionsScreen({ navigation }) {
     handleCreateCollection,
   ]);
 
+  // --------------------------------------------------
+  // SCREEN
+  // --------------------------------------------------
+
   return (
     <View
       style={[
@@ -224,6 +295,7 @@ function CollectionsScreen({ navigation }) {
       />
 
       {/* HEADER */}
+
       <View
         style={[
           styles.header,
@@ -241,6 +313,8 @@ function CollectionsScreen({ navigation }) {
             ]}
             onPress={handleGoBack}
             activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
             <Ionicons
               name="arrow-back"
@@ -286,6 +360,8 @@ function CollectionsScreen({ navigation }) {
           ]}
           onPress={handleCreateCollection}
           activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel="Create collection"
         >
           <Ionicons
             name="add"
@@ -296,6 +372,7 @@ function CollectionsScreen({ navigation }) {
       </View>
 
       {/* COLLECTION SUMMARY */}
+
       {!loading && collectionList.length > 0 ? (
         <View
           style={[
@@ -338,6 +415,7 @@ function CollectionsScreen({ navigation }) {
       ) : null}
 
       {/* INITIAL LOADING */}
+
       {loading && collectionList.length === 0 ? (
         <View
           style={[
@@ -399,6 +477,10 @@ function CollectionsScreen({ navigation }) {
 
 export default CollectionsScreen;
 
+// --------------------------------------------------
+// STYLES
+// --------------------------------------------------
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -406,6 +488,7 @@ const styles = StyleSheet.create({
   },
 
   // HEADER
+
   header: {
     paddingHorizontal: 20,
     paddingTop: 40,
@@ -468,6 +551,7 @@ const styles = StyleSheet.create({
   },
 
   // SUMMARY
+
   summaryRow: {
     minHeight: 45,
     paddingHorizontal: 20,
@@ -494,6 +578,7 @@ const styles = StyleSheet.create({
   },
 
   // COLLECTION GRID
+
   listContent: {
     paddingHorizontal: 14,
     paddingTop: 14,
@@ -506,6 +591,7 @@ const styles = StyleSheet.create({
   },
 
   // LOADING
+
   loadingContainer: {
     flex: 1,
     alignItems: "center",
@@ -518,6 +604,7 @@ const styles = StyleSheet.create({
   },
 
   // EMPTY STATE
+
   emptyList: {
     flexGrow: 1,
     paddingHorizontal: 20,
@@ -557,19 +644,22 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 
-  emptyButton: {
-    minHeight: 46,
+  emptyButtonWrapper: {
+    width: 220,
+    alignSelf: "center",
     marginTop: 22,
-    paddingHorizontal: 20,
+    marginBottom: 0,
+  },
+
+  emptyButton: {
+    height: 46,
     borderRadius: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
+    paddingHorizontal: 16,
   },
 
   emptyButtonText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "800",
+    letterSpacing: 0.6,
   },
 });

@@ -2,17 +2,23 @@ import { StyleSheet } from "react-native";
 
 const styles = StyleSheet.create({
   // CONTAINER
+
   container: {
     flex: 1,
     backgroundColor: "#F1F0F6",
   },
 
+  scrollView: {
+    flex: 1,
+  },
+
   // HEADER
+
   header: {
     minHeight: 64,
     paddingHorizontal: 20,
     paddingVertical: 12,
-    marginTop:20,
+    marginTop: 20,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -47,6 +53,7 @@ const styles = StyleSheet.create({
   },
 
   // SCROLL CONTENT
+
   content: {
     flexGrow: 1,
     paddingHorizontal: 20,
@@ -55,6 +62,7 @@ const styles = StyleSheet.create({
   },
 
   // COLLECTION TICKET PREVIEW
+
   previewTicket: {
     width: "100%",
     overflow: "hidden",
@@ -151,6 +159,7 @@ const styles = StyleSheet.create({
   },
 
   // FORM FIELDS
+
   fieldContainer: {
     width: "100%",
     marginBottom: 22,
@@ -165,6 +174,7 @@ const styles = StyleSheet.create({
   },
 
   // COLLECTION NAME
+
   inputWithIcon: {
     minHeight: 52,
     paddingHorizontal: 13,
@@ -188,6 +198,7 @@ const styles = StyleSheet.create({
   },
 
   // DESCRIPTION
+
   descriptionInput: {
     width: "100%",
     minHeight: 112,
@@ -205,6 +216,7 @@ const styles = StyleSheet.create({
   },
 
   // CHARACTER COUNTS
+
   characterCount: {
     marginTop: 7,
     alignSelf: "flex-end",
@@ -213,6 +225,7 @@ const styles = StyleSheet.create({
   },
 
   // MEMORY INFORMATION
+
   infoCard: {
     width: "100%",
     marginTop: 2,
@@ -245,6 +258,7 @@ const styles = StyleSheet.create({
   },
 
   // FOOTER
+
   footer: {
     paddingHorizontal: 20,
     paddingTop: 12,
@@ -254,27 +268,29 @@ const styles = StyleSheet.create({
     borderTopColor: "#D9D8E2",
   },
 
-  // SAVE BUTTON
-  saveButton: {
-    minHeight: 52,
-    paddingHorizontal: 18,
-    borderRadius: 13,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 9,
-    backgroundColor: "#34345C",
+  // TACTILE SAVE BUTTON
+
+  saveButtonWrapper: {
+    width: "100%",
+    marginBottom: 0,
   },
 
-  saveButtonDisabled: {
-    opacity: 0.45,
+  saveButton: {
+    minHeight: 52,
+    borderRadius: 13,
+    paddingHorizontal: 18,
   },
 
   saveButtonText: {
     fontSize: 12,
     fontWeight: "800",
     letterSpacing: 0.5,
-    color: "#FFFFFF",
+  },
+
+  validationHint: {
+    marginTop: 8,
+    fontSize: 11,
+    textAlign: "center",
   },
 });
 

@@ -57,7 +57,7 @@ export function createAuthStyles(colors = {}, isDark = false) {
       alignSelf: "flex-start",
       paddingHorizontal: 12,
       paddingVertical: 9,
-      marginTop:24,
+      marginTop: 24,
       marginBottom: 28,
       borderRadius: 12,
       borderWidth: 1,
@@ -72,7 +72,7 @@ export function createAuthStyles(colors = {}, isDark = false) {
       color: secondary,
     },
 
-    // Compact Memento branding
+    // Branding
     signupBrandContainer: {
       width: "100%",
       flexDirection: "row",
@@ -223,7 +223,13 @@ export function createAuthStyles(colors = {}, isDark = false) {
       color: primary,
     },
 
-    // Primary button
+    // Shared TactileButton wrapper
+    loginButtonWrapper: {
+      width: "100%",
+      marginBottom: 0,
+    },
+
+    // TactileButton face layout
     loginButton: {
       width: "100%",
       minHeight: 52,
@@ -243,7 +249,7 @@ export function createAuthStyles(colors = {}, isDark = false) {
       color: primaryText,
     },
 
-    // Resend section sits outside the form card
+    // Resend section
     resendSection: {
       width: "100%",
       alignItems: "center",
@@ -271,6 +277,7 @@ export function createAuthStyles(colors = {}, isDark = false) {
       textAlign: "center",
     },
 
+    // Footer
     tagline: {
       textAlign: "center",
       fontSize: 9,
@@ -333,7 +340,7 @@ const styles = createAuthStyles(
     primary: "#34345C",
     primaryText: "#FFFFFF",
   },
-  false,
+  false
 );
 
 export default styles;

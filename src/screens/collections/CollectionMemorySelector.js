@@ -19,20 +19,29 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { useMemory } from "../../hooks/useMemory";
 import { useCollection } from "../../hooks/useCollection";
+import { useTheme } from "../../context/ThemeContext";
+import { useAppAlert } from "../../context/AlertContext";
+
 import MementoLogo from "../../components/common/MementoLogo";
 import MemoryTicketHorizontal from "../../components/MemoryTicket/MemoryTicketHorizontal";
-import { useTheme } from "../../context/ThemeContext";
+import TactileButton from "../../components/common/TactileButton";
 
 function CollectionMemorySelector({ route, navigation }) {
   const { theme, isDark } = useTheme();
   const colors = theme?.colors || {};
+  const { showAlert } = useAppAlert();
 
-  // Theme colors
+  // --------------------------------------------------
+  // THEME COLORS
+  // --------------------------------------------------
+
   const screenBackground =
     colors.background || (isDark ? "#171624" : "#F1F0F6");
 
   const surfaceColor =
-    colors.surface || (isDark ? "#211F30" : "#FFFFFF");
+    colors.surface ||
+    colors.card ||
+    (isDark ? "#211F30" : "#FFFFFF");
 
   const textColor =
     colors.text || (isDark ? "#F7F5FC" : "#242424");
@@ -58,6 +67,13 @@ function CollectionMemorySelector({ route, navigation }) {
   const disabledBackground =
     isDark ? "#383548" : "#E3E2EA";
 
+  const selectedSurface =
+    isDark ? "#2C2940" : "#F4F2FC";
+
+  // --------------------------------------------------
+  // ROUTE AND CONTEXT
+  // --------------------------------------------------
+
   const { collectionId } = route.params || {};
 
   const { memories } = useMemory();
@@ -67,9 +83,15 @@ function CollectionMemorySelector({ route, navigation }) {
     addMemoryToCollection,
   } = useCollection();
 
+  // --------------------------------------------------
+  // STATE
+  // --------------------------------------------------
+
   const [collection, setCollection] = useState(null);
   const [selectedIds, setSelectedIds] = useState([]);
   const [loadingCollection, setLoadingCollection] = useState(true);
+  const [collectionLoadFailed, setCollectionLoadFailed] =
+    useState(false);
   const [saving, setSaving] = useState(false);
 
   // --------------------------------------------------
@@ -81,20 +103,69 @@ function CollectionMemorySelector({ route, navigation }) {
 
     const loadCollection = async () => {
       if (!collectionId) {
+        setCollection(null);
+        setCollectionLoadFailed(true);
         setLoadingCollection(false);
+
+        showAlert({
+          type: "warning",
+          icon: "information-circle-outline",
+          title: "Collection Not Found",
+          message:
+            "The collection ID is missing. Return to your collections and try again.",
+          confirmText: "OK",
+          showCancel: false,
+        });
+
         return;
       }
 
       try {
         setLoadingCollection(true);
+        setCollectionLoadFailed(false);
 
         const result = await getCollectionById(collectionId);
 
-        if (mounted) {
-          setCollection(result);
+        if (!mounted) {
+          return;
         }
+
+        if (!result) {
+          setCollection(null);
+          setCollectionLoadFailed(true);
+
+          showAlert({
+            type: "warning",
+            icon: "folder-open-outline",
+            title: "Collection Not Found",
+            message:
+              "This collection could not be found. Please return and try again.",
+            confirmText: "OK",
+            showCancel: false,
+          });
+
+          return;
+        }
+
+        setCollection(result);
       } catch (error) {
         console.error("Failed to load collection:", error);
+
+        if (mounted) {
+          setCollection(null);
+          setCollectionLoadFailed(true);
+
+          showAlert({
+            type: "danger",
+            icon: "cloud-offline-outline",
+            title: "Unable to Load Collection",
+            message:
+              error?.message ||
+              "Something went wrong while loading this collection. Please try again.",
+            confirmText: "OK",
+            showCancel: false,
+          });
+        }
       } finally {
         if (mounted) {
           setLoadingCollection(false);
@@ -107,7 +178,7 @@ function CollectionMemorySelector({ route, navigation }) {
     return () => {
       mounted = false;
     };
-  }, [collectionId, getCollectionById]);
+  }, [collectionId, getCollectionById, showAlert]);
 
   // --------------------------------------------------
   // EXISTING MEMORY IDS
@@ -140,17 +211,45 @@ function CollectionMemorySelector({ route, navigation }) {
   }, [memories]);
 
   // --------------------------------------------------
+  // SELECTION STATE
+  // --------------------------------------------------
+
+  const hasSelection = selectedIds.length > 0;
+
+  const isAddDisabled =
+    !hasSelection ||
+    saving ||
+    !collection ||
+    collectionLoadFailed;
+
+  const addButtonColor =
+    hasSelection || saving
+      ? primaryColor
+      : disabledBackground;
+
+  const addButtonTextColor =
+    hasSelection || saving
+      ? primaryTextColor
+      : mutedTextColor;
+
+  // --------------------------------------------------
   // TOGGLE MEMORY SELECTION
   // --------------------------------------------------
 
   const toggleMemory = useCallback(
     (memoryId) => {
-      if (!memoryId || saving) {
+      if (
+        !memoryId ||
+        saving ||
+        !collection ||
+        collectionLoadFailed
+      ) {
         return;
       }
 
       const id = String(memoryId);
 
+      // Do not select a memory that is already in the collection.
       if (existingMemoryIds.has(id)) {
         return;
       }
@@ -163,35 +262,101 @@ function CollectionMemorySelector({ route, navigation }) {
         return [...previous, id];
       });
     },
-    [existingMemoryIds, saving],
+    [
+      saving,
+      collection,
+      collectionLoadFailed,
+      existingMemoryIds,
+    ],
   );
+
+  // --------------------------------------------------
+  // CANCEL / DISCARD SELECTION
+  // --------------------------------------------------
+
+  const handleCancel = useCallback(() => {
+    if (saving) {
+      return;
+    }
+
+    if (selectedIds.length === 0) {
+      navigation.goBack();
+      return;
+    }
+
+    showAlert({
+      type: "warning",
+      icon: "close-circle-outline",
+      title: "Discard Selection?",
+      message:
+        "You have selected memory tickets that haven't been added yet. Do you want to discard this selection?",
+      cancelText: "Keep Selecting",
+      confirmText: "Discard",
+      showCancel: true,
+      onConfirm: () => {
+        navigation.goBack();
+      },
+    });
+  }, [saving, selectedIds, navigation, showAlert]);
 
   // --------------------------------------------------
   // ADD SELECTED MEMORIES
   // --------------------------------------------------
 
   const handleAdd = useCallback(async () => {
-    if (!collectionId || selectedIds.length === 0 || saving) {
+    if (
+      !collectionId ||
+      !collection ||
+      collectionLoadFailed ||
+      selectedIds.length === 0 ||
+      saving
+    ) {
       return;
     }
 
     try {
       setSaving(true);
 
-      await addMemoryToCollection(collectionId, selectedIds);
+      const result = await addMemoryToCollection(
+        collectionId,
+        selectedIds,
+      );
+
+      if (result?.success === false) {
+        throw new Error(
+          result.message || "Unable to add memories to this collection.",
+        );
+      }
 
       navigation.goBack();
     } catch (error) {
-      console.error("Failed to add memories to collection:", error);
+      console.error(
+        "Failed to add memories to collection:",
+        error,
+      );
+
+      showAlert({
+        type: "danger",
+        icon: "close-circle-outline",
+        title: "Unable to Add Memories",
+        message:
+          error?.message ||
+          "Something went wrong while adding these memories. Please try again.",
+        confirmText: "OK",
+        showCancel: false,
+      });
     } finally {
       setSaving(false);
     }
   }, [
     collectionId,
+    collection,
+    collectionLoadFailed,
     selectedIds,
     saving,
     addMemoryToCollection,
     navigation,
+    showAlert,
   ]);
 
   // --------------------------------------------------
@@ -215,10 +380,15 @@ function CollectionMemorySelector({ route, navigation }) {
           style={[
             styles.memoryItem,
             {
-              backgroundColor: surfaceColor,
-              borderColor: selected ? primaryColor : borderColor,
+              backgroundColor: selected
+                ? selectedSurface
+                : surfaceColor,
+              borderColor: selected
+                ? primaryColor
+                : borderColor,
             },
             selected && styles.memoryItemSelected,
+            alreadyAdded && styles.memoryItemAlreadyAdded,
           ]}
         >
           <MemoryTicketHorizontal
@@ -235,13 +405,9 @@ function CollectionMemorySelector({ route, navigation }) {
       selectedIds,
       toggleMemory,
       surfaceColor,
+      selectedSurface,
       borderColor,
       primaryColor,
-      primaryTextColor,
-      secondaryTextColor,
-      mutedTextColor,
-      isDark,
-      colors,
     ],
   );
 
@@ -250,6 +416,10 @@ function CollectionMemorySelector({ route, navigation }) {
       String(item?._id || item?.id || `memory-${index}`),
     [],
   );
+
+  // --------------------------------------------------
+  // EMPTY STATE
+  // --------------------------------------------------
 
   const renderEmpty = useCallback(
     () => (
@@ -303,6 +473,10 @@ function CollectionMemorySelector({ route, navigation }) {
     ],
   );
 
+  // --------------------------------------------------
+  // LOADING STATE
+  // --------------------------------------------------
+
   if (loadingCollection) {
     return (
       <View
@@ -333,8 +507,9 @@ function CollectionMemorySelector({ route, navigation }) {
     );
   }
 
-  const hasSelection = selectedIds.length > 0;
-  const isAddDisabled = !hasSelection || saving;
+  // --------------------------------------------------
+  // MAIN SCREEN
+  // --------------------------------------------------
 
   return (
     <View
@@ -349,6 +524,7 @@ function CollectionMemorySelector({ route, navigation }) {
       />
 
       {/* HEADER */}
+
       <View
         style={[
           styles.header,
@@ -360,9 +536,11 @@ function CollectionMemorySelector({ route, navigation }) {
       >
         <TouchableOpacity
           style={styles.headerAction}
-          onPress={() => navigation.goBack()}
+          onPress={handleCancel}
           disabled={saving}
           activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Cancel selection"
         >
           <Text
             style={[
@@ -398,6 +576,7 @@ function CollectionMemorySelector({ route, navigation }) {
       </View>
 
       {/* COLLECTION INFO */}
+
       {collection ? (
         <View
           style={[
@@ -427,6 +606,7 @@ function CollectionMemorySelector({ route, navigation }) {
       ) : null}
 
       {/* MEMORY TICKETS */}
+
       <FlatList
         data={selectableMemories}
         renderItem={renderItem}
@@ -447,6 +627,7 @@ function CollectionMemorySelector({ route, navigation }) {
       />
 
       {/* FOOTER */}
+
       <View
         style={[
           styles.footer,
@@ -479,79 +660,60 @@ function CollectionMemorySelector({ route, navigation }) {
           <Text
             style={[
               styles.selectedText,
-              { color: hasSelection ? textColor : secondaryTextColor },
+              {
+                color: hasSelection
+                  ? textColor
+                  : secondaryTextColor,
+              },
             ]}
           >
             {saving
               ? "Adding memories..."
-              : selectedIds.length === 0
-                ? "Select memory tickets"
-                : `${selectedIds.length} ${
-                    selectedIds.length === 1 ? "memory" : "memories"
-                  } selected`}
+              : collectionLoadFailed
+                ? "Collection unavailable"
+                : selectedIds.length === 0
+                  ? "Select memory tickets"
+                  : `${selectedIds.length} ${
+                      selectedIds.length === 1
+                        ? "memory"
+                        : "memories"
+                    } selected`}
           </Text>
         </View>
 
-        <TouchableOpacity
-          style={[
-            styles.addButton,
-            {
-              backgroundColor: isAddDisabled
-                ? disabledBackground
-                : primaryColor,
-            },
-          ]}
+        <TactileButton
+          label="ADD TO COLLECTION"
           onPress={handleAdd}
-          disabled={isAddDisabled}
-          activeOpacity={0.85}
-        >
-          {saving ? (
-            <ActivityIndicator
-              size="small"
-              color={
-                isAddDisabled
-                  ? mutedTextColor
-                  : primaryTextColor
-              }
-            />
-          ) : (
-            <>
-              <Text
-                style={[
-                  styles.addButtonText,
-                  {
-                    color: isAddDisabled
-                      ? mutedTextColor
-                      : primaryTextColor,
-                  },
-                ]}
-              >
-                Add to Collection
-              </Text>
-
-              <Ionicons
-                name="arrow-forward"
-                size={18}
-                color={
-                  isAddDisabled
-                    ? mutedTextColor
-                    : primaryTextColor
-                }
-              />
-            </>
-          )}
-        </TouchableOpacity>
+          icon="arrow-forward"
+          iconPosition="right"
+          color={addButtonColor}
+          textColor={addButtonTextColor}
+          iconColor={addButtonTextColor}
+          height={50}
+          borderRadius={12}
+          depth={3}
+          loading={saving}
+          loadingText="ADDING MEMORIES..."
+          disabled={
+            !hasSelection ||
+            !collection ||
+            collectionLoadFailed
+          }
+          style={styles.addButtonWrapper}
+          contentStyle={styles.addButtonContent}
+          textStyle={styles.addButtonText}
+          accessibilityHint="Add the selected memory tickets to this collection"
+        />
       </View>
     </View>
   );
 }
 
-// Small helper to keep the already-added badge consistent with the theme.
-function inputBackgroundForStatus(isDark, colors) {
-  return colors.input || (isDark ? "#292638" : "#F8F8FA");
-}
-
 export default CollectionMemorySelector;
+
+// --------------------------------------------------
+// STYLES
+// --------------------------------------------------
 
 const styles = StyleSheet.create({
   container: {
@@ -573,9 +735,10 @@ const styles = StyleSheet.create({
   },
 
   // HEADER
+
   header: {
     minHeight: 84,
-    marginTop:20,
+    marginTop: 20,
     paddingHorizontal: 20,
     paddingVertical: 12,
     flexDirection: "row",
@@ -622,6 +785,7 @@ const styles = StyleSheet.create({
   },
 
   // COLLECTION INFO
+
   collectionHeader: {
     paddingHorizontal: 20,
     paddingTop: 17,
@@ -642,6 +806,7 @@ const styles = StyleSheet.create({
   },
 
   // LIST
+
   listContent: {
     paddingHorizontal: 16,
     paddingTop: 5,
@@ -668,6 +833,10 @@ const styles = StyleSheet.create({
 
   memoryItemSelected: {
     borderWidth: 1.5,
+  },
+
+  memoryItemAlreadyAdded: {
+    opacity: 0.85,
   },
 
   selectionIndicator: {
@@ -701,6 +870,7 @@ const styles = StyleSheet.create({
   },
 
   // FOOTER
+
   footer: {
     paddingHorizontal: 20,
     paddingTop: 12,
@@ -737,28 +907,25 @@ const styles = StyleSheet.create({
     color: "#707080",
   },
 
-  addButton: {
-    minHeight: 50,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 9,
-    backgroundColor: "#34345C",
+  addButtonWrapper: {
+    width: "100%",
+    marginBottom: 0,
   },
 
-  addButtonDisabled: {
-    opacity: 0.45,
+  addButtonContent: {
+    height: 50,
+    borderRadius: 12,
+    paddingHorizontal: 16,
   },
 
   addButtonText: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "900",
+    letterSpacing: 0.9,
   },
 
   // EMPTY STATE
+
   emptyState: {
     flex: 1,
     minHeight: 250,

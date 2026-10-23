@@ -17,6 +17,7 @@ import { Ionicons } from "@expo/vector-icons";
 import styles from "./forgotPasswordStyles";
 import { useAuth } from "../../../hooks/useAuth";
 import { useAppAlert } from "../../../context/AlertContext";
+import TactileButton from "../../../components/common/TactileButton";
 
 function ForgotPasswordScreen({ navigation }) {
   const { theme, isDark } = useTheme();
@@ -378,38 +379,26 @@ function ForgotPasswordScreen({ navigation }) {
     </View>
   );
 
-  const renderPrimaryButton = (label, iconName, onPress) => (
-    <TouchableOpacity
-      style={[
-        styles.primaryButton,
-        { backgroundColor: primaryColor },
-        loading && styles.disabledButton,
-      ]}
-      onPress={onPress}
-      disabled={loading}
-      activeOpacity={0.85}
-    >
-      {loading ? (
-        <ActivityIndicator size="small" color={primaryTextColor} />
-      ) : (
-        <>
-          <Text
-            style={[
-              styles.primaryButtonText,
-              { color: primaryTextColor },
-            ]}
-          >
-            {label}
-          </Text>
-          <Ionicons
-            name={iconName}
-            size={19}
-            color={primaryTextColor}
-          />
-        </>
-      )}
-    </TouchableOpacity>
-  );
+ const renderPrimaryButton = (label, iconName, onPress) => (
+  <TactileButton
+    label={label}
+    onPress={onPress}
+    icon={iconName}
+    iconPosition="right"
+    color={primaryColor}
+    textColor={primaryTextColor}
+    iconColor={primaryTextColor}
+    height={48}
+    borderRadius={10}
+    depth={3}
+    loading={loading}
+    loadingText="PLEASE WAIT..."
+    disabled={loading}
+    style={{ width: "100%", marginBottom: 0 }}
+    contentStyle={styles.primaryButton}
+    textStyle={styles.primaryButtonText}
+  />
+);
 
   const renderEmailStep = () => (
     <>

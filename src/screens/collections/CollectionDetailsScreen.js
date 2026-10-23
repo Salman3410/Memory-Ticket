@@ -1,89 +1,88 @@
 import {
   useCallback,
-  useEffect,
   useMemo,
   useState,
 } from "react";
-
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Image,
   RefreshControl,
   StyleSheet,
+  StatusBar,
   Text,
   TouchableOpacity,
   View,
-  StatusBar,
 } from "react-native";
-
-import { Ionicons } from "@expo/vector-icons";
-
+import { useFocusEffect } from "@react-navigation/native";
 import { useCollection } from "../../hooks/useCollection";
-import useRefresh from "../../hooks/useRefresh";
-import { getMemoryDetailUrl } from "../../utils/cloudinary";
-import MemoryTicketHorizontal from "../../components/MemoryTicket/MemoryTicketHorizontal";
-import { useAppAlert } from "../../context/AlertContext";
+import { useMemory } from "../../hooks/useMemory";
 import { useTheme } from "../../context/ThemeContext";
+import MemoryTicket from "../../components/MemoryTicket/MemoryTicket";
+import MementoLogo from "../../components/common/MementoLogo";
+import TactileButton from "../../components/common/TactileButton";
+import { useAppAlert } from "../../context/AlertContext";
+import { getMemoryDetailUrl } from "../../utils/cloudinary";
 
-function CollectionDetailsScreen({ navigation, route }) {
-  const { theme, isDark } = useTheme();
-  const colors = theme?.colors || {};
-
-  // Theme colors
-  const screenBackground =
-    colors.background || (isDark ? "#171624" : "#F1F0F6");
-
-  const surfaceColor =
-    colors.surface || (isDark ? "#211F30" : "#FFFFFF");
-
-  const textColor =
-    colors.text || (isDark ? "#F7F5FC" : "#242424");
-
-  const secondaryTextColor =
-    colors.textSecondary ||
-    colors.textMuted ||
-    (isDark ? "#C4C0D0" : "#707080");
-
-  const mutedTextColor =
-    colors.textMuted || (isDark ? "#89849C" : "#9A99A5");
-
-  const borderColor =
-    colors.border || (isDark ? "#39364D" : "#D9D8E2");
-
-  const primaryColor =
-    colors.primary || (isDark ? "#C8C2FF" : "#34345C");
-
-  const primaryTextColor =
-    colors.primaryText ||
-    (isDark && primaryColor.toLowerCase() !== "#34345c"
-      ? "#25223D"
-      : "#FFFFFF");
-
-  const inputBackground =
-    colors.input || (isDark ? "#292638" : "#F8F8FA");
-
-  const accentColor = colors.accent || "#E76F51";
-
-  const { getCollectionById, removeMemoryFromCollection, deleteCollection } =
-    useCollection();
-
+function CollectionDetailsScreen({ route, navigation }) {
+  const { collectionId } = route.params || {};
   const { showAlert } = useAppAlert();
+  const {
+    getCollectionById,
+    removeMemoryFromCollection,
+    deleteCollection,
+  } = useCollection();
+  const { memories: allMemories = [] } = useMemory();
+  const { theme, isDark } = useTheme();
 
-  const collectionId =
-    route?.params?.collectionId || route?.params?.id;
+  const colors = useMemo(() => {
+    const themeColors = theme?.colors || {};
+
+    return {
+      background:
+        themeColors.background ||
+        (isDark ? "#171724" : "#F1F0F6"),
+      surface:
+        themeColors.surface ||
+        themeColors.card ||
+        (isDark ? "#232333" : "#FFFFFF"),
+      text:
+        themeColors.text ||
+        (isDark ? "#F1F0F6" : "#242424"),
+      textSecondary:
+        themeColors.textSecondary ||
+        themeColors.textMuted ||
+        (isDark ? "#A6A6B8" : "#737387"),
+      border:
+        themeColors.border ||
+        (isDark ? "#38384C" : "#D9D8E2"),
+      primary: themeColors.primary || "#34345C",
+      accent: themeColors.accent || "#E76F51",
+      placeholder:
+        themeColors.placeholder ||
+        (isDark ? "#88889C" : "#9A9AA3"),
+      mutedSurface: isDark ? "#2C2C40" : "#F6F5F9",
+      countSurface: isDark ? "#303047" : "#E9E8F1",
+      coverCountSurface: isDark ? "#E4E2EE" : "#FFFFFF",
+      white: "#FFFFFF",
+    };
+  }, [theme, isDark]);
+
+  const styles = useMemo(
+    () => createStyles(colors, isDark),
+    [colors, isDark],
+  );
 
   const [collection, setCollection] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [deleting, setDeleting] = useState(false);
-
-  // --------------------------------------------------
-  // LOAD COLLECTION
-  // --------------------------------------------------
+  const [refreshing, setRefreshing] = useState(false);
+  const [removingMemoryId, setRemovingMemoryId] = useState(null);
 
   const loadCollection = useCallback(
     async (showLoader = true) => {
       if (!collectionId) {
+        setCollection(null);
         setLoading(false);
         return;
       }
@@ -93,868 +92,618 @@ function CollectionDetailsScreen({ navigation, route }) {
           setLoading(true);
         }
 
-        const result = await getCollectionById(collectionId);
-        setCollection(result);
+        const data = await getCollectionById(collectionId);
+
+        setCollection(data || null);
       } catch (error) {
-        console.error("Failed to load collection details:", error);
+  console.error("Failed to load collection details:", error);
 
-        showAlert({
-          type: "danger",
-          icon: "close-circle-outline",
-          title: "Unable to Load Collection",
-          message:
-            error?.message ||
-            "Something went wrong while loading this collection.",
-          confirmText: "OK",
-        });
-      } finally {
-        setLoading(false);
-      }
+  if (showLoader) {
+    showAlert({
+      type: "danger",
+      icon: "cloud-offline-outline",
+      title: "Unable to Load Collection",
+      message:
+        error?.message ||
+        "Something went wrong while loading this collection. Please try again.",
+      confirmText: "OK",
+    });
+  }
+} finally {
+  setLoading(false);
+}
     },
-    [collectionId, getCollectionById, showAlert],
+    [collectionId, getCollectionById],
   );
 
-  useEffect(() => {
-    loadCollection();
-  }, [loadCollection]);
-
-  // --------------------------------------------------
-  // REFRESH
-  // --------------------------------------------------
-
-  const refreshCollectionDetails = useCallback(async () => {
-    await loadCollection(false);
-  }, [loadCollection]);
-
-  const { refreshing, onRefresh } = useRefresh(
-    refreshCollectionDetails,
+  useFocusEffect(
+    useCallback(() => {
+      loadCollection();
+    }, [loadCollection]),
   );
 
-  // --------------------------------------------------
-  // ADD MEMORIES
-  // --------------------------------------------------
+  const handleRefresh = useCallback(async () => {
+    try {
+      setRefreshing(true);
+      await loadCollection(false);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [loadCollection]);
 
   const handleAddMemories = useCallback(() => {
-    if (!collectionId) {
-      return;
-    }
-
     navigation.navigate("CollectionMemorySelector", {
       collectionId,
     });
   }, [navigation, collectionId]);
 
-  // --------------------------------------------------
-  // EDIT COLLECTION
-  // --------------------------------------------------
-
   const handleEdit = useCallback(() => {
-    if (!collection || !collectionId) {
-      return;
+    navigation.navigate("EditCollection", {
+      collectionId,
+      collection,
+    });
+  }, [navigation, collectionId, collection]);
+
+const handleDelete = useCallback(() => {
+  showAlert({
+    type: "danger",
+    icon: "trash-outline",
+    title: "Delete Collection?",
+    message: `Delete "${collection?.name || "this collection"}"? Your memories will remain safe, but they will no longer belong to this collection. This action cannot be undone.`,
+    cancelText: "Keep Collection",
+    confirmText: "Delete Collection",
+    showCancel: true,
+
+    onConfirm: async () => {
+      try {
+        await deleteCollection(collectionId);
+        navigation.goBack();
+      } catch (error) {
+        console.error("Failed to delete collection:", error);
+
+        showAlert({
+          type: "danger",
+          icon: "close-circle-outline",
+          title: "Delete Failed",
+          message:
+            error?.message ||
+            "Unable to delete this collection. Please try again.",
+          confirmText: "OK",
+        });
+      }
+    },
+  });
+}, [
+  showAlert,
+  collection,
+  collectionId,
+  deleteCollection,
+  navigation,
+]);
+
+const handleMore = useCallback(() => {
+  showAlert({
+    type: "info",
+    icon: "options-outline",
+    title: collection?.name || "Collection Options",
+    message:
+      "Choose whether to edit this collection or delete it.",
+    cancelText: "Delete",
+    confirmText: "Edit Collection",
+    showCancel: true,
+
+    onConfirm: handleEdit,
+    onCancel: handleDelete,
+  });
+}, [
+  showAlert,
+  collection,
+  handleEdit,
+  handleDelete,
+]);
+
+
+  const memoriesList = useMemo(() => {
+    const source = Array.isArray(collection?.memories)
+      ? collection.memories
+      : [];
+
+    return source
+      .map((item) => {
+        if (item && typeof item === "object") {
+          return item;
+        }
+
+        return (
+          allMemories.find((memory) => {
+            const id = memory?._id || memory?.id;
+
+            return String(id) === String(item);
+          }) || null
+        );
+      })
+      .filter(Boolean);
+  }, [collection?.memories, allMemories]);
+
+  const memoryCount =
+    collection?.memoryCount ?? memoriesList.length;
+
+  const coverMemory = useMemo(() => {
+    const cover = collection?.coverMemoryId;
+
+    if (cover && typeof cover === "object") {
+      return cover;
     }
 
-    navigation.navigate("EditCollection", {
-      collection,
-      collectionId,
-    });
-  }, [navigation, collection, collectionId]);
+    if (!cover) {
+      return null;
+    }
 
-  // --------------------------------------------------
-  // DELETE COLLECTION
-  // --------------------------------------------------
+    return (
+      allMemories.find((memory) => {
+        const id = memory?._id || memory?.id;
 
-  const handleDelete = useCallback(() => {
-    if (!collectionId || deleting) {
+        return String(id) === String(cover);
+      }) || null
+    );
+  }, [collection?.coverMemoryId, allMemories]);
+
+  const coverImage =
+    coverMemory?.images?.[0] ||
+    coverMemory?.image ||
+    null;
+
+  const coverImageUrl = useMemo(
+    () => (coverImage ? getMemoryDetailUrl(coverImage) : null),
+    [coverImage],
+  );
+
+  const handleMemoryPress = useCallback(
+    (memory) => {
+      const memoryId = memory?._id || memory?.id;
+
+      if (!memoryId) {
+        return;
+      }
+
+      navigation.navigate("MemoryDetails", {
+        memoryId,
+      });
+    },
+    [navigation],
+  );
+
+const handleRemoveMemory = useCallback(
+  (memoryId, memoryTitle) => {
+    if (!memoryId || removingMemoryId) {
       return;
     }
 
     showAlert({
       type: "danger",
-      icon: "trash-outline",
-      title: "Delete Collection",
-      message: `Are you sure you want to delete "${
-        collection?.name || "this collection"
-      }"? Memories will not be deleted.`,
-      cancelText: "Cancel",
-      confirmText: "Delete",
+      icon: "remove-circle-outline",
+      title: "Remove Memory?",
+      message: `Remove "${memoryTitle || "this memory"}" from this collection? The memory itself will not be deleted.`,
+      cancelText: "Keep Memory",
+      confirmText: "Remove",
       showCancel: true,
+
       onConfirm: async () => {
         try {
-          setDeleting(true);
+          setRemovingMemoryId(memoryId);
 
-          await deleteCollection(collectionId);
-          navigation.goBack();
+          await removeMemoryFromCollection(
+            collectionId,
+            memoryId,
+          );
+
+          setCollection((previous) => {
+            if (!previous) {
+              return previous;
+            }
+
+            const currentMemories = Array.isArray(
+              previous.memories,
+            )
+              ? previous.memories
+              : [];
+
+            const updatedMemories = currentMemories.filter(
+              (memory) => {
+                const id =
+                  memory?._id || memory?.id || memory;
+
+                return String(id) !== String(memoryId);
+              },
+            );
+
+            return {
+              ...previous,
+              memories: updatedMemories,
+              memoryCount: updatedMemories.length,
+            };
+          });
         } catch (error) {
-          console.error("Failed to delete collection:", error);
+          console.error(
+            "Failed to remove memory from collection:",
+            error,
+          );
 
           showAlert({
             type: "danger",
             icon: "close-circle-outline",
-            title: "Delete Failed",
+            title: "Remove Failed",
             message:
-              error?.message || "Unable to delete this collection.",
+              error?.message ||
+              "Unable to remove this memory. Please try again.",
             confirmText: "OK",
           });
         } finally {
-          setDeleting(false);
+          setRemovingMemoryId(null);
         }
       },
     });
-  }, [
-    collectionId,
-    collection,
-    deleting,
-    deleteCollection,
-    navigation,
+  },
+  [
     showAlert,
-  ]);
-
-  // --------------------------------------------------
-  // MORE MENU
-  // --------------------------------------------------
-
-  const handleMore = useCallback(() => {
-    if (!collection || deleting) {
-      return;
-    }
-
-    showAlert({
-      type: "info",
-      icon: "ellipsis-horizontal-circle-outline",
-      title: collection.name || "Collection",
-      message: "Choose an action for this collection.",
-      cancelText: "Delete Collection",
-      confirmText: "Edit Collection",
-      showCancel: true,
-      onConfirm: handleEdit,
-      onCancel: handleDelete,
-    });
-  }, [collection, deleting, handleEdit, handleDelete, showAlert]);
-
-  // --------------------------------------------------
-  // REMOVE MEMORY
-  // --------------------------------------------------
-
-  const handleRemoveMemory = useCallback(
-    (memory) => {
-      const memoryId = memory?._id || memory?.id;
-
-      if (!memoryId || !collectionId) {
-        return;
-      }
-
-      showAlert({
-        type: "warning",
-        icon: "remove-circle-outline",
-        title: "Remove Memory",
-        message: "Remove this memory from the collection?",
-        cancelText: "Cancel",
-        confirmText: "Remove",
-        showCancel: true,
-        onConfirm: async () => {
-          try {
-            await removeMemoryFromCollection(collectionId, memoryId);
-
-            setCollection((prev) => {
-              if (!prev) {
-                return prev;
-              }
-
-              const currentMemories = Array.isArray(prev.memories)
-                ? prev.memories
-                : [];
-
-              const nextMemories = currentMemories.filter((item) => {
-                const id = item?._id || item?.id;
-                return String(id) !== String(memoryId);
-              });
-
-              return {
-                ...prev,
-                memories: nextMemories,
-                memoryCount: nextMemories.length,
-              };
-            });
-          } catch (error) {
-            console.error("Failed to remove memory:", error);
-
-            showAlert({
-              type: "danger",
-              icon: "close-circle-outline",
-              title: "Unable to Remove",
-              message:
-                error?.message ||
-                "Something went wrong while removing the memory.",
-              confirmText: "OK",
-            });
-          }
-        },
-      });
-    },
-    [collectionId, removeMemoryFromCollection, showAlert],
-  );
-
-  // --------------------------------------------------
-  // MEMORY DATA
-  // --------------------------------------------------
-
-  const memories = useMemo(() => {
-    return Array.isArray(collection?.memories)
-      ? collection.memories
-      : [];
-  }, [collection?.memories]);
-
-  const memoryCount = collection?.memoryCount ?? memories.length;
-
-  // --------------------------------------------------
-  // COVER IMAGE
-  // --------------------------------------------------
-
-  const coverImage =
-    collection?.coverMemoryId?.images?.[0] ||
-    collection?.coverMemoryId?.image ||
-    null;
-
-  const coverImageUrl = useMemo(() => {
-    if (!coverImage) {
-      return null;
-    }
-
-    return getMemoryDetailUrl(coverImage);
-  }, [coverImage]);
-
-  // --------------------------------------------------
-  // RENDER MEMORY
-  // --------------------------------------------------
+    collectionId,
+    removeMemoryFromCollection,
+    removingMemoryId,
+  ],
+);
 
   const renderMemory = useCallback(
     ({ item }) => {
       const memoryId = item?._id || item?.id;
 
       return (
-        <View
-          style={[
-            styles.memoryItem,
-            {
-              backgroundColor: surfaceColor,
-              borderColor,
-            },
-          ]}
-        >
-          <MemoryTicketHorizontal
-            memory={item}
-            onPress={() => {
-              if (!memoryId) {
-                return;
-              }
-
-              navigation.navigate("MemoryDetails", {
-                memoryId,
-              });
-            }}
-          />
+        <View style={styles.memoryContainer}>
+          <TouchableOpacity
+            activeOpacity={0.92}
+            onPress={() => handleMemoryPress(item)}
+          >
+            <MemoryTicket memory={item} />
+          </TouchableOpacity>
 
           <TouchableOpacity
             style={[
               styles.removeButton,
-              {
-                backgroundColor: surfaceColor,
-                borderColor,
-              },
+              removingMemoryId === memoryId &&
+                styles.removeButtonDisabled,
             ]}
-            onPress={() => handleRemoveMemory(item)}
+            onPress={() =>
+              handleRemoveMemory(memoryId, item?.title)
+            }
+            disabled={
+              !memoryId ||
+              removingMemoryId === memoryId
+            }
             activeOpacity={0.8}
           >
-            <Ionicons
-              name="remove-circle-outline"
-              size={16}
-              color={accentColor}
-            />
-
-            <Text
-              style={[
-                styles.removeButtonText,
-                { color: accentColor },
-              ]}
-            >
-              Remove
+            <Text style={styles.removeButtonText}>
+              {removingMemoryId === memoryId
+                ? "Removing..."
+                : "Remove from collection"}
             </Text>
           </TouchableOpacity>
         </View>
       );
     },
     [
-      navigation,
+      styles,
+      handleMemoryPress,
       handleRemoveMemory,
-      surfaceColor,
-      borderColor,
-      accentColor,
+      removingMemoryId,
     ],
   );
 
-  const memoryKeyExtractor = useCallback(
+  const keyExtractor = useCallback(
     (item, index) =>
-      String(item?._id || item?.id || `memory-${index}`),
+      String(item?._id || item?.id || index),
     [],
   );
 
-  // --------------------------------------------------
-  // LOADING
-  // --------------------------------------------------
+  const renderHeader = useCallback(
+    () => (
+      <View>
+        <View style={styles.topBar}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
+            <Text style={styles.backText}>‹ Back</Text>
+          </TouchableOpacity>
 
-  if (loading && !collection) {
+          <TouchableOpacity
+            style={styles.moreButton}
+            onPress={handleMore}
+            activeOpacity={0.75}
+            accessibilityRole="button"
+            accessibilityLabel="Collection options"
+          >
+            <Text style={styles.moreText}>•••</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* COLLECTION TICKET */}
+
+        <View style={styles.collectionTicket}>
+          <View style={styles.cover}>
+            {coverImageUrl ? (
+              <Image
+                source={{ uri: coverImageUrl }}
+                style={styles.coverImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={styles.coverPlaceholder}>
+                <MementoLogo
+                  size={42}
+                  borderRadius={21}
+                />
+
+                <Text style={styles.placeholderLabel}>
+                  MEMENTO
+                </Text>
+              </View>
+            )}
+
+            <View style={styles.coverOverlay} />
+
+            <View style={styles.coverTop}>
+              <Text style={styles.collectionLabel}>
+                COLLECTION
+              </Text>
+
+              <View style={styles.coverCount}>
+                <Text style={styles.coverCountText}>
+                  {memoryCount}
+                </Text>
+              </View>
+            </View>
+
+            <Text style={styles.coverCaption}>
+              YOUR MOMENTS, TOGETHER
+            </Text>
+          </View>
+
+          {/* TICKET PERFORATION */}
+
+          <View style={styles.divider}>
+            <View style={styles.notchLeft} />
+            <View style={styles.dashedLine} />
+            <View style={styles.notchRight} />
+          </View>
+
+          {/* COLLECTION DETAILS */}
+
+          <View style={styles.ticketBody}>
+            <Text style={styles.ticketEyebrow}>
+              MEMENTO COLLECTION
+            </Text>
+
+            <Text
+              style={styles.collectionName}
+              numberOfLines={3}
+            >
+              {collection?.name || "Untitled Collection"}
+            </Text>
+
+            <Text style={styles.memoryCount}>
+              {memoryCount === 1
+                ? "1 MEMORY"
+                : `${memoryCount} MEMORIES`}
+            </Text>
+
+            {collection?.description ? (
+              <Text style={styles.description}>
+                {collection.description}
+              </Text>
+            ) : (
+              <Text style={styles.emptyDescription}>
+                A place for moments that belong together.
+              </Text>
+            )}
+
+            {/* ACTIONS */}
+
+            <View style={styles.ticketActions}>
+              <TactileButton
+                label="ADD MEMORIES"
+                onPress={handleAddMemories}
+                icon="add"
+                color={colors.primary}
+                textColor={colors.white}
+                height={44}
+                borderRadius={11}
+                depth={3}
+                style={styles.addActionWrapper}
+                contentStyle={styles.addActionContent}
+                textStyle={styles.addActionText}
+              />
+
+              <TouchableOpacity
+                style={styles.editAction}
+                onPress={handleEdit}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.editActionText}>
+                  Edit
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* TICKET FOOTER */}
+
+            <View style={styles.ticketFooter}>
+              <Text style={styles.ticketBrand}>
+                MEMENTO
+              </Text>
+
+              <View style={styles.barcode}>
+                {[4, 2, 5, 3, 6, 2, 4, 3].map(
+                  (width, index) => (
+                    <View
+                      key={index}
+                      style={[
+                        styles.bar,
+                        { width },
+                      ]}
+                    />
+                  ),
+                )}
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* MEMORIES SECTION */}
+
+        <View style={styles.sectionHeader}>
+          <View>
+            <Text style={styles.sectionLabel}>
+              COLLECTION MEMORIES
+            </Text>
+
+            <Text style={styles.sectionTitle}>
+              {memoryCount === 0
+                ? "Nothing here yet"
+                : "The moments inside"}
+            </Text>
+          </View>
+
+          {memoryCount > 0 ? (
+            <View style={styles.sectionCount}>
+              <Text style={styles.sectionCountText}>
+                {memoryCount}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+      </View>
+    ),
+    [
+      styles,
+      colors,
+      collection,
+      coverImageUrl,
+      memoryCount,
+      navigation,
+      handleMore,
+      handleAddMemories,
+      handleEdit,
+    ],
+  );
+
+  const renderEmpty = useCallback(
+    () => (
+      <View style={styles.emptyState}>
+        <View style={styles.emptyMark}>
+          <Text style={styles.emptyMarkText}>+</Text>
+        </View>
+
+        <Text style={styles.emptyTitle}>
+          Start this collection
+        </Text>
+
+        <Text style={styles.emptyText}>
+          Choose memories from your library and add them here.
+        </Text>
+
+        <TactileButton
+          label="ADD MEMORIES"
+          onPress={handleAddMemories}
+          icon="add"
+          color={colors.primary}
+          textColor={colors.white}
+          height={46}
+          borderRadius={11}
+          depth={3}
+          style={styles.emptyButtonWrapper}
+          contentStyle={styles.emptyButtonContent}
+        />
+      </View>
+    ),
+    [styles, colors, handleAddMemories],
+  );
+
+  if (loading) {
     return (
-      <View
-        style={[
-          styles.loadingScreen,
-          { backgroundColor: screenBackground },
-        ]}
-      >
+      <View style={styles.loadingScreen}>
         <StatusBar
           barStyle={isDark ? "light-content" : "dark-content"}
-          backgroundColor={screenBackground}
+          backgroundColor={colors.background}
         />
 
-        <ActivityIndicator size="large" color={primaryColor} />
+        <ActivityIndicator
+          size="large"
+          color={colors.primary}
+        />
 
-        <Text
-          style={[
-            styles.loadingText,
-            { color: secondaryTextColor },
-          ]}
-        >
+        <Text style={styles.loadingText}>
           Loading collection...
         </Text>
       </View>
     );
   }
 
-  // --------------------------------------------------
-  // INVALID COLLECTION
-  // --------------------------------------------------
-
   if (!collection) {
     return (
-      <View
-        style={[
-          styles.errorScreen,
-          { backgroundColor: screenBackground },
-        ]}
-      >
+      <View style={styles.errorScreen}>
         <StatusBar
           barStyle={isDark ? "light-content" : "dark-content"}
-          backgroundColor={screenBackground}
+          backgroundColor={colors.background}
         />
 
-        <View
-          style={[
-            styles.errorMark,
-            { backgroundColor: primaryColor },
-          ]}
-        >
-          <Text
-            style={[
-              styles.errorMarkText,
-              { color: primaryTextColor },
-            ]}
-          >
-            M
-          </Text>
-        </View>
-
-        <Text
-          style={[
-            styles.errorTitle,
-            { color: textColor },
-          ]}
-        >
+        <Text style={styles.errorTitle}>
           Collection not found
         </Text>
 
-        <Text
-          style={[
-            styles.errorText,
-            { color: secondaryTextColor },
-          ]}
-        >
-          This collection could not be loaded.
-        </Text>
-
-        <TouchableOpacity
-          style={[
-            styles.backButton,
-            { backgroundColor: primaryColor },
-          ]}
+        <TactileButton
+          label="GO BACK"
           onPress={() => navigation.goBack()}
-          activeOpacity={0.85}
-        >
-          <Ionicons
-            name="arrow-back"
-            size={17}
-            color={primaryTextColor}
-          />
-
-          <Text
-            style={[
-              styles.backButtonText,
-              { color: primaryTextColor },
-            ]}
-          >
-            Go Back
-          </Text>
-        </TouchableOpacity>
+          icon="arrow-back"
+          color={colors.primary}
+          textColor={colors.white}
+          height={44}
+          borderRadius={11}
+          depth={3}
+          style={styles.backButtonWrapper}
+          contentStyle={styles.backButtonContent}
+        />
       </View>
     );
   }
 
-  // --------------------------------------------------
-  // MAIN SCREEN
-  // --------------------------------------------------
-
   return (
-    <View
-      style={[
-        styles.container,
-        { backgroundColor: screenBackground },
-      ]}
-    >
+    <View style={styles.container}>
       <StatusBar
         barStyle={isDark ? "light-content" : "dark-content"}
-        backgroundColor={screenBackground}
+        backgroundColor={colors.background}
       />
 
       <FlatList
-        data={memories}
+        data={memoriesList}
         renderItem={renderMemory}
-        keyExtractor={memoryKeyExtractor}
+        keyExtractor={keyExtractor}
+        ListHeaderComponent={renderHeader}
+        ListEmptyComponent={renderEmpty}
+        contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
-        style={{ backgroundColor: screenBackground }}
-        contentContainerStyle={[
-          memories.length === 0
-            ? styles.emptyMemoryList
-            : styles.memoryList,
-          { backgroundColor: screenBackground },
-        ]}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={primaryColor}
-            colors={[primaryColor]}
-            progressBackgroundColor={surfaceColor}
+            onRefresh={handleRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
           />
         }
-        // ------------------------------------------------
-        // HEADER
-        // ------------------------------------------------
-        ListHeaderComponent={
-          <View>
-            {/* TOP BAR */}
-            <View style={styles.topBar}>
-              <TouchableOpacity
-                style={[
-                  styles.topBarButton,
-                  {
-                    backgroundColor: surfaceColor,
-                    borderColor,
-                  },
-                ]}
-                onPress={() => navigation.goBack()}
-                activeOpacity={0.8}
-              >
-                <Ionicons
-                  name="arrow-back"
-                  size={21}
-                  color={textColor}
-                />
-              </TouchableOpacity>
-
-              <Text
-                style={[
-                  styles.topBarTitle,
-                  { color: secondaryTextColor },
-                ]}
-              >
-                COLLECTION
-              </Text>
-
-              <TouchableOpacity
-                style={[
-                  styles.topBarButton,
-                  {
-                    backgroundColor: surfaceColor,
-                    borderColor,
-                  },
-                ]}
-                onPress={handleMore}
-                activeOpacity={0.8}
-                disabled={deleting}
-              >
-                {deleting ? (
-                  <ActivityIndicator
-                    size="small"
-                    color={textColor}
-                  />
-                ) : (
-                  <Ionicons
-                    name="ellipsis-horizontal"
-                    size={21}
-                    color={textColor}
-                  />
-                )}
-              </TouchableOpacity>
-            </View>
-
-            {/* COLLECTION TICKET */}
-            <View
-              style={[
-                styles.collectionTicket,
-                {
-                  backgroundColor: surfaceColor,
-                  borderColor,
-                },
-              ]}
-            >
-              {/* COVER */}
-              <View style={styles.ticketCover}>
-                {coverImageUrl ? (
-                  <Image
-                    source={{ uri: coverImageUrl }}
-                    style={styles.ticketCoverImage}
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <View
-                    style={[
-                      styles.ticketCoverPlaceholder,
-                      { backgroundColor: primaryColor },
-                    ]}
-                  >
-                    <View
-                      style={[
-                        styles.logoCircle,
-                        { backgroundColor: accentColor },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.logoText,
-                          { color: "#FFFFFF" },
-                        ]}
-                      >
-                        M
-                      </Text>
-                    </View>
-
-                    <Text style={styles.placeholderText}>
-                      MEMENTO
-                    </Text>
-                  </View>
-                )}
-
-                <View style={styles.ticketCoverOverlay} />
-
-                <View style={styles.ticketTopRow}>
-                  <Text style={styles.collectionLabel}>
-                    MEMENTO COLLECTION
-                  </Text>
-
-                  <View
-                    style={[
-                      styles.countBadge,
-                      {
-                        backgroundColor: surfaceColor,
-                        borderColor,
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.countBadgeText,
-                        { color: textColor },
-                      ]}
-                    >
-                      {memoryCount}
-                    </Text>
-                  </View>
-                </View>
-
-                <View style={styles.coverBottom}>
-                  <Text style={styles.coverBottomLabel}>
-                    A PLACE FOR YOUR MOMENTS
-                  </Text>
-                </View>
-              </View>
-
-              {/* PERFORATION */}
-              <View
-                style={[
-                  styles.perforation,
-                  { backgroundColor: surfaceColor },
-                ]}
-              >
-                <View
-                  style={[
-                    styles.leftNotch,
-                    { backgroundColor: screenBackground },
-                  ]}
-                />
-
-                <View
-                  style={[
-                    styles.dashedLine,
-                    { borderTopColor: borderColor },
-                  ]}
-                />
-
-                <View
-                  style={[
-                    styles.rightNotch,
-                    { backgroundColor: screenBackground },
-                  ]}
-                />
-              </View>
-
-              {/* TICKET CONTENT */}
-              <View
-                style={[
-                  styles.ticketContent,
-                  { backgroundColor: surfaceColor },
-                ]}
-              >
-                <View style={styles.ticketHeading}>
-                  <View
-                    style={[
-                      styles.logoCircleSmall,
-                      { backgroundColor: primaryColor },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.logoTextSmall,
-                        { color: primaryTextColor },
-                      ]}
-                    >
-                      M
-                    </Text>
-                  </View>
-
-                  <View style={styles.headingText}>
-                    <Text
-                      style={[
-                        styles.ticketEyebrow,
-                        { color: secondaryTextColor },
-                      ]}
-                    >
-                      COLLECTION
-                    </Text>
-
-                    <Text
-                      style={[
-                        styles.collectionName,
-                        { color: textColor },
-                      ]}
-                      numberOfLines={2}
-                    >
-                      {collection.name || "Untitled Collection"}
-                    </Text>
-                  </View>
-                </View>
-
-                {collection.description ? (
-                  <Text
-                    style={[
-                      styles.description,
-                      { color: secondaryTextColor },
-                    ]}
-                    numberOfLines={4}
-                  >
-                    {collection.description}
-                  </Text>
-                ) : null}
-
-                <View
-                  style={[
-                    styles.ticketInfoRow,
-                    { borderTopColor: borderColor },
-                  ]}
-                >
-                  <View>
-                    <Text
-                      style={[
-                        styles.infoLabel,
-                        { color: secondaryTextColor },
-                      ]}
-                    >
-                      MEMORIES
-                    </Text>
-
-                    <Text
-                      style={[
-                        styles.infoValue,
-                        { color: textColor },
-                      ]}
-                    >
-                      {memoryCount}
-                    </Text>
-                  </View>
-
-                  <View style={styles.barcode}>
-                    {[4, 2, 5, 3, 6, 2, 4, 3, 5].map(
-                      (width, index) => (
-                        <View
-                          key={index}
-                          style={[
-                            styles.bar,
-                            {
-                              width,
-                              backgroundColor: primaryColor,
-                            },
-                          ]}
-                        />
-                      ),
-                    )}
-                  </View>
-                </View>
-
-                <TouchableOpacity
-                  style={[
-                    styles.addButton,
-                    { backgroundColor: primaryColor },
-                  ]}
-                  onPress={handleAddMemories}
-                  activeOpacity={0.85}
-                >
-                  <Ionicons
-                    name="add"
-                    size={18}
-                    color={primaryTextColor}
-                  />
-
-                  <Text
-                    style={[
-                      styles.addButtonText,
-                      { color: primaryTextColor },
-                    ]}
-                  >
-                    Add Memories
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* MEMORIES SECTION HEADER */}
-            <View style={styles.sectionHeader}>
-              <View>
-                <Text
-                  style={[
-                    styles.sectionEyebrow,
-                    { color: secondaryTextColor },
-                  ]}
-                >
-                  YOUR STORIES
-                </Text>
-
-                <Text
-                  style={[
-                    styles.sectionTitle,
-                    { color: textColor },
-                  ]}
-                >
-                  Memories
-                </Text>
-              </View>
-
-              <View
-                style={[
-                  styles.sectionCount,
-                  {
-                    backgroundColor: surfaceColor,
-                    borderColor,
-                  },
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.sectionCountText,
-                    { color: textColor },
-                  ]}
-                >
-                  {memoryCount}
-                </Text>
-              </View>
-            </View>
-          </View>
-        }
-        // ------------------------------------------------
-        // EMPTY STATE
-        // ------------------------------------------------
-        ListEmptyComponent={
-          <View
-            style={[
-              styles.emptyMemories,
-              { backgroundColor: screenBackground },
-            ]}
-          >
-            <View
-              style={[
-                styles.emptyIcon,
-                {
-                  backgroundColor: surfaceColor,
-                  borderColor,
-                },
-              ]}
-            >
-              <Ionicons
-                name="images-outline"
-                size={34}
-                color={primaryColor}
-              />
-            </View>
-
-            <Text
-              style={[
-                styles.emptyTitle,
-                { color: textColor },
-              ]}
-            >
-              No memories yet
-            </Text>
-
-            <Text
-              style={[
-                styles.emptyText,
-                { color: secondaryTextColor },
-              ]}
-            >
-              Add memories to start building this collection.
-            </Text>
-
-            <TouchableOpacity
-              style={[
-                styles.emptyAddButton,
-                { backgroundColor: primaryColor },
-              ]}
-              onPress={handleAddMemories}
-              activeOpacity={0.85}
-            >
-              <Ionicons
-                name="add"
-                size={17}
-                color={primaryTextColor}
-              />
-
-              <Text
-                style={[
-                  styles.emptyAddButtonText,
-                  { color: primaryTextColor },
-                ]}
-              >
-                Add Memories
-              </Text>
-            </TouchableOpacity>
-          </View>
-        }
+        initialNumToRender={2}
+        maxToRenderPerBatch={2}
+        windowSize={5}
+        removeClippedSubviews
       />
     </View>
   );
@@ -962,504 +711,432 @@ function CollectionDetailsScreen({ navigation, route }) {
 
 export default CollectionDetailsScreen;
 
-// --------------------------------------------------
-// STYLES
-// --------------------------------------------------
+function createStyles(colors, isDark) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F1F0F6",
-  },
+    listContent: {
+      paddingHorizontal: 20,
+      paddingBottom: 35,
+    },
 
-  // Loading
-  loadingScreen: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#F1F0F6",
-  },
+    topBar: {
+      paddingTop: 30,
+      paddingBottom: 12,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
 
-  loadingText: {
-    marginTop: 12,
-    fontSize: 13,
-    color: "#707070",
-  },
+    backText: {
+      fontSize: 15,
+      fontWeight: "600",
+      color: colors.primary,
+    },
 
-  // Error
-  errorScreen: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 30,
-    backgroundColor: "#F1F0F6",
-  },
+    moreButton: {
+      width: 38,
+      height: 34,
+      borderRadius: 11,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
 
-  errorMark: {
-    width: 58,
-    height: 58,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#34345C",
-  },
+    moreText: {
+      marginTop: -7,
+      fontSize: 16,
+      fontWeight: "800",
+      letterSpacing: 2,
+      color: colors.primary,
+    },
 
-  errorMarkText: {
-    fontSize: 23,
-    fontWeight: "800",
-    color: "#FFFFFF",
-  },
+    collectionTicket: {
+      overflow: "hidden",
+      borderRadius: 22,
+      backgroundColor: colors.surface,
+      borderWidth: isDark ? 1 : 0,
+      borderColor: colors.border,
+    },
 
-  errorTitle: {
-    marginTop: 18,
-    fontSize: 21,
-    fontWeight: "800",
-    textAlign: "center",
-    color: "#242424",
-  },
+    cover: {
+      height: 250,
+      position: "relative",
+      overflow: "hidden",
+      backgroundColor: colors.primary,
+    },
 
-  errorText: {
-    marginTop: 8,
-    fontSize: 13,
-    lineHeight: 20,
-    textAlign: "center",
-    color: "#707070",
-  },
+    coverImage: {
+      width: "100%",
+      height: "100%",
+    },
 
-  backButton: {
-    marginTop: 22,
-    minHeight: 45,
-    paddingHorizontal: 18,
-    borderRadius: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#34345C",
-    gap: 8,
-  },
+    coverPlaceholder: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.primary,
+    },
 
-  backButtonText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#FFFFFF",
-  },
+    placeholderLabel: {
+      marginTop: 10,
+      fontSize: 9,
+      fontWeight: "800",
+      letterSpacing: 1.8,
+      color: "#D9D8E2",
+    },
 
-  // Top bar
-  topBar: {
-    paddingHorizontal: 18,
-    paddingTop: 35,
-    paddingBottom: 17,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
+    coverOverlay: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: "rgba(24, 24, 36, 0.30)",
+    },
 
-  topBarButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: "#D9D8E2",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFFFFF",
-  },
+    coverTop: {
+      position: "absolute",
+      top: 16,
+      left: 16,
+      right: 16,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
 
-  topBarTitle: {
-    fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 1.8,
-    color: "#707080",
-  },
+    collectionLabel: {
+      fontSize: 9,
+      fontWeight: "800",
+      letterSpacing: 1.7,
+      color: colors.white,
+    },
 
-  // Main collection ticket
-  collectionTicket: {
-    marginHorizontal: 16,
-    overflow: "hidden",
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: "#D9D8E2",
-    backgroundColor: "#FFFFFF",
-  },
+    coverCount: {
+      minWidth: 35,
+      height: 30,
+      paddingHorizontal: 9,
+      borderRadius: 15,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.coverCountSurface,
+    },
 
-  // Cover
-  ticketCover: {
-    height: 210,
-    position: "relative",
-    overflow: "hidden",
-    backgroundColor: "#34345C",
-  },
+    coverCountText: {
+      fontSize: 12,
+      fontWeight: "800",
+      color: colors.primary,
+    },
 
-  ticketCoverImage: {
-    width: "100%",
-    height: "100%",
-  },
+    coverCaption: {
+      position: "absolute",
+      left: 16,
+      bottom: 16,
+      fontSize: 8,
+      fontWeight: "700",
+      letterSpacing: 1.4,
+      color: colors.white,
+    },
 
-  ticketCoverPlaceholder: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#34345C",
-  },
+    divider: {
+      height: 20,
+      position: "relative",
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.surface,
+    },
 
-  ticketCoverOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(20, 20, 32, 0.34)",
-  },
+    dashedLine: {
+      width: "90%",
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+      borderStyle: "dashed",
+    },
 
-  logoCircle: {
-    width: 62,
-    height: 62,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#E76F51",
-  },
+    notchLeft: {
+      position: "absolute",
+      left: -10,
+      width: 20,
+      height: 20,
+      borderRadius: 10,
+      backgroundColor: colors.background,
+    },
 
-  logoText: {
-    fontSize: 25,
-    fontWeight: "800",
-    color: "#FFFFFF",
-  },
+    notchRight: {
+      position: "absolute",
+      right: -10,
+      width: 20,
+      height: 20,
+      borderRadius: 10,
+      backgroundColor: colors.background,
+    },
 
-  placeholderText: {
-    marginTop: 11,
-    fontSize: 9,
-    fontWeight: "800",
-    letterSpacing: 2,
-    color: "#FFFFFF",
-  },
+    ticketBody: {
+      paddingHorizontal: 17,
+      paddingBottom: 16,
+      backgroundColor: colors.surface,
+    },
 
-  ticketTopRow: {
-    position: "absolute",
-    top: 15,
-    left: 15,
-    right: 15,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
+    ticketEyebrow: {
+      fontSize: 8,
+      fontWeight: "800",
+      letterSpacing: 1.5,
+      color: colors.accent,
+    },
 
-  collectionLabel: {
-    fontSize: 9,
-    fontWeight: "800",
-    letterSpacing: 1.4,
-    color: "#FFFFFF",
-  },
+    collectionName: {
+      marginTop: 5,
+      fontSize: 26,
+      lineHeight: 31,
+      fontWeight: "800",
+      color: colors.text,
+    },
 
-  countBadge: {
-    minWidth: 38,
-    height: 30,
-    paddingHorizontal: 10,
-    borderRadius: 15,
-    borderWidth: 1,
-    borderColor: "#D9D8E2",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFFFFF",
-  },
+    memoryCount: {
+      marginTop: 5,
+      fontSize: 9,
+      fontWeight: "800",
+      letterSpacing: 1.1,
+      color: colors.primary,
+    },
 
-  countBadgeText: {
-    fontSize: 12,
-    fontWeight: "800",
-    color: "#242424",
-  },
+    description: {
+      marginTop: 11,
+      fontSize: 13,
+      lineHeight: 20,
+      color: colors.textSecondary,
+    },
 
-  coverBottom: {
-    position: "absolute",
-    left: 16,
-    right: 16,
-    bottom: 15,
-  },
+    emptyDescription: {
+      marginTop: 11,
+      fontSize: 13,
+      lineHeight: 20,
+      color: colors.placeholder,
+    },
 
-  coverBottomLabel: {
-    fontSize: 8,
-    fontWeight: "800",
-    letterSpacing: 1.35,
-    color: "#FFFFFF",
-  },
+    ticketActions: {
+      marginTop: 17,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 9,
+    },
 
-  // Perforated ticket edge
-  perforation: {
-    height: 19,
-    position: "relative",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFFFFF",
-  },
+    addActionWrapper: {
+      flex: 1,
+      width: "auto",
+      marginBottom: 0,
+    },
 
-  dashedLine: {
-    width: "88%",
-    borderTopWidth: 1,
-    borderTopColor: "#D9D8E2",
-    borderStyle: "dashed",
-  },
+    addActionContent: {
+      height: 44,
+      borderRadius: 11,
+      paddingHorizontal: 8,
+    },
 
-  leftNotch: {
-    position: "absolute",
-    left: -10,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: "#F1F0F6",
-  },
+    addActionText: {
+      fontSize: 11,
+      letterSpacing: 0.7,
+    },
 
-  rightNotch: {
-    position: "absolute",
-    right: -10,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: "#F1F0F6",
-  },
+    editAction: {
+      height: 44,
+      paddingHorizontal: 17,
+      borderRadius: 11,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.mutedSurface,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
 
-  // Ticket content
-  ticketContent: {
-    paddingHorizontal: 17,
-    paddingTop: 16,
-    paddingBottom: 18,
-    backgroundColor: "#FFFFFF",
-  },
+    editActionText: {
+      fontSize: 12,
+      fontWeight: "700",
+      color: colors.primary,
+    },
 
-  ticketHeading: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
+    ticketFooter: {
+      marginTop: 15,
+      paddingTop: 10,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+    },
 
-  logoCircleSmall: {
-    width: 38,
-    height: 38,
-    borderRadius: 13,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#34345C",
-  },
+    ticketBrand: {
+      fontSize: 8,
+      fontWeight: "800",
+      letterSpacing: 1.5,
+      color: colors.placeholder,
+    },
 
-  logoTextSmall: {
-    fontSize: 15,
-    fontWeight: "800",
-    color: "#FFFFFF",
-  },
+    barcode: {
+      height: 18,
+      flexDirection: "row",
+      alignItems: "stretch",
+      gap: 2,
+    },
 
-  headingText: {
-    flex: 1,
-    minWidth: 0,
-    marginLeft: 11,
-  },
+    bar: {
+      height: "100%",
+      backgroundColor: colors.primary,
+    },
 
-  ticketEyebrow: {
-    fontSize: 8,
-    fontWeight: "800",
-    letterSpacing: 1.5,
-    color: "#898895",
-  },
+    sectionHeader: {
+      marginTop: 28,
+      marginBottom: 14,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
 
-  collectionName: {
-    marginTop: 4,
-    fontSize: 21,
-    lineHeight: 27,
-    fontWeight: "800",
-    color: "#242424",
-  },
+    sectionLabel: {
+      fontSize: 8,
+      fontWeight: "800",
+      letterSpacing: 1.5,
+      color: colors.accent,
+    },
 
-  description: {
-    marginTop: 13,
-    fontSize: 13,
-    lineHeight: 20,
-    color: "#707080",
-  },
+    sectionTitle: {
+      marginTop: 4,
+      fontSize: 20,
+      fontWeight: "800",
+      color: colors.text,
+    },
 
-  ticketInfoRow: {
-    marginTop: 17,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: "#ECEBF0",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
+    sectionCount: {
+      minWidth: 34,
+      height: 30,
+      paddingHorizontal: 9,
+      borderRadius: 15,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.countSurface,
+    },
 
-  infoLabel: {
-    fontSize: 8,
-    fontWeight: "800",
-    letterSpacing: 1.3,
-    color: "#898895",
-  },
+    sectionCountText: {
+      fontSize: 12,
+      fontWeight: "800",
+      color: colors.text,
+    },
 
-  infoValue: {
-    marginTop: 3,
-    fontSize: 16,
-    fontWeight: "800",
-    color: "#242424",
-  },
+    memoryContainer: {
+      marginBottom: 22,
+    },
 
-  barcode: {
-    height: 25,
-    flexDirection: "row",
-    alignItems: "stretch",
-    gap: 2,
-  },
+    removeButton: {
+      marginTop: 8,
+      height: 38,
+      borderRadius: 10,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
 
-  bar: {
-    height: "100%",
-    backgroundColor: "#34345C",
-  },
+    removeButtonDisabled: {
+      opacity: 0.5,
+    },
 
-  addButton: {
-    marginTop: 17,
-    minHeight: 48,
-    borderRadius: 13,
-    paddingHorizontal: 15,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    backgroundColor: "#34345C",
-  },
+    removeButtonText: {
+      fontSize: 11,
+      fontWeight: "600",
+      color: colors.accent,
+    },
 
-  addButtonText: {
-    fontSize: 12,
-    fontWeight: "800",
-    color: "#FFFFFF",
-  },
+    emptyState: {
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: 45,
+      paddingHorizontal: 25,
+    },
 
-  // Memories section
-  sectionHeader: {
-    marginTop: 28,
-    paddingHorizontal: 20,
-    paddingBottom: 15,
-    flexDirection: "row",
-    alignItems: "flex-end",
-    justifyContent: "space-between",
-  },
+    emptyMark: {
+      width: 58,
+      height: 58,
+      borderRadius: 29,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.primary,
+    },
 
-  sectionEyebrow: {
-    fontSize: 9,
-    fontWeight: "800",
-    letterSpacing: 1.5,
-    color: "#707080",
-  },
+    emptyMarkText: {
+      marginTop: -2,
+      fontSize: 30,
+      fontWeight: "300",
+      color: colors.white,
+    },
 
-  sectionTitle: {
-    marginTop: 4,
-    fontSize: 24,
-    fontWeight: "800",
-    color: "#242424",
-  },
+    emptyTitle: {
+      marginTop: 16,
+      fontSize: 19,
+      fontWeight: "800",
+      color: colors.text,
+      textAlign: "center",
+    },
 
-  sectionCount: {
-    minWidth: 34,
-    height: 34,
-    paddingHorizontal: 10,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#D9D8E2",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFFFFF",
-  },
+    emptyText: {
+      marginTop: 7,
+      fontSize: 13,
+      lineHeight: 20,
+      color: colors.textSecondary,
+      textAlign: "center",
+    },
 
-  sectionCountText: {
-    fontSize: 12,
-    fontWeight: "800",
-    color: "#242424",
-  },
+    emptyButtonWrapper: {
+      width: 220,
+      alignSelf: "center",
+      marginTop: 18,
+      marginBottom: 0,
+    },
 
-  // Memory list
-  memoryList: {
-    paddingHorizontal: 14,
-    paddingBottom: 35,
-  },
+    emptyButtonContent: {
+      height: 46,
+      borderRadius: 11,
+    },
 
-  emptyMemoryList: {
-    paddingHorizontal: 14,
-    paddingBottom: 35,
-  },
+    loadingScreen: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.background,
+    },
 
-  memoryItem: {
-    marginBottom: 15,
-    padding: 8,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#D9D8E2",
-    backgroundColor: "#FFFFFF",
-  },
+    loadingText: {
+      marginTop: 9,
+      fontSize: 13,
+      color: colors.textSecondary,
+    },
 
-  removeButton: {
-    alignSelf: "flex-end",
-    minHeight: 32,
-    marginTop: 8,
-    marginRight: 2,
-    paddingHorizontal: 10,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#D9D8E2",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 5,
-    backgroundColor: "#FFFFFF",
-  },
+    errorScreen: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      paddingHorizontal: 25,
+      backgroundColor: colors.background,
+    },
 
-  removeButtonText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "#E76F51",
-  },
+    errorTitle: {
+      fontSize: 18,
+      fontWeight: "700",
+      color: colors.text,
+      textAlign: "center",
+    },
 
-  // Empty memories state
-  emptyMemories: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 25,
-    paddingTop: 32,
-    paddingBottom: 26,
-    backgroundColor: "#F1F0F6",
-  },
+    backButtonWrapper: {
+      width: 180,
+      alignSelf: "center",
+      marginTop: 16,
+      marginBottom: 0,
+    },
 
-  emptyIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "#D9D8E2",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFFFFF",
-  },
-
-  emptyTitle: {
-    marginTop: 15,
-    fontSize: 18,
-    fontWeight: "800",
-    color: "#242424",
-    textAlign: "center",
-  },
-
-  emptyText: {
-    maxWidth: 280,
-    marginTop: 7,
-    fontSize: 13,
-    lineHeight: 20,
-    color: "#707080",
-    textAlign: "center",
-  },
-
-  emptyAddButton: {
-    minHeight: 44,
-    marginTop: 18,
-    paddingHorizontal: 18,
-    borderRadius: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 7,
-    backgroundColor: "#34345C",
-  },
-
-  emptyAddButtonText: {
-    fontSize: 12,
-    fontWeight: "800",
-    color: "#FFFFFF",
-  },
-});
+    backButtonContent: {
+      height: 44,
+      borderRadius: 11,
+    },
+  });
+}

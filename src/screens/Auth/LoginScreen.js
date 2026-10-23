@@ -26,6 +26,7 @@ import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../hooks/useAuth";
 import { useAppAlert } from "../../context/AlertContext";
 import { createAuthStyles } from "./authStyles";
+import TactileButton from "../../components/common/TactileButton";
 
 const AnimatedView = Animated.createAnimatedComponent(View);
 
@@ -352,43 +353,24 @@ function LoginScreen({ navigation }) {
           {/* LOGIN BUTTON */}
 
           <AnimatedView style={buttonAnimatedStyle}>
-            <TouchableOpacity
-              style={[
-                styles.loginButton,
-                { backgroundColor: primaryColor },
-                isLoading && { opacity: 0.7 },
-              ]}
-              onPress={handleLogin}
-              onPressIn={handleButtonPressIn}
-              onPressOut={handleButtonPressOut}
-              activeOpacity={1}
-              disabled={isLoading}
-              accessibilityRole="button"
-            >
-              {isLoading ? (
-                <ActivityIndicator
-                  size="small"
-                  color={primaryTextColor}
-                />
-              ) : (
-                <>
-                  <Text
-                    style={[
-                      styles.loginButtonText,
-                      { color: primaryTextColor },
-                    ]}
-                  >
-                    LOGIN
-                  </Text>
-
-                  <Ionicons
-                    name="arrow-forward"
-                    size={20}
-                    color={primaryTextColor}
-                  />
-                </>
-              )}
-            </TouchableOpacity>
+            <TactileButton
+  label="LOGIN"
+  onPress={handleLogin}
+  icon="arrow-forward"
+  iconPosition="right"
+  color={primaryColor}
+  textColor={primaryTextColor}
+  iconColor={primaryTextColor}
+  height={52}
+  borderRadius={13}
+  depth={3}
+  loading={isLoading}
+  loadingText="LOGGING IN..."
+  disabled={isLoading}
+  style={{ width: "100%", marginBottom: 0 }}
+  contentStyle={styles.loginButton}
+  textStyle={styles.loginButtonText}
+/>
           </AnimatedView>
         </View>
 

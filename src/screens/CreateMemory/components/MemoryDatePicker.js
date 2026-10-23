@@ -16,6 +16,7 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import TactileButton from "../../../components/common/TactileButton";
 
 function normalizeDate(value) {
   let date;
@@ -625,25 +626,28 @@ function MemoryDatePicker({
                 </Text>
               </Pressable>
 
-              <Pressable
-                accessibilityRole="button"
+              <TactileButton
+                label="Done"
                 onPress={handleConfirmDate}
-                style={[
+                icon="checkmark"
+                iconPosition="left"
+                color={accentColor}
+                textColor="#FFFFFF"
+                iconColor="#FFFFFF"
+                height={48}
+                borderRadius={14}
+                depth={2}
+                style={{
+                  flex: 1,
+                  width: "auto",
+                  marginBottom: 0,
+                }}
+                contentStyle={[
                   styles.footerButton,
                   styles.doneButton,
-                  { backgroundColor: accentColor },
                 ]}
-              >
-                <Ionicons
-                  name="checkmark"
-                  size={19}
-                  color="#FFFFFF"
-                />
-
-                <Text style={styles.doneButtonText}>
-                  Done
-                </Text>
-              </Pressable>
+                textStyle={styles.doneButtonText}
+              />
             </View>
           </Animated.View>
         </View>

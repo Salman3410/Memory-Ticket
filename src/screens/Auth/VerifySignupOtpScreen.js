@@ -14,6 +14,7 @@ import { createAuthStyles } from "./authStyles";
 import { useAuth } from "../../hooks/useAuth";
 import { useAppAlert } from "../../context/AlertContext";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import TactileButton from "../../components/common/TactileButton";
 
 function VerifySignupOtpScreen({ navigation, route }) {
   const { theme, isDark } = useTheme();
@@ -338,40 +339,24 @@ function VerifySignupOtpScreen({ navigation, route }) {
           </View>
 
           {/* Verify Button */}
-          <TouchableOpacity
-            style={[
-              styles.loginButton,
-              { backgroundColor: primaryColor },
-              (isLoading || resending) && { opacity: 0.7 },
-            ]}
-            onPress={handleVerify}
-            disabled={isLoading || resending}
-            activeOpacity={0.85}
-          >
-            {isLoading ? (
-              <ActivityIndicator
-                size="small"
-                color={primaryTextColor}
-              />
-            ) : (
-              <>
-                <Text
-                  style={[
-                    styles.loginButtonText,
-                    { color: primaryTextColor },
-                  ]}
-                >
-                  VERIFY EMAIL
-                </Text>
-
-                <Ionicons
-                  name="checkmark"
-                  size={20}
-                  color={primaryTextColor}
-                />
-              </>
-            )}
-          </TouchableOpacity>
+            <TactileButton
+              label="VERIFY EMAIL"
+              onPress={handleVerify}
+              icon="checkmark"
+              iconPosition="right"
+              color={primaryColor}
+              textColor={primaryTextColor}
+              iconColor={primaryTextColor}
+              height={52}
+              borderRadius={13}
+              depth={3}
+              loading={isLoading}
+              loadingText="VERIFYING..."
+              disabled={isLoading || resending}
+              style={{ width: "100%", marginBottom: 0 }}
+              contentStyle={styles.loginButton}
+              textStyle={styles.loginButtonText}
+            />
         </View>
 
         {/* Resend OTP */}
