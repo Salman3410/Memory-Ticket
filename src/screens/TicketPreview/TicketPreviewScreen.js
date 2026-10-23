@@ -1,63 +1,50 @@
-import { useMemo, useState, useRef, useCallback } from "react"
+
+import { useMemo, useState } from "react";
+
 import {
   View,
   Text,
   TouchableOpacity,
   ScrollView,
   useWindowDimensions,
-  ActivityIndicator,
   StatusBar,
-  Animated,
 } from "react-native";
+
 import { Ionicons } from "@expo/vector-icons";
+
 import { useMemory } from "../../hooks/useMemory";
 import { useAppAlert } from "../../context/AlertContext";
 import { useTheme } from "../../context/ThemeContext";
+
 import {
   useAnimatedNotification,
 } from "../../context/AnimatedNotificationContext";
+
 import MemoryTicket from "../../components/MemoryTicket/MemoryTicket";
+
 import TicketCustomizationSheet from "../../components/TicketCustomization/TicketCustomizationSheet";
+
 import { normalizeTicketCustomization } from "../../utils/ticketCustomization";
+
+import TactileButton from "../../components/common/TactileButton";
+
 import styles from "./ticketPreviewStyles";
-
-function darkenHexColor(color) {
-  if (typeof color !== "string") {
-    return "#252545";
-  }
-
-  let hex = color.replace("#", "").trim();
-
-  if (/^[0-9a-fA-F]{3}$/.test(hex)) {
-    hex = hex
-      .split("")
-      .map((character) => character + character)
-      .join("");
-  }
-
-  if (!/^[0-9a-fA-F]{6}$/.test(hex)) {
-    return "#252545";
-  }
-
-  const channels = [0, 2, 4].map((index) =>
-    Math.round(
-      parseInt(hex.slice(index, index + 2), 16) * 0.7
-    )
-  );
-
-  return `#${channels
-    .map((value) => value.toString(16).padStart(2, "0"))
-    .join("")}`;
-}
 
 function TicketPreviewScreen({ route, navigation }) {
   const { addMemory } = useMemory();
+
   const { showAlert } = useAppAlert();
+
   const { theme, isDark } = useTheme();
+
   const { showNotification } = useAnimatedNotification();
+
   const { memory } = route.params || {};
+
   const { width: screenWidth } = useWindowDimensions();
+
   const [activeImage, setActiveImage] = useState(0);
+
   const [saving, setSaving] = useState(false);
 
   const [customization, setCustomization] = useState(() =>
@@ -67,22 +54,9 @@ function TicketPreviewScreen({ route, navigation }) {
   const [customizationVisible, setCustomizationVisible] =
     useState(false);
 
-  const saveTranslateY = useRef(
-    new Animated.Value(0)
-  ).current;
-
-  const animateSaveButton = useCallback(
-    (pressed) => {
-      Animated.spring(saveTranslateY, {
-        toValue: pressed ? 4 : 0,
-        stiffness: 350,
-        damping: 25,
-        mass: 0.6,
-        useNativeDriver: true,
-      }).start();
-    },
-    [saveTranslateY]
-  );
+  // ==================================================
+  // THEME COLORS
+  // ==================================================
 
   const colors = useMemo(() => {
     const themeColors = theme?.colors || {};
@@ -116,10 +90,9 @@ function TicketPreviewScreen({ route, navigation }) {
     };
   }, [theme, isDark]);
 
-  const tactileBaseColor = useMemo(
-    () => darkenHexColor(colors.primary),
-    [colors.primary]
-  );
+  // ==================================================
+  // SCREEN STYLES
+  // ==================================================
 
   const screenStyles = useMemo(() => {
     return {
@@ -180,48 +153,16 @@ function TicketPreviewScreen({ route, navigation }) {
         color: colors.primary,
       },
 
-      saveButton: {
-        ...styles.saveButton,
-        backgroundColor: colors.primary,
-
-        // The bottom layer provides the main depth effect.
-        shadowColor: colors.primary,
-        shadowOffset: {
-          width: 0,
-          height: 2,
-        },
-        shadowOpacity: 0.12,
-        shadowRadius: 3,
-        elevation: 2,
-
-        opacity: 1,
-      },
-
-      saveButtonDisabled: {
-        ...styles.saveButton,
-        backgroundColor: colors.primary,
-        shadowColor: colors.primary,
-        shadowOffset: {
-          width: 0,
-          height: 2,
-        },
-        shadowOpacity: 0.12,
-        shadowRadius: 3,
-        elevation: 2,
-        opacity: 1,
-      },
-
-      saveButtonText: {
-        ...styles.saveButtonText,
-        color: "#FFFFFF",
-      },
-
       footerText: {
         ...styles.footerText,
         color: colors.textSecondary,
       },
     };
   }, [colors]);
+
+  // ==================================================
+  // MISSING MEMORY STATE
+  // ==================================================
 
   if (!memory) {
     return (
@@ -290,6 +231,10 @@ function TicketPreviewScreen({ route, navigation }) {
     );
   }
 
+  // ==================================================
+  // MEMORY DATA
+  // ==================================================
+
   const images = Array.isArray(memory.images)
     ? memory.images
     : memory.image
@@ -301,82 +246,107 @@ function TicketPreviewScreen({ route, navigation }) {
     ...customization,
   };
 
-const handleSave = async () => {
-  if (saving) {
-    return;
-  }
+  // ==================================================
+  // SAVE MEMORY
+  // ==================================================
 
-  if (!images.length) {
-    showAlert({
-      type: "warning",
-      icon: "images-outline",
-      title: "No Photos",
-      message: "This memory doesn't contain any photos.",
-      confirmText: "OK",
-    });
+  const handleSave = async () => {
+    if (saving) {
+      return;
+    }
 
-    return;
-  }
+    if (!images.length) {
+      showAlert({
+        type: "warning",
+        icon: "images-outline",
+        title: "No Photos",
+        message: "This memory doesn't contain any photos.",
+        confirmText: "OK",
+      });
 
-  setSaving(true);
+      return;
+    }
 
-  try {
+    setSaving(true);
 
-    await addMemory({
-      title: memory.title || "",
-      location: memory.location || "",
-      locationData: memory.locationData || null,
-      network:
-        memory.network ||
-        memory.environment?.network ||
-        null,
-      description: memory.description || "",
-      tags: Array.isArray(memory.tags)
-        ? [...memory.tags]
-        : [],
-      images: [...images],
-      date: memory.date || new Date().toISOString(),
-      favorite: false,
-      environment: memory.environment || null,
-      ticketStyle: customization.ticketStyle,
-      ticketAccent: customization.ticketAccent,
-      ticketOptions: {
-        ...customization.ticketOptions,
-      },
-    });
+    try {
+      await addMemory({
+        title: memory.title || "",
 
-    navigation.reset({
-      index: 0,
-      routes: [
-        {
-          name: "MainTabs",
-          params: {
-            screen: "Memories",
-          },
+        location: memory.location || "",
+
+        locationData: memory.locationData || null,
+
+        network:
+          memory.network ||
+          memory.environment?.network ||
+          null,
+
+        description: memory.description || "",
+
+        tags: Array.isArray(memory.tags)
+          ? [...memory.tags]
+          : [],
+
+        images: [...images],
+
+        // Preserve the date selected by the user.
+        date: memory.date || new Date().toISOString(),
+
+        favorite: false,
+
+        environment: memory.environment || null,
+
+        ticketStyle: customization.ticketStyle,
+
+        ticketAccent: customization.ticketAccent,
+
+        ticketOptions: {
+          ...customization.ticketOptions,
         },
-      ],
-    });
+      });
 
-    showNotification({
-      type: "success",
-      title: "Memory saved!",
-      message: "Your moment is safe.",
-      duration: 2800,
-    });
-  } catch (error) {
-    console.error("Error saving or navigating after save:", error);
-    showAlert({
-      type: "danger",
-      icon: "close-circle-outline",
-      title: "Save Failed",
-      message:
-        error?.message || "Unable to save the memory.",
-      confirmText: "OK",
-    });
-  } finally {
-    setSaving(false);
-  }
-};
+      // Navigate to the Memories tab after the save succeeds.
+      navigation.reset({
+        index: 0,
+        routes: [
+          {
+            name: "MainTabs",
+            params: {
+              screen: "Memories",
+            },
+          },
+        ],
+      });
+
+      showNotification({
+        type: "success",
+        title: "Memory saved!",
+        message: "Your moment is safe.",
+        duration: 2800,
+      });
+    } catch (error) {
+      console.error(
+        "Error saving or navigating after save:",
+        error
+      );
+
+      showAlert({
+        type: "danger",
+        icon: "close-circle-outline",
+        title: "Save Failed",
+        message:
+          error?.message || "Unable to save the memory.",
+        confirmText: "OK",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // ==================================================
+  // EDIT MEMORY
+  // ==================================================
 
   const handleEdit = () => {
     if (saving) {
@@ -414,6 +384,10 @@ const handleSave = async () => {
     });
   };
 
+  // ==================================================
+  // TICKET RENDERER
+  // ==================================================
+
   const renderTicket = (image, index) => {
     return (
       <View
@@ -436,6 +410,10 @@ const handleSave = async () => {
       </View>
     );
   };
+
+  // ==================================================
+  // SCREEN
+  // ==================================================
 
   return (
     <View style={screenStyles.container}>
@@ -561,87 +539,24 @@ const handleSave = async () => {
         {/* ACTIONS */}
 
         <View style={styles.actionsContainer}>
-          {/* TACTILE SAVE MEMORY BUTTON */}
+          {/* REUSABLE TACTILE SAVE BUTTON */}
 
-          <View
-            style={{
-              position: "relative",
-              marginBottom: 4,
-            }}
-          >
-            {/* Fixed dark base behind the animated button face */}
+          <TactileButton
+            label="SAVE MEMORY"
+            icon="bookmark-outline"
+            onPress={handleSave}
+            loading={saving}
+            loadingText="SAVING..."
+            disabled={saving}
+            color={colors.primary}
+            textColor="#FFFFFF"
+            height={56}
+            borderRadius={14}
+            depth={4}
+            textStyle={styles.saveButtonText}
+          />
 
-            <View
-              pointerEvents="none"
-              style={{
-                position: "absolute",
-                left: 0,
-                right: 0,
-                top: 4,
-                bottom: -4,
-                borderRadius: 14,
-                backgroundColor: tactileBaseColor,
-              }}
-            />
-
-            {/* Only the button face moves when pressed */}
-
-            <Animated.View
-              style={{
-                transform: [
-                  {
-                    translateY: saveTranslateY,
-                  },
-                ],
-              }}
-            >
-              <TouchableOpacity
-                style={
-                  saving
-                    ? screenStyles.saveButtonDisabled
-                    : screenStyles.saveButton
-                }
-                onPress={handleSave}
-                onPressIn={() => animateSaveButton(true)}
-                onPressOut={() => animateSaveButton(false)}
-                disabled={saving}
-                activeOpacity={1}
-                accessibilityRole="button"
-                accessibilityLabel="Save memory"
-                accessibilityState={{
-                  disabled: saving,
-                  busy: saving,
-                }}
-              >
-                {saving ? (
-                  <>
-                    <ActivityIndicator
-                      size="small"
-                      color="#FFFFFF"
-                    />
-
-                    <Text style={screenStyles.saveButtonText}>
-                      SAVING...
-                    </Text>
-                  </>
-                ) : (
-                  <>
-                    <Ionicons
-                      name="bookmark-outline"
-                      size={20}
-                      color="#FFFFFF"
-                    />
-
-                    <Text style={screenStyles.saveButtonText}>
-                      SAVE MEMORY
-                    </Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            </Animated.View>
-          </View>
-
-          {/* EDIT */}
+          {/* EDIT BUTTON */}
 
           <TouchableOpacity
             style={screenStyles.editButton}
