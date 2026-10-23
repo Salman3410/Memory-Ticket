@@ -1,5 +1,4 @@
-
-import React, {
+import {
   createContext,
   useCallback,
   useContext,
@@ -8,7 +7,6 @@ import React, {
   useRef,
   useState,
 } from "react";
-
 import {
   Platform,
   Pressable,
@@ -17,15 +15,12 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
-
 import { BlurView } from "expo-blur";
 import { Ionicons } from "@expo/vector-icons";
-
 import {
   Gesture,
   GestureDetector,
 } from "react-native-gesture-handler";
-
 import Animated, {
   Extrapolation,
   interpolate,
@@ -35,7 +30,6 @@ import Animated, {
   withSpring,
   withTiming,
 } from "react-native-reanimated";
-
 import { runOnJS } from "react-native-worklets";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
