@@ -7,7 +7,6 @@ import useRefresh from "../../hooks/useRefresh";
 import HomeHeader from "./components/HomeHeader";
 import CreateMemoryHero from "./components/CreateMemoryHero";
 import LatestMemorySection from "./components/LatestMemorySection";
-import RecentMemoriesSection from "./components/RecentMemoriesSection";
 import FavoriteBanner from "./components/FavoriteBanner";
 import HomeCollectionsSection from "../../components/collections/HomeCollectionsSection";
 import styles from "./homeStyles";
@@ -106,12 +105,6 @@ function HomeScreen({ navigation }) {
           onViewAll={handleViewCollections}
           onCreate={handleCreateCollection}
           onCollectionPress={handleCollectionPress}
-        />
-
-        <RecentMemoriesSection
-          recentMemories={recentMemories}
-          loading={loading}
-          navigation={navigation}
         />
 
         <FavoriteBanner

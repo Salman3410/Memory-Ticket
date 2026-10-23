@@ -6,17 +6,14 @@ import React, {
   useRef,
   useState,
 } from "react";
-
 import { Text, TouchableOpacity, View } from "react-native";
-
 import { Ionicons } from "@expo/vector-icons";
-
 import {
   BottomSheetModal,
   BottomSheetBackdrop,
   BottomSheetView,
 } from "@gorhom/bottom-sheet";
-
+import TactileButton from "../../common/TactileButton";
 import styles from "./timelineBottomSheetStyles";
 
 const MIN_YEAR = 2020;
@@ -395,54 +392,54 @@ const TimelineBottomSheet = forwardRef(function TimelineBottomSheet(
           </TouchableOpacity>
         ) : null}
 
-        {/* ACTIONS */}
+        
+{/* ACTIONS */}
 
-        <View style={styles.actions}>
-          <TouchableOpacity
-            style={[
-              styles.cancelButton,
-              {
-                backgroundColor: colors.background,
-                borderColor: colors.border,
-              },
-            ]}
-            onPress={handleCancel}
-            activeOpacity={0.8}
-          >
-            <Text
-              style={[
-                styles.cancelButtonText,
-                {
-                  color: colors.text,
-                },
-              ]}
-            >
-              Cancel
-            </Text>
-          </TouchableOpacity>
+<View style={styles.actions}>
+  {/* CANCEL — SECONDARY ACTION */}
 
-          <TouchableOpacity
-            style={[
-              styles.doneButton,
-              {
-                backgroundColor: colors.primary,
-              },
-            ]}
-            onPress={handleDone}
-            activeOpacity={0.85}
-          >
-            <Text
-              style={[
-                styles.doneButtonText,
-                {
-                  color: "#FFFFFF",
-                },
-              ]}
-            >
-              Done
-            </Text>
-          </TouchableOpacity>
-        </View>
+  <TouchableOpacity
+    style={[
+      styles.cancelButton,
+      {
+        backgroundColor: colors.background,
+        borderColor: colors.border,
+      },
+    ]}
+    onPress={handleCancel}
+    activeOpacity={0.8}
+    accessibilityRole="button"
+    accessibilityLabel="Cancel month selection"
+  >
+    <Text
+      style={[
+        styles.cancelButtonText,
+        {
+          color: colors.text,
+        },
+      ]}
+    >
+      Cancel
+    </Text>
+  </TouchableOpacity>
+
+  {/* DONE — TACTILE PRIMARY ACTION */}
+
+  <View style={styles.doneButtonWrapper}>
+    <TactileButton
+      label="Done"
+      onPress={handleDone}
+      color={colors.primary}
+      textColor="#FFFFFF"
+      height={48}
+      borderRadius={10}
+      depth={3}
+      accessibilityLabel="Apply selected month"
+      textStyle={styles.doneButtonText}
+    />
+  </View>
+</View>
+
       </BottomSheetView>
     </BottomSheetModal>
   );

@@ -1,7 +1,7 @@
+
 import React, { memo, useMemo, useState } from "react";
 
 import {
-  ActivityIndicator,
   ScrollView,
   Text,
   TouchableOpacity,
@@ -19,6 +19,8 @@ import {
   SUBSCRIPTION_PRICING,
 } from "../../constants/subscription";
 
+import TactileButton from "../../components/common/TactileButton";
+
 import styles from "./premiumStyles";
 
 function PremiumScreen({ navigation }) {
@@ -32,15 +34,20 @@ function PremiumScreen({ navigation }) {
 
   const selectedPricing = useMemo(
     () => SUBSCRIPTION_PRICING[selectedPlan],
-    [selectedPlan],
+    [selectedPlan]
   );
+
+  const primaryColor = colors.primary || "#34345C";
+  const primaryTextColor = colors.primaryText || "#FFFFFF";
 
   // --------------------------------------------------
   // PURCHASE
   // --------------------------------------------------
 
   const handlePurchase = async () => {
-    if (loading) return;
+    if (loading) {
+      return;
+    }
 
     setLoading(true);
 
@@ -69,10 +76,19 @@ function PremiumScreen({ navigation }) {
         onPress={() => navigation.goBack()}
         activeOpacity={0.8}
       >
-        <Ionicons name="chevron-back" size={23} color={colors.icon} />
+        <Ionicons
+          name="chevron-back"
+          size={23}
+          color={colors.icon}
+        />
       </TouchableOpacity>
 
-      <Text style={[styles.headerTitle, { color: colors.text }]}>
+      <Text
+        style={[
+          styles.headerTitle,
+          { color: colors.text },
+        ]}
+      >
         MEMENTO PREMIUM
       </Text>
 
@@ -86,7 +102,12 @@ function PremiumScreen({ navigation }) {
 
   if (isPremium) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View
+        style={[
+          styles.container,
+          { backgroundColor: colors.background },
+        ]}
+      >
         <StatusBar
           barStyle={isDark ? "light-content" : "dark-content"}
           backgroundColor={colors.background}
@@ -103,34 +124,45 @@ function PremiumScreen({ navigation }) {
               },
             ]}
           >
-            <Ionicons name="sparkles" size={28} color={colors.accent} />
+            <Ionicons
+              name="sparkles"
+              size={28}
+              color={colors.accent}
+            />
           </View>
 
-          <Text style={[styles.activeTitle, { color: colors.text }]}>
+          <Text
+            style={[
+              styles.activeTitle,
+              { color: colors.text },
+            ]}
+          >
             Premium is active
           </Text>
 
-          <Text style={[styles.activeText, { color: colors.textSecondary }]}>
+          <Text
+            style={[
+              styles.activeText,
+              { color: colors.textSecondary },
+            ]}
+          >
             Your Memento Premium benefits are unlocked.
           </Text>
 
-          <TouchableOpacity
-            style={[
-              styles.secondaryButton,
-              { backgroundColor: colors.primary },
-            ]}
+          {/* TACTILE BACK BUTTON */}
+
+          <TactileButton
+            label="BACK TO MEMENTO"
             onPress={() => navigation.goBack()}
-            activeOpacity={0.85}
-          >
-            <Text
-              style={[
-                styles.secondaryButtonText,
-                { color: colors.primaryText },
-              ]}
-            >
-              BACK TO MEMENTO
-            </Text>
-          </TouchableOpacity>
+            color={primaryColor}
+            textColor={primaryTextColor}
+            height={52}
+            borderRadius={14}
+            depth={4}
+            style={{
+              marginTop: 12,
+            }}
+          />
         </View>
       </View>
     );
@@ -141,7 +173,12 @@ function PremiumScreen({ navigation }) {
   // --------------------------------------------------
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: colors.background },
+      ]}
+    >
       <StatusBar
         barStyle={isDark ? "light-content" : "dark-content"}
         backgroundColor={colors.background}
@@ -172,14 +209,28 @@ function PremiumScreen({ navigation }) {
               },
             ]}
           >
-            <Ionicons name="sparkles" size={16} color={colors.accent} />
+            <Ionicons
+              name="sparkles"
+              size={16}
+              color={colors.accent}
+            />
 
-            <Text style={[styles.heroBadgeText, { color: colors.text }]}>
+            <Text
+              style={[
+                styles.heroBadgeText,
+                { color: colors.text },
+              ]}
+            >
               PREMIUM
             </Text>
           </View>
 
-          <Text style={[styles.heroTitle, { color: colors.text }]}>
+          <Text
+            style={[
+              styles.heroTitle,
+              { color: colors.text },
+            ]}
+          >
             Preserve more.
             {"\n"}
             Create more.
@@ -187,7 +238,12 @@ function PremiumScreen({ navigation }) {
             Relive more.
           </Text>
 
-          <Text style={[styles.heroSubtitle, { color: colors.textSecondary }]}>
+          <Text
+            style={[
+              styles.heroSubtitle,
+              { color: colors.textSecondary },
+            ]}
+          >
             Unlock the advanced side of Memento while keeping your memories
             yours.
           </Text>
@@ -212,16 +268,28 @@ function PremiumScreen({ navigation }) {
               },
             ]}
           >
-            <Ionicons name="cloud-outline" size={22} color={colors.icon} />
+            <Ionicons
+              name="cloud-outline"
+              size={22}
+              color={colors.icon}
+            />
           </View>
 
           <View style={styles.storageContent}>
-            <Text style={[styles.storageTitle, { color: colors.text }]}>
+            <Text
+              style={[
+                styles.storageTitle,
+                { color: colors.text },
+              ]}
+            >
               25 GB Cloud Storage
             </Text>
 
             <Text
-              style={[styles.storageSubtitle, { color: colors.textSecondary }]}
+              style={[
+                styles.storageSubtitle,
+                { color: colors.textSecondary },
+              ]}
             >
               Free includes 2 GB. Premium expands your memory archive to 25 GB.
             </Text>
@@ -230,7 +298,12 @@ function PremiumScreen({ navigation }) {
 
         {/* PREMIUM FEATURES */}
 
-        <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>
+        <Text
+          style={[
+            styles.sectionTitle,
+            { color: colors.textMuted },
+          ]}
+        >
           PREMIUM FEATURES
         </Text>
 
@@ -244,7 +317,8 @@ function PremiumScreen({ navigation }) {
           ]}
         >
           {PREMIUM_FEATURE_LIST.map((feature, index) => {
-            const isLast = index === PREMIUM_FEATURE_LIST.length - 1;
+            const isLast =
+              index === PREMIUM_FEATURE_LIST.length - 1;
 
             return (
               <View
@@ -265,11 +339,20 @@ function PremiumScreen({ navigation }) {
                     },
                   ]}
                 >
-                  <Ionicons name={feature.icon} size={19} color={colors.icon} />
+                  <Ionicons
+                    name={feature.icon}
+                    size={19}
+                    color={colors.icon}
+                  />
                 </View>
 
                 <View style={styles.featureContent}>
-                  <Text style={[styles.featureTitle, { color: colors.text }]}>
+                  <Text
+                    style={[
+                      styles.featureTitle,
+                      { color: colors.text },
+                    ]}
+                  >
                     {feature.title}
                   </Text>
 
@@ -283,7 +366,11 @@ function PremiumScreen({ navigation }) {
                   </Text>
                 </View>
 
-                <Ionicons name="checkmark" size={18} color={colors.accent} />
+                <Ionicons
+                  name="checkmark"
+                  size={18}
+                  color={colors.accent}
+                />
               </View>
             );
           })}
@@ -291,7 +378,12 @@ function PremiumScreen({ navigation }) {
 
         {/* PLAN SELECTION */}
 
-        <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>
+        <Text
+          style={[
+            styles.sectionTitle,
+            { color: colors.textMuted },
+          ]}
+        >
           CHOOSE YOUR PLAN
         </Text>
 
@@ -304,19 +396,28 @@ function PremiumScreen({ navigation }) {
               {
                 backgroundColor: colors.surface,
                 borderColor:
-                  selectedPlan === "monthly" ? colors.accent : colors.border,
+                  selectedPlan === "monthly"
+                    ? colors.accent
+                    : colors.border,
               },
-              selectedPlan === "monthly" && styles.planCardSelected,
+              selectedPlan === "monthly" &&
+                styles.planCardSelected,
             ]}
             onPress={() => setSelectedPlan("monthly")}
             activeOpacity={0.85}
+            accessibilityRole="radio"
+            accessibilityState={{
+              selected: selectedPlan === "monthly",
+            }}
           >
             <View
               style={[
                 styles.planRadio,
                 {
                   borderColor:
-                    selectedPlan === "monthly" ? colors.accent : colors.border,
+                    selectedPlan === "monthly"
+                      ? colors.accent
+                      : colors.border,
                 },
               ]}
             >
@@ -331,16 +432,29 @@ function PremiumScreen({ navigation }) {
             </View>
 
             <View style={styles.planContent}>
-              <Text style={[styles.planTitle, { color: colors.textSecondary }]}>
+              <Text
+                style={[
+                  styles.planTitle,
+                  { color: colors.textSecondary },
+                ]}
+              >
                 MONTHLY
               </Text>
 
-              <Text style={[styles.planPrice, { color: colors.text }]}>
+              <Text
+                style={[
+                  styles.planPrice,
+                  { color: colors.text },
+                ]}
+              >
                 PKR 200
               </Text>
 
               <Text
-                style={[styles.planPeriod, { color: colors.textSecondary }]}
+                style={[
+                  styles.planPeriod,
+                  { color: colors.textSecondary },
+                ]}
               >
                 per month
               </Text>
@@ -355,17 +469,32 @@ function PremiumScreen({ navigation }) {
               {
                 backgroundColor: colors.surface,
                 borderColor:
-                  selectedPlan === "annual" ? colors.accent : colors.border,
+                  selectedPlan === "annual"
+                    ? colors.accent
+                    : colors.border,
               },
-              selectedPlan === "annual" && styles.planCardSelected,
+              selectedPlan === "annual" &&
+                styles.planCardSelected,
             ]}
             onPress={() => setSelectedPlan("annual")}
             activeOpacity={0.85}
+            accessibilityRole="radio"
+            accessibilityState={{
+              selected: selectedPlan === "annual",
+            }}
           >
             <View
-              style={[styles.planBadge, { backgroundColor: colors.accent }]}
+              style={[
+                styles.planBadge,
+                { backgroundColor: colors.accent },
+              ]}
             >
-              <Text style={[styles.planBadgeText, { color: "#FFFFFF" }]}>
+              <Text
+                style={[
+                  styles.planBadgeText,
+                  { color: "#FFFFFF" },
+                ]}
+              >
                 BEST VALUE
               </Text>
             </View>
@@ -375,7 +504,9 @@ function PremiumScreen({ navigation }) {
                 styles.planRadio,
                 {
                   borderColor:
-                    selectedPlan === "annual" ? colors.accent : colors.border,
+                    selectedPlan === "annual"
+                      ? colors.accent
+                      : colors.border,
                 },
               ]}
             >
@@ -390,16 +521,29 @@ function PremiumScreen({ navigation }) {
             </View>
 
             <View style={styles.planContent}>
-              <Text style={[styles.planTitle, { color: colors.textSecondary }]}>
+              <Text
+                style={[
+                  styles.planTitle,
+                  { color: colors.textSecondary },
+                ]}
+              >
                 ANNUAL
               </Text>
 
-              <Text style={[styles.planPrice, { color: colors.text }]}>
+              <Text
+                style={[
+                  styles.planPrice,
+                  { color: colors.text },
+                ]}
+              >
                 PKR 1,700
               </Text>
 
               <Text
-                style={[styles.planPeriod, { color: colors.textSecondary }]}
+                style={[
+                  styles.planPeriod,
+                  { color: colors.textSecondary },
+                ]}
               >
                 per year • save PKR 700
               </Text>
@@ -407,46 +551,33 @@ function PremiumScreen({ navigation }) {
           </TouchableOpacity>
         </View>
 
-        {/* PURCHASE BUTTON */}
+        {/* TACTILE PURCHASE BUTTON */}
 
-        <TouchableOpacity
-          style={[
-            styles.purchaseButton,
-            {
-              backgroundColor: colors.primary,
-              opacity: loading ? 0.65 : 1,
-            },
-            loading && styles.purchaseButtonDisabled,
-          ]}
+        <TactileButton
+          label={`START PREMIUM • ${selectedPricing.label}  →`}
           onPress={handlePurchase}
+          loading={loading}
+          loadingText="PROCESSING..."
           disabled={loading}
-          activeOpacity={0.85}
-        >
-          {loading ? (
-            <ActivityIndicator color={colors.primaryText} />
-          ) : (
-            <>
-              <Text
-                style={[
-                  styles.purchaseButtonText,
-                  { color: colors.primaryText },
-                ]}
-              >
-                START PREMIUM • {selectedPricing.label}
-              </Text>
-
-              <Ionicons
-                name="arrow-forward"
-                size={18}
-                color={colors.primaryText}
-              />
-            </>
-          )}
-        </TouchableOpacity>
+          color={primaryColor}
+          textColor={primaryTextColor}
+          height={56}
+          borderRadius={14}
+          depth={4}
+          style={{
+            marginTop: 12,
+          }}
+          textStyle={styles.purchaseButtonText}
+        />
 
         {/* DISCLAIMER */}
 
-        <Text style={[styles.disclaimer, { color: colors.textMuted }]}>
+        <Text
+          style={[
+            styles.disclaimer,
+            { color: colors.textMuted },
+          ]}
+        >
           Subscription purchases will be completed through the platform billing
           system. Restore purchase and subscription management will be added
           with the billing provider integration.

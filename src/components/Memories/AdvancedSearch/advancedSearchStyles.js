@@ -1,10 +1,6 @@
 import { StyleSheet } from "react-native";
 
 const styles = StyleSheet.create({
-  // --------------------------------
-  // BOTTOM SHEET
-  // --------------------------------
-
   background: {
     backgroundColor: "#F1F0F6",
     borderTopLeftRadius: 22,
@@ -23,15 +19,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#F1F0F6",
   },
 
-  // --------------------------------
   // HEADER
-  // --------------------------------
 
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-
     paddingHorizontal: 20,
     paddingTop: 4,
     paddingBottom: 16,
@@ -42,7 +35,6 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     letterSpacing: 1.5,
     color: "#7E7E88",
-
     marginBottom: 4,
   },
 
@@ -55,18 +47,13 @@ const styles = StyleSheet.create({
   closeButton: {
     width: 38,
     height: 38,
-
     borderRadius: 10,
-
     alignItems: "center",
     justifyContent: "center",
-
     backgroundColor: "#E7E6ED",
   },
 
-  // --------------------------------
   // SCROLL
-  // --------------------------------
 
   scrollContainer: {
     flex: 1,
@@ -82,9 +69,7 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
 
-  // --------------------------------
-  // SECTION
-  // --------------------------------
+  // SECTIONS
 
   section: {
     marginBottom: 22,
@@ -95,13 +80,10 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     letterSpacing: 1.3,
     color: "#242424",
-
     marginBottom: 9,
   },
 
-  // --------------------------------
   // CHIPS
-  // --------------------------------
 
   optionGrid: {
     flexDirection: "row",
@@ -111,17 +93,12 @@ const styles = StyleSheet.create({
 
   optionChip: {
     minHeight: 40,
-
     paddingHorizontal: 13,
-
     borderRadius: 10,
-
     backgroundColor: "#F8F8FA",
-
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-
     gap: 5,
   },
 
@@ -148,23 +125,16 @@ const styles = StyleSheet.create({
     color: "#D9D8E2",
   },
 
-  // --------------------------------
   // ROW OPTIONS
-  // --------------------------------
 
   rowOption: {
     minHeight: 48,
-
     paddingHorizontal: 12,
-
     borderRadius: 10,
-
     backgroundColor: "#F8F8FA",
-
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-
     marginBottom: 7,
   },
 
@@ -180,16 +150,12 @@ const styles = StyleSheet.create({
 
   rowOptionText: {
     marginLeft: 9,
-
     fontSize: 12,
     fontWeight: "700",
-
     color: "#34345C",
   },
 
-  // --------------------------------
   // COLLECTION
-  // --------------------------------
 
   collectionList: {
     width: "100%",
@@ -201,33 +167,26 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
 
-  // --------------------------------
-  // ACTIONS
-  // --------------------------------
+  // BOTTOM ACTIONS
 
   actions: {
     flexDirection: "row",
-
+    alignItems: "center",
     paddingHorizontal: 20,
     paddingTop: 12,
     paddingBottom: 16,
-
     borderTopWidth: 1,
     borderTopColor: "#E1E0E8",
-
     gap: 10,
   },
 
   clearButton: {
     height: 48,
-
     paddingHorizontal: 18,
-
     borderRadius: 10,
-
+    borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
-
     backgroundColor: "#F8F8FA",
   },
 
@@ -235,28 +194,18 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "900",
     letterSpacing: 1,
-
     color: "#34345C",
   },
 
-  applyButton: {
+  applyButtonWrapper: {
     flex: 1,
-
-    height: 48,
-
-    borderRadius: 10,
-
-    alignItems: "center",
-    justifyContent: "center",
-
-    backgroundColor: "#34345C",
+    minWidth: 0,
   },
 
   applyButtonText: {
     fontSize: 10,
     fontWeight: "900",
     letterSpacing: 1,
-
     color: "#FFFFFF",
   },
 });

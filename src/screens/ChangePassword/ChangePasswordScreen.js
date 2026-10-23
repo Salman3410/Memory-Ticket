@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 
 import {
@@ -5,7 +6,6 @@ import {
   Text,
   TouchableOpacity,
   TextInput,
-  ActivityIndicator,
   StatusBar,
 } from "react-native";
 
@@ -15,6 +15,8 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useAuth } from "../../hooks/useAuth";
 import { useAppAlert } from "../../context/AlertContext";
 import { useTheme } from "../../context/ThemeContext";
+
+import TactileButton from "../../components/common/TactileButton";
 
 import styles from "./changePasswordStyles";
 
@@ -47,6 +49,9 @@ function ChangePasswordScreen({ navigation }) {
   // --------------------------------------------------
 
   const errorBackground = isDark ? "#39252B" : "#F9EEEC";
+
+  const primaryColor = colors.primary || "#34345C";
+  const primaryTextColor = colors.primaryText || "#FFFFFF";
 
   // --------------------------------------------------
   // CHANGE PASSWORD
@@ -127,7 +132,10 @@ function ChangePasswordScreen({ navigation }) {
     setLoading(true);
 
     try {
-      const result = await changePassword(currentPassword, newPassword);
+      const result = await changePassword(
+        currentPassword,
+        newPassword
+      );
 
       if (!result.success) {
         showAlert({
@@ -192,10 +200,17 @@ function ChangePasswordScreen({ navigation }) {
         },
       ]}
     >
-      <Ionicons name={icon} size={17} color={colors.iconMuted} />
+      <Ionicons
+        name={icon}
+        size={17}
+        color={colors.iconMuted}
+      />
 
       <TextInput
-        style={[styles.input, { color: colors.text }]}
+        style={[
+          styles.input,
+          { color: colors.text },
+        ]}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
@@ -214,7 +229,9 @@ function ChangePasswordScreen({ navigation }) {
         disabled={loading}
         hitSlop={6}
         accessibilityRole="button"
-        accessibilityLabel={visible ? "Hide password" : "Show password"}
+        accessibilityLabel={
+          visible ? "Hide password" : "Show password"
+        }
       >
         <Ionicons
           name={visible ? "eye-off-outline" : "eye-outline"}
@@ -265,15 +282,29 @@ function ChangePasswordScreen({ navigation }) {
             activeOpacity={0.7}
             disabled={loading}
           >
-            <Ionicons name="arrow-back" size={21} color={colors.icon} />
+            <Ionicons
+              name="arrow-back"
+              size={21}
+              color={colors.icon}
+            />
           </TouchableOpacity>
 
           <View style={styles.headerText}>
-            <Text style={[styles.headerEyebrow, { color: colors.accent }]}>
+            <Text
+              style={[
+                styles.headerEyebrow,
+                { color: colors.accent },
+              ]}
+            >
               ACCOUNT SECURITY
             </Text>
 
-            <Text style={[styles.headerTitle, { color: colors.text }]}>
+            <Text
+              style={[
+                styles.headerTitle,
+                { color: colors.text },
+              ]}
+            >
               Change Password
             </Text>
           </View>
@@ -307,11 +338,21 @@ function ChangePasswordScreen({ navigation }) {
           </View>
 
           <View style={styles.introContent}>
-            <Text style={[styles.introTitle, { color: colors.text }]}>
+            <Text
+              style={[
+                styles.introTitle,
+                { color: colors.text },
+              ]}
+            >
               Keep your account secure
             </Text>
 
-            <Text style={[styles.introText, { color: colors.textSecondary }]}>
+            <Text
+              style={[
+                styles.introText,
+                { color: colors.textSecondary },
+              ]}
+            >
               Choose a new password that you don't use anywhere else.
             </Text>
           </View>
@@ -319,7 +360,12 @@ function ChangePasswordScreen({ navigation }) {
 
         {/* CURRENT PASSWORD */}
 
-        <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>
+        <Text
+          style={[
+            styles.sectionTitle,
+            { color: colors.textMuted },
+          ]}
+        >
           CURRENT PASSWORD
         </Text>
 
@@ -335,7 +381,12 @@ function ChangePasswordScreen({ navigation }) {
 
         {/* NEW PASSWORD */}
 
-        <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>
+        <Text
+          style={[
+            styles.sectionTitle,
+            { color: colors.textMuted },
+          ]}
+        >
           NEW PASSWORD
         </Text>
 
@@ -345,7 +396,8 @@ function ChangePasswordScreen({ navigation }) {
           onChangeText: setNewPassword,
           placeholder: "Enter new password",
           visible: showNewPassword,
-          toggleVisibility: () => setShowNewPassword((previous) => !previous),
+          toggleVisibility: () =>
+            setShowNewPassword((previous) => !previous),
         })}
 
         {/* PASSWORD REQUIREMENTS */}
@@ -353,16 +405,26 @@ function ChangePasswordScreen({ navigation }) {
         <View style={styles.requirements}>
           <View style={styles.requirementRow}>
             <Ionicons
-              name={hasMinimumLength ? "checkmark-circle" : "ellipse-outline"}
+              name={
+                hasMinimumLength
+                  ? "checkmark-circle"
+                  : "ellipse-outline"
+              }
               size={16}
-              color={hasMinimumLength ? colors.accent : colors.textMuted}
+              color={
+                hasMinimumLength
+                  ? colors.accent
+                  : colors.textMuted
+              }
             />
 
             <Text
               style={[
                 styles.requirementText,
                 {
-                  color: hasMinimumLength ? colors.text : colors.textMuted,
+                  color: hasMinimumLength
+                    ? colors.text
+                    : colors.textMuted,
                 },
                 hasMinimumLength && styles.requirementTextActive,
               ]}
@@ -374,7 +436,12 @@ function ChangePasswordScreen({ navigation }) {
 
         {/* CONFIRM PASSWORD */}
 
-        <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>
+        <Text
+          style={[
+            styles.sectionTitle,
+            { color: colors.textMuted },
+          ]}
+        >
           CONFIRM NEW PASSWORD
         </Text>
 
@@ -388,7 +455,8 @@ function ChangePasswordScreen({ navigation }) {
             setShowConfirmPassword((previous) => !previous),
           returnKeyType: "done",
           onSubmitEditing: handleChangePassword,
-          error: confirmPassword.length > 0 && !passwordsMatch,
+          error:
+            confirmPassword.length > 0 && !passwordsMatch,
         })}
 
         {/* PASSWORD MATCH */}
@@ -397,61 +465,63 @@ function ChangePasswordScreen({ navigation }) {
           <View style={styles.matchRow}>
             <Ionicons
               name={
-                passwordsMatch ? "checkmark-circle" : "alert-circle-outline"
+                passwordsMatch
+                  ? "checkmark-circle"
+                  : "alert-circle-outline"
               }
               size={15}
-              color={passwordsMatch ? colors.accent : colors.danger}
+              color={
+                passwordsMatch
+                  ? colors.accent
+                  : colors.danger
+              }
             />
 
             <Text
               style={[
                 styles.matchText,
                 {
-                  color: passwordsMatch ? colors.accent : colors.danger,
+                  color: passwordsMatch
+                    ? colors.accent
+                    : colors.danger,
                 },
               ]}
             >
-              {passwordsMatch ? "Passwords match" : "Passwords do not match"}
+              {passwordsMatch
+                ? "Passwords match"
+                : "Passwords do not match"}
             </Text>
           </View>
         )}
 
-        {/* BUTTON */}
+        {/* TACTILE CHANGE PASSWORD BUTTON */}
 
-        <TouchableOpacity
-          style={[
-            styles.changeButton,
-            {
-              backgroundColor: colors.primary,
-              opacity: loading ? 0.6 : 1,
-            },
-          ]}
+        <TactileButton
+          label="CHANGE PASSWORD"
+          icon="lock-closed-outline"
           onPress={handleChangePassword}
-          activeOpacity={0.85}
+          loading={loading}
+          loadingText="CHANGING PASSWORD..."
           disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator size="small" color={colors.primaryText} />
-          ) : (
-            <>
-              <Ionicons
-                name="lock-closed-outline"
-                size={18}
-                color={colors.primaryText}
-              />
-
-              <Text
-                style={[styles.changeButtonText, { color: colors.primaryText }]}
-              >
-                CHANGE PASSWORD
-              </Text>
-            </>
-          )}
-        </TouchableOpacity>
+          color={primaryColor}
+          textColor={primaryTextColor}
+          iconColor={primaryTextColor}
+          height={56}
+          borderRadius={14}
+          depth={4}
+          style={{
+            marginTop: 12,
+          }}
+        />
 
         {/* FOOTER */}
 
-        <Text style={[styles.footerText, { color: colors.textMuted }]}>
+        <Text
+          style={[
+            styles.footerText,
+            { color: colors.textMuted },
+          ]}
+        >
           MEMENTO • ACCOUNT SECURITY
         </Text>
       </KeyboardAwareScrollView>

@@ -28,6 +28,7 @@ import MemoryTicket from "../../components/MemoryTicket/MemoryTicket";
 import ShareExportSheet from "../../components/ShareExportSheet/ShareExportSheet";
 import TicketCustomizationSheet from "../../components/TicketCustomization/TicketCustomizationSheet";
 import { normalizeTicketCustomization } from "../../utils/ticketCustomization";
+import TactileButton from "../../components/common/TactileButton";
 
 import {
   getMemoryDetailUrl,
@@ -705,68 +706,93 @@ function MemoryDetailsScreen({ navigation, route }) {
         </TouchableOpacity> */}
 
         {/* SHARE */}
-
-        <TouchableOpacity
-          style={[detailStyles.shareButton, { backgroundColor: colors.primary || "#34345C" }]}
-          onPress={openShareSheet}
-          activeOpacity={0.85}
+        <View
+          style={{
+            marginHorizontal: 22,
+            marginTop: 12,
+          }}
         >
-          <Ionicons name="share-social-outline" size={19} color="#FFFFFF" />
-
-          <Text style={[detailStyles.shareButtonText, { color: colors.primaryText || "#FFFFFF" }]}>SHARE MEMORY</Text>
-        </TouchableOpacity>
+          <TactileButton
+            label="SHARE MEMORY"
+            icon="share-social-outline"
+            onPress={openShareSheet}
+            color={colors.primary || "#34345C"}
+            textColor="#FFFFFF"
+            iconColor="#FFFFFF"
+            height={50}
+            borderRadius={14}
+            depth={4}
+            accessibilityLabel="Share memory"
+            textStyle={detailStyles.shareButtonText}
+          />
+        </View>
 
         {/* EDIT MEMORY */}
 
-        <TouchableOpacity
-          style={[styles.editButton, { backgroundColor: surfaceColor, borderColor }]}
-          onPress={() =>
-            navigation.navigate("EditMemory", {
-              memoryId: memory.id,
-            })
-          }
-          activeOpacity={0.8}
+        <View
+          style={{
+            marginHorizontal: 22,
+            marginTop: 12,
+  }       }
         >
-          <Ionicons name="create-outline" size={18} color={colors.primary || "#34345C"} />
-
-          <Text style={[styles.editText, { color: secondaryTextColor }]}>EDIT MEMORY</Text>
-        </TouchableOpacity>
+          <TactileButton
+            label="EDIT MEMORY"
+            icon="create-outline"
+            onPress={() =>
+              navigation.navigate("EditMemory", {
+                memoryId: memory.id,
+              })
+            }
+            color={surfaceColor}
+            baseColor={isDark ? "#14131F" : "#D3D2DE"}
+            textColor={colors.primary || "#34345C"}
+            iconColor={colors.primary || "#34345C"}
+            height={50}
+            borderRadius={14}
+            depth={3}
+            accessibilityLabel="Edit memory"
+            contentStyle={{
+              borderWidth: 1,
+              borderColor,
+            }}
+            textStyle={[
+              styles.editText,
+              {
+                color: colors.primary || "#34345C",
+              },
+            ]}
+          />
+        </View>
  
         {/* DELETE MEMORY */}
 
-        <TouchableOpacity
-          style={[
-            styles.deleteButton,
-            {        
-              backgroundColor: isDark
-                ? colors.surfaceSecondary || "#292740"
-                : "#FFF7F6",
-              borderColor: isDark
-                ? colors.danger || "#FF7772"
-                : "#F3D3CF",
-            },
-          ]}
-          onPress={handleDelete}
-          activeOpacity={0.8}
-          >
-          <Ionicons
-            name="trash-outline"
-            size={18}
+        <View
+          style={{
+            marginHorizontal: 22,
+            marginTop: 12,
+          }}
+        >
+          <TactileButton
+            label="DELETE MEMORY"
+            icon="trash-outline"
+            onPress={handleDelete}
             color={colors.danger || "#D9534F"}
-          />
-
-          <Text
-            style={[
+            baseColor="#8F2929"
+            textColor="#FFFFFF"
+            iconColor="#FFFFFF"
+            height={50}
+            borderRadius={14}
+            depth={3}
+            accessibilityLabel="Delete memory"
+            accessibilityHint="Opens a confirmation before deleting this memory"
+            textStyle={[
               styles.deleteText,
               {
-                color: colors.danger || "#D9534F",
+                color: "#FFFFFF",
               },
             ]}
-          >
-            DELETE MEMORY
-          </Text>
-        </TouchableOpacity>
-
+          />
+        </View>
 
         <Text style={[styles.footerText, { color: secondaryTextColor }]}>KEEP THE MOMENT. KEEP THE STORY.</Text>
       </ScrollView>

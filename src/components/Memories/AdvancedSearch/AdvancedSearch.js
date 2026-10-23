@@ -14,6 +14,7 @@ import {
 } from "@gorhom/bottom-sheet";
 import { Ionicons } from "@expo/vector-icons";
 import styles from "./advancedSearchStyles";
+import TactileButton from "../../common/TactileButton";
 
 const DEFAULT_FILTERS = {
   favoriteOnly: false,
@@ -646,62 +647,61 @@ const AdvancedSearch = forwardRef(function AdvancedSearch(
           </BottomSheetScrollView>
         </View>
 
-        {/* ACTIONS */}
+{/* ACTIONS */}
 
-        <View
-          style={[
-            styles.actions,
-            {
-              backgroundColor: colors.surface,
-              borderTopColor: colors.border,
-            },
-          ]}
-        >
-          <TouchableOpacity
-            style={[
-              styles.clearButton,
-              {
-                backgroundColor: colors.background,
-                borderColor: colors.border,
-              },
-            ]}
-            onPress={handleClear}
-            activeOpacity={0.7}
-          >
-            <Text
-              style={[
-                styles.clearButtonText,
-                {
-                  color: colors.primary,
-                },
-              ]}
-            >
-              CLEAR
-            </Text>
-          </TouchableOpacity>
+<View
+  style={[
+    styles.actions,
+    {
+      backgroundColor: colors.surface,
+      borderTopColor: colors.border,
+    },
+  ]}
+>
+  {/* CLEAR — SECONDARY ACTION */}
 
-          <TouchableOpacity
-            style={[
-              styles.applyButton,
-              {
-                backgroundColor: colors.primary,
-              },
-            ]}
-            onPress={handleApply}
-            activeOpacity={0.8}
-          >
-            <Text
-              style={[
-                styles.applyButtonText,
-                {
-                  color: "#FFFFFF",
-                },
-              ]}
-            >
-              APPLY FILTERS
-            </Text>
-          </TouchableOpacity>
-        </View>
+  <TouchableOpacity
+    style={[
+      styles.clearButton,
+      {
+        backgroundColor: colors.background,
+        borderColor: colors.border,
+      },
+    ]}
+    onPress={handleClear}
+    activeOpacity={0.7}
+    accessibilityRole="button"
+    accessibilityLabel="Clear all filters"
+  >
+    <Text
+      style={[
+        styles.clearButtonText,
+        {
+          color: colors.primary,
+        },
+      ]}
+    >
+      CLEAR
+    </Text>
+  </TouchableOpacity>
+
+  {/* APPLY FILTERS — TACTILE PRIMARY ACTION */}
+
+  <View style={styles.applyButtonWrapper}>
+    <TactileButton
+      label="APPLY FILTERS"
+      onPress={handleApply}
+      color={colors.primary}
+      textColor="#FFFFFF"
+      height={48}
+      borderRadius={10}
+      depth={3}
+      accessibilityLabel="Apply search filters"
+      textStyle={styles.applyButtonText}
+    />
+  </View>
+</View>
+
       </View>
     </BottomSheetModal>
   );

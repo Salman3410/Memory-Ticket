@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 
 import {
@@ -7,7 +8,6 @@ import {
   TouchableOpacity,
   Image,
   Alert,
-  ActivityIndicator,
   StatusBar,
 } from "react-native";
 
@@ -18,6 +18,8 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useAuth } from "../../hooks/useAuth";
 import { useTheme } from "../../context/ThemeContext";
 
+import TactileButton from "../../components/common/TactileButton";
+
 import styles from "./editProfileStyles";
 
 function EditProfileScreen({ navigation }) {
@@ -27,18 +29,16 @@ function EditProfileScreen({ navigation }) {
   const { colors } = theme;
 
   const [name, setName] = useState(user?.name || "");
-  const [profileImage, setProfileImage] = useState(user?.profileImage || null);
+  const [profileImage, setProfileImage] = useState(
+    user?.profileImage || null
+  );
   const [saving, setSaving] = useState(false);
 
-  // --------------------------------------------------
-  // THEME-AWARE BORDERS
-  // --------------------------------------------------
+  const avatarBorderColor = isDark
+    ? colors.background
+    : "#FFFFFF";
 
-  const avatarBorderColor = isDark ? colors.background : "#FFFFFF";
-
-  // --------------------------------------------------
-  // PHOTO PICKER
-  // --------------------------------------------------
+  const primaryTextColor = colors.primaryText || "#FFFFFF";
 
   const pickProfileImage = async () => {
     try {
@@ -48,7 +48,7 @@ function EditProfileScreen({ navigation }) {
       if (!permission.granted) {
         Alert.alert(
           "Permission Required",
-          "Please allow photo library access to choose a profile photo.",
+          "Please allow photo library access to choose a profile photo."
         );
         return;
       }
@@ -68,14 +68,10 @@ function EditProfileScreen({ navigation }) {
 
       Alert.alert(
         "Photo Unavailable",
-        "Unable to select a profile photo. Please try again.",
+        "Unable to select a profile photo. Please try again."
       );
     }
   };
-
-  // --------------------------------------------------
-  // SAVE PROFILE
-  // --------------------------------------------------
 
   const handleSave = async () => {
     if (saving) {
@@ -96,7 +92,10 @@ function EditProfileScreen({ navigation }) {
       });
 
       if (!result.success) {
-        Alert.alert("Update Failed", result.message || "Something went wrong.");
+        Alert.alert(
+          "Update Failed",
+          result.message || "Something went wrong."
+        );
         return;
       }
 
@@ -108,20 +107,19 @@ function EditProfileScreen({ navigation }) {
             text: "OK",
             onPress: () => navigation.goBack(),
           },
-        ],
+        ]
       );
     } catch (error) {
       console.error("Edit profile error:", error);
 
-      Alert.alert("Update Failed", "Unable to update your profile.");
+      Alert.alert(
+        "Update Failed",
+        "Unable to update your profile."
+      );
     } finally {
       setSaving(false);
     }
   };
-
-  // --------------------------------------------------
-  // UI
-  // --------------------------------------------------
 
   return (
     <View
@@ -158,15 +156,29 @@ function EditProfileScreen({ navigation }) {
             activeOpacity={0.7}
             disabled={saving}
           >
-            <Ionicons name="arrow-back" size={21} color={colors.icon} />
+            <Ionicons
+              name="arrow-back"
+              size={21}
+              color={colors.icon}
+            />
           </TouchableOpacity>
 
           <View style={styles.headerTextContainer}>
-            <Text style={[styles.headerEyebrow, { color: colors.accent }]}>
+            <Text
+              style={[
+                styles.headerEyebrow,
+                { color: colors.accent },
+              ]}
+            >
               ACCOUNT
             </Text>
 
-            <Text style={[styles.headerTitle, { color: colors.text }]}>
+            <Text
+              style={[
+                styles.headerTitle,
+                { color: colors.text },
+              ]}
+            >
               Edit Profile
             </Text>
           </View>
@@ -198,7 +210,12 @@ function EditProfileScreen({ navigation }) {
                   },
                 ]}
               >
-                <Text style={[styles.avatarText, { color: colors.text }]}>
+                <Text
+                  style={[
+                    styles.avatarText,
+                    { color: colors.text },
+                  ]}
+                >
                   {name?.charAt(0)?.toUpperCase() || "M"}
                 </Text>
               </View>
@@ -216,11 +233,20 @@ function EditProfileScreen({ navigation }) {
               activeOpacity={0.8}
               disabled={saving}
             >
-              <Ionicons name="camera" size={16} color="#FFFFFF" />
+              <Ionicons
+                name="camera"
+                size={16}
+                color="#FFFFFF"
+              />
             </TouchableOpacity>
           </View>
 
-          <Text style={[styles.photoTitle, { color: colors.text }]}>
+          <Text
+            style={[
+              styles.photoTitle,
+              { color: colors.text },
+            ]}
+          >
             Profile Photo
           </Text>
 
@@ -229,7 +255,12 @@ function EditProfileScreen({ navigation }) {
             activeOpacity={0.7}
             disabled={saving}
           >
-            <Text style={[styles.changePhotoText, { color: colors.accent }]}>
+            <Text
+              style={[
+                styles.changePhotoText,
+                { color: colors.accent },
+              ]}
+            >
               CHANGE PHOTO
             </Text>
           </TouchableOpacity>
@@ -241,7 +272,12 @@ function EditProfileScreen({ navigation }) {
           {/* NAME */}
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: colors.textMuted }]}>
+            <Text
+              style={[
+                styles.label,
+                { color: colors.textMuted },
+              ]}
+            >
               NAME
             </Text>
 
@@ -261,7 +297,10 @@ function EditProfileScreen({ navigation }) {
               />
 
               <TextInput
-                style={[styles.input, { color: colors.text }]}
+                style={[
+                  styles.input,
+                  { color: colors.text },
+                ]}
                 value={name}
                 onChangeText={setName}
                 placeholder="Your name"
@@ -278,7 +317,12 @@ function EditProfileScreen({ navigation }) {
           {/* EMAIL */}
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: colors.textMuted }]}>
+            <Text
+              style={[
+                styles.label,
+                { color: colors.textMuted },
+              ]}
+            >
               EMAIL
             </Text>
 
@@ -310,42 +354,45 @@ function EditProfileScreen({ navigation }) {
               />
             </View>
 
-            <Text style={[styles.helperText, { color: colors.textSecondary }]}>
+            <Text
+              style={[
+                styles.helperText,
+                { color: colors.textSecondary },
+              ]}
+            >
               Email cannot be changed here.
             </Text>
           </View>
         </View>
 
-        {/* SAVE */}
+        {/* TACTILE SAVE CHANGES BUTTON */}
 
-        <TouchableOpacity
-          style={[
-            styles.saveButton,
-            {
-              backgroundColor: colors.primary,
-              opacity: saving ? 0.7 : 1,
-            },
-          ]}
+        <TactileButton
+          label="SAVE CHANGES"
+          icon="checkmark"
           onPress={handleSave}
+          loading={saving}
+          loadingText="SAVING..."
           disabled={saving}
-          activeOpacity={0.85}
+          color={colors.primary || "#34345C"}
+          textColor={primaryTextColor}
+          iconColor={primaryTextColor}
+          height={56}
+          borderRadius={14}
+          depth={4}
+          style={{
+            marginTop: 12,
+          }}
+        />
+
+        {/* FOOTER */}
+
+        <Text
+          style={[
+            styles.footerText,
+            { color: colors.textMuted },
+          ]}
         >
-          {saving ? (
-            <ActivityIndicator size="small" color={colors.primaryText} />
-          ) : (
-            <>
-              <Text
-                style={[styles.saveButtonText, { color: colors.primaryText }]}
-              >
-                SAVE CHANGES
-              </Text>
-
-              <Ionicons name="checkmark" size={18} color={colors.primaryText} />
-            </>
-          )}
-        </TouchableOpacity>
-
-        <Text style={[styles.footerText, { color: colors.textMuted }]}>
           Keep your profile up to date.
         </Text>
       </KeyboardAwareScrollView>

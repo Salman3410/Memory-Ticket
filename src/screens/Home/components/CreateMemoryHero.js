@@ -1,26 +1,24 @@
+
 import { useEffect } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-} from "react-native";
+
+import { View, Text } from "react-native";
+
 import { Ionicons } from "@expo/vector-icons";
+
 import Animated, {
   Easing,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
   withSequence,
-  withSpring,
   withTiming,
 } from "react-native-reanimated";
+
+import TactileButton from "../../../components/common/TactileButton";
+
 import styles from "../homeStyles";
 
-const AnimatedView =
-  Animated.createAnimatedComponent(View);
-
-const AnimatedIonicons =
-  Animated.createAnimatedComponent(Ionicons);
+const AnimatedView = Animated.createAnimatedComponent(View);
 
 function CreateMemoryHero({ navigation }) {
   const iconFloat = useSharedValue(0);
@@ -32,60 +30,49 @@ function CreateMemoryHero({ navigation }) {
   const circleSmallX = useSharedValue(0);
   const circleSmallY = useSharedValue(0);
 
-  const arrowX = useSharedValue(0);
-
   useEffect(() => {
+    // Floating camera icon
     iconFloat.value = withRepeat(
       withSequence(
         withTiming(-4, {
           duration: 1400,
-          easing: Easing.inOut(
-            Easing.sin,
-          ),
+          easing: Easing.inOut(Easing.sin),
         }),
         withTiming(4, {
           duration: 1400,
-          easing: Easing.inOut(
-            Easing.sin,
-          ),
+          easing: Easing.inOut(Easing.sin),
         }),
       ),
       -1,
       true,
     );
 
+    // Gentle camera scale animation
     iconScale.value = withRepeat(
       withSequence(
         withTiming(1.04, {
           duration: 1600,
-          easing: Easing.inOut(
-            Easing.sin,
-          ),
+          easing: Easing.inOut(Easing.sin),
         }),
         withTiming(1, {
           duration: 1600,
-          easing: Easing.inOut(
-            Easing.sin,
-          ),
+          easing: Easing.inOut(Easing.sin),
         }),
       ),
       -1,
       true,
     );
 
+    // Large decorative circle
     circleLargeX.value = withRepeat(
       withSequence(
         withTiming(8, {
           duration: 2800,
-          easing: Easing.inOut(
-            Easing.sin,
-          ),
+          easing: Easing.inOut(Easing.sin),
         }),
         withTiming(-5, {
           duration: 2800,
-          easing: Easing.inOut(
-            Easing.sin,
-          ),
+          easing: Easing.inOut(Easing.sin),
         }),
       ),
       -1,
@@ -96,34 +83,27 @@ function CreateMemoryHero({ navigation }) {
       withSequence(
         withTiming(-6, {
           duration: 3200,
-          easing: Easing.inOut(
-            Easing.sin,
-          ),
+          easing: Easing.inOut(Easing.sin),
         }),
         withTiming(5, {
           duration: 3200,
-          easing: Easing.inOut(
-            Easing.sin,
-          ),
+          easing: Easing.inOut(Easing.sin),
         }),
       ),
       -1,
       true,
     );
 
+    // Small decorative circle
     circleSmallX.value = withRepeat(
       withSequence(
         withTiming(-7, {
           duration: 2400,
-          easing: Easing.inOut(
-            Easing.sin,
-          ),
+          easing: Easing.inOut(Easing.sin),
         }),
         withTiming(6, {
           duration: 2400,
-          easing: Easing.inOut(
-            Easing.sin,
-          ),
+          easing: Easing.inOut(Easing.sin),
         }),
       ),
       -1,
@@ -134,91 +114,45 @@ function CreateMemoryHero({ navigation }) {
       withSequence(
         withTiming(5, {
           duration: 2600,
-          easing: Easing.inOut(
-            Easing.sin,
-          ),
+          easing: Easing.inOut(Easing.sin),
         }),
         withTiming(-5, {
           duration: 2600,
-          easing: Easing.inOut(
-            Easing.sin,
-          ),
+          easing: Easing.inOut(Easing.sin),
         }),
       ),
       -1,
       true,
     );
-  }, []);
+  }, [
+    iconFloat,
+    iconScale,
+    circleLargeX,
+    circleLargeY,
+    circleSmallX,
+    circleSmallY,
+  ]);
 
-  const iconAnimatedStyle =
-    useAnimatedStyle(() => {
-      return {
-        transform: [
-          {
-            translateY: iconFloat.value,
-          },
-          {
-            scale: iconScale.value,
-          },
-        ],
-      };
-    });
+  const iconAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateY: iconFloat.value },
+      { scale: iconScale.value },
+    ],
+  }));
 
-  const largeCircleAnimatedStyle =
-    useAnimatedStyle(() => {
-      return {
-        transform: [
-          {
-            translateX:
-              circleLargeX.value,
-          },
-          {
-            translateY:
-              circleLargeY.value,
-          },
-        ],
-      };
-    });
+  const largeCircleAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: circleLargeX.value },
+      { translateY: circleLargeY.value },
+    ],
+  }));
 
-  const smallCircleAnimatedStyle =
-    useAnimatedStyle(() => {
-      return {
-        transform: [
-          {
-            translateX:
-              circleSmallX.value,
-          },
-          {
-            translateY:
-              circleSmallY.value,
-          },
-        ],
-      };
-    });
-
-  const arrowAnimatedStyle =
-    useAnimatedStyle(() => {
-      return {
-        transform: [
-          {
-            translateX: arrowX.value,
-          },
-        ],
-      };
-    });
-
-  const handlePressIn = () => {
-    arrowX.value = withSequence(
-      withTiming(4, {
-        duration: 100,
-      }),
-      withSpring(0, {
-        damping: 12,
-        stiffness: 220,
-        mass: 0.4,
-      }),
-    );
-  };
+  const smallCircleAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: circleSmallX.value },
+      { translateY: circleSmallY.value },
+    ],
+  }));
 
   const handlePress = () => {
     navigation.navigate("Create");
@@ -227,52 +161,57 @@ function CreateMemoryHero({ navigation }) {
   return (
     <View style={styles.heroCard}>
       <View style={styles.heroContent}>
-        {/* Animated Icon */}
+        {/* ANIMATED CAMERA ICON */}
+
         <AnimatedView
           style={[
             styles.heroIcon,
             iconAnimatedStyle,
           ]}
         >
-          <AnimatedIonicons
+          <Ionicons
             name="camera-outline"
             size={25}
             color="#FFFFFF"
           />
         </AnimatedView>
 
-        {/* Title */}
+        {/* TITLE */}
+
         <Text style={styles.heroTitle}>
           Capture a new memory
         </Text>
 
-        {/* Description */}
+        {/* DESCRIPTION */}
+
         <Text style={styles.heroDescription}>
           Turn a moment from your life into a
           ticket you'll want to keep.
         </Text>
 
-        {/* Button */}
-        <TouchableOpacity
-          style={styles.heroButton}
-          onPress={handlePress}
-          onPressIn={handlePressIn}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.heroButtonText}>
-            CREATE MEMORY
-          </Text>
+        {/* REUSABLE TACTILE BUTTON */}
 
-          <AnimatedIonicons
-            name="arrow-forward"
-            size={18}
-            color="#FFFFFF"
-            style={arrowAnimatedStyle}
-          />
-        </TouchableOpacity>
+        <TactileButton
+          label="CREATE MEMORY"
+          icon="arrow-forward"
+          iconPosition="right"
+          onPress={handlePress}
+          color="#E76F51"
+          textColor="#FFFFFF"
+          iconColor="#FFFFFF"
+          height={50}
+          borderRadius={14}
+          depth={4}
+          accessibilityLabel="Create a new memory"
+          style={{
+            marginTop: 12,
+          }}
+          textStyle={styles.heroButtonText}
+        />
       </View>
 
-      {/* Animated Decoration */}
+      {/* ANIMATED DECORATION */}
+
       <View
         style={styles.heroDecoration}
         pointerEvents="none"

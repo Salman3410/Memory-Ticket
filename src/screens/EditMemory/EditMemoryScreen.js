@@ -1,17 +1,11 @@
 import React, { useMemo, useState } from "react";
-
 import { View, StatusBar } from "react-native";
-
 import * as ImagePicker from "expo-image-picker";
-
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
-
 import { useMemory } from "../../hooks/useMemory";
 import { useAppAlert } from "../../context/AlertContext";
 import { useTheme } from "../../context/ThemeContext";
-
 import styles from "./editMemoryStyles";
-
 import EditMemoryHeader from "../../components/EditScreen/EditMemoryHeader/EditMemoryHeader";
 import EditMemoryPhotos from "../../components/EditScreen/EditMemoryPhotos/EditMemoryPhotos";
 import EditMemoryDetails from "../../components/EditScreen/EditMemoryDetails/EditMemoryDetails";
@@ -30,12 +24,6 @@ function EditMemoryScreen({ navigation, route }) {
 
   const { memoryId } = route.params;
   const memory = getMemoryById(memoryId);
-
-  // --------------------------------------------------
-  // THEME COLORS
-  // Uses the same ThemeContext color structure as
-  // the Profile, Settings, and Create Memory screens.
-  // --------------------------------------------------
 
   const colors = useMemo(() => {
     const themeColors = theme?.colors || {};
@@ -65,10 +53,6 @@ function EditMemoryScreen({ navigation, route }) {
     };
   }, [theme, isDark]);
 
-  // --------------------------------------------------
-  // SCREEN STYLES
-  // --------------------------------------------------
-
   const screenStyles = useMemo(
     () => ({
       container: {
@@ -84,10 +68,6 @@ function EditMemoryScreen({ navigation, route }) {
     [colors],
   );
 
-  // --------------------------------------------------
-  // FORM STATE
-  // --------------------------------------------------
-
   const [images, setImages] = useState(() =>
     Array.isArray(memory?.images)
       ? memory.images
@@ -97,20 +77,12 @@ function EditMemoryScreen({ navigation, route }) {
   );
 
   const [title, setTitle] = useState(memory?.title || "");
-
   const [location, setLocation] = useState(memory?.location || "");
-
   const [description, setDescription] = useState(memory?.description || "");
-
   const [tags, setTags] = useState(() =>
     Array.isArray(memory?.tags) ? memory.tags : [],
   );
-
   const [saving, setSaving] = useState(false);
-
-  // --------------------------------------------------
-  // MEMORY NOT FOUND
-  // --------------------------------------------------
 
   if (!memory) {
     return (
@@ -129,10 +101,6 @@ function EditMemoryScreen({ navigation, route }) {
     );
   }
 
-  // --------------------------------------------------
-  // CHECK WHETHER IMAGE IS LOCAL
-  // --------------------------------------------------
-
   const isLocalImage = (uri) => {
     if (!uri) {
       return false;
@@ -140,10 +108,6 @@ function EditMemoryScreen({ navigation, route }) {
 
     return uri.startsWith("file://") || uri.startsWith("content://");
   };
-
-  // --------------------------------------------------
-  // ADD IMAGES
-  // --------------------------------------------------
 
   const addImages = async (newImages) => {
     try {
@@ -184,10 +148,6 @@ function EditMemoryScreen({ navigation, route }) {
       });
     }
   };
-
-  // --------------------------------------------------
-  // PICK IMAGES FROM GALLERY
-  // --------------------------------------------------
 
   const pickImage = async () => {
     try {
@@ -243,10 +203,6 @@ function EditMemoryScreen({ navigation, route }) {
     }
   };
 
-  // --------------------------------------------------
-  // TAKE PHOTO
-  // --------------------------------------------------
-
   const takePhoto = async () => {
     try {
       if (images.length >= MAX_IMAGES) {
@@ -298,19 +254,11 @@ function EditMemoryScreen({ navigation, route }) {
     }
   };
 
-  // --------------------------------------------------
-  // REMOVE IMAGE
-  // --------------------------------------------------
-
   const removeImage = (indexToRemove) => {
     setImages((currentImages) =>
       currentImages.filter((_, index) => index !== indexToRemove),
     );
   };
-
-  // --------------------------------------------------
-  // SAVE CHANGES
-  // --------------------------------------------------
 
   const handleSave = async () => {
     if (saving) {
@@ -418,11 +366,7 @@ function EditMemoryScreen({ navigation, route }) {
       setSaving(false);
     }
   };
-
-  // --------------------------------------------------
-  // RENDER
-  // --------------------------------------------------
-
+  
   return (
     <View style={screenStyles.container}>
       <StatusBar

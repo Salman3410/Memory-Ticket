@@ -1,5 +1,6 @@
-import { Text, TouchableOpacity } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+
+import TactileButton from "../../../components/common/TactileButton";
+
 import styles from "../createMemoryStyles";
 
 function PreviewButton({ onPress, theme, isDark }) {
@@ -8,20 +9,19 @@ function PreviewButton({ onPress, theme, isDark }) {
   const primaryColor = colors.primary || "#34345C";
 
   return (
-    <TouchableOpacity
-      style={[
-        styles.continueButton,
-        {
-          backgroundColor: primaryColor,
-        },
-      ]}
+    <TactileButton
+      label="PREVIEW TICKET"
+      icon="arrow-forward"
       onPress={onPress}
-      activeOpacity={0.8}
-    >
-      <Text style={styles.continueButtonText}>PREVIEW TICKET</Text>
-
-      <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
-    </TouchableOpacity>
+      color={primaryColor}
+      textColor="#FFFFFF"
+      iconColor="#FFFFFF"
+      height={56}
+      borderRadius={14}
+      depth={4}
+      textStyle={styles.continueButtonText}
+      accessibilityLabel="Preview ticket"
+    />
   );
 }
 

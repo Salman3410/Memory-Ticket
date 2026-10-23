@@ -160,54 +160,40 @@ export default StyleSheet.create({
   // --------------------------------
 
   actions: {
-    flexDirection: "row",
+  flexDirection: "row",
+  alignItems: "center",
+  marginTop: 12,
+  gap: 8,
+},
 
-    marginTop: 12,
+cancelButton: {
+  flex: 1,
+  minHeight: 48,
+  alignItems: "center",
+  justifyContent: "center",
+  borderRadius: 10,
+  borderWidth: 1,
+  backgroundColor: "#F8F8FA",
+},
 
-    gap: 8,
-  },
+cancelButtonText: {
+  fontSize: 10,
+  fontWeight: "900",
+  letterSpacing: 0.8,
+  color: "#34345C",
+},
 
-  cancelButton: {
-    flex: 1,
+doneButtonWrapper: {
+  flex: 1,
+  minWidth: 0,
+},
 
-    minHeight: 48,
-
-    alignItems: "center",
-    justifyContent: "center",
-
-    borderRadius: 10,
-
-    backgroundColor: "#F8F8FA",
-  },
-
-  cancelButtonText: {
-    fontSize: 10,
-    fontWeight: "900",
-    letterSpacing: 0.8,
-
-    color: "#34345C",
-  },
-
-  doneButton: {
-    flex: 1,
-
-    minHeight: 48,
-
-    alignItems: "center",
-    justifyContent: "center",
-
-    borderRadius: 10,
-
-    backgroundColor: "#34345C",
-  },
-
-  doneButtonText: {
-    fontSize: 10,
-    fontWeight: "900",
-    letterSpacing: 0.8,
-
-    color: "#FFFFFF",
-  },
+doneButtonText: {
+  fontSize: 10,
+  fontWeight: "900",
+  letterSpacing: 0.8,
+  color: "#FFFFFF",
+},
   yearArrowDisabled: {
     backgroundColor: "#EEEEF2",
   },

@@ -1,32 +1,35 @@
 import React from "react";
-
-import { TouchableOpacity, Text } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-
 import { useTheme } from "../../../context/ThemeContext";
-import styles from "./logoutButtonStyles";
+import TactileButton from "../../common/TactileButton";
 
 function LogoutButton({ onPress }) {
   const { theme } = useTheme();
   const { colors } = theme;
 
-  return (
-    <TouchableOpacity
-      style={[
-        styles.logoutButton,
-        {
-          backgroundColor: colors.surface,
-          borderColor: colors.border,
-        },
-      ]}
-      onPress={onPress}
-      activeOpacity={0.75}
-    >
-      <Ionicons name="log-out-outline" size={19} color={colors.danger} />
+  const dangerColor = colors.danger || "#D9534F";
 
-      <Text style={[styles.logoutText, { color: colors.danger }]}>LOG OUT</Text>
-    </TouchableOpacity>
+  return (
+    <TactileButton
+      label="LOG OUT"
+      icon="log-out-outline"
+      onPress={onPress}
+      color={dangerColor}
+      textColor="#FFFFFF"
+      iconColor="#FFFFFF"
+      height={52}
+      borderRadius={14}
+      depth={4}
+      accessibilityLabel="Log out"
+      style={{
+        marginTop: 24,
+      }}
+      textStyle={{
+        fontSize: 10,
+        fontWeight: "900",
+        letterSpacing: 1.2,
+      }}
+    />
   );
 }
 
-export default LogoutButton;
+export default React.memo(LogoutButton);

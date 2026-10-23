@@ -344,10 +344,6 @@ function SettingsScreen({ navigation }) {
 
           setStorageSize(0);
 
-          // Do not call syncMementoWidget here.
-          // MemoryContext updates the widget when its
-          // memories state becomes empty.
-
           showAlert({
             type: "success",
             icon: "checkmark-circle-outline",

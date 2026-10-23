@@ -1,8 +1,7 @@
-import React from "react";
 
-import { View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
+import { View, Text, TouchableOpacity } from "react-native";
 
-import { Ionicons } from "@expo/vector-icons";
+import TactileButton from "../../../components/common/TactileButton";
 
 import styles from "./editMemoryActionsStyles";
 
@@ -18,74 +17,73 @@ function EditMemoryActions({
   const primaryColor = colors.primary || "#34345C";
 
   const surfaceColor =
-    colors.surface || colors.card || (isDark ? "#232333" : "#FFFFFF");
+    colors.surface ||
+    colors.card ||
+    (isDark ? "#232333" : "#FFFFFF");
 
-  const textColor = colors.text || (isDark ? "#F1F0F6" : "#242424");
+  const textColor =
+    colors.text ||
+    (isDark ? "#F1F0F6" : "#242424");
 
   const mutedTextColor =
     colors.textSecondary ||
     colors.textMuted ||
     (isDark ? "#A6A6B8" : "#737387");
 
-  const borderColor = colors.border || (isDark ? "#38384C" : "#D9D8E2");
+  const borderColor =
+    colors.border ||
+    (isDark ? "#38384C" : "#D9D8E2");
 
   return (
     <View style={styles.container}>
-      {/* SAVE CHANGES */}
+      {/* TACTILE SAVE CHANGES */}
 
-      <TouchableOpacity
-        style={[
-          styles.saveButton,
-          {
-            backgroundColor: primaryColor,
-            opacity: 1,
-          },
-        ]}
+      <TactileButton
+        label="SAVE CHANGES"
+        icon="checkmark"
         onPress={onSave}
+        loading={loading}
+        loadingText="SAVING..."
         disabled={loading}
-        activeOpacity={1}
-        accessibilityRole="button"
+        color={primaryColor}
+        textColor="#FFFFFF"
+        iconColor="#FFFFFF"
+        height={56}
+        borderRadius={14}
+        depth={4}
         accessibilityLabel="Save changes"
-        accessibilityState={{ disabled: loading, busy: loading }}
-      >
-        {loading ? (
-          <ActivityIndicator size="small" color="#FFFFFF" />
-        ) : (
-          <Ionicons name="checkmark" size={21} color="#FFFFFF" />
-        )}
-
-        <Text style={styles.saveButtonText}>
-          {loading ? "SAVING..." : "SAVE CHANGES"}
-        </Text>
-      </TouchableOpacity>
+        style={styles.saveButton}
+        textStyle={styles.saveButtonText}
+      />
 
       {/* CANCEL */}
 
-      <TouchableOpacity
-        style={[
-          styles.cancelButton,
-          {
-            backgroundColor: surfaceColor,
-            borderColor,
-          },
-        ]}
-        onPress={onCancel}
-        disabled={loading}
-        activeOpacity={0.8}
-        accessibilityRole="button"
-        accessibilityLabel="Cancel editing"
-      >
-        <Text
-          style={[
-            styles.cancelButtonText,
-            {
-              color: textColor,
-            },
-          ]}
-        >
-          CANCEL
-        </Text>
-      </TouchableOpacity>
+<TouchableOpacity
+  style={[
+    styles.cancelButton,
+    {
+      backgroundColor: surfaceColor,
+      borderColor,
+    },
+  ]}
+  onPress={onCancel}
+  disabled={loading}
+  activeOpacity={0.7}
+  accessibilityRole="button"
+  accessibilityLabel="Cancel editing"
+  accessibilityState={{ disabled: loading }}
+>
+  <Text
+    style={[
+      styles.cancelButtonText,
+      {
+        color: textColor,
+      },
+    ]}
+  >
+    CANCEL
+  </Text>
+</TouchableOpacity>
 
       {/* FOOTER */}
 

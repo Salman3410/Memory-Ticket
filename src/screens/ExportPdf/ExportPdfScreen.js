@@ -1,14 +1,16 @@
+
 import { useState } from "react";
 import { useTheme } from "../../context/ThemeContext";
+
 import {
   View,
   Text,
   TouchableOpacity,
   ScrollView,
-  ActivityIndicator,
   Image,
   StatusBar,
 } from "react-native";
+
 import { Ionicons } from "@expo/vector-icons";
 import { Asset } from "expo-asset";
 import * as Sharing from "expo-sharing";
@@ -17,6 +19,8 @@ import * as FileSystem from "expo-file-system/legacy";
 
 import { useMemory } from "../../hooks/useMemory";
 import { useAppAlert } from "../../context/AlertContext";
+
+import TactileButton from "../../components/common/TactileButton";
 
 import styles from "./exportPdfStyles";
 
@@ -64,17 +68,31 @@ const getClassicBackBase64 = async () => {
 function ExportPdfScreen({ navigation, route }) {
   const { theme, isDark } = useTheme();
   const colors = theme?.colors || {};
-  const screenBackground = colors.background || (isDark ? "#171624" : "#F1F0F6");
-  const surfaceColor = colors.surface || (isDark ? "#211F30" : "#FFFFFF");
-  const textColor = colors.text || (isDark ? "#F7F5FC" : "#242424");
-  const secondaryTextColor = colors.textSecondary || colors.textMuted || (isDark ? "#C4C0D0" : "#707080");
-  const borderColor = colors.border || (isDark ? "#39364D" : "#D9D8E2");
+
+  const screenBackground =
+    colors.background || (isDark ? "#171624" : "#F1F0F6");
+
+  const surfaceColor =
+    colors.surface || (isDark ? "#211F30" : "#FFFFFF");
+
+  const textColor =
+    colors.text || (isDark ? "#F7F5FC" : "#242424");
+
+  const secondaryTextColor =
+    colors.textSecondary ||
+    colors.textMuted ||
+    (isDark ? "#C4C0D0" : "#707080");
+
+  const borderColor =
+    colors.border || (isDark ? "#39364D" : "#D9D8E2");
+
+  const primaryColor = colors.primary || "#34345C";
+  const primaryTextColor = colors.primaryText || "#FFFFFF";
 
   const { getMemoryById } = useMemory();
   const { showAlert } = useAppAlert();
 
   const memoryId = route?.params?.memoryId;
-
   const frontTicketUri = route?.params?.frontTicketUri;
 
   const memory = getMemoryById(memoryId);
@@ -82,26 +100,23 @@ function ExportPdfScreen({ navigation, route }) {
   const [selectedBack, setSelectedBack] = useState("blank");
   const [generatingPdf, setGeneratingPdf] = useState(false);
 
+  // --------------------------------------------------
+  // BUILD PDF HTML
+  // --------------------------------------------------
+
   const buildPdfHtml = (frontTicketImage, classicBackImage) => {
     return `
       <!DOCTYPE html>
-
       <html>
-
       <head>
-
         <meta
           name="viewport"
           content="width=device-width, initial-scale=1.0"
         />
 
         <style>
-
           @page {
-            size:
-              ${A7_WIDTH_MM}mm
-              ${A7_HEIGHT_MM}mm;
-
+            size: ${A7_WIDTH_MM}mm ${A7_HEIGHT_MM}mm;
             margin: 0;
           }
 
@@ -111,45 +126,27 @@ function ExportPdfScreen({ navigation, route }) {
 
           html,
           body {
-            width:
-              ${A7_WIDTH_MM}mm;
-
-            height:
-              ${A7_HEIGHT_MM}mm;
-
+            width: ${A7_WIDTH_MM}mm;
+            height: ${A7_HEIGHT_MM}mm;
             margin: 0;
             padding: 0;
           }
 
           body {
-            margin: 0;
-            padding: 0;
-
             background: #FFFFFF;
           }
 
           .page {
             position: relative;
-
-            width:
-              ${A7_WIDTH_MM}mm;
-
-            height:
-              ${A7_HEIGHT_MM}mm;
-
+            width: ${A7_WIDTH_MM}mm;
+            height: ${A7_HEIGHT_MM}mm;
             margin: 0;
             padding: 0;
-
             overflow: hidden;
-
             page-break-after: always;
             break-after: page;
-
-            -webkit-print-color-adjust:
-              exact;
-
-            print-color-adjust:
-              exact;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
 
           .page:last-child {
@@ -159,67 +156,51 @@ function ExportPdfScreen({ navigation, route }) {
 
           .page-image {
             display: block;
-
-            width:
-              ${A7_WIDTH_MM}mm;
-
-            height:
-              ${A7_HEIGHT_MM}mm;
-
+            width: ${A7_WIDTH_MM}mm;
+            height: ${A7_HEIGHT_MM}mm;
             margin: 0;
             padding: 0;
-
             border: 0;
-
             object-fit: fill;
-
-            -webkit-print-color-adjust:
-              exact;
-
-            print-color-adjust:
-              exact;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
-
         </style>
-
       </head>
 
       <body>
-
-        <!-- PAGE 1 -->
+        <!-- PAGE 1: FRONT -->
         <section class="page">
-
           <img
             class="page-image"
             src="${frontTicketImage}"
             alt="Memento Memory Ticket"
           />
-
         </section>
 
-        <!-- PAGE 2 -->
+        <!-- PAGE 2: BACK -->
         <section class="page">
-
           <img
             class="page-image"
             src="${classicBackImage}"
             alt="Memento Classic Ticket Back"
           />
-
         </section>
-
       </body>
-
       </html>
     `;
   };
 
-  const handleExportPdf = async () => {
-    try {
-      if (generatingPdf) {
-        return;
-      }
+  // --------------------------------------------------
+  // EXPORT PDF
+  // --------------------------------------------------
 
+  const handleExportPdf = async () => {
+    if (generatingPdf) {
+      return;
+    }
+
+    try {
       if (!memory) {
         showAlert({
           type: "danger",
@@ -248,19 +229,18 @@ function ExportPdfScreen({ navigation, route }) {
       setGeneratingPdf(true);
 
       const frontTicketImage = await imageToBase64(frontTicketUri);
-
       const classicBackImage = await getClassicBackBase64();
 
-      const html = buildPdfHtml(frontTicketImage, classicBackImage);
+      const html = buildPdfHtml(
+        frontTicketImage,
+        classicBackImage
+      );
 
       const { uri, numberOfPages } = await Print.printToFileAsync({
         html,
-
         base64: false,
-
         width: A7_WIDTH_PX,
         height: A7_HEIGHT_PX,
-
         textZoom: 100,
       });
 
@@ -304,50 +284,136 @@ function ExportPdfScreen({ navigation, route }) {
     }
   };
 
+  // --------------------------------------------------
+  // MEMORY NOT FOUND
+  // --------------------------------------------------
+
   if (!memory) {
     return (
-      <View style={[styles.notFound, { backgroundColor: screenBackground }]}>
-      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={screenBackground} />
-        <Ionicons name="sad-outline" size={45} color={colors.primary || "#34345C"} />
+      <View
+        style={[
+          styles.notFound,
+          { backgroundColor: screenBackground },
+        ]}
+      >
+        <StatusBar
+          barStyle={isDark ? "light-content" : "dark-content"}
+          backgroundColor={screenBackground}
+        />
 
-        <Text style={[styles.notFoundTitle, { color: textColor }]}>Memory not found</Text>
+        <Ionicons
+          name="sad-outline"
+          size={45}
+          color={primaryColor}
+        />
+
+        <Text
+          style={[
+            styles.notFoundTitle,
+            { color: textColor },
+          ]}
+        >
+          Memory not found
+        </Text>
 
         <TouchableOpacity
-          style={styles.backButtonLarge}
+          style={[
+            styles.backButtonLarge,
+            {
+              backgroundColor: primaryColor,
+            },
+          ]}
           onPress={() => navigation.goBack()}
+          activeOpacity={0.8}
         >
-          <Text style={[styles.backButtonText, { color: colors.primaryText || "#FFFFFF" }]}>GO BACK</Text>
+          <Text
+            style={[
+              styles.backButtonText,
+              { color: primaryTextColor },
+            ]}
+          >
+            GO BACK
+          </Text>
         </TouchableOpacity>
       </View>
     );
   }
 
+  // --------------------------------------------------
+  // SCREEN
+  // --------------------------------------------------
+
   return (
-    <View style={[styles.container, { backgroundColor: screenBackground }]}>
-      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={screenBackground} />
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: screenBackground },
+      ]}
+    >
+      <StatusBar
+        barStyle={isDark ? "light-content" : "dark-content"}
+        backgroundColor={screenBackground}
+      />
+
       {/* HEADER */}
 
       <View style={styles.header}>
         <TouchableOpacity
-          style={[styles.headerButton, { backgroundColor: surfaceColor, borderColor,  }]}
+          style={[
+            styles.headerButton,
+            {
+              backgroundColor: surfaceColor,
+              borderColor,
+            },
+          ]}
           onPress={() => navigation.goBack()}
           activeOpacity={0.8}
+          disabled={generatingPdf}
         >
-          <Ionicons name="arrow-back" size={22} color={colors.text || "#242424"} />
+          <Ionicons
+            name="arrow-back"
+            size={22}
+            color={textColor}
+          />
         </TouchableOpacity>
 
         <View style={styles.headerCenter}>
-          <Text style={[styles.eyebrow, { color: secondaryTextColor }]}>EXPORT PDF</Text>
+          <Text
+            style={[
+              styles.eyebrow,
+              { color: secondaryTextColor },
+            ]}
+          >
+            EXPORT PDF
+          </Text>
 
-          <Text style={[styles.headerTitle, { color: textColor }]}>Choose your ticket back</Text>
+          <Text
+            style={[
+              styles.headerTitle,
+              { color: textColor },
+            ]}
+          >
+            Choose your ticket back
+          </Text>
         </View>
 
         <TouchableOpacity
-          style={[styles.headerButton, { backgroundColor: surfaceColor, borderColor,  }]}
+          style={[
+            styles.headerButton,
+            {
+              backgroundColor: surfaceColor,
+              borderColor,
+            },
+          ]}
           onPress={() => navigation.goBack()}
           activeOpacity={0.8}
+          disabled={generatingPdf}
         >
-          <Ionicons name="close" size={22} color={colors.text || "#242424"} />
+          <Ionicons
+            name="close"
+            size={22}
+            color={textColor}
+          />
         </TouchableOpacity>
       </View>
 
@@ -356,13 +422,25 @@ function ExportPdfScreen({ navigation, route }) {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={[styles.description, { color: secondaryTextColor }]}>
+        <Text
+          style={[
+            styles.description,
+            { color: secondaryTextColor },
+          ]}
+        >
           Choose the back design for your Memento ticket.
         </Text>
 
         {/* TICKET BACK */}
 
-        <Text style={[styles.sectionLabel, { color: secondaryTextColor }]}>TICKET BACK</Text>
+        <Text
+          style={[
+            styles.sectionLabel,
+            { color: secondaryTextColor },
+          ]}
+        >
+          TICKET BACK
+        </Text>
 
         <View style={styles.optionsRow}>
           {PDF_BACK_OPTIONS.map((option) => {
@@ -374,17 +452,26 @@ function ExportPdfScreen({ navigation, route }) {
                 style={[
                   styles.optionCard,
                   selected && styles.optionCardSelected,
+                  {
+                    backgroundColor: surfaceColor,
+                    borderColor: selected
+                      ? primaryColor
+                      : borderColor,
+                  },
                 ]}
                 onPress={() => setSelectedBack(option.id)}
                 activeOpacity={0.88}
+                disabled={generatingPdf}
               >
                 <View
                   style={[
                     styles.previewWrapper,
                     selected && styles.previewWrapperSelected,
+                    {
+                      backgroundColor: screenBackground,
+                    },
                   ]}
                 >
-
                   <Image
                     source={CLASSIC_BACK_IMAGE}
                     style={styles.miniPage}
@@ -392,15 +479,39 @@ function ExportPdfScreen({ navigation, route }) {
                   />
 
                   {selected && (
-                    <View style={[styles.selectedBadge, { backgroundColor: surfaceColor, borderColor }]}>
-                      <Ionicons name="checkmark" size={13} color="#FFFFFF" />
+                    <View
+                      style={[
+                        styles.selectedBadge,
+                        {
+                          backgroundColor: primaryColor,
+                          borderColor: surfaceColor,
+                        },
+                      ]}
+                    >
+                      <Ionicons
+                        name="checkmark"
+                        size={13}
+                        color="#FFFFFF"
+                      />
                     </View>
                   )}
                 </View>
 
-                <Text style={[styles.optionTitle, { color: textColor }]}>{option.title}</Text>
+                <Text
+                  style={[
+                    styles.optionTitle,
+                    { color: textColor },
+                  ]}
+                >
+                  {option.title}
+                </Text>
 
-                <Text style={[styles.optionDescription, { color: secondaryTextColor }]}>
+                <Text
+                  style={[
+                    styles.optionDescription,
+                    { color: secondaryTextColor },
+                  ]}
+                >
                   {option.description}
                 </Text>
               </TouchableOpacity>
@@ -410,68 +521,133 @@ function ExportPdfScreen({ navigation, route }) {
 
         {/* PAPER INFO */}
 
-        <View style={[styles.paperInfo, { backgroundColor: surfaceColor, borderColor,  }]}>
-          <View style={[styles.paperInfoItem, { backgroundColor: surfaceColor, borderColor }]}>
-            <Ionicons name="document-outline" size={16} color={colors.primary || "#34345C"} />
+        <View
+          style={[
+            styles.paperInfo,
+            {
+              backgroundColor: surfaceColor,
+              borderColor,
+            },
+          ]}
+        >
+          <View style={styles.paperInfoItem}>
+            <Ionicons
+              name="document-outline"
+              size={16}
+              color={primaryColor}
+            />
 
-            <Text style={[styles.paperInfoText, { color: secondaryTextColor }]}>A7</Text>
+            <Text
+              style={[
+                styles.paperInfoText,
+                { color: secondaryTextColor },
+              ]}
+            >
+              A7
+            </Text>
           </View>
 
-          <View style={styles.paperInfoDivider} />
+          <View
+            style={[
+              styles.paperInfoDivider,
+              { backgroundColor: borderColor },
+            ]}
+          />
 
-          <View style={[styles.paperInfoItem, { backgroundColor: surfaceColor, borderColor }]}>
-            <Ionicons name="resize-outline" size={16} color={colors.primary || "#34345C"} />
+          <View style={styles.paperInfoItem}>
+            <Ionicons
+              name="resize-outline"
+              size={16}
+              color={primaryColor}
+            />
 
-            <Text style={[styles.paperInfoText, { color: secondaryTextColor }]}>74 × 105 mm</Text>
+            <Text
+              style={[
+                styles.paperInfoText,
+                { color: secondaryTextColor },
+              ]}
+            >
+              74 × 105 mm
+            </Text>
           </View>
 
-          <View style={styles.paperInfoDivider} />
+          <View
+            style={[
+              styles.paperInfoDivider,
+              { backgroundColor: borderColor },
+            ]}
+          />
 
-          <View style={[styles.paperInfoItem, { backgroundColor: surfaceColor, borderColor }]}>
-            <Ionicons name="copy-outline" size={16} color={colors.primary || "#34345C"} />
+          <View style={styles.paperInfoItem}>
+            <Ionicons
+              name="copy-outline"
+              size={16}
+              color={primaryColor}
+            />
 
-            <Text style={[styles.paperInfoText, { color: secondaryTextColor }]}>2 pages</Text>
+            <Text
+              style={[
+                styles.paperInfoText,
+                { color: secondaryTextColor },
+              ]}
+            >
+              2 pages
+            </Text>
           </View>
         </View>
 
-        {/* EXPORT */}
+        {/* TACTILE EXPORT BUTTON */}
+
+        <TactileButton
+          label="EXPORT PDF"
+          icon="document-text-outline"
+          onPress={handleExportPdf}
+          loading={generatingPdf}
+          loadingText="CREATING PDF..."
+          disabled={generatingPdf}
+          color={primaryColor}
+          textColor={primaryTextColor}
+          iconColor="#FFFFFF"
+          height={54}
+          borderRadius={15}
+          depth={4}
+          accessibilityLabel="Export memory ticket as PDF"
+          style={{
+            marginTop: 4,
+          }}
+          textStyle={styles.exportButtonText}
+        />
+
+        {/* CANCEL */}
 
         <TouchableOpacity
           style={[
-            styles.exportButton, { backgroundColor: colors.primary || "#34345C" }, generatingPdf && styles.exportButtonDisabled,
+            styles.cancelButton,
+            {
+              backgroundColor: surfaceColor,
+              borderColor,
+            },
           ]}
-          onPress={handleExportPdf}
-          disabled={generatingPdf}
-          activeOpacity={0.85}
-        >
-          {generatingPdf ? (
-            <>
-              <ActivityIndicator size="small" color="#FFFFFF" />
-
-              <Text style={[styles.exportButtonText, { color: colors.primaryText || "#FFFFFF" }]}>CREATING PDF...</Text>
-            </>
-          ) : (
-            <>
-              <Ionicons
-                name="document-text-outline"
-                size={19}
-                color="#FFFFFF"
-              />
-
-              <Text style={[styles.exportButtonText, { color: colors.primaryText || "#FFFFFF" }]}>EXPORT PDF</Text>
-            </>
-          )}
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.cancelButton, { backgroundColor: surfaceColor, borderColor,  }]}
           onPress={() => navigation.goBack()}
           disabled={generatingPdf}
+          activeOpacity={0.8}
         >
-          <Text style={[styles.cancelButtonText, { color: colors.primary || "#34345C" }]}>CANCEL</Text>
+          <Text
+            style={[
+              styles.cancelButtonText,
+              { color: primaryColor },
+            ]}
+          >
+            CANCEL
+          </Text>
         </TouchableOpacity>
 
-        <Text style={[styles.footerHint, { color: secondaryTextColor }]}>
+        <Text
+          style={[
+            styles.footerHint,
+            { color: secondaryTextColor },
+          ]}
+        >
           Page 1 uses the exact ticket captured from Memory Details. Page 2 uses
           the classic Memento ticket back.
         </Text>

@@ -1,4 +1,6 @@
+
 import React, { useCallback, useRef } from "react";
+
 import {
   ActivityIndicator,
   Animated,
@@ -7,6 +9,7 @@ import {
   Text,
   View,
 } from "react-native";
+
 import { Ionicons } from "@expo/vector-icons";
 
 function darkenHexColor(color, factor = 0.7) {
@@ -43,6 +46,7 @@ function TactileButton({
   onPress,
   icon,
   iconSize = 20,
+  iconPosition = "left",
 
   color = "#34345C",
   textColor = "#FFFFFF",
@@ -122,11 +126,7 @@ function TactileButton({
 
       <Animated.View
         style={{
-          transform: [
-            {
-              translateY,
-            },
-          ],
+          transform: [{ translateY }],
         }}
       >
         <Pressable
@@ -142,7 +142,7 @@ function TactileButton({
             disabled: isDisabled,
             busy: loading,
           }}
-          style={({ pressed }) => [
+          style={[
             styles.button,
             {
               height,
@@ -163,9 +163,7 @@ function TactileButton({
               <Text
                 style={[
                   styles.label,
-                  {
-                    color: textColor,
-                  },
+                  { color: textColor },
                   textStyle,
                 ]}
               >
@@ -174,7 +172,9 @@ function TactileButton({
             </>
           ) : (
             <>
-              {icon ? (
+              {/* LEFT ICON */}
+
+              {icon && iconPosition === "left" ? (
                 <Ionicons
                   name={icon}
                   size={iconSize}
@@ -182,17 +182,27 @@ function TactileButton({
                 />
               ) : null}
 
+              {/* LABEL — RENDERED ONCE */}
+
               <Text
                 style={[
                   styles.label,
-                  {
-                    color: textColor,
-                  },
+                  { color: textColor },
                   textStyle,
                 ]}
               >
                 {label}
               </Text>
+
+              {/* RIGHT ICON */}
+
+              {icon && iconPosition === "right" ? (
+                <Ionicons
+                  name={icon}
+                  size={iconSize}
+                  color={iconColor || textColor}
+                />
+              ) : null}
             </>
           )}
         </Pressable>
