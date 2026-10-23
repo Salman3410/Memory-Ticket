@@ -64,6 +64,7 @@
       "expo-asset",
       "expo-local-authentication",
       "expo-notifications",
+      
       [
         "react-native-android-widget",
         {
@@ -71,16 +72,18 @@
             {
               "name": "Memento",
               "label": "Memento",
-              "minWidth": "118dp",
-              "minHeight": "118dp",
               "description": "Your memories at a glance",
+              "minWidth": "118dp",
+              "minHeight": "58dp",
               "targetCellWidth": 2,
-              "targetCellHeight": 2,
+              "targetCellHeight": 1,
+              "resizeMode": "horizontal",
               "updatePeriodMillis": 1800000
             }
           ]
         }
-      ],
+      ]
+,
       "expo-font"
     ],
     "extra": {

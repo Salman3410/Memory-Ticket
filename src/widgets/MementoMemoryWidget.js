@@ -1,3 +1,4 @@
+
 import {
   FlexWidget,
   ImageWidget,
@@ -15,23 +16,27 @@ function formatWidgetDate(value) {
     return "A moment to remember";
   }
 
+  // Shorter format for the compact 2x1 widget.
   return date.toLocaleDateString(undefined, {
     day: "numeric",
     month: "short",
-    year: "numeric",
   });
 }
 
 export function MementoMemoryWidget({ memory = null }) {
-  const memoryId = memory?.id
-    ? String(memory.id)
-    : null;
+  const rawId = memory?._id ?? memory?.id;
+
+  const memoryId =
+    rawId != null ? String(rawId) : null;
 
   const title =
-    memory?.title?.trim() || "Your next memory";
+    typeof memory?.title === "string" &&
+    memory.title.trim()
+      ? memory.title.trim()
+      : "Your next memory";
 
   const date = formatWidgetDate(
-    memory?.date || memory?.createdAt,
+    memory?.date || memory?.createdAt
   );
 
   const remoteImage =
@@ -58,170 +63,119 @@ export function MementoMemoryWidget({ memory = null }) {
       style={{
         width: "match_parent",
         height: "match_parent",
-        flexDirection: "column",
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "flex-start",
         backgroundColor: "#34345C",
-        borderRadius: 22,
-        padding: 11,
+        borderRadius: 18,
+        padding: 8,
         overflow: "hidden",
       }}
     >
-      {/* Rabbit-inspired header */}
-      <FlexWidget
-        style={{
-          width: "match_parent",
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: 9,
-        }}
-      >
-        <FlexWidget
+      {/* LEFT: Memory thumbnail */}
+      {remoteImage ? (
+        <ImageWidget
+          image={remoteImage}
+          imageWidth={40}
+          imageHeight={40}
+          resizeMode="cover"
+          radius={10}
           style={{
-            flexDirection: "row",
-            alignItems: "center",
+            marginRight: 8,
           }}
-        >
-          <TextWidget
-            text="🐇"
-            style={{
-              fontSize: 19,
-              marginRight: 5,
-            }}
-          />
-
-          <TextWidget
-            text="MEMENTO"
-            style={{
-              color: "#FFFFFF",
-              fontSize: 10,
-              fontWeight: "800",
-              letterSpacing: 1,
-            }}
-          />
-        </FlexWidget>
-
+        />
+      ) : (
         <FlexWidget
           style={{
-            width: 25,
-            height: 25,
-            borderRadius: 9,
+            width: 40,
+            height: 40,
+            borderRadius: 10,
             backgroundColor: "#E76F51",
             alignItems: "center",
             justifyContent: "center",
+            marginRight: 8,
           }}
         >
           <TextWidget
-            text="♥"
+            text="✦"
             style={{
               color: "#FFFFFF",
-              fontSize: 13,
+              fontSize: 23,
               fontWeight: "700",
             }}
           />
         </FlexWidget>
-      </FlexWidget>
+      )}
 
-      {/* Memory thumbnail and information */}
+      {/* RIGHT: Flexible content column */}
       <FlexWidget
         style={{
-          width: "match_parent",
           flex: 1,
-          flexDirection: "row",
-          alignItems: "center",
+          flexDirection: "column",
+          alignItems: "stretch",
+          justifyContent: "center",
+          minWidth: 0,
         }}
       >
-        {remoteImage ? (
-          <ImageWidget
-            image={remoteImage}
-            imageWidth={42}
-            imageHeight={48}
-            resizeMode="cover"
-            radius={9}
-            style={{
-              marginRight: 8,
-            }}
-          />
-        ) : (
-          <FlexWidget
-            style={{
-              width: 42,
-              height: 48,
-              borderRadius: 9,
-              backgroundColor: "#E76F51",
-              alignItems: "center",
-              justifyContent: "center",
-              marginRight: 8,
-            }}
-          >
-            <TextWidget
-              text="✦"
-              style={{
-                color: "#FFFFFF",
-                fontSize: 25,
-                fontWeight: "700",
-              }}
-            />
-          </FlexWidget>
-        )}
-
+        {/* Compact brand header */}
         <FlexWidget
           style={{
-            flex: 1,
-            flexDirection: "column",
-            alignItems: "flex-start",
-            justifyContent: "center",
+            width: "match_parent",
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 2,
           }}
         >
           <TextWidget
-            text="YOUR MEMORY"
+            text="MEMENTO"
             maxLines={1}
             truncate="END"
             style={{
               color: "#F3B39F",
               fontSize: 8,
               fontWeight: "800",
-              letterSpacing: 0.7,
-              marginBottom: 4,
+              letterSpacing: 0.5,
             }}
           />
 
           <TextWidget
-            text={title}
-            maxLines={2}
-            truncate="END"
+            text="↗"
             style={{
-              color: "#FFFFFF",
+              color: "#E76F51",
               fontSize: 12,
-              fontWeight: "700",
-              lineHeight: 15,
-            }}
-          />
-
-          <TextWidget
-            text={date}
-            maxLines={1}
-            truncate="END"
-            style={{
-              color: "#D8D5E8",
-              fontSize: 9,
-              marginTop: 5,
+              fontWeight: "800",
             }}
           />
         </FlexWidget>
-      </FlexWidget>
 
-      {/* Small bottom prompt */}
-      <TextWidget
-        text={memoryId ? "TAP TO RELIVE ↗" : "OPEN MEMENTO ↗"}
-        maxLines={1}
-        style={{
-          color: "#F3B39F",
-          fontSize: 9,
-          fontWeight: "800",
-          letterSpacing: 0.7,
-          marginTop: 7,
-        }}
-      />
+        {/* Memory title: never push outside the widget */}
+        <TextWidget
+          text={title}
+          maxLines={1}
+          truncate="END"
+          style={{
+            color: "#FFFFFF",
+            fontSize: 12,
+            fontWeight: "800",
+            lineHeight: 15,
+            flexShrink: 1,
+          }}
+        />
+
+        {/* Short date keeps the row compact */}
+        <TextWidget
+          text={date}
+          maxLines={1}
+          truncate="END"
+          style={{
+            color: "#D8D5E8",
+            fontSize: 9,
+            lineHeight: 11,
+            marginTop: 2,
+          }}
+        />
+      </FlexWidget>
     </FlexWidget>
   );
 }
