@@ -1,7 +1,5 @@
-import React from "react";
-
 import { Pressable, StyleSheet, Text, View } from "react-native";
-
+import TactileButton from "../common/TactileButton";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
 
@@ -135,50 +133,78 @@ function CustomAlert({
 
         {/* ACTION BUTTONS */}
 
-        <View style={[styles.buttonRow, !showCancel && styles.singleButtonRow]}>
-          {showCancel && (
-            <Pressable
-              style={({ pressed }) => [
-                styles.cancelButton,
-                {
-                  backgroundColor: colors.surface,
-                  borderColor: colors.border,
-                },
-                pressed && styles.buttonPressed,
-              ]}
-              onPress={onCancel}
-              accessibilityRole="button"
-            >
-              <Text style={[styles.cancelText, { color: colors.text }]}>
-                {cancelText}
-              </Text>
-            </Pressable>
-          )}
+<View
+  style={[
+    styles.buttonRow,
+    !showCancel && styles.singleButtonRow,
+  ]}
+>
+  {showCancel && (
+    <TactileButton
+      label={cancelText}
+      onPress={onCancel}
+      color={colors.surface}
+      textColor={colors.text}
+      height={48}
+      borderRadius={14}
+      depth={2}
+      style={{
+        flex: 1,
+        width: "auto",
+        marginBottom: 0,
+      }}
+      contentStyle={[
+        styles.cancelButton,
+        {
+          backgroundColor: colors.surface,
+          borderColor: colors.border,
+        },
+      ]}
+      textStyle={[
+        styles.cancelText,
+        { color: colors.text },
+      ]}
+    />
+  )}
 
-          <Pressable
-            style={({ pressed }) => [
-              styles.confirmButton,
-              {
-                backgroundColor:
-                  type === "danger" ? colors.danger : colors.primary,
-              },
-              pressed && styles.buttonPressed,
-            ]}
-            onPress={onConfirm}
-            accessibilityRole="button"
-          >
-            <Text
-              style={[
-                styles.confirmText,
-                {
-                  color: type === "danger" ? "#FFFFFF" : colors.primaryText,
-                },
-              ]}
-            >
-              {confirmText}
-            </Text>
-          </Pressable>
-        </View>
+  <TactileButton
+    label={confirmText}
+    onPress={onConfirm}
+    color={type === "danger" ? colors.danger : colors.primary}
+    textColor={
+      type === "danger" ? "#FFFFFF" : colors.primaryText
+    }
+    height={48}
+    borderRadius={14}
+    depth={2}
+    style={
+      showCancel
+        ? {
+            flex: 1,
+            width: "auto",
+            marginBottom: 0,
+          }
+        : {
+            width: "100%",
+            marginBottom: 0,
+          }
+    }
+    contentStyle={[
+      styles.confirmButton,
+      {
+        backgroundColor:
+          type === "danger" ? colors.danger : colors.primary,
+      },
+    ]}
+    textStyle={[
+      styles.confirmText,
+      {
+        color:
+          type === "danger" ? "#FFFFFF" : colors.primaryText,
+      },
+    ]}
+  />
+</View>
       </View>
     </View>
   );
