@@ -5,36 +5,25 @@ import {
   Text,
   StatusBar,
 } from "react-native";
-
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
-
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
-
 import { useTheme } from "../../context/ThemeContext";
 import { useAppAlert } from "../../context/AlertContext";
-
 import CreateMemoryHeader from "./components/CreateMemoryHeader";
 import PhotoSection from "./components/PhotoSection";
 import MemoryForm from "./components/MemoryForm";
 import DescriptionInput from "./components/DescriptionInput";
 import PreviewButton from "./components/PreviewButton";
 import MemoryDatePicker from "./components/MemoryDatePicker";
-
 import TagsInput from "../../components/TagsInput/TagsInput";
-
 import styles from "./createMemoryStyles";
-
 import { getNetworkInfo } from "../../services/networkService";
 import { normalizeTicketCustomization } from "../../utils/ticketCustomization";
 
+
 const MAX_IMAGES = 5;
 
-/**
- * Normalize a date to local noon.
- * This keeps the chosen calendar day consistent
- * when storing the date as an ISO string.
- */
 function normalizeMemoryDate(value) {
   let date;
 

@@ -4,6 +4,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { Linking } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import {
   NavigationContainer,
@@ -11,6 +12,7 @@ import {
 } from "@react-navigation/native";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { KeyboardProvider } from "react-native-keyboard-controller";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import * as ExpoSplashScreen from "expo-splash-screen";
 import * as Notifications from "expo-notifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -21,20 +23,29 @@ import { RewardsProvider } from "./src/context/RewardsContext";
 import { SubscriptionProvider } from "./src/context/SubscriptionContext";
 import { ThemeProvider } from "./src/context/ThemeContext";
 import AlertProvider from "./src/context/AlertContext";
-import { configureNotifications } from "./src/services/notificationService";
-import { getAppLockEnabled } from "./src/services/appLockService";
+import {
+  AnimatedNotificationProvider,
+} from "./src/context/AnimatedNotificationContext";
+import {
+  configureNotifications,
+} from "./src/services/notificationService";
+import {
+  getAppLockEnabled,
+} from "./src/services/appLockService";
 import { useAuth } from "./src/hooks/useAuth";
 import { useMemory } from "./src/hooks/useMemory";
 import RootNavigator from "./src/navigation/RootNavigator";
 import MementoSplashScreen from "./src/components/Splash/SplashScreen";
 import AppLockScreen from "./src/components/AppLock/AppLockScreen";
 import OnboardingScreen from "./src/screens/Onboarding/OnboardingScreen";
-import { Linking } from "react-native";
 
 const ONBOARDING_SEEN_KEY = "memory_ticket_onboarding_seen";
+
 const navigationRef = createNavigationContainerRef();
 
-ExpoSplashScreen.preventAutoHideAsync();
+ExpoSplashScreen.preventAutoHideAsync().catch((error) => {
+  console.warn("Unable to prevent native splash auto-hide:", error);
+});
 
 function AppContent() {
   const { user, loading } = useAuth();
@@ -46,15 +57,18 @@ function AppContent() {
   const [onboardingReady, setOnboardingReady] = useState(false);
   const [hasSeenOnboarding, setHasSeenOnboarding] = useState(false);
   const [navigationReady, setNavigationReady] = useState(false);
+
   const [navigationStateVersion, setNavigationStateVersion] =
     useState(0);
+
   const [pendingNotification, setPendingNotification] = useState(null);
   const [pendingWidgetMemoryId, setPendingWidgetMemoryId] =
-  useState(null);
+    useState(null);
 
   const nativeSplashHidden = useRef(false);
   const pendingNotificationKeyRef = useRef(null);
 
+  // Load App Lock, onboarding status, and notification configuration.
   useEffect(() => {
     getAppLockEnabled()
       .then(setAppLocked)
@@ -96,9 +110,27 @@ function AppContent() {
       }
     };
 
-    requestAnimationFrame(hideNativeSplash);
+    requestAnimationFrame(() => {
+      hideNativeSplash();
+    });
   }, []);
 
+  // Clear a handled notification response safely.
+  const clearPendingNotification = useCallback(() => {
+    pendingNotificationKeyRef.current = null;
+    setPendingNotification(null);
+
+    Notifications.clearLastNotificationResponseAsync().catch(
+      (error) => {
+        console.warn(
+          "Unable to clear the handled notification response:",
+          error,
+        );
+      },
+    );
+  }, []);
+
+  // Queue a notification tapped from the Android/iOS notification tray.
   const queueNotificationResponse = useCallback((response) => {
     const request = response?.notification?.request;
 
@@ -128,6 +160,7 @@ function AppContent() {
     });
   }, []);
 
+  // Listen for notification taps and handle cold-start notification taps.
   useEffect(() => {
     let mounted = true;
 
@@ -155,20 +188,10 @@ function AppContent() {
     };
   }, [queueNotificationResponse]);
 
+  // Navigate after a notification tap only when the app is ready.
   useEffect(() => {
     if (!pendingNotification) {
       return;
-    }
-
-    if (
-      loading ||
-      !appLockReady ||
-      !onboardingReady ||
-      !showMementoSplash ||
-      memoriesLoading ||
-      !navigationReady ||
-      !navigationRef.isReady()
-    ) {
     }
 
     if (
@@ -194,6 +217,7 @@ function AppContent() {
       return;
     }
 
+    // Keep the request pending until App Lock has been unlocked.
     if (appLocked) {
       return;
     }
@@ -243,132 +267,120 @@ function AppContent() {
     memoriesLoading,
     navigationReady,
     navigationStateVersion,
+    clearPendingNotification,
   ]);
 
-  function clearPendingNotification() {
-    pendingNotificationKeyRef.current = null;
-    setPendingNotification(null);
-
-    Notifications.clearLastNotificationResponseAsync().catch(
-      (error) => {
-        console.warn(
-          "Unable to clear the handled notification response:",
-          error,
-        );
-      },
-    );
-  }
-
+  // Parse a Memento widget deep link.
   const queueWidgetDeepLink = useCallback((url) => {
-  if (typeof url !== "string") {
-    return;
-  }
-
-  const match = url.match(
-    /^memento:\/\/memory\/([^/?#]+)/i,
-  );
-
-  if (!match) {
-    return;
-  }
-
-  try {
-    const memoryId = decodeURIComponent(match[1]);
-
-    if (memoryId) {
-      setPendingWidgetMemoryId(memoryId);
+    if (typeof url !== "string") {
+      return;
     }
-  } catch (error) {
-    console.warn(
-      "Unable to parse Memento widget link:",
-      error,
+
+    const match = url.match(
+      /^memento:\/\/memory\/([^/?#]+)/i,
     );
-  }
-  }, []);
 
-  useEffect(() => {
-  if (!pendingWidgetMemoryId) {
-    return;
-  }
+    if (!match) {
+      return;
+    }
 
-  if (
-    loading ||
-    !appReadyCheck({
-      showMementoSplash,
-      appLockReady,
-      onboardingReady,
-      navigationReady,
-      memoriesLoading,
-    }) ||
-    !navigationRef.isReady()
-  ) {
-    return;
-  }
+    try {
+      const memoryId = decodeURIComponent(match[1]);
 
-  // Keep the pending link until the user can access memories.
-  if (!hasSeenOnboarding || !user || appLocked) {
-    return;
-  }
-
-  const rootState = navigationRef.getRootState();
-  const routeNames = rootState?.routeNames || [];
-
-  if (
-    !routeNames.includes("MainTabs") ||
-    !routeNames.includes("MemoryDetails")
-  ) {
-    return;
-  }
-
-  navigationRef.navigate("MemoryDetails", {
-    memoryId: pendingWidgetMemoryId,
-  });
-
-  setPendingWidgetMemoryId(null);
-}, [
-  pendingWidgetMemoryId,
-  loading,
-  user,
-  appLocked,
-  appLockReady,
-  onboardingReady,
-  hasSeenOnboarding,
-  showMementoSplash,
-  memoriesLoading,
-  navigationReady,
-  navigationStateVersion,
-  ]);
-
-
-useEffect(() => {
-  let mounted = true;
-
-  Linking.getInitialURL()
-    .then((url) => {
-      if (mounted && url) {
-        queueWidgetDeepLink(url);
+      if (memoryId) {
+        setPendingWidgetMemoryId(memoryId);
       }
-    })
-    .catch((error) => {
+    } catch (error) {
       console.warn(
-        "Unable to read the initial widget link:",
+        "Unable to parse Memento widget link:",
         error,
       );
+    }
+  }, []);
+
+  // Handle both cold-start widget links and links received while open.
+  useEffect(() => {
+    let mounted = true;
+
+    Linking.getInitialURL()
+      .then((url) => {
+        if (mounted && url) {
+          queueWidgetDeepLink(url);
+        }
+      })
+      .catch((error) => {
+        console.warn(
+          "Unable to read the initial widget link:",
+          error,
+        );
+      });
+
+    const subscription = Linking.addEventListener(
+      "url",
+      ({ url }) => {
+        queueWidgetDeepLink(url);
+      },
+    );
+
+    return () => {
+      mounted = false;
+      subscription.remove();
+    };
+  }, [queueWidgetDeepLink]);
+
+  // Open the selected memory after authentication and App Lock checks.
+  useEffect(() => {
+    if (!pendingWidgetMemoryId) {
+      return;
+    }
+
+    if (
+      loading ||
+      !appReadyCheck({
+        showMementoSplash,
+        appLockReady,
+        onboardingReady,
+        navigationReady,
+        memoriesLoading,
+      }) ||
+      !navigationRef.isReady()
+    ) {
+      return;
+    }
+
+    // Preserve the link until the user can access memories.
+    if (!hasSeenOnboarding || !user || appLocked) {
+      return;
+    }
+
+    const rootState = navigationRef.getRootState();
+    const routeNames = rootState?.routeNames || [];
+
+    if (
+      !routeNames.includes("MainTabs") ||
+      !routeNames.includes("MemoryDetails")
+    ) {
+      return;
+    }
+
+    navigationRef.navigate("MemoryDetails", {
+      memoryId: pendingWidgetMemoryId,
     });
 
-  const subscription = Linking.addEventListener(
-    "url",
-    ({ url }) => {
-      queueWidgetDeepLink(url);
-    },
-  );
-
-  return () => {
-    mounted = false;
-    subscription.remove();
-  };
-}, [queueWidgetDeepLink]);
-
+    setPendingWidgetMemoryId(null);
+  }, [
+    pendingWidgetMemoryId,
+    loading,
+    user,
+    appLocked,
+    appLockReady,
+    onboardingReady,
+    hasSeenOnboarding,
+    showMementoSplash,
+    memoriesLoading,
+    navigationReady,
+    navigationStateVersion,
+  ]);
 
   const appReady =
     !loading &&
@@ -441,25 +453,29 @@ function appReadyCheck({
 function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <ThemeProvider>
-        <AlertProvider>
-          <KeyboardProvider>
-            <AuthProvider>
-              <SubscriptionProvider>
-                <RewardsProvider>
-                  <MemoryProvider>
-                    <CollectionProvider>
-                      <BottomSheetModalProvider>
-                        <AppContent />
-                      </BottomSheetModalProvider>
-                    </CollectionProvider>
-                  </MemoryProvider>
-                </RewardsProvider>
-              </SubscriptionProvider>
-            </AuthProvider>
-          </KeyboardProvider>
-        </AlertProvider>
-      </ThemeProvider>
+      <SafeAreaProvider>
+        <AnimatedNotificationProvider>
+          <ThemeProvider>
+            <AlertProvider>
+              <KeyboardProvider>
+                <AuthProvider>
+                  <SubscriptionProvider>
+                    <RewardsProvider>
+                      <MemoryProvider>
+                        <CollectionProvider>
+                          <BottomSheetModalProvider>
+                            <AppContent />
+                          </BottomSheetModalProvider>
+                        </CollectionProvider>
+                      </MemoryProvider>
+                    </RewardsProvider>
+                  </SubscriptionProvider>
+                </AuthProvider>
+              </KeyboardProvider>
+            </AlertProvider>
+          </ThemeProvider>
+        </AnimatedNotificationProvider>
+      </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }

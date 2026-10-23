@@ -1,3 +1,4 @@
+
 import { useMemo, useState } from "react";
 import {
   View,
@@ -8,12 +9,21 @@ import {
   ActivityIndicator,
   StatusBar,
 } from "react-native";
+
 import { Ionicons } from "@expo/vector-icons";
+
 import { useMemory } from "../../hooks/useMemory";
 import { useAppAlert } from "../../context/AlertContext";
 import { useTheme } from "../../context/ThemeContext";
+
+import {
+  useAnimatedNotification,
+} from "../../context/AnimatedNotificationContext";
+
 import MemoryTicket from "../../components/MemoryTicket/MemoryTicket";
+
 import TicketCustomizationSheet from "../../components/TicketCustomization/TicketCustomizationSheet";
+
 import { normalizeTicketCustomization } from "../../utils/ticketCustomization";
 import styles from "./ticketPreviewStyles";
 
@@ -22,35 +32,47 @@ function TicketPreviewScreen({ route, navigation }) {
   const { showAlert } = useAppAlert();
   const { theme, isDark } = useTheme();
 
+  const { showNotification } = useAnimatedNotification();
+
   const { memory } = route.params || {};
+
   const { width: screenWidth } = useWindowDimensions();
+
   const [activeImage, setActiveImage] = useState(0);
   const [saving, setSaving] = useState(false);
+
   const [customization, setCustomization] = useState(() =>
     normalizeTicketCustomization(memory || {}),
   );
 
-  const [customizationVisible, setCustomizationVisible] = useState(false);
+  const [customizationVisible, setCustomizationVisible] =
+    useState(false);
 
   const colors = useMemo(() => {
     const themeColors = theme?.colors || {};
 
     return {
-      background: themeColors.background || (isDark ? "#171724" : "#F1F0F6"),
+      background:
+        themeColors.background ||
+        (isDark ? "#171724" : "#F1F0F6"),
 
       surface:
         themeColors.surface ||
         themeColors.card ||
         (isDark ? "#232333" : "#FFFFFF"),
 
-      text: themeColors.text || (isDark ? "#F1F0F6" : "#242424"),
+      text:
+        themeColors.text ||
+        (isDark ? "#F1F0F6" : "#242424"),
 
       textSecondary:
         themeColors.textSecondary ||
         themeColors.textMuted ||
         (isDark ? "#A6A6B8" : "#737387"),
 
-      border: themeColors.border || (isDark ? "#38384C" : "#D9D8E2"),
+      border:
+        themeColors.border ||
+        (isDark ? "#38384C" : "#D9D8E2"),
 
       primary: themeColors.primary || "#34345C",
 
@@ -219,6 +241,9 @@ function TicketPreviewScreen({ route, navigation }) {
     ...customization,
   };
 
+  /**
+   * Save the memory and show the animated glass notification.
+   */
   const handleSave = async () => {
     if (saving) {
       return;
@@ -246,14 +271,20 @@ function TicketPreviewScreen({ route, navigation }) {
 
         locationData: memory.locationData || null,
 
-        network: memory.network || memory.environment?.network || null,
+        network:
+          memory.network ||
+          memory.environment?.network ||
+          null,
 
         description: memory.description || "",
 
-        tags: Array.isArray(memory.tags) ? [...memory.tags] : [],
+        tags: Array.isArray(memory.tags)
+          ? [...memory.tags]
+          : [],
 
         images: [...images],
 
+        // Preserve the date chosen by the user.
         date: memory.date || new Date().toISOString(),
 
         favorite: false,
@@ -276,6 +307,15 @@ function TicketPreviewScreen({ route, navigation }) {
       navigation.navigate("MainTabs", {
         screen: "Memories",
       });
+
+      showNotification({
+        type: "success",
+        title: "Memory saved!",
+        message: "Your moment is safe.",
+        duration: 2800,
+      });
+
+      
     } catch (error) {
       console.error("Error saving memory:", error);
 
@@ -283,7 +323,8 @@ function TicketPreviewScreen({ route, navigation }) {
         type: "danger",
         icon: "close-circle-outline",
         title: "Save Failed",
-        message: error?.message || "Unable to save the memory.",
+        message:
+          error?.message || "Unable to save the memory.",
         confirmText: "OK",
       });
     } finally {
@@ -291,6 +332,9 @@ function TicketPreviewScreen({ route, navigation }) {
     }
   };
 
+  /**
+   * Return to Create Memory with the current ticket customization.
+   */
   const handleEdit = () => {
     if (saving) {
       return;
@@ -311,7 +355,9 @@ function TicketPreviewScreen({ route, navigation }) {
 
           locationData: memory.locationData || null,
 
-          tags: Array.isArray(memory.tags) ? [...memory.tags] : [],
+          tags: Array.isArray(memory.tags)
+            ? [...memory.tags]
+            : [],
 
           ticketStyle: customization.ticketStyle,
 
@@ -369,13 +415,21 @@ function TicketPreviewScreen({ route, navigation }) {
             disabled={saving}
             activeOpacity={0.7}
           >
-            <Ionicons name="arrow-back" size={21} color={colors.text} />
+            <Ionicons
+              name="arrow-back"
+              size={21}
+              color={colors.text}
+            />
           </TouchableOpacity>
 
           <View style={styles.headerTextContainer}>
-            <Text style={screenStyles.headerEyebrow}>YOUR MEMORY</Text>
+            <Text style={screenStyles.headerEyebrow}>
+              YOUR MEMORY
+            </Text>
 
-            <Text style={screenStyles.headerTitle}>Ticket Preview</Text>
+            <Text style={screenStyles.headerTitle}>
+              Ticket Preview
+            </Text>
           </View>
 
           <View style={styles.headerSpacer} />
@@ -384,7 +438,9 @@ function TicketPreviewScreen({ route, navigation }) {
         {/* INTRO */}
 
         <View style={styles.previewHeader}>
-          <Text style={screenStyles.previewTitle}>Looks good?</Text>
+          <Text style={screenStyles.previewTitle}>
+            Looks good?
+          </Text>
 
           <Text style={screenStyles.previewSubtitle}>
             This moment is ready to become a ticket.
@@ -404,13 +460,18 @@ function TicketPreviewScreen({ route, navigation }) {
           disableIntervalMomentum
           onMomentumScrollEnd={(event) => {
             const index = Math.round(
-              event.nativeEvent.contentOffset.x / (screenWidth - 32),
+              event.nativeEvent.contentOffset.x /
+                (screenWidth - 32),
             );
 
-            setActiveImage(Math.max(0, Math.min(index, images.length - 1)));
+            setActiveImage(
+              Math.max(0, Math.min(index, images.length - 1)),
+            );
           }}
         >
-          {images.length > 0 ? images.map(renderTicket) : renderTicket(null, 0)}
+          {images.length > 0
+            ? images.map(renderTicket)
+            : renderTicket(null, 0)}
         </ScrollView>
 
         {/* SWIPE HINT */}
@@ -449,7 +510,9 @@ function TicketPreviewScreen({ route, navigation }) {
             color={colors.primary}
           />
 
-          <Text style={screenStyles.editButtonText}>CUSTOMIZE TICKET</Text>
+          <Text style={screenStyles.editButtonText}>
+            CUSTOMIZE TICKET
+          </Text>
         </TouchableOpacity>
 
         {/* ACTIONS */}
@@ -457,7 +520,9 @@ function TicketPreviewScreen({ route, navigation }) {
         <View style={styles.actionsContainer}>
           <TouchableOpacity
             style={
-              saving ? screenStyles.saveButtonDisabled : screenStyles.saveButton
+              saving
+                ? screenStyles.saveButtonDisabled
+                : screenStyles.saveButton
             }
             onPress={handleSave}
             disabled={saving}
@@ -465,15 +530,26 @@ function TicketPreviewScreen({ route, navigation }) {
           >
             {saving ? (
               <>
-                <ActivityIndicator size="small" color="#FFFFFF" />
+                <ActivityIndicator
+                  size="small"
+                  color="#FFFFFF"
+                />
 
-                <Text style={screenStyles.saveButtonText}>SAVING...</Text>
+                <Text style={screenStyles.saveButtonText}>
+                  SAVING...
+                </Text>
               </>
             ) : (
               <>
-                <Ionicons name="bookmark-outline" size={20} color="#FFFFFF" />
+                <Ionicons
+                  name="bookmark-outline"
+                  size={20}
+                  color="#FFFFFF"
+                />
 
-                <Text style={screenStyles.saveButtonText}>SAVE MEMORY</Text>
+                <Text style={screenStyles.saveButtonText}>
+                  SAVE MEMORY
+                </Text>
               </>
             )}
           </TouchableOpacity>
@@ -484,9 +560,15 @@ function TicketPreviewScreen({ route, navigation }) {
             disabled={saving}
             activeOpacity={0.8}
           >
-            <Ionicons name="create-outline" size={19} color={colors.primary} />
+            <Ionicons
+              name="create-outline"
+              size={19}
+              color={colors.primary}
+            />
 
-            <Text style={screenStyles.editButtonText}>EDIT</Text>
+            <Text style={screenStyles.editButtonText}>
+              EDIT
+            </Text>
           </TouchableOpacity>
         </View>
 
