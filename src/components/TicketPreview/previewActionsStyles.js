@@ -1,3 +1,4 @@
+
 import { StyleSheet } from "react-native";
 
 const styles = StyleSheet.create({
@@ -14,14 +15,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 9,
+
+    // Keep the shadow subtle so the tactile base stands out.
     shadowColor: "#34345C",
     shadowOffset: {
       width: 0,
-      height: 5,
+      height: 2,
     },
-    shadowOpacity: 0.18,
-    shadowRadius: 8,
-    elevation: 5,
+    shadowOpacity: 0.12,
+    shadowRadius: 3,
+    elevation: 2,
   },
 
   saveButtonText: {

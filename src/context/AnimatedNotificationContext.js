@@ -347,18 +347,23 @@ function AnimatedNotificationOverlay({
           ]}
         >
           {/* Native background blur */}
-        <BlurView
-          pointerEvents="none"
-          intensity={40}
-          blurReductionFactor={4}
-          tint="dark"
-          experimentalBlurMethod={
-            Platform.OS === "android"
-              ? "dimezisBlurView"
-              : "none"
-          }
-          style={StyleSheet.absoluteFillObject}
-        />
+        {Platform.OS === "ios" ? (
+          <BlurView
+            pointerEvents="none"
+            intensity={40}
+            tint="dark"
+            style={StyleSheet.absoluteFillObject}
+          />
+        ) : (
+          <View
+            pointerEvents="none"
+            style={[
+              StyleSheet.absoluteFillObject,
+              styles.androidGlassFallback,
+            ]}
+          />
+        )}
+
 
           {/* Purple-tinted glass surface */}
           <View
@@ -467,12 +472,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: "center",
-    zIndex: 9999,
-    elevation: 20,
-  },
+  
+overlay: {
+  ...StyleSheet.absoluteFillObject,
+  alignItems: "center",
+  backgroundColor: "transparent",
+  zIndex: 9999,
+  elevation: 20,
+},
+
+androidGlassFallback: {
+  backgroundColor: "rgba(38,37,67,0.30)",
+},
+
 
   glassCard: {
     position: "relative",

@@ -1,4 +1,5 @@
-import React, { useCallback, useMemo, useState } from "react";
+
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -6,9 +7,12 @@ import {
   TouchableOpacity,
   ScrollView,
 } from "react-native";
+
 import { Ionicons } from "@expo/vector-icons";
+
 import { getMemoryThumbnailUrl } from "../../utils/cloudinary";
 import { normalizeTicketCustomization } from "../../utils/ticketCustomization";
+
 import styles from "./memoryTicketStyles";
 
 const TICKET_DESIGNS = {
@@ -53,14 +57,13 @@ function MemoryTicket({
   const [imageWidth, setImageWidth] = useState(0);
   const [activeImage, setActiveImage] = useState(0);
 
+  // Safely handle a missing memory.
+  // All hooks are called before this conditional return.
+  const customization = normalizeTicketCustomization(memory || {});
+
   if (!memory) {
     return null;
   }
-
-  const customization = useMemo(
-    () => normalizeTicketCustomization(memory || {}),
-    [memory],
-  );
 
   const {
     showLocation,
@@ -86,34 +89,40 @@ function MemoryTicket({
   const title = memory.title || "UNTITLED MEMORY";
 
   const location =
-    memory.location?.trim() ||
-    "UNKNOWN";
+    typeof memory.location === "string" && memory.location.trim()
+      ? memory.location.trim()
+      : "UNKNOWN";
 
   const date = formatDate(
-    memory.createdAt || memory.date,
+    memory.createdAt || memory.date
   );
 
   const time = memory.time || "";
 
   const description =
-    memory.description?.trim() || "";
+    typeof memory.description === "string"
+      ? memory.description.trim()
+      : "";
 
   const resolvedTicketNumber =
     ticketNumber ||
     memory.ticketNumber ||
     memory.id?.toString().slice(-6) ||
+    memory._id?.toString().slice(-6) ||
+    memory.clientMemoryId?.toString().slice(-6) ||
     "000000";
 
+  // Prefer locally saved images when available.
   const localImages = Array.isArray(memory.localImages)
-  ? memory.localImages
-  : [];
+    ? memory.localImages
+    : [];
 
-const remoteImages =
-  Array.isArray(memory.images) && memory.images.length
-    ? memory.images
-    : memory.image
-      ? [memory.image]
-      : [];
+  const remoteImages =
+    Array.isArray(memory.images) && memory.images.length
+      ? memory.images
+      : memory.image
+        ? [memory.image]
+        : [];
 
   const images = localImages.length
     ? localImages
@@ -126,7 +135,7 @@ const remoteImages =
       ? remoteImages.findIndex(
           (uri) =>
             uri === image ||
-            getMemoryThumbnailUrl(uri) === image,
+            getMemoryThumbnailUrl(uri) === image
         )
       : -1;
 
@@ -134,39 +143,35 @@ const remoteImages =
     typeof image === "string" &&
     /^(file|content):\/\//i.test(image)
       ? image
-        : matchingImageIndex >= 0 &&
+      : matchingImageIndex >= 0 &&
           localImages[matchingImageIndex]
         ? localImages[matchingImageIndex]
         : localImages.length === 1
-        ? localImages[0]
-        : image;
+          ? localImages[0]
+          : image;
 
   const displayImages = isSingleImageMode
     ? [resolvedSingleImage]
     : images;
 
-  const displayImageSources = useMemo(
-    () =>
-      displayImages.map((imageUri) =>
-        getMemoryThumbnailUrl(imageUri),
-      ),
-    [displayImages],
+  // Derived values do not need useMemo here.
+  // This avoids conditional-hook order problems.
+  const displayImageSources = displayImages.map((imageUri) =>
+    getMemoryThumbnailUrl(imageUri)
   );
 
   const tags = Array.isArray(memory.tags)
     ? [
         ...new Set(
           memory.tags
-            .filter(
-              (tag) => typeof tag === "string",
-            )
+            .filter((tag) => typeof tag === "string")
             .map((tag) =>
               tag
                 .trim()
                 .replace(/^#+/, "")
-                .toLowerCase(),
+                .toLowerCase()
             )
-            .filter(Boolean),
+            .filter(Boolean)
         ),
       ]
     : [];
@@ -177,17 +182,13 @@ const remoteImages =
     }
   };
 
-  const handleImageLayout = useCallback(
-    (event) => {
-      const width =
-        event.nativeEvent.layout.width;
+  const handleImageLayout = (event) => {
+    const width = event.nativeEvent.layout.width;
 
-      if (width && width !== imageWidth) {
-        setImageWidth(width);
-      }
-    },
-    [imageWidth],
-  );
+    if (width && width !== imageWidth) {
+      setImageWidth(width);
+    }
+  };
 
   return (
     <View
@@ -196,8 +197,8 @@ const remoteImages =
         compact && styles.ticketCompact,
       ]}
     >
-
       {/* BACKGROUND DESIGN */}
+
       <Image
         source={background}
         resizeMode="stretch"
@@ -207,8 +208,8 @@ const remoteImages =
       {/* CONTENT */}
 
       <View style={styles.ticketContent}>
-
         {/* HEADER */}
+
         <View style={styles.header}>
           <View>
             <Text
@@ -276,52 +277,49 @@ const remoteImages =
 
                   const index = Math.round(
                     event.nativeEvent.contentOffset.x /
-                      imageWidth,
+                      imageWidth
                   );
 
-                  setActiveImage(index);
+                  setActiveImage(
+                    Math.max(
+                      0,
+                      Math.min(index, displayImages.length - 1)
+                    )
+                  );
                 }}
               >
-                {displayImageSources.map(
-                  (imageUri, index) => (
-                    <View
-                      key={`${imageUri}-${index}`}
-                      style={[
-                        styles.ticketImageSlide,
-                        imageWidth
-                          ? {
-                              width: imageWidth,
-                            }
-                          : null,
-                      ]}
+                {displayImageSources.map((imageUri, index) => (
+                  <View
+                    key={`${imageUri}-${index}`}
+                    style={[
+                      styles.ticketImageSlide,
+                      imageWidth
+                        ? {
+                            width: imageWidth,
+                          }
+                        : null,
+                    ]}
+                  >
+                    <TouchableOpacity
+                      activeOpacity={0.95}
+                      onPress={handleImagePress}
+                      disabled={!onPress}
+                      style={styles.imageTouchable}
                     >
-                      <TouchableOpacity
-                        activeOpacity={0.95}
-                        onPress={
-                          handleImagePress
-                        }
-                        disabled={!onPress}
-                        style={
-                          styles.imageTouchable
-                        }
-                      >
-                        <Image
-                          source={{
-                            uri: imageUri,
-                          }}
-                          style={styles.ticketImage}
-                          resizeMode="cover"
-                        />
-                      </TouchableOpacity>
-                    </View>
-                  ),
-                )}
+                      <Image
+                        source={{
+                          uri: imageUri,
+                        }}
+                        style={styles.ticketImage}
+                        resizeMode="cover"
+                      />
+                    </TouchableOpacity>
+                  </View>
+                ))}
               </ScrollView>
             )
           ) : (
-            <View
-              style={styles.noImage}
-            >
+            <View style={styles.noImage}>
               <Ionicons
                 name="image-outline"
                 size={38}
@@ -345,13 +343,9 @@ const remoteImages =
 
           {!isSingleImageMode &&
             displayImages.length > 1 && (
-              <View
-                style={styles.imageCounter}
-              >
-                <Text
-                  style={styles.imageCounterText}
-                >
-                  {activeImage + 1}/
+              <View style={styles.imageCounter}>
+                <Text style={styles.imageCounterText}>
+                  {Math.min(activeImage + 1, displayImages.length)}/
                   {displayImages.length}
                 </Text>
               </View>
@@ -361,22 +355,17 @@ const remoteImages =
 
           {!isSingleImageMode &&
             displayImages.length > 1 && (
-              <View
-                style={styles.imageDots}
-              >
-                {displayImages.map(
-                  (_, index) => (
-                    <View
-                      key={index}
-                      style={[
-                        styles.imageDot,
-                        index ===
-                          activeImage &&
-                          styles.imageDotActive,
-                      ]}
-                    />
-                  ),
-                )}
+              <View style={styles.imageDots}>
+                {displayImages.map((_, index) => (
+                  <View
+                    key={index}
+                    style={[
+                      styles.imageDot,
+                      index === activeImage &&
+                        styles.imageDotActive,
+                    ]}
+                  />
+                ))}
               </View>
             )}
         </View>
@@ -409,8 +398,7 @@ const remoteImages =
                 style={[
                   styles.tagChip,
                   {
-                    borderColor:
-                      colors.border,
+                    borderColor: colors.border,
                   },
                 ]}
               >
@@ -418,8 +406,7 @@ const remoteImages =
                   style={[
                     styles.tagText,
                     {
-                      color:
-                        colors.secondary,
+                      color: colors.secondary,
                     },
                   ]}
                   numberOfLines={1}
@@ -433,37 +420,32 @@ const remoteImages =
 
         {/* DESCRIPTION */}
 
-        {showDescription &&
-          description && (
-            <View
-              style={styles.descriptionSection}
+        {showDescription && description ? (
+          <View style={styles.descriptionSection}>
+            <Text
+              style={[
+                styles.descriptionLabel,
+                {
+                  color: colors.secondary,
+                },
+              ]}
             >
-              <Text
-                style={[
-                  styles.descriptionLabel,
-                  {
-                    color:
-                      colors.secondary,
-                  },
-                ]}
-              >
-                THE STORY
-              </Text>
+              THE STORY
+            </Text>
 
-              <Text
-                style={[
-                  styles.descriptionText,
-                  {
-                    color:
-                      colors.primary,
-                  },
-                ]}
-                numberOfLines={3}
-              >
-                {description}
-              </Text>
-            </View>
-          )}
+            <Text
+              style={[
+                styles.descriptionText,
+                {
+                  color: colors.primary,
+                },
+              ]}
+              numberOfLines={3}
+            >
+              {description}
+            </Text>
+          </View>
+        ) : null}
 
         {/* INFORMATION */}
 
@@ -475,8 +457,7 @@ const remoteImages =
                   style={[
                     styles.infoLabel,
                     {
-                      color:
-                        colors.secondary,
+                      color: colors.secondary,
                     },
                   ]}
                 >
@@ -487,8 +468,7 @@ const remoteImages =
                   style={[
                     styles.infoValue,
                     {
-                      color:
-                        colors.primary,
+                      color: colors.primary,
                     },
                   ]}
                   numberOfLines={1}
@@ -506,8 +486,7 @@ const remoteImages =
                   style={[
                     styles.infoLabel,
                     {
-                      color:
-                        colors.secondary,
+                      color: colors.secondary,
                     },
                   ]}
                 >
@@ -518,8 +497,7 @@ const remoteImages =
                   style={[
                     styles.infoValue,
                     {
-                      color:
-                        colors.primary,
+                      color: colors.primary,
                     },
                   ]}
                   numberOfLines={1}
@@ -535,8 +513,7 @@ const remoteImages =
                   style={[
                     styles.infoLabel,
                     {
-                      color:
-                        colors.secondary,
+                      color: colors.secondary,
                     },
                   ]}
                 >
@@ -547,8 +524,7 @@ const remoteImages =
                   style={[
                     styles.infoValue,
                     {
-                      color:
-                        colors.primary,
+                      color: colors.primary,
                     },
                   ]}
                   numberOfLines={1}
@@ -564,15 +540,12 @@ const remoteImages =
 
         <View style={styles.footer}>
           {showTicketNumber && (
-            <View
-              style={styles.ticketNumberContainer}
-            >
+            <View style={styles.ticketNumberContainer}>
               <Text
                 style={[
                   styles.ticketNumberLabel,
                   {
-                    color:
-                      colors.secondary,
+                    color: colors.secondary,
                   },
                 ]}
               >
@@ -583,8 +556,7 @@ const remoteImages =
                 style={[
                   styles.ticketNumber,
                   {
-                    color:
-                      colors.primary,
+                    color: colors.primary,
                   },
                 ]}
               >
@@ -598,20 +570,16 @@ const remoteImages =
           <View
             style={[
               styles.barcode,
-              !showTicketNumber &&
-                styles.barcodeFull,
+              !showTicketNumber && styles.barcodeFull,
             ]}
           >
-            {Array.from({
-              length: 30,
-            }).map((_, index) => (
+            {Array.from({ length: 30 }).map((_, index) => (
               <View
                 key={index}
                 style={[
                   styles.bar,
                   {
-                    backgroundColor:
-                      colors.primary,
+                    backgroundColor: colors.primary,
                   },
                 ]}
               />

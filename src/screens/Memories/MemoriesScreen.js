@@ -34,10 +34,6 @@ import AdvancedSearch from "../../components/Memories/AdvancedSearch/AdvancedSea
 
 import styles from "./memoriesStyles";
 
-// ==================================================
-// CONSTANTS
-// ==================================================
-
 const MONTHS = [
   "January",
   "February",
@@ -61,10 +57,6 @@ const DEFAULT_ADVANCED_FILTERS = {
   collectionId: null,
   searchIn: ["title", "description", "location", "tags", "category"],
 };
-
-// ==================================================
-// HELPERS
-// ==================================================
 
 const normalizeTag = (tag) => {
   if (typeof tag !== "string") {
@@ -99,10 +91,6 @@ const getCollectionMemoryIds = (collection) => {
       .filter(Boolean),
   );
 };
-
-// ==================================================
-// MEMORIES HEADER
-// ==================================================
 
 const MemoriesHeader = React.memo(function MemoriesHeader({
   searchQuery,
@@ -304,21 +292,16 @@ const MemoriesHeader = React.memo(function MemoriesHeader({
   );
 });
 
-// ==================================================
-// MEMORIES SCREEN
-// ==================================================
-
 function MemoriesScreen({ navigation, route }) {
-  const { memories, loading, toggleFavorite, refreshMemories } = useMemory();
+  const { memories:memoryData, loading, toggleFavorite, refreshMemories } = useMemory();
+  const memories = Array.isArray(memoryData)
+  ? memoryData
+  : EMPTY_MEMORIES;
 
   const { collections = [], refreshCollections } = useCollection();
 
   const { showAlert } = useAppAlert();
   const { theme, isDark } = useTheme();
-
-  // ==================================================
-  // THEME COLORS
-  // ==================================================
 
   const colors = useMemo(() => {
     const themeColors = theme?.colors || {};
@@ -345,10 +328,6 @@ function MemoriesScreen({ navigation, route }) {
       accent: themeColors.accent || "#E76F51",
     };
   }, [theme, isDark]);
-
-  // ==================================================
-  // SCREEN STYLES
-  // ==================================================
 
   const screenStyles = useMemo(
     () => ({
@@ -395,10 +374,6 @@ function MemoriesScreen({ navigation, route }) {
     [colors],
   );
 
-  // ==================================================
-  // STATE
-  // ==================================================
-
   const [filter, setFilter] = useState("all");
   const [sortOrder, setSortOrder] = useState("newest");
   const [showSortMenu, setShowSortMenu] = useState(false);
@@ -413,19 +388,11 @@ function MemoriesScreen({ navigation, route }) {
   const [timelineMonth, setTimelineMonth] = useState(null);
   const timelineSheetRef = useRef(null);
 
-  // ==================================================
-  // REFRESH
-  // ==================================================
-
   const refreshMemoriesScreen = useCallback(async () => {
     await Promise.all([refreshMemories(), refreshCollections()]);
   }, [refreshMemories, refreshCollections]);
 
   const { refreshing, onRefresh } = useRefresh(refreshMemoriesScreen);
-
-  // ==================================================
-  // ROUTE FILTER
-  // ==================================================
 
   useEffect(() => {
     if (route?.params?.filter) {
@@ -440,10 +407,6 @@ function MemoriesScreen({ navigation, route }) {
       setSelectedTag(normalizeTag(routeTag));
     }
   }, [route?.params?.tag]);
-
-  // ==================================================
-  // MEMORY TIME
-  // ==================================================
 
   const getMemoryTime = useCallback((memory) => {
     const dateValue = memory.createdAt || memory.date;
@@ -468,10 +431,6 @@ function MemoriesScreen({ navigation, route }) {
 
     return Number.isNaN(time) ? 0 : time;
   }, []);
-
-  // ==================================================
-  // AVAILABLE TAGS
-  // ==================================================
 
   const availableTags = useMemo(() => {
     const tagCounts = new Map();
@@ -516,10 +475,6 @@ function MemoriesScreen({ navigation, route }) {
     }
   }, [selectedTag, availableTags]);
 
-  // ==================================================
-  // ADVANCED FILTER COUNT
-  // ==================================================
-
   const advancedFilterCount = useMemo(() => {
     let count = 0;
 
@@ -556,10 +511,6 @@ function MemoriesScreen({ navigation, route }) {
 
     return count;
   }, [advancedFilters]);
-
-  // ==================================================
-  // FILTER AND SORT MEMORIES
-  // ==================================================
 
   const displayedMemories = useMemo(() => {
     let filtered = memories;
@@ -764,18 +715,10 @@ function MemoriesScreen({ navigation, route }) {
     getTimelineTime,
   ]);
 
-  // ==================================================
-  // FAVORITE COUNT
-  // ==================================================
-
   const favoriteCount = useMemo(
     () => memories.filter((memory) => memory.favorite === true).length,
     [memories],
   );
-
-  // ==================================================
-  // NAVIGATION HANDLERS
-  // ==================================================
 
   const handleMemoryPress = useCallback(
     (memoryId) => {
@@ -789,10 +732,6 @@ function MemoriesScreen({ navigation, route }) {
   const handleCreateMemory = useCallback(() => {
     navigation.navigate("Create");
   }, [navigation]);
-
-  // ==================================================
-  // FAVORITE HANDLER
-  // ==================================================
 
   const handleToggleFavorite = useCallback(
     async (memory) => {
@@ -827,10 +766,6 @@ function MemoriesScreen({ navigation, route }) {
     [toggleFavorite, showAlert],
   );
 
-  // ==================================================
-  // ADVANCED SEARCH HANDLERS
-  // ==================================================
-
   const handleOpenAdvancedSearch = useCallback(() => {
     advancedSearchRef.current?.open();
   }, []);
@@ -849,10 +784,6 @@ function MemoriesScreen({ navigation, route }) {
     advancedSearchRef.current?.close();
   }, []);
 
-  // ==================================================
-  // TIMELINE HANDLERS
-  // ==================================================
-
   const handleOpenTimeline = useCallback(() => {
     timelineSheetRef.current?.open();
   }, []);
@@ -866,10 +797,6 @@ function MemoriesScreen({ navigation, route }) {
   }, []);
 
   const handleCloseTimeline = useCallback(() => {}, []);
-
-  // ==================================================
-  // LIST HEADER
-  // ==================================================
 
   const headerComponent = useMemo(
     () => (
@@ -912,10 +839,6 @@ function MemoriesScreen({ navigation, route }) {
     ],
   );
 
-  // ==================================================
-  // LIST ITEM
-  // ==================================================
-
   const renderItem = useCallback(
     ({ item }) => (
       <MemoryTicketList
@@ -935,10 +858,6 @@ function MemoriesScreen({ navigation, route }) {
     [],
   );
 
-  // ==================================================
-  // LIST FOOTER
-  // ==================================================
-
   const renderFooter = useCallback(
     () => (
       <Text style={screenStyles.footerText}>
@@ -949,10 +868,6 @@ function MemoriesScreen({ navigation, route }) {
     ),
     [screenStyles.footerText],
   );
-
-  // ==================================================
-  // EMPTY STATE
-  // ==================================================
 
   const renderEmptyState = useCallback(() => {
     if (timelineMonth && !searchQuery.trim()) {
@@ -992,10 +907,6 @@ function MemoriesScreen({ navigation, route }) {
     isDark,
   ]);
 
-  // ==================================================
-  // LOADING STATE
-  // ==================================================
-
   if (loading) {
     return (
       <View style={screenStyles.container}>
@@ -1012,10 +923,6 @@ function MemoriesScreen({ navigation, route }) {
       </View>
     );
   }
-
-  // ==================================================
-  // SCREEN
-  // ==================================================
 
   return (
     <View style={screenStyles.container}>
