@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import {
   View,
@@ -6,26 +5,22 @@ import {
   ScrollView,
   StatusBar,
 } from "react-native";
-
 import { File } from "expo-file-system";
-
 import { useMemory } from "../../hooks/useMemory";
 import { useAuth } from "../../hooks/useAuth";
 import { useAppAlert } from "../../context/AlertContext";
 import { useSubscription } from "../../context/SubscriptionContext";
 import { useTheme } from "../../context/ThemeContext";
-
 import {
   isNotificationsEnabled,
   setNotificationsEnabled,
 } from "../../services/notificationService";
-
 import {
   getAppLockEnabled,
   setAppLockEnabled,
   getBiometricSupport,
 } from "../../services/appLockService";
-
+import { useMementoNotifications } from "../../hooks/useMementoNotifications";
 import SettingsHeader from "./components/SettingsHeader";
 import PreferenceRow from "./components/PreferenceRow";
 import StorageSection from "./components/StorageSection";
@@ -35,6 +30,7 @@ import AccountSection from "./components/AccountSection";
 import styles from "./settingsStyles";
 
 function SettingsScreen({ navigation }) {
+  const { notify, notifyError } = useMementoNotifications();
   const { memories, clearMemories } = useMemory();
   const { deleteAccount } = useAuth();
 
@@ -56,15 +52,9 @@ function SettingsScreen({ navigation }) {
     loadSettings();
   }, []);
 
-  // Recalculate local storage when memories change.
-  // Widget synchronization is handled by MemoryContext.
   useEffect(() => {
     calculateStorage();
   }, [memories]);
-
-  // --------------------------------------------------
-  // CALCULATE LOCAL MEMORY IMAGE STORAGE
-  // --------------------------------------------------
 
   const calculateStorage = async () => {
     try {
@@ -146,10 +136,6 @@ function SettingsScreen({ navigation }) {
     }
   };
 
-  // --------------------------------------------------
-  // FORMAT STORAGE SIZE
-  // --------------------------------------------------
-
   const formatStorageSize = (bytes) => {
     if (!bytes || bytes <= 0) {
       return "0 KB";
@@ -164,10 +150,6 @@ function SettingsScreen({ navigation }) {
       (1024 * 1024)
     ).toFixed(1)} MB`;
   };
-
-  // --------------------------------------------------
-  // LOAD SETTINGS
-  // --------------------------------------------------
 
   const loadSettings = async () => {
     try {
@@ -191,51 +173,43 @@ function SettingsScreen({ navigation }) {
     }
   };
 
-  // --------------------------------------------------
-  // NOTIFICATION SETTINGS
-  // --------------------------------------------------
+const handleNotifications = async (value) => {
+  try {
+    const result = await setNotificationsEnabled(value, memories);
 
-  const handleNotifications = async (value) => {
-    try {
-      const result = await setNotificationsEnabled(
-        value,
-        memories,
-      );
-
-      setNotifications(result.enabled);
-
-      if (result.permissionDenied) {
-        showAlert({
-          type: "warning",
-          icon: "notifications-off-outline",
-          title: "Notifications Permission Required",
-          message:
-            "Memento cannot schedule reminders until notification permission is granted.",
-          confirmText: "OK",
-        });
-      }
-    } catch (error) {
-      console.error(
-        "Notification setting error:",
-        error,
-      );
-
+    if (result?.permissionDenied) {
       setNotifications(false);
 
       showAlert({
-        type: "danger",
-        icon: "close-circle-outline",
-        title: "Notifications Failed",
+        type: "warning",
+        icon: "notifications-off-outline",
+        title: "Notifications Permission Required",
         message:
-          "Unable to update notification settings. Please try again.",
+          "Memento cannot schedule reminders until notification permission is granted.",
         confirmText: "OK",
       });
-    }
-  };
 
-  // --------------------------------------------------
-  // APP LOCK SETTINGS
-  // --------------------------------------------------
+      return;
+    }
+
+    const enabled = Boolean(result?.enabled);
+
+    setNotifications(enabled);
+
+    if (enabled) {
+      notify("notificationsEnabled");
+    } else {
+      notify("notificationsDisabled");
+    }
+  } catch (error) {
+    console.error("Notification setting error:", error);
+
+    notifyError(
+      "Notifications Failed",
+      "Unable to update notification settings. Please try again."
+    );
+  }
+};
 
   const handleAppLock = async (value) => {
     if (!value) {
@@ -296,10 +270,6 @@ function SettingsScreen({ navigation }) {
       });
     }
   };
-
-  // --------------------------------------------------
-  // CLEAR MEMORY STORAGE
-  // --------------------------------------------------
 
   const handleClearStorage = () => {
     if (memories.length === 0) {
@@ -372,69 +342,43 @@ function SettingsScreen({ navigation }) {
     });
   };
 
-  // --------------------------------------------------
-  // DELETE ACCOUNT
-  // --------------------------------------------------
+const handleDeleteAccount = () => {
+  showAlert({
+    type: "danger",
+    icon: "person-remove-outline",
+    title: "Delete Account?",
+    message:
+      "This will permanently delete your account, memories, and associated images. This action cannot be undone.",
+    cancelText: "Cancel",
+    confirmText: "Delete Account",
+    showCancel: true,
 
-  const handleDeleteAccount = () => {
-    showAlert({
-      type: "danger",
-      icon: "person-remove-outline",
-      title: "Delete Account?",
-      message:
-        "This will permanently delete your account, memories, and associated images. This action cannot be undone.",
-      cancelText: "Cancel",
-      confirmText: "Delete Account",
-      showCancel: true,
+    onConfirm: async () => {
+      try {
+        const result = await deleteAccount();
 
-      onConfirm: async () => {
-        try {
-          const result = await deleteAccount();
-
-          if (!result.success) {
-            showAlert({
-              type: "danger",
-              icon: "close-circle-outline",
-              title: "Delete Account Failed",
-              message:
-                result.message ||
-                "Unable to delete your account.",
-              confirmText: "OK",
-            });
-
-            return;
-          }
-
-          showAlert({
-            type: "success",
-            icon: "checkmark-circle-outline",
-            title: "Account Deleted",
-            message:
-              "Your account and all associated data have been deleted.",
-            confirmText: "Done",
-          });
-        } catch (error) {
-          console.error(
-            "Delete account error:",
-            error,
+        if (!result?.success) {
+          notifyError(
+            "Delete Account Failed",
+            result?.message ||
+              "Unable to delete your account. Please try again."
           );
-
-          showAlert({
-            type: "danger",
-            icon: "close-circle-outline",
-            title: "Something Went Wrong",
-            message:
-              "Unable to delete your account. Please try again.",
-            confirmText: "OK",
-          });
+          return;
         }
-      },
-    });
-  };
 
-  // --------------------------------------------------
-  // RENDER SETTINGS
-  // --------------------------------------------------
+        notify("accountDeleted");
+      } catch (error) {
+        console.error("Delete account error:", error);
+
+        notifyError(
+          "Delete Account Failed",
+          error?.message ||
+            "Unable to delete your account. Please try again."
+        );
+      }
+    },
+  });
+};
 
   return (
     <View

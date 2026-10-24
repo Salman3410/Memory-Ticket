@@ -11,12 +11,13 @@ import EditMemoryPhotos from "../../components/EditScreen/EditMemoryPhotos/EditM
 import EditMemoryDetails from "../../components/EditScreen/EditMemoryDetails/EditMemoryDetails";
 import EditMemoryActions from "../../components/EditScreen/EditMemoryActions/EditMemoryActions";
 import EditMemoryNotFound from "../../components/EditScreen/EditMemoryNotFound/EditMemoryNotFound";
-
+import { useMementoNotifications } from "../../hooks/useMementoNotifications";
 import TagsInput from "../../components/TagsInput/TagsInput";
 
 const MAX_IMAGES = 5;
 
 function EditMemoryScreen({ navigation, route }) {
+  const { notify } = useMementoNotifications();
   const { getMemoryById, updateMemory } = useMemory();
 
   const { showAlert } = useAppAlert();
@@ -351,6 +352,7 @@ function EditMemoryScreen({ navigation, route }) {
         throw new Error("Memory was not updated.");
       }
 
+      notify("memoryUpdated");
       navigation.goBack();
     } catch (error) {
       console.error("Error updating memory:", error);

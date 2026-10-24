@@ -3,7 +3,6 @@ import React, {
   useMemo,
   useState,
 } from "react";
-
 import {
   KeyboardAvoidingView,
   Platform,
@@ -14,25 +13,19 @@ import {
   View,
   StatusBar,
 } from "react-native";
-
 import { Ionicons } from "@expo/vector-icons";
-
 import { useCollection } from "../../hooks/useCollection";
 import { useTheme } from "../../context/ThemeContext";
 import { useAppAlert } from "../../context/AlertContext";
-
+import { useMementoNotifications } from "../../hooks/useMementoNotifications";
 import TactileButton from "../../components/common/TactileButton";
-
 import styles from "./createCollectionStyles";
 
 function CreateCollectionScreen({ navigation }) {
+  const { notify, notifyError } = useMementoNotifications();
   const { theme, isDark } = useTheme();
   const { showAlert } = useAppAlert();
   const colors = theme?.colors || {};
-
-  // --------------------------------------------------
-  // THEME COLORS
-  // --------------------------------------------------
 
   const screenBackground =
     colors.background || (isDark ? "#171624" : "#F1F0F6");
@@ -73,17 +66,9 @@ function CreateCollectionScreen({ navigation }) {
 
   const { createCollection } = useCollection();
 
-  // --------------------------------------------------
-  // FORM STATE
-  // --------------------------------------------------
-
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [saving, setSaving] = useState(false);
-
-  // --------------------------------------------------
-  // THEMED STYLES
-  // --------------------------------------------------
 
   const themedStyles = useMemo(
     () => ({
@@ -217,92 +202,86 @@ function CreateCollectionScreen({ navigation }) {
     ],
   );
 
-  // --------------------------------------------------
-  // CREATE COLLECTION
-  // --------------------------------------------------
+const handleCreate = useCallback(async () => {
+  const trimmedName = name.trim();
+  const trimmedDescription = description.trim();
 
-  const handleCreate = useCallback(async () => {
-    const trimmedName = name.trim();
-    const trimmedDescription = description.trim();
+  if (saving) {
+    return;
+  }
 
-    if (saving) {
-      return;
+  if (!trimmedName) {
+    showAlert({
+      type: "warning",
+      icon: "text-outline",
+      title: "Collection Name Required",
+      message: "Enter a name for your collection before creating it.",
+      confirmText: "OK",
+      showCancel: false,
+    });
+
+    return;
+  }
+
+  try {
+    setSaving(true);
+
+    const result = await createCollection({
+      name: trimmedName,
+      description: trimmedDescription,
+    });
+
+    if (result === false || result?.success === false) {
+      throw new Error(
+        result?.message || "Unable to create your collection."
+      );
     }
 
-    if (!trimmedName) {
-      showAlert({
-        type: "warning",
-        icon: "text-outline",
-        title: "Collection Name Required",
-        message: "Enter a name for your collection before creating it.",
-        confirmText: "OK",
-        showCancel: false,
+    const createdCollection =
+      result?.collection ||
+      result?.data ||
+      result;
+
+    const createdId =
+      createdCollection?._id ||
+      createdCollection?.id;
+
+    // Show success notification after creation succeeds.
+    notify("collectionCreated", {
+      message: `"${trimmedName}" is ready for your memories.`,
+    });
+
+    if (createdId) {
+      navigation.replace("CollectionDetails", {
+        collectionId: createdId,
       });
 
       return;
     }
 
-    try {
-      setSaving(true);
+    // Preserve the existing fallback behavior.
+    navigation.goBack();
+  } catch (error) {
+    console.error("Create collection error:", error);
 
-      const result = await createCollection({
-        name: trimmedName,
-        description: trimmedDescription,
-      });
-
-      if (result?.success === false) {
-        throw new Error(
-          result.message || "Unable to create your collection.",
-        );
-      }
-
-      const createdCollection =
-        result?.collection ||
-        result?.data ||
-        result;
-
-      const createdId =
-        createdCollection?._id ||
-        createdCollection?.id;
-
-      if (createdId) {
-        navigation.replace("CollectionDetails", {
-          collectionId: createdId,
-        });
-
-        return;
-      }
-
-      // Preserve the existing fallback behavior.
-      navigation.goBack();
-    } catch (error) {
-      console.error("Create collection error:", error);
-
-      showAlert({
-        type: "danger",
-        icon: "close-circle-outline",
-        title: "Creation Failed",
-        message:
-          error?.message ||
-          "Unable to create your collection. Please try again.",
-        confirmText: "OK",
-        showCancel: false,
-      });
-    } finally {
-      setSaving(false);
-    }
-  }, [
-    name,
-    description,
-    saving,
-    createCollection,
-    navigation,
-    showAlert,
-  ]);
-
-  // --------------------------------------------------
-  // CANCEL
-  // --------------------------------------------------
+    notifyError(
+      "Creation Failed",
+      error?.message ||
+        "Unable to create your collection. Please try again."
+    );
+  } finally {
+    setSaving(false);
+  }
+}, [
+  name,
+  description,
+  saving,
+  createCollection,
+  navigation,
+  showAlert,
+  notify,
+  notifyError,
+]);
 
   const handleCancel = useCallback(() => {
     if (saving) {
@@ -339,10 +318,6 @@ function CreateCollectionScreen({ navigation }) {
     showAlert,
   ]);
 
-  // --------------------------------------------------
-  // BUTTON STATE
-  // --------------------------------------------------
-
   const isNameEmpty = !name.trim();
 
   const createButtonColor = isNameEmpty
@@ -352,10 +327,6 @@ function CreateCollectionScreen({ navigation }) {
   const createButtonTextColor = isNameEmpty
     ? secondaryTextColor
     : primaryTextColor;
-
-  // --------------------------------------------------
-  // SCREEN
-  // --------------------------------------------------
 
   return (
     <KeyboardAvoidingView

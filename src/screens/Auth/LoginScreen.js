@@ -1,12 +1,10 @@
-
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
-  ActivityIndicator,
   StatusBar,
 } from "react-native";
 
@@ -25,6 +23,8 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../hooks/useAuth";
 import { useAppAlert } from "../../context/AlertContext";
+import { useMementoNotifications } from "../../hooks/useMementoNotifications";
+
 import { createAuthStyles } from "./authStyles";
 import TactileButton from "../../components/common/TactileButton";
 
@@ -36,7 +36,7 @@ function LoginScreen({ navigation }) {
 
   const styles = useMemo(
     () => createAuthStyles(colors, isDark),
-    [colors, isDark],
+    [colors, isDark]
   );
 
   const screenBackground =
@@ -56,8 +56,7 @@ function LoginScreen({ navigation }) {
   const borderColor =
     colors.border || (isDark ? "#39364D" : "#D9D8E2");
 
-  const inputBackground =
-    colors.input || surfaceColor;
+  const inputBackground = colors.input || surfaceColor;
 
   const primaryColor =
     colors.primary || (isDark ? "#C8C2FF" : "#34345C");
@@ -67,6 +66,7 @@ function LoginScreen({ navigation }) {
 
   const { login } = useAuth();
   const { showAlert } = useAppAlert();
+  const { notify, notifyError } = useMementoNotifications();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -114,7 +114,15 @@ function LoginScreen({ navigation }) {
     });
   };
 
+  // --------------------------------------------------
+  // LOGIN
+  // --------------------------------------------------
+
   const handleLogin = async () => {
+    if (isLoading) {
+      return;
+    }
+
     const normalizedEmail = email.trim().toLowerCase();
 
     if (!normalizedEmail || !password) {
@@ -134,34 +142,33 @@ function LoginScreen({ navigation }) {
     try {
       const result = await login(normalizedEmail, password);
 
-      if (!result.success) {
-        showAlert({
-          type: "danger",
-          icon: "close-circle-outline",
-          title: "Login Failed",
-          message: result.message || "Unable to login.",
-          confirmText: "OK",
-        });
+      if (!result?.success) {
+        notifyError(
+          "Login Failed",
+          result?.message || "Unable to log in. Please check your credentials and try again."
+        );
 
         return;
       }
 
       // AuthContext updates authentication state.
       // RootNavigator handles navigation automatically.
+      notify("loggedIn");
     } catch (error) {
       console.error("Login screen error:", error);
 
-      showAlert({
-        type: "danger",
-        icon: "close-circle-outline",
-        title: "Login Failed",
-        message: "Something went wrong. Please try again.",
-        confirmText: "OK",
-      });
+      notifyError(
+        "Login Failed",
+        error?.message || "Something went wrong. Please try again."
+      );
     } finally {
       setIsLoading(false);
     }
   };
+
+  // --------------------------------------------------
+  // UI
+  // --------------------------------------------------
 
   return (
     <KeyboardAwareScrollView
@@ -311,7 +318,9 @@ function LoginScreen({ navigation }) {
                   styles.passwordButton,
                   { backgroundColor: inputBackground },
                 ]}
-                onPress={() => setShowPassword((previous) => !previous)}
+                onPress={() =>
+                  setShowPassword((previous) => !previous)
+                }
                 activeOpacity={0.7}
                 disabled={isLoading}
                 accessibilityRole="button"
@@ -354,23 +363,26 @@ function LoginScreen({ navigation }) {
 
           <AnimatedView style={buttonAnimatedStyle}>
             <TactileButton
-  label="LOGIN"
-  onPress={handleLogin}
-  icon="arrow-forward"
-  iconPosition="right"
-  color={primaryColor}
-  textColor={primaryTextColor}
-  iconColor={primaryTextColor}
-  height={52}
-  borderRadius={13}
-  depth={3}
-  loading={isLoading}
-  loadingText="LOGGING IN..."
-  disabled={isLoading}
-  style={{ width: "100%", marginBottom: 0 }}
-  contentStyle={styles.loginButton}
-  textStyle={styles.loginButtonText}
-/>
+              label="LOGIN"
+              onPress={handleLogin}
+              icon="arrow-forward"
+              iconPosition="right"
+              color={primaryColor}
+              textColor={primaryTextColor}
+              iconColor={primaryTextColor}
+              height={52}
+              borderRadius={13}
+              depth={3}
+              loading={isLoading}
+              loadingText="LOGGING IN..."
+              disabled={isLoading}
+              style={{
+                width: "100%",
+                marginBottom: 0,
+              }}
+              contentStyle={styles.loginButton}
+              textStyle={styles.loginButtonText}
+            />
           </AnimatedView>
         </View>
 

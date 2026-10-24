@@ -1,18 +1,21 @@
 import { useEffect, useState } from "react";
-import { useTheme } from "../../context/ThemeContext";
+
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
-  ActivityIndicator,
   Image,
   StatusBar,
 } from "react-native";
+
 import { Ionicons } from "@expo/vector-icons";
+import { useTheme } from "../../context/ThemeContext";
 import { createAuthStyles } from "./authStyles";
 import { useAuth } from "../../hooks/useAuth";
 import { useAppAlert } from "../../context/AlertContext";
+import { useMementoNotifications } from "../../hooks/useMementoNotifications";
+
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import TactileButton from "../../components/common/TactileButton";
 
@@ -49,11 +52,11 @@ function VerifySignupOtpScreen({ navigation, route }) {
   const primaryTextColor =
     colors.primaryText || (isDark ? "#25223D" : "#FFFFFF");
 
-  // Generate styles with the currently selected theme.
   const styles = createAuthStyles(colors, isDark);
 
   const { verifySignupOtp, resendSignupOtp } = useAuth();
   const { showAlert } = useAppAlert();
+  const { notify, notifyError } = useMementoNotifications();
 
   const email = route.params?.email;
 
@@ -61,6 +64,10 @@ function VerifySignupOtpScreen({ navigation, route }) {
   const [isLoading, setIsLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [countdown, setCountdown] = useState(60);
+
+  // --------------------------------------------------
+  // RESEND COUNTDOWN
+  // --------------------------------------------------
 
   useEffect(() => {
     if (countdown <= 0) {
@@ -74,7 +81,15 @@ function VerifySignupOtpScreen({ navigation, route }) {
     return () => clearInterval(timer);
   }, [countdown]);
 
+  // --------------------------------------------------
+  // VERIFY SIGNUP OTP
+  // --------------------------------------------------
+
   const handleVerify = async () => {
+    if (isLoading || resending) {
+      return;
+    }
+
     const cleanedOtp = otp.trim();
 
     if (!/^\d{6}$/.test(cleanedOtp)) {
@@ -85,6 +100,7 @@ function VerifySignupOtpScreen({ navigation, route }) {
         message: "Please enter the 6-digit verification code.",
         confirmText: "OK",
       });
+
       return;
     }
 
@@ -93,16 +109,16 @@ function VerifySignupOtpScreen({ navigation, route }) {
     try {
       const result = await verifySignupOtp(email, cleanedOtp);
 
-      if (!result.success) {
-        showAlert({
-          type: "danger",
-          icon: "close-circle-outline",
-          title: "Verification Failed",
-          message: result.message || "Unable to verify your email.",
-          confirmText: "OK",
-        });
+      if (!result?.success) {
+        notifyError(
+          "Verification Failed",
+          result?.message || "Unable to verify your email. Please try again."
+        );
+
         return;
       }
+
+      notify("emailVerified");
 
       navigation.popTo("AuthTabs", {
         screen: "Login",
@@ -110,20 +126,21 @@ function VerifySignupOtpScreen({ navigation, route }) {
     } catch (error) {
       console.error("Signup OTP verification error:", error);
 
-      showAlert({
-        type: "danger",
-        icon: "close-circle-outline",
-        title: "Verification Failed",
-        message: "Something went wrong. Please try again.",
-        confirmText: "OK",
-      });
+      notifyError(
+        "Verification Failed",
+        error?.message || "Something went wrong. Please try again."
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
+  // --------------------------------------------------
+  // RESEND SIGNUP OTP
+  // --------------------------------------------------
+
   const handleResend = async () => {
-    if (countdown > 0 || resending) {
+    if (countdown > 0 || resending || isLoading) {
       return;
     }
 
@@ -132,43 +149,36 @@ function VerifySignupOtpScreen({ navigation, route }) {
     try {
       const result = await resendSignupOtp(email);
 
-      if (!result.success) {
-        showAlert({
-          type: "danger",
-          icon: "refresh-outline",
-          title: "Unable to Resend",
-          message: result.message || "Please try again.",
-          confirmText: "OK",
-        });
+      if (!result?.success) {
+        notifyError(
+          "Unable to Resend",
+          result?.message || "Unable to send a new verification code. Please try again."
+        );
+
         return;
       }
 
       setOtp("");
       setCountdown(60);
 
-      showAlert({
-        type: "success",
-        icon: "mail-outline",
-        title: "OTP Sent",
-        message: "A new verification code has been sent to your email.",
-        confirmText: "OK",
-      });
+      notify("signupOtpResent");
     } catch (error) {
       console.error("Resend OTP error:", error);
 
-      showAlert({
-        type: "danger",
-        icon: "close-circle-outline",
-        title: "Unable to Resend",
-        message: "Something went wrong. Please try again.",
-        confirmText: "OK",
-      });
+      notifyError(
+        "Unable to Resend",
+        error?.message || "Something went wrong. Please try again."
+      );
     } finally {
       setResending(false);
     }
   };
 
   const isResendDisabled = countdown > 0 || resending || isLoading;
+
+  // --------------------------------------------------
+  // UI
+  // --------------------------------------------------
 
   return (
     <KeyboardAwareScrollView
@@ -191,7 +201,8 @@ function VerifySignupOtpScreen({ navigation, route }) {
           backgroundColor={screenBackground}
         />
 
-        {/* Back Button */}
+        {/* BACK BUTTON */}
+
         <TouchableOpacity
           style={[
             styles.backButton,
@@ -220,7 +231,8 @@ function VerifySignupOtpScreen({ navigation, route }) {
           </Text>
         </TouchableOpacity>
 
-        {/* Compact Brand */}
+        {/* BRAND */}
+
         <View style={styles.signupBrandContainer}>
           <View
             style={[
@@ -248,7 +260,8 @@ function VerifySignupOtpScreen({ navigation, route }) {
           </Text>
         </View>
 
-        {/* Heading */}
+        {/* HEADING */}
+
         <View style={styles.headingContainer}>
           <Text
             style={[
@@ -278,7 +291,8 @@ function VerifySignupOtpScreen({ navigation, route }) {
           </Text>
         </View>
 
-        {/* OTP Form Card */}
+        {/* OTP FORM */}
+
         <View
           style={[
             styles.formContainer,
@@ -338,28 +352,33 @@ function VerifySignupOtpScreen({ navigation, route }) {
             </View>
           </View>
 
-          {/* Verify Button */}
-            <TactileButton
-              label="VERIFY EMAIL"
-              onPress={handleVerify}
-              icon="checkmark"
-              iconPosition="right"
-              color={primaryColor}
-              textColor={primaryTextColor}
-              iconColor={primaryTextColor}
-              height={52}
-              borderRadius={13}
-              depth={3}
-              loading={isLoading}
-              loadingText="VERIFYING..."
-              disabled={isLoading || resending}
-              style={{ width: "100%", marginBottom: 0 }}
-              contentStyle={styles.loginButton}
-              textStyle={styles.loginButtonText}
-            />
+          {/* VERIFY BUTTON */}
+
+          <TactileButton
+            label="VERIFY EMAIL"
+            onPress={handleVerify}
+            icon="checkmark"
+            iconPosition="right"
+            color={primaryColor}
+            textColor={primaryTextColor}
+            iconColor={primaryTextColor}
+            height={52}
+            borderRadius={13}
+            depth={3}
+            loading={isLoading}
+            loadingText="VERIFYING..."
+            disabled={isLoading || resending}
+            style={{
+              width: "100%",
+              marginBottom: 0,
+            }}
+            contentStyle={styles.loginButton}
+            textStyle={styles.loginButtonText}
+          />
         </View>
 
-        {/* Resend OTP */}
+        {/* RESEND OTP */}
+
         <View style={styles.resendSection}>
           <TouchableOpacity
             onPress={handleResend}

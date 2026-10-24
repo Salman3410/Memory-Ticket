@@ -1,5 +1,4 @@
 import { useCallback } from "react";
-
 import {
   ActivityIndicator,
   FlatList,
@@ -10,27 +9,21 @@ import {
   View,
   StatusBar,
 } from "react-native";
-
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
-
 import { useCollection } from "../../hooks/useCollection";
 import useRefresh from "../../hooks/useRefresh";
-
 import CollectionCardComponent from "../../components/collections/CollectionCard";
 import TactileButton from "../../components/common/TactileButton";
-
+import { useMementoNotifications } from "../../hooks/useMementoNotifications";
 import { useTheme } from "../../context/ThemeContext";
 import { useAppAlert } from "../../context/AlertContext";
 
 function CollectionsScreen({ navigation }) {
+  const { notifyError } = useMementoNotifications();
   const { theme, isDark } = useTheme();
   const { showAlert } = useAppAlert();
   const colors = theme?.colors || {};
-
-  // --------------------------------------------------
-  // THEME COLORS
-  // --------------------------------------------------
 
   const screenBackground =
     colors.background || (isDark ? "#171624" : "#F1F0F6");
@@ -74,26 +67,12 @@ function CollectionsScreen({ navigation }) {
     ? collections
     : [];
 
-  // --------------------------------------------------
-  // CUSTOM ALERT HELPERS
-  // --------------------------------------------------
-
-  const showRefreshError = useCallback(() => {
-    showAlert({
-      type: "danger",
-      icon: "cloud-offline-outline",
-      title: "Unable to Refresh Collections",
-      message:
-        "Your collections could not be refreshed. Check your connection and try again.",
-      confirmText: "OK",
-      showCancel: false,
-    });
-  }, [showAlert]);
-
-  // --------------------------------------------------
-  // REFRESH WHEN SCREEN FOCUSES
-  // --------------------------------------------------
-
+const showRefreshError = useCallback(() => {
+  notifyError(
+    "Unable to Refresh Collections",
+    "Your collections could not be refreshed. Check your connection and try again."
+  );
+}, [notifyError]);
   useFocusEffect(
     useCallback(() => {
       let active = true;
@@ -121,10 +100,6 @@ function CollectionsScreen({ navigation }) {
     }, [refreshCollections, showRefreshError]),
   );
 
-  // --------------------------------------------------
-  // PULL TO REFRESH
-  // --------------------------------------------------
-
   const refreshCollectionsScreen = useCallback(async () => {
     try {
       await refreshCollections();
@@ -137,10 +112,6 @@ function CollectionsScreen({ navigation }) {
   const { refreshing, onRefresh } = useRefresh(
     refreshCollectionsScreen,
   );
-
-  // --------------------------------------------------
-  // NAVIGATION
-  // --------------------------------------------------
 
   const handleGoBack = useCallback(() => {
     navigation.goBack();
@@ -178,10 +149,6 @@ function CollectionsScreen({ navigation }) {
     [navigation, showAlert],
   );
 
-  // --------------------------------------------------
-  // COLLECTION CARD
-  // --------------------------------------------------
-
   const renderItem = useCallback(
     ({ item }) => (
       <CollectionCardComponent
@@ -197,10 +164,6 @@ function CollectionsScreen({ navigation }) {
       String(item?._id || item?.id || index),
     [],
   );
-
-  // --------------------------------------------------
-  // EMPTY STATE
-  // --------------------------------------------------
 
   const renderEmpty = useCallback(() => {
     if (loading) {
@@ -277,10 +240,6 @@ function CollectionsScreen({ navigation }) {
     secondaryTextColor,
     handleCreateCollection,
   ]);
-
-  // --------------------------------------------------
-  // SCREEN
-  // --------------------------------------------------
 
   return (
     <View

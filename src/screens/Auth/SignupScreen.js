@@ -1,4 +1,3 @@
-
 import { useEffect, useMemo, useState } from "react";
 
 import {
@@ -6,7 +5,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  ActivityIndicator,
   StatusBar,
 } from "react-native";
 
@@ -25,6 +23,8 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../hooks/useAuth";
 import { useAppAlert } from "../../context/AlertContext";
+import { useMementoNotifications } from "../../hooks/useMementoNotifications";
+
 import { createAuthStyles } from "./authStyles";
 import TactileButton from "../../components/common/TactileButton";
 
@@ -36,7 +36,7 @@ function SignupScreen({ navigation }) {
 
   const styles = useMemo(
     () => createAuthStyles(colors, isDark),
-    [colors, isDark],
+    [colors, isDark]
   );
 
   const screenBackground =
@@ -56,8 +56,7 @@ function SignupScreen({ navigation }) {
   const borderColor =
     colors.border || (isDark ? "#39364D" : "#D9D8E2");
 
-  const inputBackground =
-    colors.input || surfaceColor;
+  const inputBackground = colors.input || surfaceColor;
 
   const primaryColor =
     colors.primary || (isDark ? "#C8C2FF" : "#34345C");
@@ -67,6 +66,7 @@ function SignupScreen({ navigation }) {
 
   const { signup } = useAuth();
   const { showAlert } = useAppAlert();
+  const { notify, notifyError } = useMementoNotifications();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -80,6 +80,10 @@ function SignupScreen({ navigation }) {
   const entranceOpacity = useSharedValue(0);
   const entranceY = useSharedValue(12);
   const buttonScale = useSharedValue(1);
+
+  // --------------------------------------------------
+  // ENTRANCE ANIMATION
+  // --------------------------------------------------
 
   useEffect(() => {
     entranceOpacity.value = withTiming(1, {
@@ -102,6 +106,10 @@ function SignupScreen({ navigation }) {
     transform: [{ scale: buttonScale.value }],
   }));
 
+  // --------------------------------------------------
+  // BUTTON ANIMATION
+  // --------------------------------------------------
+
   const handleButtonPressIn = () => {
     buttonScale.value = withSpring(0.97, {
       damping: 14,
@@ -118,7 +126,15 @@ function SignupScreen({ navigation }) {
     });
   };
 
+  // --------------------------------------------------
+  // SIGNUP
+  // --------------------------------------------------
+
   const handleSignup = async () => {
+    if (isLoading) {
+      return;
+    }
+
     const trimmedName = name.trim();
     const normalizedEmail = email.trim().toLowerCase();
 
@@ -130,7 +146,6 @@ function SignupScreen({ navigation }) {
         message: "Please enter your name.",
         confirmText: "OK",
       });
-
       return;
     }
 
@@ -142,7 +157,6 @@ function SignupScreen({ navigation }) {
         message: "Please enter your email address.",
         confirmText: "OK",
       });
-
       return;
     }
 
@@ -156,7 +170,6 @@ function SignupScreen({ navigation }) {
         message: "Please enter a valid email address.",
         confirmText: "OK",
       });
-
       return;
     }
 
@@ -168,7 +181,6 @@ function SignupScreen({ navigation }) {
         message: "Please create a password.",
         confirmText: "OK",
       });
-
       return;
     }
 
@@ -180,7 +192,6 @@ function SignupScreen({ navigation }) {
         message: "Password must be at least 8 characters.",
         confirmText: "OK",
       });
-
       return;
     }
 
@@ -192,7 +203,6 @@ function SignupScreen({ navigation }) {
         message: "Please confirm your password.",
         confirmText: "OK",
       });
-
       return;
     }
 
@@ -204,7 +214,6 @@ function SignupScreen({ navigation }) {
         message: "Please make sure both passwords are the same.",
         confirmText: "OK",
       });
-
       return;
     }
 
@@ -214,22 +223,20 @@ function SignupScreen({ navigation }) {
       const result = await signup(
         trimmedName,
         normalizedEmail,
-        password,
+        password
       );
 
-      if (!result.success) {
-        showAlert({
-          type: "danger",
-          icon: "close-circle-outline",
-          title: "Signup Failed",
-          message:
-            result.message ||
-            "Unable to start account creation.",
-          confirmText: "OK",
-        });
-
+      if (!result?.success) {
+        notifyError(
+          "Signup Failed",
+          result?.message || "Unable to start account creation. Please try again."
+        );
         return;
       }
+
+      // Signup has started and the user should verify their email.
+      // The account is not treated as fully created until verification succeeds.
+      notify("signupOtpSent");
 
       navigation.navigate("VerifySignupOtp", {
         email: normalizedEmail,
@@ -237,17 +244,18 @@ function SignupScreen({ navigation }) {
     } catch (error) {
       console.error("Signup screen error:", error);
 
-      showAlert({
-        type: "danger",
-        icon: "close-circle-outline",
-        title: "Signup Failed",
-        message: "Something went wrong. Please try again.",
-        confirmText: "OK",
-      });
+      notifyError(
+        "Signup Failed",
+        error?.message || "Something went wrong. Please try again."
+      );
     } finally {
       setIsLoading(false);
     }
   };
+
+  // --------------------------------------------------
+  // UI
+  // --------------------------------------------------
 
   return (
     <KeyboardAwareScrollView
@@ -446,7 +454,9 @@ function SignupScreen({ navigation }) {
                   styles.passwordButton,
                   { backgroundColor: inputBackground },
                 ]}
-                onPress={() => setShowPassword((previous) => !previous)}
+                onPress={() =>
+                  setShowPassword((previous) => !previous)
+                }
                 activeOpacity={0.7}
                 disabled={isLoading}
                 accessibilityRole="button"
@@ -551,23 +561,26 @@ function SignupScreen({ navigation }) {
 
           <AnimatedView style={buttonAnimatedStyle}>
             <TactileButton
-  label="CREATE ACCOUNT"
-  onPress={handleSignup}
-  icon="arrow-forward"
-  iconPosition="right"
-  color={primaryColor}
-  textColor={primaryTextColor}
-  iconColor={primaryTextColor}
-  height={52}
-  borderRadius={13}
-  depth={3}
-  loading={isLoading}
-  loadingText="CREATING ACCOUNT..."
-  disabled={isLoading}
-  style={{ width: "100%", marginBottom: 0 }}
-  contentStyle={styles.loginButton}
-  textStyle={styles.loginButtonText}
-/>
+              label="CREATE ACCOUNT"
+              onPress={handleSignup}
+              icon="arrow-forward"
+              iconPosition="right"
+              color={primaryColor}
+              textColor={primaryTextColor}
+              iconColor={primaryTextColor}
+              height={52}
+              borderRadius={13}
+              depth={3}
+              loading={isLoading}
+              loadingText="CREATING ACCOUNT..."
+              disabled={isLoading}
+              style={{
+                width: "100%",
+                marginBottom: 0,
+              }}
+              contentStyle={styles.loginButton}
+              textStyle={styles.loginButtonText}
+            />
           </AnimatedView>
         </View>
 

@@ -1,5 +1,4 @@
 import { useCallback, useMemo, useState } from "react";
-
 import {
   KeyboardAvoidingView,
   Platform,
@@ -10,13 +9,11 @@ import {
   View,
   StatusBar,
 } from "react-native";
-
 import { Ionicons } from "@expo/vector-icons";
-
 import { useCollection } from "../../hooks/useCollection";
 import { useTheme } from "../../context/ThemeContext";
 import { useAppAlert } from "../../context/AlertContext";
-
+import { useMementoNotifications } from "../../hooks/useMementoNotifications";
 import MementoLogo from "../../components/common/MementoLogo";
 import TactileButton from "../../components/common/TactileButton";
 
@@ -25,11 +22,8 @@ import styles from "./editCollectionStyles";
 function EditCollectionScreen({ route, navigation }) {
   const { theme, isDark } = useTheme();
   const { showAlert } = useAppAlert();
+  const { notify, notifyError } = useMementoNotifications();
   const colors = theme?.colors || {};
-
-  // --------------------------------------------------
-  // THEME COLORS
-  // --------------------------------------------------
 
   const screenBackground =
     colors.background || (isDark ? "#171624" : "#F1F0F6");
@@ -68,16 +62,10 @@ function EditCollectionScreen({ route, navigation }) {
   const { collectionId, collection } = route.params || {};
   const { updateCollection } = useCollection();
 
-  // --------------------------------------------------
-  // FORM STATE
-  // --------------------------------------------------
-
   const [name, setName] = useState(collection?.name || "");
-
   const [description, setDescription] = useState(
-    collection?.description || "",
+    collection?.description || ""
   );
-
   const [saving, setSaving] = useState(false);
 
   const memoryCount =
@@ -85,10 +73,6 @@ function EditCollectionScreen({ route, navigation }) {
     (Array.isArray(collection?.memories)
       ? collection.memories.length
       : 0);
-
-  // --------------------------------------------------
-  // THEMED STYLES
-  // --------------------------------------------------
 
   const themedStyles = useMemo(
     () => ({
@@ -214,12 +198,8 @@ function EditCollectionScreen({ route, navigation }) {
       borderColor,
       inputBackground,
       primaryColor,
-    ],
+    ]
   );
-
-  // --------------------------------------------------
-  // FORM VALIDATION AND SAVE
-  // --------------------------------------------------
 
   const handleSave = useCallback(async () => {
     const trimmedName = name.trim();
@@ -264,26 +244,26 @@ function EditCollectionScreen({ route, navigation }) {
         description: trimmedDescription,
       });
 
-      if (result?.success === false) {
+      if (result === false || result?.success === false) {
         throw new Error(
-          result.message || "Unable to update this collection.",
+          result?.message || "Unable to update this collection."
         );
       }
+
+      // Notify only after the update succeeds.
+      notify("collectionUpdated", {
+        message: `"${trimmedName}" has been updated successfully.`,
+      });
 
       navigation.goBack();
     } catch (error) {
       console.error("Update collection error:", error);
 
-      showAlert({
-        type: "danger",
-        icon: "close-circle-outline",
-        title: "Update Failed",
-        message:
-          error?.message ||
-          "Unable to save your collection changes. Please try again.",
-        confirmText: "OK",
-        showCancel: false,
-      });
+      notifyError(
+        "Update Failed",
+        error?.message ||
+          "Unable to save your collection changes. Please try again."
+      );
     } finally {
       setSaving(false);
     }
@@ -295,11 +275,9 @@ function EditCollectionScreen({ route, navigation }) {
     updateCollection,
     navigation,
     showAlert,
+    notify,
+    notifyError,
   ]);
-
-  // --------------------------------------------------
-  // CANCEL / UNSAVED CHANGES
-  // --------------------------------------------------
 
   const handleCancel = useCallback(() => {
     if (saving) {
@@ -339,16 +317,8 @@ function EditCollectionScreen({ route, navigation }) {
     navigation,
     showAlert,
   ]);
-
-  // --------------------------------------------------
-  // BUTTON STATE
-  // --------------------------------------------------
-
+  
   const isNameEmpty = !name.trim();
-
-  // --------------------------------------------------
-  // SCREEN
-  // --------------------------------------------------
 
   return (
     <KeyboardAvoidingView

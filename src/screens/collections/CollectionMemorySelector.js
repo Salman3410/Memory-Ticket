@@ -4,7 +4,6 @@ import {
   useMemo,
   useState,
 } from "react";
-
 import {
   ActivityIndicator,
   FlatList,
@@ -14,26 +13,20 @@ import {
   View,
   StatusBar,
 } from "react-native";
-
-import { Ionicons } from "@expo/vector-icons";
-
 import { useMemory } from "../../hooks/useMemory";
 import { useCollection } from "../../hooks/useCollection";
 import { useTheme } from "../../context/ThemeContext";
 import { useAppAlert } from "../../context/AlertContext";
-
+import { useMementoNotifications } from "../../hooks/useMementoNotifications";
 import MementoLogo from "../../components/common/MementoLogo";
 import MemoryTicketHorizontal from "../../components/MemoryTicket/MemoryTicketHorizontal";
 import TactileButton from "../../components/common/TactileButton";
 
 function CollectionMemorySelector({ route, navigation }) {
+  const { notify, notifyError } = useMementoNotifications();
   const { theme, isDark } = useTheme();
   const colors = theme?.colors || {};
   const { showAlert } = useAppAlert();
-
-  // --------------------------------------------------
-  // THEME COLORS
-  // --------------------------------------------------
 
   const screenBackground =
     colors.background || (isDark ? "#171624" : "#F1F0F6");
@@ -70,22 +63,12 @@ function CollectionMemorySelector({ route, navigation }) {
   const selectedSurface =
     isDark ? "#2C2940" : "#F4F2FC";
 
-  // --------------------------------------------------
-  // ROUTE AND CONTEXT
-  // --------------------------------------------------
-
   const { collectionId } = route.params || {};
-
   const { memories } = useMemory();
-
   const {
     getCollectionById,
     addMemoryToCollection,
   } = useCollection();
-
-  // --------------------------------------------------
-  // STATE
-  // --------------------------------------------------
 
   const [collection, setCollection] = useState(null);
   const [selectedIds, setSelectedIds] = useState([]);
@@ -93,10 +76,6 @@ function CollectionMemorySelector({ route, navigation }) {
   const [collectionLoadFailed, setCollectionLoadFailed] =
     useState(false);
   const [saving, setSaving] = useState(false);
-
-  // --------------------------------------------------
-  // LOAD COLLECTION
-  // --------------------------------------------------
 
   useEffect(() => {
     let mounted = true;
@@ -180,10 +159,6 @@ function CollectionMemorySelector({ route, navigation }) {
     };
   }, [collectionId, getCollectionById, showAlert]);
 
-  // --------------------------------------------------
-  // EXISTING MEMORY IDS
-  // --------------------------------------------------
-
   const existingMemoryIds = useMemo(() => {
     const existingMemories = Array.isArray(collection?.memories)
       ? collection.memories
@@ -196,10 +171,6 @@ function CollectionMemorySelector({ route, navigation }) {
     );
   }, [collection]);
 
-  // --------------------------------------------------
-  // SELECTABLE MEMORIES
-  // --------------------------------------------------
-
   const selectableMemories = useMemo(() => {
     if (!Array.isArray(memories)) {
       return [];
@@ -209,10 +180,6 @@ function CollectionMemorySelector({ route, navigation }) {
       Boolean(memory?._id || memory?.id),
     );
   }, [memories]);
-
-  // --------------------------------------------------
-  // SELECTION STATE
-  // --------------------------------------------------
 
   const hasSelection = selectedIds.length > 0;
 
@@ -231,10 +198,6 @@ function CollectionMemorySelector({ route, navigation }) {
     hasSelection || saving
       ? primaryTextColor
       : mutedTextColor;
-
-  // --------------------------------------------------
-  // TOGGLE MEMORY SELECTION
-  // --------------------------------------------------
 
   const toggleMemory = useCallback(
     (memoryId) => {
@@ -270,10 +233,6 @@ function CollectionMemorySelector({ route, navigation }) {
     ],
   );
 
-  // --------------------------------------------------
-  // CANCEL / DISCARD SELECTION
-  // --------------------------------------------------
-
   const handleCancel = useCallback(() => {
     if (saving) {
       return;
@@ -299,69 +258,69 @@ function CollectionMemorySelector({ route, navigation }) {
     });
   }, [saving, selectedIds, navigation, showAlert]);
 
-  // --------------------------------------------------
-  // ADD SELECTED MEMORIES
-  // --------------------------------------------------
+const handleAdd = useCallback(async () => {
+  if (
+    !collectionId ||
+    !collection ||
+    collectionLoadFailed ||
+    selectedIds.length === 0 ||
+    saving
+  ) {
+    return;
+  }
 
-  const handleAdd = useCallback(async () => {
-    if (
-      !collectionId ||
-      !collection ||
-      collectionLoadFailed ||
-      selectedIds.length === 0 ||
-      saving
-    ) {
-      return;
+  try {
+    setSaving(true);
+
+    const result = await addMemoryToCollection(
+      collectionId,
+      selectedIds
+    );
+
+    if (result?.success === false) {
+      throw new Error(
+        result.message ||
+          "Unable to add memories to this collection."
+      );
     }
 
-    try {
-      setSaving(true);
+    const collectionName = collection.name || "your collection";
+    const count = selectedIds.length;
 
-      const result = await addMemoryToCollection(
-        collectionId,
-        selectedIds,
-      );
+    notify("memoryAddedToCollection", {
+      title: count === 1 ? "Memory Added" : "Memories Added",
+      message:
+        count === 1
+          ? `Your memory has been added to "${collectionName}".`
+          : `${count} memories have been added to "${collectionName}".`,
+    });
 
-      if (result?.success === false) {
-        throw new Error(
-          result.message || "Unable to add memories to this collection.",
-        );
-      }
+    navigation.goBack();
+  } catch (error) {
+    console.error(
+      "Failed to add memories to collection:",
+      error
+    );
 
-      navigation.goBack();
-    } catch (error) {
-      console.error(
-        "Failed to add memories to collection:",
-        error,
-      );
-
-      showAlert({
-        type: "danger",
-        icon: "close-circle-outline",
-        title: "Unable to Add Memories",
-        message:
-          error?.message ||
-          "Something went wrong while adding these memories. Please try again.",
-        confirmText: "OK",
-        showCancel: false,
-      });
-    } finally {
-      setSaving(false);
-    }
-  }, [
-    collectionId,
-    collection,
-    collectionLoadFailed,
-    selectedIds,
-    saving,
-    addMemoryToCollection,
-    navigation,
-    showAlert,
-  ]);
-
-  // --------------------------------------------------
-  // RENDER MEMORY
-  // --------------------------------------------------
+    notifyError(
+      "Unable to Add Memories",
+      error?.message ||
+        "Something went wrong while adding these memories. Please try again."
+    );
+  } finally {
+    setSaving(false);
+  }
+}, [
+  collectionId,
+  collection,
+  collectionLoadFailed,
+  selectedIds,
+  saving,
+  addMemoryToCollection,
+  navigation,
+  notify,
+  notifyError,
+]);
 
   const renderItem = useCallback(
     ({ item }) => {

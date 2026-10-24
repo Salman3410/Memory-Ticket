@@ -1,6 +1,5 @@
-
 import { useEffect, useState } from "react";
-import { useTheme } from "../../../context/ThemeContext";
+
 import {
   View,
   Text,
@@ -9,14 +8,19 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  ActivityIndicator,
   Image,
   StatusBar,
 } from "react-native";
+
+import { useTheme } from "../../../context/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
+
 import styles from "./forgotPasswordStyles";
+
 import { useAuth } from "../../../hooks/useAuth";
 import { useAppAlert } from "../../../context/AlertContext";
+import { useMementoNotifications } from "../../../hooks/useMementoNotifications";
+
 import TactileButton from "../../../components/common/TactileButton";
 
 function ForgotPasswordScreen({ navigation }) {
@@ -46,20 +50,13 @@ function ForgotPasswordScreen({ navigation }) {
   const borderColor =
     colors.border || (isDark ? "#39364D" : "#D9D8E2");
 
-  const primaryColor =
-    colors.primary || "#34345C";
-
-  const primaryTextColor =
-    colors.primaryText || "#FFFFFF";
-
-  const errorColor =
-    colors.error || "#D9534F";
-
-  const successColor =
-    colors.success || "#4C9B70";
+  const primaryColor = colors.primary || "#34345C";
+  const primaryTextColor = colors.primaryText || "#FFFFFF";
 
   const { forgotPassword, verifyOtp, resetPassword } = useAuth();
+
   const { showAlert } = useAppAlert();
+  const { notify, notifyError } = useMementoNotifications();
 
   const [step, setStep] = useState("email");
   const [email, setEmail] = useState("");
@@ -67,12 +64,16 @@ function ForgotPasswordScreen({ navigation }) {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [resetToken, setResetToken] = useState("");
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
   const [resendTimer, setResendTimer] = useState(0);
+
+  // --------------------------------------------------
+  // RESEND COUNTDOWN
+  // --------------------------------------------------
 
   useEffect(() => {
     if (resendTimer <= 0) {
@@ -93,12 +94,15 @@ function ForgotPasswordScreen({ navigation }) {
     return () => clearInterval(timer);
   }, [resendTimer]);
 
-  const clearFeedback = () => {
-    setError("");
-    setMessage("");
-  };
+  // --------------------------------------------------
+  // SEND PASSWORD RESET OTP
+  // --------------------------------------------------
 
   const handleSendOtp = async () => {
+    if (loading) {
+      return;
+    }
+
     const normalizedEmail = email.trim().toLowerCase();
 
     if (!normalizedEmail) {
@@ -109,37 +113,46 @@ function ForgotPasswordScreen({ navigation }) {
         message: "Please enter your email address.",
         confirmText: "OK",
       });
+
       return;
     }
 
     setLoading(true);
-    clearFeedback();
 
     try {
       const result = await forgotPassword(normalizedEmail);
 
-      if (!result.success) {
-        setError(
-          result.message || "Unable to process password reset request."
+      if (!result?.success) {
+        notifyError(
+          "Password Reset Request Failed",
+          result?.message ||
+            "Unable to process your password reset request. Please try again."
         );
+
         return;
       }
 
       setEmail(normalizedEmail);
-      setMessage(
-        result.message ||
-          "If an account exists with this email, an OTP has been sent."
-      );
       setOtp("");
       setStep("otp");
       setResendTimer(60);
+
+      notify("passwordResetRequested");
     } catch (err) {
       console.error("Send OTP error:", err);
-      setError("Unable to connect to the server. Please try again.");
+
+      notifyError(
+        "Unable to Send OTP",
+        "Unable to connect to the server. Please try again."
+      );
     } finally {
       setLoading(false);
     }
   };
+
+  // --------------------------------------------------
+  // RESEND PASSWORD RESET OTP
+  // --------------------------------------------------
 
   const handleResendOtp = async () => {
     if (resendTimer > 0 || loading) {
@@ -147,28 +160,48 @@ function ForgotPasswordScreen({ navigation }) {
     }
 
     setLoading(true);
-    clearFeedback();
 
     try {
       const result = await forgotPassword(email.trim().toLowerCase());
 
-      if (!result.success) {
-        setError(result.message || "Unable to resend OTP.");
+      if (!result?.success) {
+        notifyError(
+          "Unable to Resend OTP",
+          result?.message || "Unable to resend the verification code."
+        );
+
         return;
       }
 
       setOtp("");
-      setMessage("A new OTP has been sent to your email.");
       setResendTimer(60);
+
+      notify("passwordResetRequested", {
+        title: "Reset Code Requested",
+        message:
+          "If an account matches this email, reset instructions will be sent.",
+      });
     } catch (err) {
       console.error("Resend OTP error:", err);
-      setError("Unable to connect to the server. Please try again.");
+
+      notifyError(
+        "Unable to Resend OTP",
+        "Unable to connect to the server. Please try again."
+      );
     } finally {
       setLoading(false);
     }
   };
 
+  // --------------------------------------------------
+  // VERIFY OTP
+  // --------------------------------------------------
+
   const handleVerifyOtp = async () => {
+    if (loading) {
+      return;
+    }
+
     const cleanedOtp = otp.trim();
 
     if (!cleanedOtp) {
@@ -179,6 +212,7 @@ function ForgotPasswordScreen({ navigation }) {
         message: "Please enter the OTP sent to your email.",
         confirmText: "OK",
       });
+
       return;
     }
 
@@ -190,11 +224,11 @@ function ForgotPasswordScreen({ navigation }) {
         message: "Please enter the 6-digit OTP.",
         confirmText: "OK",
       });
+
       return;
     }
 
     setLoading(true);
-    clearFeedback();
 
     try {
       const result = await verifyOtp(
@@ -202,15 +236,23 @@ function ForgotPasswordScreen({ navigation }) {
         cleanedOtp
       );
 
-      if (!result.success) {
-        setError(result.message || "Unable to verify OTP.");
+      if (!result?.success) {
+        notifyError(
+          "OTP Verification Failed",
+          result?.message || "Unable to verify the OTP. Please try again."
+        );
+
         return;
       }
 
       const serverResetToken = result.data?.resetToken;
 
       if (!serverResetToken) {
-        setError("Reset token was not received from the server.");
+        notifyError(
+          "Reset Token Missing",
+          "The server did not provide a password reset token. Please request a new OTP."
+        );
+
         return;
       }
 
@@ -219,13 +261,25 @@ function ForgotPasswordScreen({ navigation }) {
       setStep("reset");
     } catch (err) {
       console.error("Verify OTP error:", err);
-      setError("Unable to connect to the server. Please try again.");
+
+      notifyError(
+        "OTP Verification Failed",
+        "Unable to connect to the server. Please try again."
+      );
     } finally {
       setLoading(false);
     }
   };
 
+  // --------------------------------------------------
+  // RESET PASSWORD
+  // --------------------------------------------------
+
   const handleResetPassword = async () => {
+    if (loading) {
+      return;
+    }
+
     if (!newPassword || !confirmPassword) {
       showAlert({
         type: "warning",
@@ -234,6 +288,7 @@ function ForgotPasswordScreen({ navigation }) {
         message: "Please enter and confirm your new password.",
         confirmText: "OK",
       });
+
       return;
     }
 
@@ -245,6 +300,7 @@ function ForgotPasswordScreen({ navigation }) {
         message: "Password must contain 8 or more characters.",
         confirmText: "OK",
       });
+
       return;
     }
 
@@ -256,6 +312,7 @@ function ForgotPasswordScreen({ navigation }) {
         message: "Please make sure both passwords are the same.",
         confirmText: "OK",
       });
+
       return;
     }
 
@@ -266,13 +323,16 @@ function ForgotPasswordScreen({ navigation }) {
         title: "Reset Session Expired",
         message: "Please request a new OTP and try again.",
         confirmText: "OK",
-        onConfirm: () => setStep("email"),
+        onConfirm: () => {
+          setResetToken("");
+          setStep("email");
+        },
       });
+
       return;
     }
 
     setLoading(true);
-    clearFeedback();
 
     try {
       const result = await resetPassword(
@@ -281,8 +341,12 @@ function ForgotPasswordScreen({ navigation }) {
         newPassword
       );
 
-      if (!result.success) {
-        setError(result.message || "Unable to reset password.");
+      if (!result?.success) {
+        notifyError(
+          "Password Reset Failed",
+          result?.message || "Unable to reset your password. Please try again."
+        );
+
         return;
       }
 
@@ -291,17 +355,31 @@ function ForgotPasswordScreen({ navigation }) {
       setResetToken("");
       setOtp("");
       setStep("success");
+
+      notify("passwordReset");
     } catch (err) {
       console.error("Reset password error:", err);
-      setError("Unable to connect to the server. Please try again.");
+
+      notifyError(
+        "Password Reset Failed",
+        "Unable to connect to the server. Please try again."
+      );
     } finally {
       setLoading(false);
     }
   };
 
+  // --------------------------------------------------
+  // NAVIGATION
+  // --------------------------------------------------
+
   const goToLogin = () => {
     navigation.navigate("AuthTabs");
   };
+
+  // --------------------------------------------------
+  // BRAND
+  // --------------------------------------------------
 
   const renderBrand = () => (
     <View style={styles.brandContainer}>
@@ -328,40 +406,9 @@ function ForgotPasswordScreen({ navigation }) {
     </View>
   );
 
-  const renderFeedback = () => (
-    <>
-      {!!error && (
-        <Text
-          accessibilityRole="alert"
-          style={[
-            styles.errorText,
-            {
-              color: errorColor,
-              backgroundColor: isDark ? "#382329" : "#FFF0EF",
-              borderColor: isDark ? "#633640" : "#F4D1CF",
-            },
-          ]}
-        >
-          {error}
-        </Text>
-      )}
-
-      {!!message && (
-        <Text
-          style={[
-            styles.messageText,
-            {
-              color: isDark ? "#A8E0BB" : "#376F49",
-              backgroundColor: isDark ? "#22352C" : "#EDF8F0",
-              borderColor: isDark ? "#345341" : "#CFE9D5",
-            },
-          ]}
-        >
-          {message}
-        </Text>
-      )}
-    </>
-  );
+  // --------------------------------------------------
+  // INPUT WRAPPER
+  // --------------------------------------------------
 
   const renderInputWrapper = (iconName, inputElement) => (
     <View
@@ -379,26 +426,37 @@ function ForgotPasswordScreen({ navigation }) {
     </View>
   );
 
- const renderPrimaryButton = (label, iconName, onPress) => (
-  <TactileButton
-    label={label}
-    onPress={onPress}
-    icon={iconName}
-    iconPosition="right"
-    color={primaryColor}
-    textColor={primaryTextColor}
-    iconColor={primaryTextColor}
-    height={48}
-    borderRadius={10}
-    depth={3}
-    loading={loading}
-    loadingText="PLEASE WAIT..."
-    disabled={loading}
-    style={{ width: "100%", marginBottom: 0 }}
-    contentStyle={styles.primaryButton}
-    textStyle={styles.primaryButtonText}
-  />
-);
+  // --------------------------------------------------
+  // PRIMARY BUTTON
+  // --------------------------------------------------
+
+  const renderPrimaryButton = (label, iconName, onPress) => (
+    <TactileButton
+      label={label}
+      onPress={onPress}
+      icon={iconName}
+      iconPosition="right"
+      color={primaryColor}
+      textColor={primaryTextColor}
+      iconColor={primaryTextColor}
+      height={48}
+      borderRadius={10}
+      depth={3}
+      loading={loading}
+      loadingText="PLEASE WAIT..."
+      disabled={loading}
+      style={{
+        width: "100%",
+        marginBottom: 0,
+      }}
+      contentStyle={styles.primaryButton}
+      textStyle={styles.primaryButtonText}
+    />
+  );
+
+  // --------------------------------------------------
+  // EMAIL STEP
+  // --------------------------------------------------
 
   const renderEmailStep = () => (
     <>
@@ -406,6 +464,7 @@ function ForgotPasswordScreen({ navigation }) {
         <Text style={[styles.title, { color: textColor }]}>
           Forgot Password?
         </Text>
+
         <Text style={[styles.subtitle, { color: secondaryTextColor }]}>
           Enter your email and we'll send you a verification code.
         </Text>
@@ -435,12 +494,18 @@ function ForgotPasswordScreen({ navigation }) {
           )}
         </View>
 
-        {renderFeedback()}
-
-        {renderPrimaryButton("SEND OTP", "arrow-forward", handleSendOtp)}
+        {renderPrimaryButton(
+          "SEND OTP",
+          "arrow-forward",
+          handleSendOtp
+        )}
       </View>
     </>
   );
+
+  // --------------------------------------------------
+  // OTP STEP
+  // --------------------------------------------------
 
   const renderOtpStep = () => (
     <>
@@ -466,10 +531,7 @@ function ForgotPasswordScreen({ navigation }) {
           {renderInputWrapper(
             "key-outline",
             <TextInput
-              style={[
-                styles.otpInput,
-                { color: textColor },
-              ]}
+              style={[styles.otpInput, { color: textColor }]}
               placeholder="Enter 6-digit OTP"
               placeholderTextColor={mutedColor}
               value={otp}
@@ -480,11 +542,11 @@ function ForgotPasswordScreen({ navigation }) {
               maxLength={6}
               editable={!loading}
               textContentType="oneTimeCode"
+              returnKeyType="done"
+              onSubmitEditing={handleVerifyOtp}
             />
           )}
         </View>
-
-        {renderFeedback()}
 
         {renderPrimaryButton(
           "VERIFY OTP",
@@ -509,9 +571,11 @@ function ForgotPasswordScreen({ navigation }) {
                 },
               ]}
             >
-              {resendTimer > 0
-                ? `Resend in ${resendTimer}s`
-                : "Resend OTP"}
+              {loading
+                ? "PLEASE WAIT..."
+                : resendTimer > 0
+                  ? `Resend in ${resendTimer}s`
+                  : "Resend OTP"}
             </Text>
           </TouchableOpacity>
 
@@ -528,7 +592,6 @@ function ForgotPasswordScreen({ navigation }) {
         <TouchableOpacity
           style={styles.backLink}
           onPress={() => {
-            clearFeedback();
             setOtp("");
             setStep("email");
           }}
@@ -540,6 +603,7 @@ function ForgotPasswordScreen({ navigation }) {
             size={16}
             color={primaryColor}
           />
+
           <Text
             style={[
               styles.backLinkText,
@@ -552,6 +616,10 @@ function ForgotPasswordScreen({ navigation }) {
       </View>
     </>
   );
+
+  // --------------------------------------------------
+  // PASSWORD INPUT
+  // --------------------------------------------------
 
   const renderPasswordField = (
     label,
@@ -587,6 +655,10 @@ function ForgotPasswordScreen({ navigation }) {
             disabled={loading}
             activeOpacity={0.7}
             hitSlop={6}
+            accessibilityRole="button"
+            accessibilityLabel={
+              visible ? "Hide password" : "Show password"
+            }
           >
             <Ionicons
               name={visible ? "eye-off-outline" : "eye-outline"}
@@ -599,12 +671,17 @@ function ForgotPasswordScreen({ navigation }) {
     </View>
   );
 
+  // --------------------------------------------------
+  // RESET PASSWORD STEP
+  // --------------------------------------------------
+
   const renderResetStep = () => (
     <>
       <View style={styles.headingContainer}>
         <Text style={[styles.title, { color: textColor }]}>
           New Password
         </Text>
+
         <Text style={[styles.subtitle, { color: secondaryTextColor }]}>
           Create a new password for your Memento account.
         </Text>
@@ -638,8 +715,6 @@ function ForgotPasswordScreen({ navigation }) {
           Password must contain 8 or more characters.
         </Text>
 
-        {renderFeedback()}
-
         {renderPrimaryButton(
           "RESET PASSWORD",
           "checkmark-circle-outline",
@@ -648,6 +723,10 @@ function ForgotPasswordScreen({ navigation }) {
       </View>
     </>
   );
+
+  // --------------------------------------------------
+  // SUCCESS STEP
+  // --------------------------------------------------
 
   const renderSuccessStep = () => (
     <View style={styles.successContainer}>
@@ -664,21 +743,11 @@ function ForgotPasswordScreen({ navigation }) {
         />
       </View>
 
-      <Text
-        style={[
-          styles.successTitle,
-          { color: textColor },
-        ]}
-      >
+      <Text style={[styles.successTitle, { color: textColor }]}>
         Password Reset
       </Text>
 
-      <Text
-        style={[
-          styles.successText,
-          { color: secondaryTextColor },
-        ]}
-      >
+      <Text style={[styles.successText, { color: secondaryTextColor }]}>
         Your password has been changed successfully. You can now log in
         with your new password.
       </Text>
@@ -690,6 +759,10 @@ function ForgotPasswordScreen({ navigation }) {
       )}
     </View>
   );
+
+  // --------------------------------------------------
+  // MAIN UI
+  // --------------------------------------------------
 
   return (
     <KeyboardAvoidingView
@@ -718,6 +791,8 @@ function ForgotPasswordScreen({ navigation }) {
             { backgroundColor: screenBackground },
           ]}
         >
+          {/* BACK TO LOGIN */}
+
           <TouchableOpacity
             style={[
               styles.topBackButton,
@@ -736,6 +811,7 @@ function ForgotPasswordScreen({ navigation }) {
               size={20}
               color={textColor}
             />
+
             <Text
               style={[
                 styles.topBackText,
@@ -746,12 +822,18 @@ function ForgotPasswordScreen({ navigation }) {
             </Text>
           </TouchableOpacity>
 
+          {/* BRAND */}
+
           {renderBrand()}
+
+          {/* CURRENT STEP */}
 
           {step === "email" && renderEmailStep()}
           {step === "otp" && renderOtpStep()}
           {step === "reset" && renderResetStep()}
           {step === "success" && renderSuccessStep()}
+
+          {/* FOOTER */}
 
           <Text
             style={[

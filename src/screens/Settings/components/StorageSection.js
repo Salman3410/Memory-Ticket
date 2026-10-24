@@ -1,7 +1,12 @@
 import { View, Text } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+
 import { useTheme } from "../../../context/ThemeContext";
+import { useAppAlert } from "../../../context/AlertContext";
+import { useMementoNotifications } from "../../../hooks/useMementoNotifications";
+
 import TactileButton from "../../../components/common/TactileButton";
+
 import styles from "../settingsStyles";
 
 function StorageSection({
@@ -14,7 +19,47 @@ function StorageSection({
   const { theme } = useTheme();
   const { colors } = theme;
 
+  const { showAlert } = useAppAlert();
+  const { notify, notifyError } = useMementoNotifications();
+
   const dangerColor = colors.danger || "#D9534F";
+
+  const handleClearStorage = () => {
+    showAlert({
+      type: "danger",
+      icon: "trash-outline",
+      title: "Clear Memory Storage?",
+      message:
+        "This will remove your locally stored memory tickets and photos from this device. This action cannot be undone.",
+      confirmText: "Clear Storage",
+      cancelText: "Cancel",
+      showCancel: true,
+      onConfirm: async () => {
+        try {
+          const result = await onClearStorage();
+
+          if (result === false || result?.success === false) {
+            notifyError(
+              "Storage Clear Failed",
+              result?.message ||
+                "Unable to clear memory storage. Please try again."
+            );
+            return;
+          }
+
+          notify("memoryStorageCleared");
+        } catch (error) {
+          console.error("Clear memory storage error:", error);
+
+          notifyError(
+            "Storage Clear Failed",
+            error?.message ||
+              "Unable to clear memory storage. Please try again."
+          );
+        }
+      },
+    });
+  };
 
   return (
     <>
@@ -197,12 +242,12 @@ function StorageSection({
             </View>
           </View>
 
-          {/* TACTILE CLEAR STORAGE BUTTON */}
+          {/* CLEAR STORAGE BUTTON */}
 
           <TactileButton
             label="CLEAR MEMORY STORAGE"
             icon="trash-outline"
-            onPress={onClearStorage}
+            onPress={handleClearStorage}
             color={dangerColor}
             baseColor="#8F2929"
             textColor="#FFFFFF"
@@ -211,7 +256,7 @@ function StorageSection({
             borderRadius={12}
             depth={3}
             accessibilityLabel="Clear memory storage"
-            accessibilityHint="Opens the existing memory storage clearing action"
+            accessibilityHint="Opens a confirmation before clearing local memory storage"
             style={{
               marginTop: 14,
             }}

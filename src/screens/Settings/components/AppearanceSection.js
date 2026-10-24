@@ -2,15 +2,54 @@ import { View, Text, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 import { useTheme } from "../../../context/ThemeContext";
+import { useAppAlert } from "../../../context/AlertContext";
+import { useMementoNotifications } from "../../../hooks/useMementoNotifications";
+
 import styles from "../settingsStyles";
 
 function AppearanceSection() {
   const { theme, isDark, toggleTheme } = useTheme();
   const { colors } = theme;
 
+  const { showAlert } = useAppAlert();
+  const { notify } = useMementoNotifications();
+
+  const handleToggleTheme = async () => {
+    const nextIsDark = !isDark;
+
+    try {
+      await toggleTheme();
+
+      notify("themeChanged", {
+        type: "success",
+        title: nextIsDark
+          ? "Dark Mode Enabled"
+          : "Light Mode Enabled",
+        message: nextIsDark
+          ? "Your Memento theme has been updated to dark mode."
+          : "Your Memento theme has been updated to light mode.",
+      });
+    } catch (error) {
+      console.error("Theme change error:", error);
+
+      showAlert({
+        type: "danger",
+        icon: "close-circle-outline",
+        title: "Theme Update Failed",
+        message: "Unable to change your theme. Please try again.",
+        confirmText: "OK",
+      });
+    }
+  };
+
   return (
     <>
-      <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>
+      <Text
+        style={[
+          styles.sectionTitle,
+          { color: colors.textMuted },
+        ]}
+      >
         APPEARANCE
       </Text>
 
@@ -24,12 +63,17 @@ function AppearanceSection() {
         ]}
       >
         <Pressable
-          onPress={toggleTheme}
+          onPress={handleToggleTheme}
           accessibilityRole="switch"
           accessibilityLabel="Memento dark mode"
           accessibilityState={{ checked: isDark }}
-          style={({ pressed }) => [styles.row, pressed && { opacity: 0.8 }]}
+          style={({ pressed }) => [
+            styles.row,
+            pressed && { opacity: 0.8 },
+          ]}
         >
+          {/* ICON */}
+
           <View
             style={[
               styles.iconBox,
@@ -37,24 +81,47 @@ function AppearanceSection() {
             ]}
           >
             <Ionicons
-              name={isDark ? "moon-outline" : "color-palette-outline"}
+              name={
+                isDark
+                  ? "moon-outline"
+                  : "color-palette-outline"
+              }
               size={20}
               color={colors.icon}
             />
           </View>
 
+          {/* TEXT */}
+
           <View style={styles.rowContent}>
-            <Text style={[styles.rowTitle, { color: colors.text }]}>
+            <Text
+              style={[
+                styles.rowTitle,
+                { color: colors.text },
+              ]}
+            >
               Memento Theme
             </Text>
 
-            <Text style={[styles.rowSubtitle, { color: colors.textSecondary }]}>
+            <Text
+              style={[
+                styles.rowSubtitle,
+                { color: colors.textSecondary },
+              ]}
+            >
               Minimal, nostalgic and personal.
             </Text>
           </View>
 
+          {/* STATUS & SWITCH */}
+
           <View style={styles.themeControl}>
-            <Text style={[styles.themeText, { color: colors.accent }]}>
+            <Text
+              style={[
+                styles.themeText,
+                { color: colors.accent },
+              ]}
+            >
               {isDark ? "DARK" : "LIGHT"}
             </Text>
 
@@ -62,7 +129,9 @@ function AppearanceSection() {
               style={[
                 styles.themeSwitch,
                 {
-                  backgroundColor: isDark ? colors.accent : colors.border,
+                  backgroundColor: isDark
+                    ? colors.accent
+                    : colors.border,
                 },
               ]}
             >

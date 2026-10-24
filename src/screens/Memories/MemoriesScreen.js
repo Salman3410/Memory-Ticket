@@ -5,7 +5,6 @@ import React, {
   useRef,
   useState,
 } from "react";
-
 import {
   FlatList,
   RefreshControl,
@@ -14,16 +13,13 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-
 import { Ionicons } from "@expo/vector-icons";
-
 import { useMemory } from "../../hooks/useMemory";
 import { useCollection } from "../../hooks/useCollection";
 import useRefresh from "../../hooks/useRefresh";
-
+import { useMementoNotifications } from "../../hooks/useMementoNotifications";
 import { useAppAlert } from "../../context/AlertContext";
 import { useTheme } from "../../context/ThemeContext";
-
 import SearchBar from "../../components/Memories/SearchBar/SearchBar";
 import CollectionStats from "../../components/Memories/CollectionStats/CollectionStats";
 import MemoryFilters from "../../components/Memories/MemoryFilters/MemoryFilters";
@@ -31,7 +27,6 @@ import EmptyMemoryState from "../../components/Memories/EmptyMemoryState/EmptyMe
 import MemoryTicketList from "../../components/Memories/MemoryTicketList/MemoryTicketList";
 import TimelineBottomSheet from "../../components/Memories/TimelineBottomSheet/TimelineBottomSheet";
 import AdvancedSearch from "../../components/Memories/AdvancedSearch/AdvancedSearch";
-
 import styles from "./memoriesStyles";
 
 const MONTHS = [
@@ -293,6 +288,7 @@ const MemoriesHeader = React.memo(function MemoriesHeader({
 });
 
 function MemoriesScreen({ navigation, route }) {
+  const { notify, notifyError } = useMementoNotifications();
   const { memories:memoryData, loading, toggleFavorite, refreshMemories } = useMemory();
   const memories = Array.isArray(memoryData)
   ? memoryData
@@ -733,38 +729,54 @@ function MemoriesScreen({ navigation, route }) {
     navigation.navigate("Create");
   }, [navigation]);
 
-  const handleToggleFavorite = useCallback(
-    async (memory) => {
-      try {
-        const memoryId = memory?.id || memory?.clientMemoryId;
+const handleToggleFavorite = useCallback(
+  async (memory) => {
+    const memoryId =
+      memory?.id || memory?._id || memory?.clientMemoryId;
 
-        if (!memoryId) {
-          showAlert({
-            type: "danger",
-            icon: "heart-dislike-outline",
-            title: "Favorite Failed",
-            message: "This memory could not be identified.",
-            confirmText: "OK",
-          });
+    if (!memoryId) {
+      showAlert({
+        type: "danger",
+        icon: "heart-dislike-outline",
+        title: "Favorite Failed",
+        message: "This memory could not be identified.",
+        confirmText: "OK",
+      });
 
-          return;
-        }
+      return;
+    }
 
-        await toggleFavorite(memoryId);
-      } catch (error) {
-        console.error("Favorite error:", error);
+    const wasFavorite = memory.favorite === true;
 
-        showAlert({
-          type: "danger",
-          icon: "heart-dislike-outline",
-          title: "Favorite Failed",
-          message: error?.message || "Unable to update favorite status.",
-          confirmText: "OK",
+    try {
+      const result = await toggleFavorite(memoryId);
+
+      if (result === false || result?.success === false) {
+        throw new Error(
+          result?.message || "Unable to update favorite status."
+        );
+      }
+
+      if (wasFavorite) {
+        notify("favoriteRemoved", {
+          message: `"${memory.title || "Your memory"}" has been removed from favorites.`,
+        });
+      } else {
+        notify("favoriteAdded", {
+          message: `"${memory.title || "Your memory"}" has been added to favorites.`,
         });
       }
-    },
-    [toggleFavorite, showAlert],
-  );
+    } catch (error) {
+      console.error("Favorite error:", error);
+
+      notifyError(
+        "Favorite Update Failed",
+        error?.message || "Unable to update favorite status. Please try again."
+      );
+    }
+  },
+  [toggleFavorite, showAlert, notify, notifyError]
+);
 
   const handleOpenAdvancedSearch = useCallback(() => {
     advancedSearchRef.current?.open();

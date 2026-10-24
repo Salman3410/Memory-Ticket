@@ -1,6 +1,4 @@
-
 import { useMemo, useState } from "react";
-
 import {
   View,
   Text,
@@ -9,42 +7,32 @@ import {
   useWindowDimensions,
   StatusBar,
 } from "react-native";
-
 import { Ionicons } from "@expo/vector-icons";
 
 import { useMemory } from "../../hooks/useMemory";
 import { useAppAlert } from "../../context/AlertContext";
 import { useTheme } from "../../context/ThemeContext";
-
-import {
-  useAnimatedNotification,
-} from "../../context/AnimatedNotificationContext";
+import { useMementoNotifications } from "../../hooks/useMementoNotifications";
 
 import MemoryTicket from "../../components/MemoryTicket/MemoryTicket";
-
 import TicketCustomizationSheet from "../../components/TicketCustomization/TicketCustomizationSheet";
-
 import { normalizeTicketCustomization } from "../../utils/ticketCustomization";
-
 import TactileButton from "../../components/common/TactileButton";
 
 import styles from "./ticketPreviewStyles";
 
 function TicketPreviewScreen({ route, navigation }) {
   const { addMemory } = useMemory();
-
   const { showAlert } = useAppAlert();
-
   const { theme, isDark } = useTheme();
 
-  const { showNotification } = useAnimatedNotification();
+  // Reusable animated notification hook
+  const { notify } = useMementoNotifications();
 
   const { memory } = route.params || {};
-
   const { width: screenWidth } = useWindowDimensions();
 
   const [activeImage, setActiveImage] = useState(0);
-
   const [saving, setSaving] = useState(false);
 
   const [customization, setCustomization] = useState(() =>
@@ -53,10 +41,6 @@ function TicketPreviewScreen({ route, navigation }) {
 
   const [customizationVisible, setCustomizationVisible] =
     useState(false);
-
-  // ==================================================
-  // THEME COLORS
-  // ==================================================
 
   const colors = useMemo(() => {
     const themeColors = theme?.colors || {};
@@ -85,14 +69,9 @@ function TicketPreviewScreen({ route, navigation }) {
         (isDark ? "#38384C" : "#D9D8E2"),
 
       primary: themeColors.primary || "#34345C",
-
       accent: themeColors.accent || "#E76F51",
     };
   }, [theme, isDark]);
-
-  // ==================================================
-  // SCREEN STYLES
-  // ==================================================
 
   const screenStyles = useMemo(() => {
     return {
@@ -159,10 +138,6 @@ function TicketPreviewScreen({ route, navigation }) {
       },
     };
   }, [colors]);
-
-  // ==================================================
-  // MISSING MEMORY STATE
-  // ==================================================
 
   if (!memory) {
     return (
@@ -231,10 +206,6 @@ function TicketPreviewScreen({ route, navigation }) {
     );
   }
 
-  // ==================================================
-  // MEMORY DATA
-  // ==================================================
-
   const images = Array.isArray(memory.images)
     ? memory.images
     : memory.image
@@ -245,10 +216,6 @@ function TicketPreviewScreen({ route, navigation }) {
     ...memory,
     ...customization,
   };
-
-  // ==================================================
-  // SAVE MEMORY
-  // ==================================================
 
   const handleSave = async () => {
     if (saving) {
@@ -272,9 +239,7 @@ function TicketPreviewScreen({ route, navigation }) {
     try {
       await addMemory({
         title: memory.title || "",
-
         location: memory.location || "",
-
         locationData: memory.locationData || null,
 
         network:
@@ -289,16 +254,11 @@ function TicketPreviewScreen({ route, navigation }) {
           : [],
 
         images: [...images],
-
-        // Preserve the date selected by the user.
         date: memory.date || new Date().toISOString(),
-
         favorite: false,
-
         environment: memory.environment || null,
 
         ticketStyle: customization.ticketStyle,
-
         ticketAccent: customization.ticketAccent,
 
         ticketOptions: {
@@ -306,7 +266,6 @@ function TicketPreviewScreen({ route, navigation }) {
         },
       });
 
-      // Navigate to the Memories tab after the save succeeds.
       navigation.reset({
         index: 0,
         routes: [
@@ -319,12 +278,8 @@ function TicketPreviewScreen({ route, navigation }) {
         ],
       });
 
-      showNotification({
-        type: "success",
-        title: "Memory saved!",
-        message: "Your moment is safe.",
-        duration: 2800,
-      });
+      // Reusable animated success notification
+      notify("memoryCreated");
     } catch (error) {
       console.error(
         "Error saving or navigating after save:",
@@ -344,10 +299,6 @@ function TicketPreviewScreen({ route, navigation }) {
     }
   };
 
-  // ==================================================
-  // EDIT MEMORY
-  // ==================================================
-
   const handleEdit = () => {
     if (saving) {
       return;
@@ -361,11 +312,9 @@ function TicketPreviewScreen({ route, navigation }) {
           ...memory,
 
           images: [...images],
-
           image: images[0] || memory.image || null,
 
           location: memory.location || "",
-
           locationData: memory.locationData || null,
 
           tags: Array.isArray(memory.tags)
@@ -373,7 +322,6 @@ function TicketPreviewScreen({ route, navigation }) {
             : [],
 
           ticketStyle: customization.ticketStyle,
-
           ticketAccent: customization.ticketAccent,
 
           ticketOptions: {
@@ -383,10 +331,6 @@ function TicketPreviewScreen({ route, navigation }) {
       },
     });
   };
-
-  // ==================================================
-  // TICKET RENDERER
-  // ==================================================
 
   const renderTicket = (image, index) => {
     return (
@@ -411,10 +355,6 @@ function TicketPreviewScreen({ route, navigation }) {
     );
   };
 
-  // ==================================================
-  // SCREEN
-  // ==================================================
-
   return (
     <View style={screenStyles.container}>
       <StatusBar
@@ -428,7 +368,6 @@ function TicketPreviewScreen({ route, navigation }) {
         nestedScrollEnabled
       >
         {/* HEADER */}
-
         <View style={screenStyles.header}>
           <TouchableOpacity
             style={screenStyles.backButton}
@@ -457,7 +396,6 @@ function TicketPreviewScreen({ route, navigation }) {
         </View>
 
         {/* INTRO */}
-
         <View style={styles.previewHeader}>
           <Text style={screenStyles.previewTitle}>
             Looks good?
@@ -469,7 +407,6 @@ function TicketPreviewScreen({ route, navigation }) {
         </View>
 
         {/* TICKET CAROUSEL */}
-
         <ScrollView
           horizontal
           pagingEnabled
@@ -496,7 +433,6 @@ function TicketPreviewScreen({ route, navigation }) {
         </ScrollView>
 
         {/* SWIPE HINT */}
-
         {images.length > 1 && (
           <View style={styles.swipeHint}>
             <Ionicons
@@ -512,7 +448,6 @@ function TicketPreviewScreen({ route, navigation }) {
         )}
 
         {/* CUSTOMIZE TICKET */}
-
         <TouchableOpacity
           style={[
             screenStyles.editButton,
@@ -537,10 +472,7 @@ function TicketPreviewScreen({ route, navigation }) {
         </TouchableOpacity>
 
         {/* ACTIONS */}
-
         <View style={styles.actionsContainer}>
-          {/* REUSABLE TACTILE SAVE BUTTON */}
-
           <TactileButton
             label="SAVE MEMORY"
             icon="bookmark-outline"
@@ -555,8 +487,6 @@ function TicketPreviewScreen({ route, navigation }) {
             depth={4}
             textStyle={styles.saveButtonText}
           />
-
-          {/* EDIT BUTTON */}
 
           <TouchableOpacity
             style={screenStyles.editButton}
@@ -577,14 +507,12 @@ function TicketPreviewScreen({ route, navigation }) {
         </View>
 
         {/* FOOTER */}
-
         <Text style={screenStyles.footerText}>
           Every moment deserves a ticket.
         </Text>
       </ScrollView>
 
       {/* TICKET CUSTOMIZATION SHEET */}
-
       <TicketCustomizationSheet
         visible={customizationVisible}
         value={customization}

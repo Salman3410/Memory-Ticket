@@ -29,7 +29,7 @@ import ShareExportSheet from "../../components/ShareExportSheet/ShareExportSheet
 import TicketCustomizationSheet from "../../components/TicketCustomization/TicketCustomizationSheet";
 import { normalizeTicketCustomization } from "../../utils/ticketCustomization";
 import TactileButton from "../../components/common/TactileButton";
-
+import { useMementoNotifications } from "../../hooks/useMementoNotifications";
 import {
   getMemoryDetailUrl,
   getMemoryViewerUrl,
@@ -38,6 +38,7 @@ import styles from "./memoryDetailsStyles";
 import { useTheme } from "../../context/ThemeContext";
 
 function MemoryDetailsScreen({ navigation, route }) {
+  const { notify, notifyError } = useMementoNotifications();
   const { theme, isDark } = useTheme();
   const colors = theme?.colors || {};
   const screenBackground = colors.background || (isDark ? "#171624" : "#F1F0F6");
@@ -120,9 +121,7 @@ function MemoryDetailsScreen({ navigation, route }) {
     : [];
 
   const detailImages = images.map((image) => getMemoryDetailUrl(image));
-
   const viewerImages = images.map((image) => getMemoryViewerUrl(image));
-
   const ticketPreviewMemory = draftCustomization
     ? {
         ...memory,
@@ -151,61 +150,102 @@ function MemoryDetailsScreen({ navigation, route }) {
     return "00001";
   };
 
-  const handleFavorite = async () => {
-    try {
-      favoriteScale.stopAnimation();
-      favoriteScale.setValue(1);
+const handleFavorite = async () => {
+  const memoryId =
+    memory?.id || memory?._id || memory?.clientMemoryId;
 
-      Animated.sequence([
-        Animated.spring(favoriteScale, {
-          toValue: 1.3,
-          friction: 4,
-          tension: 180,
-          useNativeDriver: true,
-        }),
+  if (!memoryId) {
+    notifyError(
+      "Favorite Update Failed",
+      "This memory could not be identified."
+    );
+    return;
+  }
 
-        Animated.spring(favoriteScale, {
-          toValue: 0.92,
-          friction: 5,
-          tension: 180,
-          useNativeDriver: true,
-        }),
+  const wasFavorite = memory.favorite === true;
 
-        Animated.spring(favoriteScale, {
-          toValue: 1,
-          friction: 5,
-          tension: 160,
-          useNativeDriver: true,
-        }),
-      ]).start();
+  try {
+    favoriteScale.stopAnimation();
+    favoriteScale.setValue(1);
 
-      await toggleFavorite(memory.id);
-    } catch (error) {
-      console.log("Favorite update error:", error);
+    Animated.sequence([
+      Animated.spring(favoriteScale, {
+        toValue: 1.3,
+        friction: 4,
+        tension: 180,
+        useNativeDriver: true,
+      }),
+
+      Animated.spring(favoriteScale, {
+        toValue: 0.92,
+        friction: 5,
+        tension: 180,
+        useNativeDriver: true,
+      }),
+
+      Animated.spring(favoriteScale, {
+        toValue: 1,
+        friction: 5,
+        tension: 160,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    const result = await toggleFavorite(memoryId);
+
+    if (result === false || result?.success === false) {
+      throw new Error(
+        result?.message || "Unable to update favorite status."
+      );
     }
-  };
+
+    if (wasFavorite) {
+      notify("favoriteRemoved", {
+        message: `"${memory.title || "Your memory"}" has been removed from favorites.`,
+      });
+    } else {
+      notify("favoriteAdded", {
+        message: `"${memory.title || "Your memory"}" has been added to favorites.`,
+      });
+    }
+  } catch (error) {
+    console.error("Favorite update error:", error);
+
+    notifyError(
+      "Favorite Update Failed",
+      error?.message || "Unable to update favorite status. Please try again."
+    );
+  }
+};
 
   const handleDelete = () => {
-    showAlert({
-      type: "danger",
-      icon: "trash-outline",
-      title: "Delete Memory?",
-      message:
-        "This memory will be permanently removed from your collection. This action cannot be undone.",
-      cancelText: "Cancel",
-      confirmText: "Delete",
-      showCancel: true,
+  showAlert({
+    type: "danger",
+    icon: "trash-outline",
+    title: "Delete Memory?",
+    message:
+      "This memory will be permanently removed from your collection. This action cannot be undone.",
+    cancelText: "Cancel",
+    confirmText: "Delete",
+    showCancel: true,
 
-      onConfirm: async () => {
-        try {
-          await deleteMemory(memory.id);
+    onConfirm: async () => {
+      try {
+        await deleteMemory(memory.id);
 
-          navigation.navigate("MainTabs", {
-            screen: "Memories",
-          });
-        } catch (error) {
-          console.log("Delete error:", error);
-        }
+        navigation.navigate("MainTabs", {
+          screen: "Memories",
+        });
+
+        notify("memoryDeleted");
+      } catch (error) {
+        console.error("Delete error:", error);
+
+        notifyError(
+          "Delete Failed",
+          error?.message || "Unable to delete this memory. Please try again."
+        );
+      }
       },
     });
   };

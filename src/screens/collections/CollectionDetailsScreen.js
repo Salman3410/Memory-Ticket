@@ -24,8 +24,10 @@ import MementoLogo from "../../components/common/MementoLogo";
 import TactileButton from "../../components/common/TactileButton";
 import { useAppAlert } from "../../context/AlertContext";
 import { getMemoryDetailUrl } from "../../utils/cloudinary";
+import { useMementoNotifications } from "../../hooks/useMementoNotifications";
 
 function CollectionDetailsScreen({ route, navigation }) {
+  const { notify, notifyError } = useMementoNotifications();
   const { collectionId } = route.params || {};
   const { showAlert } = useAppAlert();
   const {
@@ -156,20 +158,27 @@ const handleDelete = useCallback(() => {
 
     onConfirm: async () => {
       try {
-        await deleteCollection(collectionId);
+        const result = await deleteCollection(collectionId);
+
+        if (result === false || result?.success === false) {
+          throw new Error(
+            result?.message || "Unable to delete this collection."
+          );
+        }
+
+        notify("collectionDeleted", {
+          message: `"${collection?.name || "Your collection"}" has been deleted.`,
+        });
+
         navigation.goBack();
       } catch (error) {
         console.error("Failed to delete collection:", error);
 
-        showAlert({
-          type: "danger",
-          icon: "close-circle-outline",
-          title: "Delete Failed",
-          message:
-            error?.message ||
-            "Unable to delete this collection. Please try again.",
-          confirmText: "OK",
-        });
+        notifyError(
+          "Delete Failed",
+          error?.message ||
+            "Unable to delete this collection. Please try again."
+        );
       }
     },
   });
@@ -179,6 +188,8 @@ const handleDelete = useCallback(() => {
   collectionId,
   deleteCollection,
   navigation,
+  notify,
+  notifyError,
 ]);
 
 const handleMore = useCallback(() => {
@@ -292,29 +303,31 @@ const handleRemoveMemory = useCallback(
         try {
           setRemovingMemoryId(memoryId);
 
-          await removeMemoryFromCollection(
+          const result = await removeMemoryFromCollection(
             collectionId,
-            memoryId,
+            memoryId
           );
+
+          if (result === false || result?.success === false) {
+            throw new Error(
+              result?.message || "Unable to remove this memory."
+            );
+          }
 
           setCollection((previous) => {
             if (!previous) {
               return previous;
             }
 
-            const currentMemories = Array.isArray(
-              previous.memories,
-            )
+            const currentMemories = Array.isArray(previous.memories)
               ? previous.memories
               : [];
 
             const updatedMemories = currentMemories.filter(
               (memory) => {
-                const id =
-                  memory?._id || memory?.id || memory;
-
+                const id = memory?._id || memory?.id || memory;
                 return String(id) !== String(memoryId);
-              },
+              }
             );
 
             return {
@@ -323,21 +336,21 @@ const handleRemoveMemory = useCallback(
               memoryCount: updatedMemories.length,
             };
           });
+
+          notify("memoryRemovedFromCollection", {
+            message: `"${memoryTitle || "Your memory"}" has been removed from this collection.`,
+          });
         } catch (error) {
           console.error(
             "Failed to remove memory from collection:",
-            error,
+            error
           );
 
-          showAlert({
-            type: "danger",
-            icon: "close-circle-outline",
-            title: "Remove Failed",
-            message:
-              error?.message ||
-              "Unable to remove this memory. Please try again.",
-            confirmText: "OK",
-          });
+          notifyError(
+            "Remove Failed",
+            error?.message ||
+              "Unable to remove this memory. Please try again."
+          );
         } finally {
           setRemovingMemoryId(null);
         }
@@ -349,7 +362,9 @@ const handleRemoveMemory = useCallback(
     collectionId,
     removeMemoryFromCollection,
     removingMemoryId,
-  ],
+    notify,
+    notifyError,
+  ]
 );
 
   const renderMemory = useCallback(

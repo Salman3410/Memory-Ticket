@@ -1,10 +1,15 @@
 import { View, Text, ScrollView, StatusBar } from "react-native";
+
 import { useMemory } from "../../hooks/useMemory";
 import { useAuth } from "../../hooks/useAuth";
 import { useRewards } from "../../hooks/useRewards";
+
 import { useSubscription } from "../../context/SubscriptionContext";
 import { useAppAlert } from "../../context/AlertContext";
 import { useTheme } from "../../context/ThemeContext";
+
+import { useMementoNotifications } from "../../hooks/useMementoNotifications";
+
 import ProfileCard from "../../components/Profile/Card/ProfileCard";
 import ProfileStats from "../../components/Profile/Stats/ProfileStats";
 import ProfileMenu from "../../components/Profile/Menu/ProfileMenu";
@@ -19,6 +24,7 @@ function ProfileScreen({ navigation }) {
 
   const { isPremium } = useSubscription();
   const { showAlert } = useAppAlert();
+  const { notify, notifyError } = useMementoNotifications();
 
   const { theme, isDark } = useTheme();
   const { colors } = theme;
@@ -28,6 +34,10 @@ function ProfileScreen({ navigation }) {
     tickets: memories.length,
     favorites: memories.filter((memory) => memory.favorite).length,
   };
+
+  // --------------------------------------------------
+  // NAVIGATION
+  // --------------------------------------------------
 
   const handleEditProfile = () => {
     navigation.getParent()?.navigate("EditProfile");
@@ -45,6 +55,10 @@ function ProfileScreen({ navigation }) {
     navigation.getParent()?.navigate("About");
   };
 
+  // --------------------------------------------------
+  // REWARDS
+  // --------------------------------------------------
+
   const handleRewards = () => {
     showAlert({
       type: "info",
@@ -55,6 +69,10 @@ function ProfileScreen({ navigation }) {
       showClose: true,
     });
   };
+
+  // --------------------------------------------------
+  // LOGOUT
+  // --------------------------------------------------
 
   const handleLogout = () => {
     showAlert({
@@ -68,21 +86,37 @@ function ProfileScreen({ navigation }) {
 
       onConfirm: async () => {
         try {
-          await logout();
+          const result = await logout();
+
+          if (
+            result === false ||
+            result?.success === false
+          ) {
+            notifyError(
+              "Logout Failed",
+              result?.message ||
+                "Unable to log out. Please try again."
+            );
+            return;
+          }
+
+          notify("loggedOut");
         } catch (error) {
           console.error("Logout error:", error);
 
-          showAlert({
-            type: "danger",
-            icon: "close-circle-outline",
-            title: "Logout Failed",
-            message: "Unable to log out. Please try again.",
-            confirmText: "OK",
-          });
+          notifyError(
+            "Logout Failed",
+            error?.message ||
+              "Unable to log out. Please try again."
+          );
         }
       },
     });
   };
+
+  // --------------------------------------------------
+  // ACCOUNT MENU
+  // --------------------------------------------------
 
   const accountMenuItems = [
     {
@@ -161,11 +195,21 @@ function ProfileScreen({ navigation }) {
 
         <View style={styles.header}>
           <View>
-            <Text style={[styles.headerEyebrow, { color: colors.accent }]}>
+            <Text
+              style={[
+                styles.headerEyebrow,
+                { color: colors.accent },
+              ]}
+            >
               YOUR SPACE
             </Text>
 
-            <Text style={[styles.headerTitle, { color: colors.text }]}>
+            <Text
+              style={[
+                styles.headerTitle,
+                { color: colors.text },
+              ]}
+            >
               Profile
             </Text>
           </View>
@@ -182,7 +226,11 @@ function ProfileScreen({ navigation }) {
 
         {/* PROFILE STATS */}
 
-        <ProfileStats stats={stats} colors={colors} isDark={isDark} />
+        <ProfileStats
+          stats={stats}
+          colors={colors}
+          isDark={isDark}
+        />
 
         {/* ACCOUNT MENU */}
 
@@ -204,11 +252,20 @@ function ProfileScreen({ navigation }) {
 
         {/* LOGOUT */}
 
-        <LogoutButton onPress={handleLogout} colors={colors} isDark={isDark} />
+        <LogoutButton
+          onPress={handleLogout}
+          colors={colors}
+          isDark={isDark}
+        />
 
         {/* VERSION */}
 
-        <Text style={[styles.versionText, { color: colors.textMuted }]}>
+        <Text
+          style={[
+            styles.versionText,
+            { color: colors.textMuted },
+          ]}
+        >
           MEMENTO • VERSION 2.5.0
         </Text>
       </ScrollView>

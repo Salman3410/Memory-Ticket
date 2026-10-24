@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 
 import {
@@ -7,7 +6,6 @@ import {
   TextInput,
   TouchableOpacity,
   Image,
-  Alert,
   StatusBar,
 } from "react-native";
 
@@ -17,6 +15,8 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 
 import { useAuth } from "../../hooks/useAuth";
 import { useTheme } from "../../context/ThemeContext";
+import { useAppAlert } from "../../context/AlertContext";
+import { useMementoNotifications } from "../../hooks/useMementoNotifications";
 
 import TactileButton from "../../components/common/TactileButton";
 
@@ -27,6 +27,9 @@ function EditProfileScreen({ navigation }) {
 
   const { theme, isDark } = useTheme();
   const { colors } = theme;
+
+  const { showAlert } = useAppAlert();
+  const { notify, notifyError } = useMementoNotifications();
 
   const [name, setName] = useState(user?.name || "");
   const [profileImage, setProfileImage] = useState(
@@ -46,10 +49,14 @@ function EditProfileScreen({ navigation }) {
         await ImagePicker.requestMediaLibraryPermissionsAsync();
 
       if (!permission.granted) {
-        Alert.alert(
-          "Permission Required",
-          "Please allow photo library access to choose a profile photo."
-        );
+        showAlert({
+          type: "warning",
+          icon: "lock-closed-outline",
+          title: "Permission Required",
+          message:
+            "Please allow photo library access to choose a profile photo.",
+          confirmText: "OK",
+        });
         return;
       }
 
@@ -66,7 +73,7 @@ function EditProfileScreen({ navigation }) {
     } catch (error) {
       console.error("Profile photo picker error:", error);
 
-      Alert.alert(
+      notifyError(
         "Photo Unavailable",
         "Unable to select a profile photo. Please try again."
       );
@@ -79,7 +86,13 @@ function EditProfileScreen({ navigation }) {
     }
 
     if (!name.trim()) {
-      Alert.alert("Name Required", "Please enter your name.");
+      showAlert({
+        type: "warning",
+        icon: "person-outline",
+        title: "Name Required",
+        message: "Please enter your name before saving your profile.",
+        confirmText: "OK",
+      });
       return;
     }
 
@@ -92,29 +105,21 @@ function EditProfileScreen({ navigation }) {
       });
 
       if (!result.success) {
-        Alert.alert(
+        notifyError(
           "Update Failed",
-          result.message || "Something went wrong."
+          result.message || "Something went wrong. Please try again."
         );
         return;
       }
 
-      Alert.alert(
-        "Profile Updated",
-        "Your profile has been updated successfully.",
-        [
-          {
-            text: "OK",
-            onPress: () => navigation.goBack(),
-          },
-        ]
-      );
+      navigation.goBack();
+      notify("profileUpdated");
     } catch (error) {
       console.error("Edit profile error:", error);
 
-      Alert.alert(
+      notifyError(
         "Update Failed",
-        "Unable to update your profile."
+        error?.message || "Unable to update your profile. Please try again."
       );
     } finally {
       setSaving(false);
@@ -365,7 +370,7 @@ function EditProfileScreen({ navigation }) {
           </View>
         </View>
 
-        {/* TACTILE SAVE CHANGES BUTTON */}
+        {/* SAVE CHANGES BUTTON */}
 
         <TactileButton
           label="SAVE CHANGES"

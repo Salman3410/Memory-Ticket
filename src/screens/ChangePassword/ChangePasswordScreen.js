@@ -1,6 +1,4 @@
-
-import React, { useState } from "react";
-
+import { useState } from "react";
 import {
   View,
   Text,
@@ -8,176 +6,146 @@ import {
   TextInput,
   StatusBar,
 } from "react-native";
-
 import { Ionicons } from "@expo/vector-icons";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
-
 import { useAuth } from "../../hooks/useAuth";
 import { useAppAlert } from "../../context/AlertContext";
 import { useTheme } from "../../context/ThemeContext";
-
 import TactileButton from "../../components/common/TactileButton";
-
+import { useMementoNotifications } from "../../hooks/useMementoNotifications";
 import styles from "./changePasswordStyles";
 
 function ChangePasswordScreen({ navigation }) {
+  const { notify, notifyError } = useMementoNotifications();
   const { changePassword } = useAuth();
   const { showAlert } = useAppAlert();
-
   const { theme, isDark } = useTheme();
   const { colors } = theme;
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
   const [loading, setLoading] = useState(false);
 
   const hasMinimumLength = newPassword.length >= 8;
-
   const passwordsMatch =
     newPassword.length > 0 &&
     confirmPassword.length > 0 &&
     newPassword === confirmPassword;
-
-  // --------------------------------------------------
-  // THEME COLORS
-  // --------------------------------------------------
-
   const errorBackground = isDark ? "#39252B" : "#F9EEEC";
-
   const primaryColor = colors.primary || "#34345C";
   const primaryTextColor = colors.primaryText || "#FFFFFF";
 
-  // --------------------------------------------------
-  // CHANGE PASSWORD
-  // --------------------------------------------------
+const handleChangePassword = async () => {
+  if (loading) {
+    return;
+  }
 
-  const handleChangePassword = async () => {
-    if (loading) {
-      return;
-    }
+  if (!currentPassword) {
+    showAlert({
+      type: "warning",
+      icon: "lock-closed-outline",
+      title: "Current Password Required",
+      message: "Please enter your current password.",
+      confirmText: "OK",
+    });
+    return;
+  }
 
-    if (!currentPassword) {
-      showAlert({
-        type: "warning",
-        icon: "lock-closed-outline",
-        title: "Current Password Required",
-        message: "Please enter your current password.",
-        confirmText: "OK",
-      });
-      return;
-    }
+  if (!newPassword) {
+    showAlert({
+      type: "warning",
+      icon: "key-outline",
+      title: "New Password Required",
+      message: "Please enter your new password.",
+      confirmText: "OK",
+    });
+    return;
+  }
 
-    if (!newPassword) {
-      showAlert({
-        type: "warning",
-        icon: "key-outline",
-        title: "New Password Required",
-        message: "Please enter your new password.",
-        confirmText: "OK",
-      });
-      return;
-    }
+  if (!hasMinimumLength) {
+    showAlert({
+      type: "warning",
+      icon: "alert-circle-outline",
+      title: "Password Too Short",
+      message: "Your new password must contain at least 8 characters.",
+      confirmText: "OK",
+    });
+    return;
+  }
 
-    if (!hasMinimumLength) {
-      showAlert({
-        type: "warning",
-        icon: "alert-circle-outline",
-        title: "Password Too Short",
-        message: "Your new password must contain at least 8 characters.",
-        confirmText: "OK",
-      });
-      return;
-    }
+  if (currentPassword === newPassword) {
+    showAlert({
+      type: "warning",
+      icon: "shield-checkmark-outline",
+      title: "Invalid Password",
+      message:
+        "Your new password must be different from your current password.",
+      confirmText: "OK",
+    });
+    return;
+  }
 
-    if (currentPassword === newPassword) {
-      showAlert({
-        type: "warning",
-        icon: "shield-checkmark-outline",
-        title: "Invalid Password",
-        message:
-          "Your new password must be different from your current password.",
-        confirmText: "OK",
-      });
-      return;
-    }
+  if (!confirmPassword) {
+    showAlert({
+      type: "warning",
+      icon: "shield-checkmark-outline",
+      title: "Confirm Your Password",
+      message: "Please confirm your new password.",
+      confirmText: "OK",
+    });
+    return;
+  }
 
-    if (!confirmPassword) {
-      showAlert({
-        type: "warning",
-        icon: "shield-checkmark-outline",
-        title: "Confirm Your Password",
-        message: "Please confirm your new password.",
-        confirmText: "OK",
-      });
-      return;
-    }
+  if (!passwordsMatch) {
+    showAlert({
+      type: "warning",
+      icon: "alert-circle-outline",
+      title: "Passwords Don't Match",
+      message: "Your new password and confirmation password must match.",
+      confirmText: "OK",
+    });
+    return;
+  }
 
-    if (!passwordsMatch) {
-      showAlert({
-        type: "warning",
-        icon: "alert-circle-outline",
-        title: "Passwords Don't Match",
-        message: "Your new password and confirmation password must match.",
-        confirmText: "OK",
-      });
-      return;
-    }
+  setLoading(true);
 
-    setLoading(true);
+  try {
+    const result = await changePassword(
+      currentPassword,
+      newPassword
+    );
 
-    try {
-      const result = await changePassword(
-        currentPassword,
-        newPassword
+    if (!result?.success) {
+      notifyError(
+        "Password Change Failed",
+        result?.message || "Unable to change your password."
       );
-
-      if (!result.success) {
-        showAlert({
-          type: "danger",
-          icon: "close-circle-outline",
-          title: "Password Change Failed",
-          message: result.message || "Unable to change your password.",
-          confirmText: "OK",
-        });
-        return;
-      }
-
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
-
-      showAlert({
-        type: "success",
-        icon: "checkmark-circle-outline",
-        title: "Password Changed",
-        message:
-          "Your password has been changed successfully. Please log in again.",
-        confirmText: "OK",
-      });
-    } catch (error) {
-      console.error("Change password screen error:", error);
-
-      showAlert({
-        type: "danger",
-        icon: "close-circle-outline",
-        title: "Something Went Wrong",
-        message: "Unable to change your password. Please try again.",
-        confirmText: "OK",
-      });
-    } finally {
-      setLoading(false);
+      return;
     }
-  };
 
-  // --------------------------------------------------
-  // REUSABLE PASSWORD INPUT
-  // --------------------------------------------------
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+
+    notify("passwordChanged", {
+      message:
+        "Your password has been changed successfully. Please log in again.",
+    });
+  } catch (error) {
+    console.error("Change password screen error:", error);
+
+    notifyError(
+      "Password Change Failed",
+      error?.message || "Unable to change your password. Please try again."
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
   const renderPasswordInput = ({
     icon,
@@ -241,10 +209,6 @@ function ChangePasswordScreen({ navigation }) {
       </TouchableOpacity>
     </View>
   );
-
-  // --------------------------------------------------
-  // UI
-  // --------------------------------------------------
 
   return (
     <View
@@ -525,7 +489,7 @@ function ChangePasswordScreen({ navigation }) {
           MEMENTO • ACCOUNT SECURITY
         </Text>
       </KeyboardAwareScrollView>
-    </View>
+    </View> 
   );
 }
 
