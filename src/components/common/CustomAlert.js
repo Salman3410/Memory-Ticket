@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import TactileButton from "../common/TactileButton";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
+import AlertTactileButton from "../common/AlertTactileButton";
 
 function CustomAlert({
   visible,
@@ -18,7 +18,7 @@ function CustomAlert({
   onClose,
 }) {
   const { theme, isDark } = useTheme();
-  const { colors } = theme;
+  const colors = theme?.colors || {};
 
   const getAlertIcon = () => {
     if (icon) {
@@ -50,15 +50,25 @@ function CustomAlert({
         return "#E6A23C";
 
       case "info":
-        return colors.primary;
+        return colors.primary || "#34345C";
 
       case "danger":
       default:
-        return colors.danger;
+        return colors.danger || "#D9534F";
     }
   };
 
   const alertColor = getAlertColor();
+
+  const confirmColor =
+    type === "danger"
+      ? colors.danger || "#D9534F"
+      : colors.primary || "#34345C";
+
+  const confirmTextColor =
+    type === "danger"
+      ? "#FFFFFF"
+      : colors.primaryText || "#FFFFFF";
 
   if (!visible) {
     return null;
@@ -79,20 +89,22 @@ function CustomAlert({
         style={[
           styles.modalContainer,
           {
-            backgroundColor: colors.surface,
-            borderColor: colors.border,
+            backgroundColor: colors.surface || "#FFFFFF",
+            borderColor: colors.border || "#D9D8E2",
           },
         ]}
       >
         {/* CLOSE BUTTON */}
-
         {showClose && (
           <Pressable
             style={({ pressed }) => [
               styles.closeButton,
               {
-                backgroundColor: colors.surfaceSecondary,
-                borderColor: colors.border,
+                backgroundColor:
+                  colors.surfaceSecondary ||
+                  colors.surface ||
+                  "#FFFFFF",
+                borderColor: colors.border || "#D9D8E2",
               },
               pressed && styles.closeButtonPressed,
             ]}
@@ -101,110 +113,126 @@ function CustomAlert({
             accessibilityRole="button"
             accessibilityLabel="Close alert"
           >
-            <Ionicons name="close" size={19} color={colors.icon} />
+            <Ionicons
+              name="close"
+              size={19}
+              color={colors.icon || colors.text || "#34345C"}
+            />
           </Pressable>
         )}
 
         {/* ALERT ICON */}
-
         <View
           style={[
             styles.iconContainer,
             {
-              backgroundColor: isDark ? `${alertColor}20` : `${alertColor}14`,
-              borderColor: isDark ? `${alertColor}55` : `${alertColor}35`,
+              backgroundColor: isDark
+                ? `${alertColor}20`
+                : `${alertColor}14`,
+              borderColor: isDark
+                ? `${alertColor}55`
+                : `${alertColor}35`,
             },
           ]}
         >
-          <Ionicons name={getAlertIcon()} size={30} color={alertColor} />
+          <Ionicons
+            name={getAlertIcon()}
+            size={30}
+            color={alertColor}
+          />
         </View>
 
         {/* TITLE */}
-
-        <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
+        <Text
+          style={[
+            styles.title,
+            { color: colors.text || "#242424" },
+          ]}
+        >
+          {title}
+        </Text>
 
         {/* MESSAGE */}
-
         {message ? (
-          <Text style={[styles.message, { color: colors.textSecondary }]}>
+          <Text
+            style={[
+              styles.message,
+              {
+                color:
+                  colors.textSecondary ||
+                  colors.textMuted ||
+                  "#707080",
+              },
+            ]}
+          >
             {message}
           </Text>
         ) : null}
 
         {/* ACTION BUTTONS */}
+        <View
+          style={[
+            styles.buttonRow,
+            !showCancel && styles.singleButtonRow,
+          ]}
+        >
+          {showCancel && (
+            <AlertTactileButton
+              label={cancelText}
+              onPress={onCancel}
+              icon="close"
+              iconPosition="left"
+              color={colors.surface || "#FFFFFF"}
+              textColor={colors.text || "#242424"}
+              iconColor={colors.text || "#242424"}
+              height={48}
+              borderRadius={14}
+              depth={2}
+              style={styles.tactileCancelWrapper}
+              contentStyle={[
+                styles.cancelButton,
+                {
+                  backgroundColor: colors.surface || "#FFFFFF",
+                  borderColor: colors.border || "#D9D8E2",
+                },
+              ]}
+              textStyle={[
+                styles.cancelText,
+                { color: colors.text || "#242424" },
+              ]}
+            />
+          )}
 
-<View
-  style={[
-    styles.buttonRow,
-    !showCancel && styles.singleButtonRow,
-  ]}
->
-  {showCancel && (
-    <TactileButton
-      label={cancelText}
-      onPress={onCancel}
-      color={colors.surface}
-      textColor={colors.text}
-      height={48}
-      borderRadius={14}
-      depth={2}
-      style={{
-        flex: 1,
-        width: "auto",
-        marginBottom: 0,
-      }}
-      contentStyle={[
-        styles.cancelButton,
-        {
-          backgroundColor: colors.surface,
-          borderColor: colors.border,
-        },
-      ]}
-      textStyle={[
-        styles.cancelText,
-        { color: colors.text },
-      ]}
-    />
-  )}
-
-  <TactileButton
-    label={confirmText}
-    onPress={onConfirm}
-    color={type === "danger" ? colors.danger : colors.primary}
-    textColor={
-      type === "danger" ? "#FFFFFF" : colors.primaryText
-    }
-    height={48}
-    borderRadius={14}
-    depth={2}
-    style={
-      showCancel
-        ? {
-            flex: 1,
-            width: "auto",
-            marginBottom: 0,
-          }
-        : {
-            width: "100%",
-            marginBottom: 0,
-          }
-    }
-    contentStyle={[
-      styles.confirmButton,
-      {
-        backgroundColor:
-          type === "danger" ? colors.danger : colors.primary,
-      },
-    ]}
-    textStyle={[
-      styles.confirmText,
-      {
-        color:
-          type === "danger" ? "#FFFFFF" : colors.primaryText,
-      },
-    ]}
-  />
-</View>
+          <AlertTactileButton
+            label={confirmText}
+            onPress={onConfirm}
+            icon={
+              type === "danger"
+                ? "trash-outline"
+                : "checkmark"
+            }
+            iconPosition="left"
+            color={confirmColor}
+            textColor={confirmTextColor}
+            iconColor={confirmTextColor}
+            height={48}
+            borderRadius={14}
+            depth={2}
+            style={
+              showCancel
+                ? styles.tactileConfirmWrapper
+                : styles.tactileSingleWrapper
+            }
+            contentStyle={[
+              styles.confirmButton,
+              { backgroundColor: confirmColor },
+            ]}
+            textStyle={[
+              styles.confirmText,
+              { color: confirmTextColor },
+            ]}
+          />
+        </View>
       </View>
     </View>
   );
@@ -295,6 +323,7 @@ const styles = StyleSheet.create({
   buttonRow: {
     width: "100%",
     flexDirection: "row",
+    alignItems: "stretch",
     gap: 10,
   },
 
@@ -302,37 +331,56 @@ const styles = StyleSheet.create({
     flexDirection: "column",
   },
 
-  cancelButton: {
+  // The dedicated button component has no default wrapper width.
+  // Each button receives half the available row width.
+  tactileCancelWrapper: {
     flex: 1,
+    flexBasis: 0,
+    minWidth: 0,
+    marginBottom: 0,
+  },
+
+  tactileConfirmWrapper: {
+    flex: 1,
+    flexBasis: 0,
+    minWidth: 0,
+    marginBottom: 0,
+  },
+
+  tactileSingleWrapper: {
+    width: "100%",
+    marginBottom: 0,
+  },
+
+  // Inner button face styles
+  cancelButton: {
+    width: "100%",
     height: 48,
     borderRadius: 14,
     borderWidth: 1.5,
     justifyContent: "center",
     alignItems: "center",
+    paddingHorizontal: 6,
   },
 
   confirmButton: {
-    flex: 1,
+    width: "100%",
     height: 48,
     borderRadius: 14,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 18,
+    paddingHorizontal: 6,
   },
 
   cancelText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "900",
     letterSpacing: 0.4,
   },
 
   confirmText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "900",
     letterSpacing: 0.4,
-  },
-
-  buttonPressed: {
-    opacity: 0.7,
   },
 });
