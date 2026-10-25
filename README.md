@@ -8,6 +8,8 @@ Instead of keeping important moments as ordinary photos in a gallery, Memory Tic
 
 The application combines **memory journaling, photography, location information, device metadata, sharing, and PDF export** into one simple experience.
 
+Download Link: https://memento-taupe-three.vercel.app/
+
 ---
 
 ## Features
