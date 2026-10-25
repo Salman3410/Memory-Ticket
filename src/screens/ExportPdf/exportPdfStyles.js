@@ -1,10 +1,8 @@
-
 import { StyleSheet } from "react-native";
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F1F0F6",
   },
 
   header: {
@@ -15,16 +13,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "#F1F0F6",
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
 
   headerButton: {
     width: 42,
     height: 42,
     borderRadius: 13,
-    backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "#D9D8E2",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -38,14 +34,12 @@ const styles = StyleSheet.create({
     fontSize: 8,
     fontWeight: "900",
     letterSpacing: 1.5,
-    color: "#707080",
   },
 
   headerTitle: {
     marginTop: 3,
     fontSize: 17,
     fontWeight: "900",
-    color: "#242424",
   },
 
   scroll: {
@@ -62,7 +56,6 @@ const styles = StyleSheet.create({
     marginBottom: 22,
     fontSize: 11,
     lineHeight: 17,
-    color: "#707080",
   },
 
   sectionLabel: {
@@ -70,7 +63,6 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "900",
     letterSpacing: 1.4,
-    color: "#707080",
   },
 
   optionsRow: {
@@ -83,9 +75,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 10,
     borderRadius: 18,
-    backgroundColor: "#FFFFFF",
     borderWidth: 1.5,
-    borderColor: "#D9D8E2",
   },
 
   optionCardSelected: {
@@ -99,12 +89,8 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#F1F0F6",
     marginBottom: 11,
-  },
-
-  previewWrapperSelected: {
-    backgroundColor: "#ECEBF3",
+    borderWidth: 1,
   },
 
   miniPage: {
@@ -123,33 +109,27 @@ const styles = StyleSheet.create({
     width: 25,
     height: 25,
     borderRadius: 13,
-    backgroundColor: "#34345C",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,
-    borderColor: "#FFFFFF",
   },
 
   optionTitle: {
     fontSize: 12,
     fontWeight: "900",
-    color: "#242424",
   },
 
   optionDescription: {
     marginTop: 4,
     fontSize: 9,
     lineHeight: 14,
-    color: "#777777",
   },
 
   paperInfo: {
     minHeight: 52,
     paddingHorizontal: 14,
     borderRadius: 14,
-    backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "#D9D8E2",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -166,38 +146,32 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "900",
     letterSpacing: 0.6,
-    color: "#34345C",
   },
 
   paperInfoDivider: {
     width: 1,
     height: 20,
-    backgroundColor: "#D9D8E2",
   },
 
   exportButtonText: {
     fontSize: 11,
     fontWeight: "900",
     letterSpacing: 1.1,
-    color: "#FFFFFF",
   },
 
   cancelButton: {
-    height: 48,
+    minHeight: 48,
     alignItems: "center",
     justifyContent: "center",
     marginTop: 7,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#D9D8E2",
-    backgroundColor: "#FFFFFF",
   },
 
   cancelButtonText: {
     fontSize: 10,
     fontWeight: "900",
     letterSpacing: 1.2,
-    color: "#34345C",
   },
 
   footerHint: {
@@ -206,14 +180,12 @@ const styles = StyleSheet.create({
     fontSize: 9,
     lineHeight: 14,
     textAlign: "center",
-    color: "#90909D",
   },
 
   notFound: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#F1F0F6",
     paddingHorizontal: 30,
   },
 
@@ -221,17 +193,14 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 20,
     fontWeight: "900",
-    color: "#242424",
   },
 
   backButtonLarge: {
-    height: 48,
+    minHeight: 48,
     marginTop: 18,
     paddingHorizontal: 22,
     borderRadius: 14,
-    backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "#D9D8E2",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -240,7 +209,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "900",
     letterSpacing: 1.1,
-    color: "#34345C",
   },
 });
 

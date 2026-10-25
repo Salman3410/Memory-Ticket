@@ -4,74 +4,86 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: "flex-end",
-    backgroundColor: "rgba(20, 20, 20, 0.45)",
+    backgroundColor: "rgba(12, 12, 22, 0.58)",
   },
 
   sheet: {
+    width: "100%",
     maxHeight: "88%",
-    backgroundColor: "#F1F0F6",
-    borderTopLeftRadius: 26,
-    borderTopRightRadius: 26,
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    borderTopWidth: 1,
+    borderColor: "#D9D8E2",
     overflow: "hidden",
   },
 
+  // Header
   header: {
-    paddingHorizontal: 20,
+    minHeight: 82,
+    paddingHorizontal: 22,
     paddingTop: 18,
-    paddingBottom: 14,
+    paddingBottom: 15,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "#D9D8E2",
   },
 
   eyebrow: {
-    fontSize: 8,
+    fontSize: 9,
     fontWeight: "900",
-    letterSpacing: 1.6,
-    color: "#707080",
+    letterSpacing: 1.8,
+    color: "#E76F51",
   },
 
   title: {
-    marginTop: 4,
-    fontSize: 20,
+    marginTop: 5,
+    fontSize: 21,
     fontWeight: "900",
+    letterSpacing: -0.4,
     color: "#242424",
   },
 
   closeButton: {
     width: 40,
     height: 40,
+    marginLeft: 12,
     borderRadius: 20,
-    backgroundColor: "#FFFFFF",
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: "#F1F0F6",
     borderWidth: 1,
     borderColor: "#D9D8E2",
+    alignItems: "center",
+    justifyContent: "center",
   },
 
+  // Scroll content
   scrollContent: {
-    paddingHorizontal: 18,
+    paddingHorizontal: 20,
+    paddingTop: 12,
     paddingBottom: 28,
   },
 
   sectionLabel: {
     marginTop: 8,
-    marginBottom: 10,
-    fontSize: 9,
+    marginBottom: 12,
+    fontSize: 10,
     fontWeight: "900",
     letterSpacing: 1.5,
     color: "#707080",
   },
 
+  // Ticket style options
   styleGrid: {
-    gap: 9,
+    gap: 10,
   },
 
   styleCard: {
     position: "relative",
-    minHeight: 82,
-    padding: 10,
-    borderRadius: 16,
+    minHeight: 88,
+    padding: 11,
+    borderRadius: 17,
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
     borderColor: "#D9D8E2",
@@ -79,41 +91,44 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
+  // Border color is supplied by the active theme in the component.
   styleCardActive: {
-    borderColor: "#34345C",
     borderWidth: 2,
   },
 
   stylePreview: {
-    width: 54,
-    height: 62,
-    borderRadius: 6,
+    width: 56,
+    height: 64,
+    marginRight: 13,
+    padding: 7,
+    borderRadius: 7,
     overflow: "hidden",
-    padding: 6,
     justifyContent: "center",
-    gap: 5,
-    marginRight: 12,
+    gap: 6,
+    backgroundColor: "#F1F0F6",
+    borderWidth: 1,
+    borderColor: "#D9D8E2",
   },
 
   classicPreview: {
     backgroundColor: "#F7B900",
+    borderColor: "#E6A900",
   },
 
   minimalPreview: {
     backgroundColor: "#FFFFFF",
-    borderWidth: 1,
     borderColor: "#D9D8E2",
   },
 
   vintagePreview: {
     backgroundColor: "#F3E7CF",
-    borderWidth: 1,
     borderColor: "#C5A978",
   },
 
   previewLine: {
     width: "70%",
     height: 3,
+    borderRadius: 2,
     backgroundColor: "#E76F51",
   },
 
@@ -123,19 +138,21 @@ const styles = StyleSheet.create({
 
   previewBlock: {
     width: "100%",
-    height: 20,
-    backgroundColor: "rgba(255,255,255,0.55)",
+    height: 19,
+    borderRadius: 3,
+    backgroundColor: "rgba(255,255,255,0.58)",
   },
 
   previewBlockSmall: {
     width: "55%",
     height: 4,
+    borderRadius: 2,
     backgroundColor: "rgba(52,52,92,0.45)",
   },
 
   styleCardText: {
     flex: 1,
-    paddingRight: 20,
+    paddingRight: 22,
   },
 
   styleCardTitle: {
@@ -145,9 +162,9 @@ const styles = StyleSheet.create({
   },
 
   styleCardDescription: {
-    marginTop: 4,
-    fontSize: 9,
-    lineHeight: 14,
+    marginTop: 5,
+    fontSize: 10,
+    lineHeight: 15,
     color: "#777780",
   },
 
@@ -163,17 +180,21 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
+  // Accent color picker
   accentSectionLabel: {
-    marginTop: 20,
+    marginTop: 22,
   },
 
   accentRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    paddingHorizontal: 4,
+    alignItems: "flex-start",
+    paddingHorizontal: 3,
+    gap: 8,
   },
 
   accentItem: {
+    flex: 1,
     alignItems: "center",
   },
 
@@ -181,6 +202,8 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
+    borderWidth: 2,
+    borderColor: "transparent",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -192,24 +215,27 @@ const styles = StyleSheet.create({
   },
 
   accentLabel: {
-    marginTop: 6,
-    fontSize: 9,
+    marginTop: 7,
+    fontSize: 10,
     fontWeight: "800",
+    textAlign: "center",
     color: "#5F5F69",
   },
 
+  // Ticket content visibility
   contentSectionLabel: {
-    marginTop: 22,
+    marginTop: 24,
   },
 
   optionRow: {
     minHeight: 58,
+    marginBottom: 9,
     paddingHorizontal: 15,
+    paddingVertical: 10,
     borderRadius: 14,
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
     borderColor: "#D9D8E2",
-    marginBottom: 8,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -217,6 +243,7 @@ const styles = StyleSheet.create({
 
   optionTextContainer: {
     flex: 1,
+    paddingRight: 12,
   },
 
   optionLabel: {
@@ -226,27 +253,34 @@ const styles = StyleSheet.create({
   },
 
   optionState: {
-    marginTop: 3,
-    fontSize: 8,
+    marginTop: 4,
+    fontSize: 9,
     fontWeight: "800",
     letterSpacing: 1,
     color: "#8A8993",
   },
 
-  doneButton: {
-    height: 50,
-    marginTop: 10,
-    borderRadius: 14,
-    backgroundColor: "#34345C",
-    alignItems: "center",
-    justifyContent: "center",
+doneButtonContainer: {
+  width: "100%",
+  marginTop: 18,
+  marginBottom: 4,
+  alignItems: "stretch",
+},
+
+doneButton: {
+  width: "100%",
+},
+
+  doneButtonDisabled: {
+    opacity: 0.6,
   },
 
   doneButtonText: {
-    color: "#FFFFFF",
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: "900",
     letterSpacing: 1.2,
+    textAlign: "center",
+    color: "#FFFFFF",
   },
 });
 

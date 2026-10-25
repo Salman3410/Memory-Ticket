@@ -1,7 +1,5 @@
-
 import { useState } from "react";
 import { useTheme } from "../../context/ThemeContext";
-
 import {
   View,
   Text,
@@ -10,18 +8,14 @@ import {
   Image,
   StatusBar,
 } from "react-native";
-
 import { Ionicons } from "@expo/vector-icons";
 import { Asset } from "expo-asset";
 import * as Sharing from "expo-sharing";
 import * as Print from "expo-print";
 import * as FileSystem from "expo-file-system/legacy";
-
 import { useMemory } from "../../hooks/useMemory";
 import { useAppAlert } from "../../context/AlertContext";
-
 import TactileButton from "../../components/common/TactileButton";
-
 import styles from "./exportPdfStyles";
 
 const A7_WIDTH_MM = 74;
@@ -62,7 +56,7 @@ const getClassicBackBase64 = async () => {
     throw new Error("Classic ticket back image could not be loaded.");
   }
 
-  return await imageToBase64(asset.localUri);
+  return imageToBase64(asset.localUri);
 };
 
 function ExportPdfScreen({ navigation, route }) {
@@ -70,10 +64,13 @@ function ExportPdfScreen({ navigation, route }) {
   const colors = theme?.colors || {};
 
   const screenBackground =
-    colors.background || (isDark ? "#171624" : "#F1F0F6");
+    colors.background || (isDark ? "#171724" : "#F1F0F6");
 
   const surfaceColor =
-    colors.surface || (isDark ? "#211F30" : "#FFFFFF");
+    colors.surface || (isDark ? "#232333" : "#FFFFFF");
+
+  const surfaceSecondaryColor =
+    colors.surfaceSecondary || (isDark ? "#292740" : "#E9E8F0");
 
   const textColor =
     colors.text || (isDark ? "#F7F5FC" : "#242424");
@@ -84,10 +81,13 @@ function ExportPdfScreen({ navigation, route }) {
     (isDark ? "#C4C0D0" : "#707080");
 
   const borderColor =
-    colors.border || (isDark ? "#39364D" : "#D9D8E2");
+    colors.border || (isDark ? "#38384C" : "#D9D8E2");
 
-  const primaryColor = colors.primary || "#34345C";
-  const primaryTextColor = colors.primaryText || "#FFFFFF";
+  const primaryColor =
+    colors.primary || (isDark ? "#C8C2FF" : "#34345C");
+
+  const primaryTextColor =
+    colors.primaryText || (isDark ? "#171724" : "#FFFFFF");
 
   const { getMemoryById } = useMemory();
   const { showAlert } = useAppAlert();
@@ -99,10 +99,6 @@ function ExportPdfScreen({ navigation, route }) {
 
   const [selectedBack, setSelectedBack] = useState("blank");
   const [generatingPdf, setGeneratingPdf] = useState(false);
-
-  // --------------------------------------------------
-  // BUILD PDF HTML
-  // --------------------------------------------------
 
   const buildPdfHtml = (frontTicketImage, classicBackImage) => {
     return `
@@ -169,7 +165,6 @@ function ExportPdfScreen({ navigation, route }) {
       </head>
 
       <body>
-        <!-- PAGE 1: FRONT -->
         <section class="page">
           <img
             class="page-image"
@@ -178,7 +173,6 @@ function ExportPdfScreen({ navigation, route }) {
           />
         </section>
 
-        <!-- PAGE 2: BACK -->
         <section class="page">
           <img
             class="page-image"
@@ -190,10 +184,6 @@ function ExportPdfScreen({ navigation, route }) {
       </html>
     `;
   };
-
-  // --------------------------------------------------
-  // EXPORT PDF
-  // --------------------------------------------------
 
   const handleExportPdf = async () => {
     if (generatingPdf) {
@@ -233,7 +223,7 @@ function ExportPdfScreen({ navigation, route }) {
 
       const html = buildPdfHtml(
         frontTicketImage,
-        classicBackImage
+        classicBackImage,
       );
 
       const { uri, numberOfPages } = await Print.printToFileAsync({
@@ -255,7 +245,8 @@ function ExportPdfScreen({ navigation, route }) {
           type: "success",
           icon: "document-text-outline",
           title: "PDF Created",
-          message: "Your A7 Memory Ticket PDF was created successfully.",
+          message:
+            "Your A7 Memory Ticket PDF was created successfully.",
           confirmText: "Done",
         });
 
@@ -284,16 +275,14 @@ function ExportPdfScreen({ navigation, route }) {
     }
   };
 
-  // --------------------------------------------------
-  // MEMORY NOT FOUND
-  // --------------------------------------------------
-
   if (!memory) {
     return (
       <View
         style={[
           styles.notFound,
-          { backgroundColor: screenBackground },
+          {
+            backgroundColor: screenBackground,
+          },
         ]}
       >
         <StatusBar
@@ -310,7 +299,9 @@ function ExportPdfScreen({ navigation, route }) {
         <Text
           style={[
             styles.notFoundTitle,
-            { color: textColor },
+            {
+              color: textColor,
+            },
           ]}
         >
           Memory not found
@@ -321,6 +312,7 @@ function ExportPdfScreen({ navigation, route }) {
             styles.backButtonLarge,
             {
               backgroundColor: primaryColor,
+              borderColor,
             },
           ]}
           onPress={() => navigation.goBack()}
@@ -329,7 +321,9 @@ function ExportPdfScreen({ navigation, route }) {
           <Text
             style={[
               styles.backButtonText,
-              { color: primaryTextColor },
+              {
+                color: primaryTextColor,
+              },
             ]}
           >
             GO BACK
@@ -339,15 +333,13 @@ function ExportPdfScreen({ navigation, route }) {
     );
   }
 
-  // --------------------------------------------------
-  // SCREEN
-  // --------------------------------------------------
-
   return (
     <View
       style={[
         styles.container,
-        { backgroundColor: screenBackground },
+        {
+          backgroundColor: screenBackground,
+        },
       ]}
     >
       <StatusBar
@@ -355,9 +347,16 @@ function ExportPdfScreen({ navigation, route }) {
         backgroundColor={screenBackground}
       />
 
-      {/* HEADER */}
-
-      <View style={styles.header}>
+      {/* THEME-AWARE HEADER */}
+      <View
+        style={[
+          styles.header,
+          {
+            backgroundColor: screenBackground,
+            borderBottomColor: borderColor,
+          },
+        ]}
+      >
         <TouchableOpacity
           style={[
             styles.headerButton,
@@ -369,6 +368,8 @@ function ExportPdfScreen({ navigation, route }) {
           onPress={() => navigation.goBack()}
           activeOpacity={0.8}
           disabled={generatingPdf}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <Ionicons
             name="arrow-back"
@@ -381,7 +382,9 @@ function ExportPdfScreen({ navigation, route }) {
           <Text
             style={[
               styles.eyebrow,
-              { color: secondaryTextColor },
+              {
+                color: secondaryTextColor,
+              },
             ]}
           >
             EXPORT PDF
@@ -390,7 +393,9 @@ function ExportPdfScreen({ navigation, route }) {
           <Text
             style={[
               styles.headerTitle,
-              { color: textColor },
+              {
+                color: textColor,
+              },
             ]}
           >
             Choose your ticket back
@@ -408,6 +413,8 @@ function ExportPdfScreen({ navigation, route }) {
           onPress={() => navigation.goBack()}
           activeOpacity={0.8}
           disabled={generatingPdf}
+          accessibilityRole="button"
+          accessibilityLabel="Close PDF export"
         >
           <Ionicons
             name="close"
@@ -418,31 +425,51 @@ function ExportPdfScreen({ navigation, route }) {
       </View>
 
       <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.content}
+        style={[
+          styles.scroll,
+          {
+            backgroundColor: screenBackground,
+          },
+        ]}
+        contentContainerStyle={[
+          styles.content,
+          {
+            backgroundColor: screenBackground,
+          },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         <Text
           style={[
             styles.description,
-            { color: secondaryTextColor },
+            {
+              color: secondaryTextColor,
+            },
           ]}
         >
           Choose the back design for your Memento ticket.
         </Text>
 
         {/* TICKET BACK */}
-
         <Text
           style={[
             styles.sectionLabel,
-            { color: secondaryTextColor },
+            {
+              color: secondaryTextColor,
+            },
           ]}
         >
           TICKET BACK
         </Text>
 
-        <View style={styles.optionsRow}>
+        <View
+          style={[
+            styles.optionsRow,
+            {
+              backgroundColor: screenBackground,
+            },
+          ]}
+        >
           {PDF_BACK_OPTIONS.map((option) => {
             const selected = selectedBack === option.id;
 
@@ -462,13 +489,19 @@ function ExportPdfScreen({ navigation, route }) {
                 onPress={() => setSelectedBack(option.id)}
                 activeOpacity={0.88}
                 disabled={generatingPdf}
+                accessibilityRole="radio"
+                accessibilityLabel={option.title}
+                accessibilityState={{
+                  selected,
+                  disabled: generatingPdf,
+                }}
               >
                 <View
                   style={[
                     styles.previewWrapper,
-                    selected && styles.previewWrapperSelected,
                     {
-                      backgroundColor: screenBackground,
+                      backgroundColor: surfaceSecondaryColor,
+                      borderColor,
                     },
                   ]}
                 >
@@ -491,7 +524,7 @@ function ExportPdfScreen({ navigation, route }) {
                       <Ionicons
                         name="checkmark"
                         size={13}
-                        color="#FFFFFF"
+                        color={primaryTextColor}
                       />
                     </View>
                   )}
@@ -500,7 +533,9 @@ function ExportPdfScreen({ navigation, route }) {
                 <Text
                   style={[
                     styles.optionTitle,
-                    { color: textColor },
+                    {
+                      color: textColor,
+                    },
                   ]}
                 >
                   {option.title}
@@ -509,7 +544,9 @@ function ExportPdfScreen({ navigation, route }) {
                 <Text
                   style={[
                     styles.optionDescription,
-                    { color: secondaryTextColor },
+                    {
+                      color: secondaryTextColor,
+                    },
                   ]}
                 >
                   {option.description}
@@ -520,7 +557,6 @@ function ExportPdfScreen({ navigation, route }) {
         </View>
 
         {/* PAPER INFO */}
-
         <View
           style={[
             styles.paperInfo,
@@ -540,7 +576,9 @@ function ExportPdfScreen({ navigation, route }) {
             <Text
               style={[
                 styles.paperInfoText,
-                { color: secondaryTextColor },
+                {
+                  color: secondaryTextColor,
+                },
               ]}
             >
               A7
@@ -550,7 +588,9 @@ function ExportPdfScreen({ navigation, route }) {
           <View
             style={[
               styles.paperInfoDivider,
-              { backgroundColor: borderColor },
+              {
+                backgroundColor: borderColor,
+              },
             ]}
           />
 
@@ -564,7 +604,9 @@ function ExportPdfScreen({ navigation, route }) {
             <Text
               style={[
                 styles.paperInfoText,
-                { color: secondaryTextColor },
+                {
+                  color: secondaryTextColor,
+                },
               ]}
             >
               74 × 105 mm
@@ -574,7 +616,9 @@ function ExportPdfScreen({ navigation, route }) {
           <View
             style={[
               styles.paperInfoDivider,
-              { backgroundColor: borderColor },
+              {
+                backgroundColor: borderColor,
+              },
             ]}
           />
 
@@ -588,7 +632,9 @@ function ExportPdfScreen({ navigation, route }) {
             <Text
               style={[
                 styles.paperInfoText,
-                { color: secondaryTextColor },
+                {
+                  color: secondaryTextColor,
+                },
               ]}
             >
               2 pages
@@ -597,7 +643,6 @@ function ExportPdfScreen({ navigation, route }) {
         </View>
 
         {/* TACTILE EXPORT BUTTON */}
-
         <TactileButton
           label="EXPORT PDF"
           icon="document-text-outline"
@@ -607,7 +652,7 @@ function ExportPdfScreen({ navigation, route }) {
           disabled={generatingPdf}
           color={primaryColor}
           textColor={primaryTextColor}
-          iconColor="#FFFFFF"
+          iconColor={primaryTextColor}
           height={54}
           borderRadius={15}
           depth={4}
@@ -619,7 +664,6 @@ function ExportPdfScreen({ navigation, route }) {
         />
 
         {/* CANCEL */}
-
         <TouchableOpacity
           style={[
             styles.cancelButton,
@@ -635,7 +679,9 @@ function ExportPdfScreen({ navigation, route }) {
           <Text
             style={[
               styles.cancelButtonText,
-              { color: primaryColor },
+              {
+                color: textColor,
+              },
             ]}
           >
             CANCEL
@@ -645,7 +691,9 @@ function ExportPdfScreen({ navigation, route }) {
         <Text
           style={[
             styles.footerHint,
-            { color: secondaryTextColor },
+            {
+              color: secondaryTextColor,
+            },
           ]}
         >
           Page 1 uses the exact ticket captured from Memory Details. Page 2 uses

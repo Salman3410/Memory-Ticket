@@ -5,10 +5,8 @@ import {
 } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Image,
-  RefreshControl,
   StyleSheet,
   StatusBar,
   Text,
@@ -22,6 +20,7 @@ import { useTheme } from "../../context/ThemeContext";
 import MemoryTicket from "../../components/MemoryTicket/MemoryTicket";
 import MementoLogo from "../../components/common/MementoLogo";
 import TactileButton from "../../components/common/TactileButton";
+import MementoRefresh from "../../components/common/MementoRefresh";
 import { useAppAlert } from "../../context/AlertContext";
 import { getMemoryDetailUrl } from "../../utils/cloudinary";
 import { useMementoNotifications } from "../../hooks/useMementoNotifications";
@@ -45,28 +44,39 @@ function CollectionDetailsScreen({ route, navigation }) {
       background:
         themeColors.background ||
         (isDark ? "#171724" : "#F1F0F6"),
+
       surface:
         themeColors.surface ||
         themeColors.card ||
         (isDark ? "#232333" : "#FFFFFF"),
+
       text:
         themeColors.text ||
         (isDark ? "#F1F0F6" : "#242424"),
+
       textSecondary:
         themeColors.textSecondary ||
         themeColors.textMuted ||
         (isDark ? "#A6A6B8" : "#737387"),
+
       border:
         themeColors.border ||
         (isDark ? "#38384C" : "#D9D8E2"),
+
       primary: themeColors.primary || "#34345C",
+
       accent: themeColors.accent || "#E76F51",
+
       placeholder:
         themeColors.placeholder ||
         (isDark ? "#88889C" : "#9A9AA3"),
+
       mutedSurface: isDark ? "#2C2C40" : "#F6F5F9",
+
       countSurface: isDark ? "#303047" : "#E9E8F1",
+
       coverCountSurface: isDark ? "#E4E2EE" : "#FFFFFF",
+
       white: "#FFFFFF",
     };
   }, [theme, isDark]);
@@ -78,7 +88,6 @@ function CollectionDetailsScreen({ route, navigation }) {
 
   const [collection, setCollection] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [removingMemoryId, setRemovingMemoryId] = useState(null);
 
   const loadCollection = useCallback(
@@ -89,48 +98,82 @@ function CollectionDetailsScreen({ route, navigation }) {
         return;
       }
 
-      try {
-        if (showLoader) {
-          setLoading(true);
-        }
+      if (showLoader) {
+        setLoading(true);
+      }
 
+      try {
         const data = await getCollectionById(collectionId);
 
         setCollection(data || null);
       } catch (error) {
-  console.error("Failed to load collection details:", error);
+        console.error(
+          "Failed to load collection details:",
+          error,
+        );
 
-  if (showLoader) {
-    showAlert({
-      type: "danger",
-      icon: "cloud-offline-outline",
-      title: "Unable to Load Collection",
-      message:
-        error?.message ||
-        "Something went wrong while loading this collection. Please try again.",
-      confirmText: "OK",
-    });
-  }
-} finally {
-  setLoading(false);
-}
+        if (showLoader) {
+          showAlert({
+            type: "danger",
+            icon: "cloud-offline-outline",
+            title: "Unable to Load Collection",
+            message:
+              error?.message ||
+              "Something went wrong while loading this collection. Please try again.",
+            confirmText: "OK",
+          });
+        } else {
+          notifyError(
+            "Unable to Refresh Collection",
+            error?.message ||
+              "Check your connection and try again.",
+          );
+        }
+      } finally {
+        setLoading(false);
+      }
     },
-    [collectionId, getCollectionById],
+    [
+      collectionId,
+      getCollectionById,
+      showAlert,
+      notifyError,
+    ],
   );
 
   useFocusEffect(
     useCallback(() => {
-      loadCollection();
-    }, [loadCollection]),
+      let active = true;
+
+      const refreshOnFocus = async () => {
+        try {
+          await loadCollection();
+        } catch (error) {
+          console.error(
+            "Failed to refresh collection on focus:",
+            error,
+          );
+
+          if (active) {
+            notifyError(
+              "Unable to Load Collection",
+              error?.message ||
+                "Please try opening this collection again.",
+            );
+          }
+        }
+      };
+
+      void refreshOnFocus();
+
+      return () => {
+        active = false;
+      };
+    }, [loadCollection, notifyError]),
   );
 
   const handleRefresh = useCallback(async () => {
-    try {
-      setRefreshing(true);
-      await loadCollection(false);
-    } finally {
-      setRefreshing(false);
-    }
+    await loadCollection(false);
   }, [loadCollection]);
 
   const handleAddMemories = useCallback(() => {
@@ -146,73 +189,83 @@ function CollectionDetailsScreen({ route, navigation }) {
     });
   }, [navigation, collectionId, collection]);
 
-const handleDelete = useCallback(() => {
-  showAlert({
-    type: "danger",
-    icon: "trash-outline",
-    title: "Delete Collection?",
-    message: `Delete "${collection?.name || "this collection"}"? Your memories will remain safe, but they will no longer belong to this collection. This action cannot be undone.`,
-    cancelText: "Keep Collection",
-    confirmText: "Delete Collection",
-    showCancel: true,
+  const handleDelete = useCallback(() => {
+    showAlert({
+      type: "danger",
+      icon: "trash-outline",
+      title: "Delete Collection?",
+      message:
+        `Delete "${collection?.name || "this collection"}"? ` +
+        "Your memories will remain safe, but they will no longer belong to this collection. " +
+        "This action cannot be undone.",
+      cancelText: "Keep Collection",
+      confirmText: "Delete Collection",
+      showCancel: true,
 
-    onConfirm: async () => {
-      try {
-        const result = await deleteCollection(collectionId);
+      onConfirm: async () => {
+        try {
+          const result = await deleteCollection(collectionId);
 
-        if (result === false || result?.success === false) {
-          throw new Error(
-            result?.message || "Unable to delete this collection."
+          if (
+            result === false ||
+            result?.success === false
+          ) {
+            throw new Error(
+              result?.message ||
+                "Unable to delete this collection.",
+            );
+          }
+
+          notify("collectionDeleted", {
+            message:
+              `"${collection?.name || "Your collection"}" has been deleted.`,
+          });
+
+          navigation.goBack();
+        } catch (error) {
+          console.error(
+            "Failed to delete collection:",
+            error,
+          );
+
+          notifyError(
+            "Delete Failed",
+            error?.message ||
+              "Unable to delete this collection. Please try again.",
           );
         }
+      },
+    });
+  }, [
+    showAlert,
+    collection,
+    collectionId,
+    deleteCollection,
+    navigation,
+    notify,
+    notifyError,
+  ]);
 
-        notify("collectionDeleted", {
-          message: `"${collection?.name || "Your collection"}" has been deleted.`,
-        });
+  const handleMore = useCallback(() => {
+    showAlert({
+      type: "info",
+      icon: "options-outline",
+      title: collection?.name || "Collection Options",
+      message:
+        "Choose whether to edit this collection or delete it.",
+      cancelText: "Delete",
+      confirmText: "Edit Collection",
+      showCancel: true,
 
-        navigation.goBack();
-      } catch (error) {
-        console.error("Failed to delete collection:", error);
-
-        notifyError(
-          "Delete Failed",
-          error?.message ||
-            "Unable to delete this collection. Please try again."
-        );
-      }
-    },
-  });
-}, [
-  showAlert,
-  collection,
-  collectionId,
-  deleteCollection,
-  navigation,
-  notify,
-  notifyError,
-]);
-
-const handleMore = useCallback(() => {
-  showAlert({
-    type: "info",
-    icon: "options-outline",
-    title: collection?.name || "Collection Options",
-    message:
-      "Choose whether to edit this collection or delete it.",
-    cancelText: "Delete",
-    confirmText: "Edit Collection",
-    showCancel: true,
-
-    onConfirm: handleEdit,
-    onCancel: handleDelete,
-  });
-}, [
-  showAlert,
-  collection,
-  handleEdit,
-  handleDelete,
-]);
-
+      onConfirm: handleEdit,
+      onCancel: handleDelete,
+    });
+  }, [
+    showAlert,
+    collection,
+    handleEdit,
+    handleDelete,
+  ]);
 
   const memoriesList = useMemo(() => {
     const source = Array.isArray(collection?.memories)
@@ -265,7 +318,10 @@ const handleMore = useCallback(() => {
     null;
 
   const coverImageUrl = useMemo(
-    () => (coverImage ? getMemoryDetailUrl(coverImage) : null),
+    () =>
+      coverImage
+        ? getMemoryDetailUrl(coverImage)
+        : null,
     [coverImage],
   );
 
@@ -284,88 +340,103 @@ const handleMore = useCallback(() => {
     [navigation],
   );
 
-const handleRemoveMemory = useCallback(
-  (memoryId, memoryTitle) => {
-    if (!memoryId || removingMemoryId) {
-      return;
-    }
+  const handleRemoveMemory = useCallback(
+    (memoryId, memoryTitle) => {
+      if (!memoryId || removingMemoryId) {
+        return;
+      }
 
-    showAlert({
-      type: "danger",
-      icon: "remove-circle-outline",
-      title: "Remove Memory?",
-      message: `Remove "${memoryTitle || "this memory"}" from this collection? The memory itself will not be deleted.`,
-      cancelText: "Keep Memory",
-      confirmText: "Remove",
-      showCancel: true,
+      showAlert({
+        type: "danger",
+        icon: "remove-circle-outline",
+        title: "Remove Memory?",
+        message:
+          `Remove "${memoryTitle || "this memory"}" from this collection? ` +
+          "The memory itself will not be deleted.",
+        cancelText: "Keep Memory",
+        confirmText: "Remove",
+        showCancel: true,
 
-      onConfirm: async () => {
-        try {
-          setRemovingMemoryId(memoryId);
+        onConfirm: async () => {
+          try {
+            setRemovingMemoryId(memoryId);
 
-          const result = await removeMemoryFromCollection(
-            collectionId,
-            memoryId
-          );
+            const result =
+              await removeMemoryFromCollection(
+                collectionId,
+                memoryId,
+              );
 
-          if (result === false || result?.success === false) {
-            throw new Error(
-              result?.message || "Unable to remove this memory."
-            );
-          }
-
-          setCollection((previous) => {
-            if (!previous) {
-              return previous;
+            if (
+              result === false ||
+              result?.success === false
+            ) {
+              throw new Error(
+                result?.message ||
+                  "Unable to remove this memory.",
+              );
             }
 
-            const currentMemories = Array.isArray(previous.memories)
-              ? previous.memories
-              : [];
-
-            const updatedMemories = currentMemories.filter(
-              (memory) => {
-                const id = memory?._id || memory?.id || memory;
-                return String(id) !== String(memoryId);
+            setCollection((previous) => {
+              if (!previous) {
+                return previous;
               }
+
+              const currentMemories = Array.isArray(
+                previous.memories,
+              )
+                ? previous.memories
+                : [];
+
+              const updatedMemories =
+                currentMemories.filter((memory) => {
+                  const id =
+                    memory?._id ||
+                    memory?.id ||
+                    memory;
+
+                  return (
+                    String(id) !== String(memoryId)
+                  );
+                });
+
+              return {
+                ...previous,
+                memories: updatedMemories,
+                memoryCount: updatedMemories.length,
+              };
+            });
+
+            notify("memoryRemovedFromCollection", {
+              message:
+                `"${memoryTitle || "Your memory"}" has been removed from this collection.`,
+            });
+          } catch (error) {
+            console.error(
+              "Failed to remove memory from collection:",
+              error,
             );
 
-            return {
-              ...previous,
-              memories: updatedMemories,
-              memoryCount: updatedMemories.length,
-            };
-          });
-
-          notify("memoryRemovedFromCollection", {
-            message: `"${memoryTitle || "Your memory"}" has been removed from this collection.`,
-          });
-        } catch (error) {
-          console.error(
-            "Failed to remove memory from collection:",
-            error
-          );
-
-          notifyError(
-            "Remove Failed",
-            error?.message ||
-              "Unable to remove this memory. Please try again."
-          );
-        } finally {
-          setRemovingMemoryId(null);
-        }
-      },
-    });
-  },
-  [
-    showAlert,
-    collectionId,
-    removeMemoryFromCollection,
-    removingMemoryId,
-    notify,
-    notifyError,
-  ]
-);
+            notifyError(
+              "Remove Failed",
+              error?.message ||
+                "Unable to remove this memory. Please try again.",
+            );
+          } finally {
+            setRemovingMemoryId(null);
+          }
+        },
+      });
+    },
+    [
+      showAlert,
+      collectionId,
+      removeMemoryFromCollection,
+      removingMemoryId,
+      notify,
+      notifyError,
+    ],
+  );
 
   const renderMemory = useCallback(
     ({ item }) => {
@@ -394,6 +465,8 @@ const handleRemoveMemory = useCallback(
               removingMemoryId === memoryId
             }
             activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel="Remove memory from collection"
           >
             <Text style={styles.removeButtonText}>
               {removingMemoryId === memoryId
@@ -421,6 +494,8 @@ const handleRemoveMemory = useCallback(
   const renderHeader = useCallback(
     () => (
       <View>
+        {/* TOP BAR */}
+
         <View style={styles.topBar}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
@@ -428,7 +503,9 @@ const handleRemoveMemory = useCallback(
             accessibilityRole="button"
             accessibilityLabel="Go back"
           >
-            <Text style={styles.backText}>‹ Back</Text>
+            <Text style={styles.backText}>
+              ‹ Back
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -438,7 +515,9 @@ const handleRemoveMemory = useCallback(
             accessibilityRole="button"
             accessibilityLabel="Collection options"
           >
-            <Text style={styles.moreText}>•••</Text>
+            <Text style={styles.moreText}>
+              •••
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -543,6 +622,8 @@ const handleRemoveMemory = useCallback(
                 style={styles.editAction}
                 onPress={handleEdit}
                 activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityLabel="Edit collection"
               >
                 <Text style={styles.editActionText}>
                   Edit
@@ -616,7 +697,9 @@ const handleRemoveMemory = useCallback(
     () => (
       <View style={styles.emptyState}>
         <View style={styles.emptyMark}>
-          <Text style={styles.emptyMarkText}>+</Text>
+          <Text style={styles.emptyMarkText}>
+            +
+          </Text>
         </View>
 
         <Text style={styles.emptyTitle}>
@@ -648,7 +731,9 @@ const handleRemoveMemory = useCallback(
     return (
       <View style={styles.loadingScreen}>
         <StatusBar
-          barStyle={isDark ? "light-content" : "dark-content"}
+          barStyle={
+            isDark ? "light-content" : "dark-content"
+          }
           backgroundColor={colors.background}
         />
 
@@ -668,7 +753,9 @@ const handleRemoveMemory = useCallback(
     return (
       <View style={styles.errorScreen}>
         <StatusBar
-          barStyle={isDark ? "light-content" : "dark-content"}
+          barStyle={
+            isDark ? "light-content" : "dark-content"
+          }
           backgroundColor={colors.background}
         />
 
@@ -695,31 +782,30 @@ const handleRemoveMemory = useCallback(
   return (
     <View style={styles.container}>
       <StatusBar
-        barStyle={isDark ? "light-content" : "dark-content"}
+        barStyle={
+          isDark ? "light-content" : "dark-content"
+        }
         backgroundColor={colors.background}
       />
 
-      <FlatList
-        data={memoriesList}
-        renderItem={renderMemory}
-        keyExtractor={keyExtractor}
-        ListHeaderComponent={renderHeader}
-        ListEmptyComponent={renderEmpty}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor={colors.primary}
-            colors={[colors.primary]}
-          />
-        }
-        initialNumToRender={2}
-        maxToRenderPerBatch={2}
-        windowSize={5}
-        removeClippedSubviews
-      />
+      <MementoRefresh
+        onRefresh={handleRefresh}
+        label="Refreshing collection..."
+      >
+        <FlatList
+          data={memoriesList}
+          renderItem={renderMemory}
+          keyExtractor={keyExtractor}
+          ListHeaderComponent={renderHeader}
+          ListEmptyComponent={renderEmpty}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          initialNumToRender={2}
+          maxToRenderPerBatch={2}
+          windowSize={5}
+          removeClippedSubviews
+        />
+      </MementoRefresh>
     </View>
   );
 }
@@ -737,6 +823,8 @@ function createStyles(colors, isDark) {
       paddingHorizontal: 20,
       paddingBottom: 35,
     },
+
+    /* TOP BAR */
 
     topBar: {
       paddingTop: 30,
@@ -770,6 +858,8 @@ function createStyles(colors, isDark) {
       letterSpacing: 2,
       color: colors.primary,
     },
+
+    /* COLLECTION TICKET */
 
     collectionTicket: {
       overflow: "hidden",
@@ -854,6 +944,8 @@ function createStyles(colors, isDark) {
       color: colors.white,
     },
 
+    /* PERFORATION */
+
     divider: {
       height: 20,
       position: "relative",
@@ -886,6 +978,8 @@ function createStyles(colors, isDark) {
       borderRadius: 10,
       backgroundColor: colors.background,
     },
+
+    /* TICKET BODY */
 
     ticketBody: {
       paddingHorizontal: 17,
@@ -930,6 +1024,8 @@ function createStyles(colors, isDark) {
       color: colors.placeholder,
     },
 
+    /* ACTIONS */
+
     ticketActions: {
       marginTop: 17,
       flexDirection: "row",
@@ -971,6 +1067,8 @@ function createStyles(colors, isDark) {
       color: colors.primary,
     },
 
+    /* TICKET FOOTER */
+
     ticketFooter: {
       marginTop: 15,
       paddingTop: 10,
@@ -999,6 +1097,8 @@ function createStyles(colors, isDark) {
       height: "100%",
       backgroundColor: colors.primary,
     },
+
+    /* SECTION HEADER */
 
     sectionHeader: {
       marginTop: 28,
@@ -1038,6 +1138,8 @@ function createStyles(colors, isDark) {
       color: colors.text,
     },
 
+    /* MEMORY ITEM */
+
     memoryContainer: {
       marginBottom: 22,
     },
@@ -1062,6 +1164,8 @@ function createStyles(colors, isDark) {
       fontWeight: "600",
       color: colors.accent,
     },
+
+    /* EMPTY STATE */
 
     emptyState: {
       alignItems: "center",
@@ -1114,6 +1218,8 @@ function createStyles(colors, isDark) {
       borderRadius: 11,
     },
 
+    /* LOADING */
+
     loadingScreen: {
       flex: 1,
       alignItems: "center",
@@ -1126,6 +1232,8 @@ function createStyles(colors, isDark) {
       fontSize: 13,
       color: colors.textSecondary,
     },
+
+    /* ERROR */
 
     errorScreen: {
       flex: 1,

@@ -1,9 +1,8 @@
 import { useCallback, useMemo } from "react";
-import { RefreshControl, ScrollView, StatusBar, Text, View } from "react-native";
+import { ScrollView, StatusBar, Text, View } from "react-native";
 import { useTheme } from "../../context/ThemeContext";
 import { useMemory } from "../../hooks/useMemory";
 import { useCollection } from "../../hooks/useCollection";
-import useRefresh from "../../hooks/useRefresh";
 import HomeHeader from "./components/HomeHeader";
 import CreateMemoryHero from "./components/CreateMemoryHero";
 import LatestMemorySection from "./components/LatestMemorySection";
@@ -14,27 +13,17 @@ import styles from "./homeStyles";
 function HomeScreen({ navigation }) {
   const { theme, isDark } = useTheme();
   const colors = theme?.colors || {};
-  const screenBackground = colors.background || (isDark ? "#171624" : "#F1F0F6");
-  const surfaceColor = colors.surface || (isDark ? "#211F30" : "#FFFFFF");
-  const surfaceSecondary = colors.surfaceSecondary || (isDark ? "#292740" : "#F1F0F6");
-  const textColor = colors.text || (isDark ? "#F7F5FC" : "#242424");
-  const secondaryTextColor = colors.textSecondary || colors.textMuted || (isDark ? "#C4C0D0" : "#707080");
-  const borderColor = colors.border || (isDark ? "#39364D" : "#D9D8E2");
 
-  const { memories, loading, refreshMemories } = useMemory();
-  const { collections, refreshCollections } = useCollection();
+  const screenBackground =
+    colors.background || (isDark ? "#171624" : "#F1F0F6");
 
-  const refreshHome = useCallback(async () => {
-    await Promise.all([refreshMemories(), refreshCollections()]);
-  }, [refreshMemories, refreshCollections]);
-
-  const { refreshing, onRefresh } = useRefresh(refreshHome);
+  const { memories = [] } = useMemory();
+  const { collections } = useCollection();
 
   const recentMemories = useMemo(() => {
     return [...memories]
       .sort((a, b) => {
         const dateA = new Date(a.createdAt || a.date).getTime();
-
         const dateB = new Date(b.createdAt || b.date).getTime();
 
         return dateB - dateA;
@@ -76,20 +65,23 @@ function HomeScreen({ navigation }) {
   const latestMemory = recentMemories[0];
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background || (isDark ? "#171624" : "#F1F0F6") }]}>
-      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={colors.background || (isDark ? "#171624" : "#F1F0F6")} />
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: screenBackground },
+      ]}
+    >
+      <StatusBar
+        barStyle={isDark ? "light-content" : "dark-content"}
+        backgroundColor={screenBackground}
+      />
+
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.scrollContent, { backgroundColor: colors.background || (isDark ? "#171624" : "#F1F0F6") }]}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor="#34345C"
-            colors={["#34345C"]}
-            progressBackgroundColor="#FFFFFF"
-          />
-        }
+        contentContainerStyle={[
+          styles.scrollContent,
+          { backgroundColor: screenBackground },
+        ]}
       >
         <HomeHeader navigation={navigation} />
 
@@ -112,7 +104,19 @@ function HomeScreen({ navigation }) {
           navigation={navigation}
         />
 
-        <Text style={[styles.footerText, { color: colors.textSecondary || colors.textMuted || (isDark ? "#A6A6B8" : "#737387") }]}>KEEP THE MOMENT. KEEP THE STORY.</Text>
+        <Text
+          style={[
+            styles.footerText,
+            {
+              color:
+                colors.textSecondary ||
+                colors.textMuted ||
+                (isDark ? "#A6A6B8" : "#737387"),
+            },
+          ]}
+        >
+          KEEP THE MOMENT. KEEP THE STORY.
+        </Text>
       </ScrollView>
     </View>
   );

@@ -1,11 +1,17 @@
 import {
   Children,
   cloneElement,
+  useCallback,
   useMemo,
   useRef,
   useState,
 } from "react";
-import { PanResponder, StyleSheet, Text, View } from "react-native";
+import {
+  PanResponder,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, {
   cancelAnimation,
@@ -17,6 +23,7 @@ import Animated, {
   withSpring,
   withTiming,
 } from "react-native-reanimated";
+import { useTheme } from "../../context/ThemeContext";
 
 const MAX_PULL = 120;
 const REFRESH_THRESHOLD = 78;
@@ -25,32 +32,121 @@ function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
 
-function MementoRefresh({ children, onRefresh, label = "Refreshing..." }) {
+function getThemeColor(sources, keys, fallback) {
+  for (const source of sources) {
+    if (!source || typeof source !== "object") {
+      continue;
+    }
+
+    for (const key of keys) {
+      const value = source[key];
+
+      if (
+        typeof value === "string" &&
+        value.length > 0
+      ) {
+        return value;
+      }
+    }
+  }
+
+  return fallback;
+}
+
+function MementoRefresh({
+  children,
+  onRefresh,
+  label = "Refreshing...",
+}) {
+  const themeContext = useTheme() || {};
+  const appTheme = themeContext.theme;
+  const themeSources = [
+    themeContext.colors,
+    appTheme?.colors,
+    appTheme,
+  ];
+
+  const isDark =
+    typeof themeContext.isDark === "boolean"
+      ? themeContext.isDark
+      : typeof themeContext.isDarkMode === "boolean"
+        ? themeContext.isDarkMode
+        : themeContext.mode === "dark" ||
+          appTheme === "dark" ||
+          appTheme?.mode === "dark" ||
+          appTheme?.isDark === true;
+
+  const palette = {
+    background: getThemeColor(
+      themeSources,
+      ["background", "backgroundColor", "appBackground"],
+      isDark ? "#171724" : "#F1F0F6",
+    ),
+
+    surface: getThemeColor(
+      themeSources,
+      ["surface", "card", "cardBackground", "surfaceBackground"],
+      isDark ? "#232333" : "#FFFFFF",
+    ),
+
+    primary: getThemeColor(
+      themeSources,
+      ["primary", "primaryColor"],
+      "#34345C",
+    ),
+
+    text: getThemeColor(
+      themeSources,
+      ["text", "textPrimary"],
+      isDark ? "#F1F0F6" : "#34345C",
+    ),
+
+    border: getThemeColor(
+      themeSources,
+      ["border", "borderColor", "outline"],
+      isDark ? "#38384C" : "#D9D8E2",
+    ),
+
+    accent: getThemeColor(
+      themeSources,
+      ["accent", "accentColor", "secondary"],
+      "#E76F51",
+    ),
+
+    shadow: isDark ? "#000000" : "#34345C",
+  };
+
   const scrollOffsetRef = useRef(0);
   const refreshingRef = useRef(false);
+  const onRefreshRef = useRef(onRefresh);
 
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const pull = useSharedValue(0);
   const iconRotation = useSharedValue(0);
-
+  const refreshProgress = useSharedValue(0);
+  const dotPulse = useSharedValue(0);
   const child = Children.only(children);
+  onRefreshRef.current = onRefresh;
+  const childOnScrollRef = useRef(child.props.onScroll);
+  childOnScrollRef.current = child.props.onScroll;
 
-  const handleScroll = (event) => {
-    scrollOffsetRef.current = event.nativeEvent.contentOffset?.y || 0;
+  const handleScroll = useCallback((event) => {
+    scrollOffsetRef.current =
+      event.nativeEvent.contentOffset?.y || 0;
 
-    if (child.props.onScroll) {
-      child.props.onScroll(event);
-    }
-  };
+    childOnScrollRef.current?.(event);
+  }, []);
 
-  const startRefresh = async () => {
+  const startRefresh = useCallback(async () => {
     if (refreshingRef.current) {
       return;
     }
 
     refreshingRef.current = true;
     setIsRefreshing(true);
+
+    refreshProgress.value = 1;
 
     pull.value = withSpring(58, {
       damping: 18,
@@ -67,16 +163,32 @@ function MementoRefresh({ children, onRefresh, label = "Refreshing..." }) {
       false,
     );
 
+    dotPulse.value = withRepeat(
+      withTiming(1, {
+        duration: 500,
+        easing: Easing.inOut(Easing.ease),
+      }),
+      -1,
+      true,
+    );
+
     try {
-      await onRefresh();
+      await onRefreshRef.current?.();
     } catch (error) {
       console.warn("Memento refresh failed:", error);
     } finally {
       cancelAnimation(iconRotation);
+      cancelAnimation(dotPulse);
 
       iconRotation.value = withTiming(0, {
         duration: 220,
       });
+
+      dotPulse.value = withTiming(0, {
+        duration: 180,
+      });
+
+      refreshProgress.value = 0;
 
       pull.value = withSpring(0, {
         damping: 20,
@@ -87,24 +199,38 @@ function MementoRefresh({ children, onRefresh, label = "Refreshing..." }) {
       setIsRefreshing(false);
       refreshingRef.current = false;
     }
-  };
+  }, [
+    pull,
+    iconRotation,
+    refreshProgress,
+    dotPulse,
+  ]);
 
   const panResponder = useMemo(
     () =>
       PanResponder.create({
-        onMoveShouldSetPanResponderCapture: (_, gestureState) => {
+        onMoveShouldSetPanResponderCapture: (
+          _,
+          gestureState,
+        ) => {
           if (refreshingRef.current) {
             return false;
           }
 
-          const isAtTop = scrollOffsetRef.current <= 0;
+          const isAtTop =
+            scrollOffsetRef.current <= 0;
 
           const pullingDown = gestureState.dy > 6;
 
           const mostlyVertical =
-            Math.abs(gestureState.dy) > Math.abs(gestureState.dx);
+            Math.abs(gestureState.dy) >
+            Math.abs(gestureState.dx);
 
-          return isAtTop && pullingDown && mostlyVertical;
+          return (
+            isAtTop &&
+            pullingDown &&
+            mostlyVertical
+          );
         },
 
         onPanResponderMove: (_, gestureState) => {
@@ -112,9 +238,11 @@ function MementoRefresh({ children, onRefresh, label = "Refreshing..." }) {
             return;
           }
 
-          const distance = clamp(gestureState.dy * 0.72, 0, MAX_PULL);
-
-          pull.value = distance;
+          pull.value = clamp(
+            gestureState.dy * 0.72,
+            0,
+            MAX_PULL,
+          );
         },
 
         onPanResponderRelease: (_, gestureState) => {
@@ -122,10 +250,14 @@ function MementoRefresh({ children, onRefresh, label = "Refreshing..." }) {
             return;
           }
 
-          const distance = clamp(gestureState.dy * 0.72, 0, MAX_PULL);
+          const distance = clamp(
+            gestureState.dy * 0.72,
+            0,
+            MAX_PULL,
+          );
 
           if (distance >= REFRESH_THRESHOLD) {
-            startRefresh();
+            void startRefresh();
             return;
           }
 
@@ -148,7 +280,7 @@ function MementoRefresh({ children, onRefresh, label = "Refreshing..." }) {
           });
         },
       }),
-    [onRefresh],
+    [pull, startRefresh],
   );
 
   const animatedContentStyle = useAnimatedStyle(() => ({
@@ -160,35 +292,42 @@ function MementoRefresh({ children, onRefresh, label = "Refreshing..." }) {
   }));
 
   const animatedIndicatorStyle = useAnimatedStyle(() => {
-    const opacity = interpolate(
+    const pullOpacity = interpolate(
       pull.value,
       [0, 12, REFRESH_THRESHOLD],
       [0, 0.5, 1],
       "clamp",
     );
 
-    const scale = interpolate(
+    const pullScale = interpolate(
       pull.value,
       [0, REFRESH_THRESHOLD],
       [0.72, 1],
       "clamp",
     );
 
-    const translateY = interpolate(
+    const pullTranslateY = interpolate(
       pull.value,
       [0, REFRESH_THRESHOLD],
       [-8, 2],
       "clamp",
     );
 
+    const refreshing = refreshProgress.value > 0;
+
     return {
-      opacity: isRefreshing ? 1 : opacity,
+      opacity: refreshing ? 1 : pullOpacity,
+
       transform: [
         {
-          translateY: isRefreshing ? 0 : translateY,
+          translateY: refreshing
+            ? 0
+            : pullTranslateY,
         },
         {
-          scale: isRefreshing ? 1 : scale,
+          scale: refreshing
+            ? 1
+            : pullScale,
         },
       ],
     };
@@ -202,38 +341,42 @@ function MementoRefresh({ children, onRefresh, label = "Refreshing..." }) {
       "clamp",
     );
 
+    const rotation =
+      refreshProgress.value > 0
+        ? iconRotation.value
+        : pullRotation;
+
     return {
       transform: [
         {
-          rotate: isRefreshing
-            ? `${iconRotation.value}deg`
-            : `${pullRotation}deg`,
+          rotate: `${rotation}deg`,
         },
       ],
     };
   });
 
   const animatedDotStyle = useAnimatedStyle(() => ({
-    opacity: isRefreshing
-      ? withRepeat(
-          withTiming(0.25, {
-            duration: 500,
-          }),
-          -1,
-          true,
-        )
-      : 0,
+    opacity:
+      refreshProgress.value > 0
+        ? interpolate(
+            dotPulse.value,
+            [0, 1],
+            [0.25, 0.85],
+            "clamp",
+          )
+        : 0,
+
     transform: [
       {
-        scale: isRefreshing
-          ? withRepeat(
-              withTiming(1.25, {
-                duration: 500,
-              }),
-              -1,
-              true,
-            )
-          : 1,
+        scale:
+          refreshProgress.value > 0
+            ? interpolate(
+                dotPulse.value,
+                [0, 1],
+                [1, 1.25],
+                "clamp",
+              )
+            : 1,
       },
     ],
   }));
@@ -244,20 +387,74 @@ function MementoRefresh({ children, onRefresh, label = "Refreshing..." }) {
   });
 
   return (
-    <View style={styles.container} {...panResponder.panHandlers}>
-      <Animated.View style={[styles.content, animatedContentStyle]}>
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: palette.background,
+        },
+      ]}
+      {...panResponder.panHandlers}
+    >
+      <Animated.View
+        style={[
+          styles.content,
+          animatedContentStyle,
+        ]}
+      >
         {enhancedChild}
       </Animated.View>
 
-      <View pointerEvents="none" style={styles.indicatorContainer}>
-        <Animated.View style={[styles.indicator, animatedIndicatorStyle]}>
-          <Animated.View style={[styles.ticketIcon, animatedIconStyle]}>
-            <Ionicons name="ticket-outline" size={21} color="#34345C" />
+      <View
+        pointerEvents="none"
+        style={styles.indicatorContainer}
+      >
+        <Animated.View
+          style={[
+            styles.indicator,
+            animatedIndicatorStyle,
+          ]}
+        >
+          <Animated.View
+            style={[
+              styles.ticketIcon,
+              {
+                backgroundColor: palette.surface,
+                borderColor: palette.border,
+                shadowColor: palette.shadow,
+              },
+              animatedIconStyle,
+            ]}
+          >
+            <Ionicons
+              name="ticket-outline"
+              size={21}
+              color={palette.primary}
+            />
           </Animated.View>
 
-          <Animated.View style={[styles.coralDot, animatedDotStyle]} />
+          <Animated.View
+            style={[
+              styles.coralDot,
+              {
+                backgroundColor: palette.accent,
+              },
+              animatedDotStyle,
+            ]}
+          />
 
-          {isRefreshing && <Text style={styles.refreshText}>{label}</Text>}
+          {isRefreshing && (
+            <Text
+              style={[
+                styles.refreshText,
+                {
+                  color: palette.text,
+                },
+              ]}
+            >
+              {label}
+            </Text>
+          )}
         </Animated.View>
       </View>
     </View>
@@ -267,7 +464,6 @@ function MementoRefresh({ children, onRefresh, label = "Refreshing..." }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F1F0F6",
   },
 
   content: {
@@ -295,16 +491,14 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "#D9D8E2",
 
-    shadowColor: "#34345C",
     shadowOffset: {
       width: 0,
       height: 3,
     },
-    shadowOpacity: 0.08,
+
+    shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 4,
   },
@@ -316,7 +510,6 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#E76F51",
   },
 
   refreshText: {
@@ -324,7 +517,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "600",
     letterSpacing: 0.4,
-    color: "#34345C",
   },
 });
 

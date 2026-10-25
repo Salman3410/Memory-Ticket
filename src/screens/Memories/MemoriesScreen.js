@@ -7,7 +7,6 @@ import React, {
 } from "react";
 import {
   FlatList,
-  RefreshControl,
   StatusBar,
   Text,
   TouchableOpacity,
@@ -16,7 +15,6 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useMemory } from "../../hooks/useMemory";
 import { useCollection } from "../../hooks/useCollection";
-import useRefresh from "../../hooks/useRefresh";
 import { useMementoNotifications } from "../../hooks/useMementoNotifications";
 import { useAppAlert } from "../../context/AlertContext";
 import { useTheme } from "../../context/ThemeContext";
@@ -27,7 +25,10 @@ import EmptyMemoryState from "../../components/Memories/EmptyMemoryState/EmptyMe
 import MemoryTicketList from "../../components/Memories/MemoryTicketList/MemoryTicketList";
 import TimelineBottomSheet from "../../components/Memories/TimelineBottomSheet/TimelineBottomSheet";
 import AdvancedSearch from "../../components/Memories/AdvancedSearch/AdvancedSearch";
+import MementoRefresh from "../../components/common/MementoRefresh";
 import styles from "./memoriesStyles";
+
+const EMPTY_MEMORIES = [];
 
 const MONTHS = [
   "January",
@@ -50,7 +51,13 @@ const DEFAULT_ADVANCED_FILTERS = {
   dateRange: "all",
   tag: null,
   collectionId: null,
-  searchIn: ["title", "description", "location", "tags", "category"],
+  searchIn: [
+    "title",
+    "description",
+    "location",
+    "tags",
+    "category",
+  ],
 };
 
 const normalizeTag = (tag) => {
@@ -76,11 +83,14 @@ const getCollectionMemoryIds = (collection) => {
     collectionMemories
       .map((memory) => {
         if (typeof memory === "string") {
-          return String(memory);
+          return memory;
         }
 
         return String(
-          memory?._id || memory?.id || memory?.clientMemoryId || "",
+          memory?._id ||
+            memory?.id ||
+            memory?.clientMemoryId ||
+            "",
         );
       })
       .filter(Boolean),
@@ -110,23 +120,31 @@ const MemoriesHeader = React.memo(function MemoriesHeader({
   const themeColors = theme?.colors || {};
 
   const colors = {
-    background: themeColors.background || (isDark ? "#171724" : "#F1F0F6"),
+    background:
+      themeColors.background ||
+      (isDark ? "#171724" : "#F1F0F6"),
 
     surface:
       themeColors.surface ||
       themeColors.card ||
       (isDark ? "#232333" : "#FFFFFF"),
 
-    text: themeColors.text || (isDark ? "#F1F0F6" : "#242424"),
+    text:
+      themeColors.text ||
+      (isDark ? "#F1F0F6" : "#242424"),
 
     textSecondary:
       themeColors.textSecondary ||
       themeColors.textMuted ||
       (isDark ? "#A6A6B8" : "#737387"),
 
-    border: themeColors.border || (isDark ? "#38384C" : "#D9D8E2"),
+    border:
+      themeColors.border ||
+      (isDark ? "#38384C" : "#D9D8E2"),
 
-    primary: themeColors.primary || "#34345C",
+    primary:
+      themeColors.primary ||
+      (isDark ? "#C8C2FF" : "#34345C"),
 
     accent: themeColors.accent || "#E76F51",
   };
@@ -151,22 +169,17 @@ const MemoriesHeader = React.memo(function MemoriesHeader({
   return (
     <>
       {/* HEADER */}
-
       <View
         style={[
           styles.header,
-          {
-            backgroundColor: colors.background,
-          },
+          { backgroundColor: colors.background },
         ]}
       >
         <View>
           <Text
             style={[
               styles.headerEyebrow,
-              {
-                color: colors.accent,
-              },
+              { color: colors.accent },
             ]}
           >
             YOUR COLLECTION
@@ -175,9 +188,7 @@ const MemoriesHeader = React.memo(function MemoriesHeader({
           <Text
             style={[
               styles.headerTitle,
-              {
-                color: colors.text,
-              },
+              { color: colors.text },
             ]}
           >
             Memories
@@ -212,7 +223,9 @@ const MemoriesHeader = React.memo(function MemoriesHeader({
                 styles.timelineButtonText,
                 timelineMonth && styles.timelineButtonTextActive,
                 {
-                  color: timelineMonth ? "#FFFFFF" : colors.text,
+                  color: timelineMonth
+                    ? "#FFFFFF"
+                    : colors.text,
                 },
               ]}
             >
@@ -225,7 +238,6 @@ const MemoriesHeader = React.memo(function MemoriesHeader({
       </View>
 
       {/* SEARCH */}
-
       <SearchBar
         value={searchQuery}
         onChangeText={setSearchQuery}
@@ -237,7 +249,6 @@ const MemoriesHeader = React.memo(function MemoriesHeader({
       />
 
       {/* COLLECTION STATS */}
-
       <CollectionStats
         memoryCount={memoriesCount}
         favoriteCount={favoriteCount}
@@ -246,7 +257,6 @@ const MemoriesHeader = React.memo(function MemoriesHeader({
       />
 
       {/* FILTERS */}
-
       <MemoryFilters
         filter={filter}
         setFilter={setFilter}
@@ -258,15 +268,12 @@ const MemoriesHeader = React.memo(function MemoriesHeader({
         isDark={isDark}
       />
 
-      {/* VIEW HEADER */}
-
+      {/* LIST HEADING */}
       <View style={styles.viewHeader}>
         <Text
           style={[
             styles.viewTitle,
-            {
-              color: colors.text,
-            },
+            { color: colors.text },
           ]}
         >
           {selectedTag ? `#${selectedTag}` : getFilterLabel()}
@@ -275,12 +282,11 @@ const MemoriesHeader = React.memo(function MemoriesHeader({
         <Text
           style={[
             styles.viewCount,
-            {
-              color: colors.textSecondary,
-            },
+            { color: colors.textSecondary },
           ]}
         >
-          {displayedCount} {displayedCount === 1 ? "TICKET" : "TICKETS"}
+          {displayedCount}{" "}
+          {displayedCount === 1 ? "TICKET" : "TICKETS"}
         </Text>
       </View>
     </>
@@ -289,12 +295,22 @@ const MemoriesHeader = React.memo(function MemoriesHeader({
 
 function MemoriesScreen({ navigation, route }) {
   const { notify, notifyError } = useMementoNotifications();
-  const { memories:memoryData, loading, toggleFavorite, refreshMemories } = useMemory();
-  const memories = Array.isArray(memoryData)
-  ? memoryData
-  : EMPTY_MEMORIES;
 
-  const { collections = [], refreshCollections } = useCollection();
+  const {
+    memories: memoryData,
+    loading,
+    toggleFavorite,
+    refreshMemories,
+  } = useMemory();
+
+  const memories = Array.isArray(memoryData)
+    ? memoryData
+    : EMPTY_MEMORIES;
+
+  const {
+    collections = [],
+    refreshCollections,
+  } = useCollection();
 
   const { showAlert } = useAppAlert();
   const { theme, isDark } = useTheme();
@@ -303,23 +319,31 @@ function MemoriesScreen({ navigation, route }) {
     const themeColors = theme?.colors || {};
 
     return {
-      background: themeColors.background || (isDark ? "#171724" : "#F1F0F6"),
+      background:
+        themeColors.background ||
+        (isDark ? "#171724" : "#F1F0F6"),
 
       surface:
         themeColors.surface ||
         themeColors.card ||
         (isDark ? "#232333" : "#FFFFFF"),
 
-      text: themeColors.text || (isDark ? "#F1F0F6" : "#242424"),
+      text:
+        themeColors.text ||
+        (isDark ? "#F1F0F6" : "#242424"),
 
       textSecondary:
         themeColors.textSecondary ||
         themeColors.textMuted ||
         (isDark ? "#A6A6B8" : "#737387"),
 
-      border: themeColors.border || (isDark ? "#38384C" : "#D9D8E2"),
+      border:
+        themeColors.border ||
+        (isDark ? "#38384C" : "#D9D8E2"),
 
-      primary: themeColors.primary || "#34345C",
+      primary:
+        themeColors.primary ||
+        (isDark ? "#C8C2FF" : "#34345C"),
 
       accent: themeColors.accent || "#E76F51",
     };
@@ -385,10 +409,11 @@ function MemoriesScreen({ navigation, route }) {
   const timelineSheetRef = useRef(null);
 
   const refreshMemoriesScreen = useCallback(async () => {
-    await Promise.all([refreshMemories(), refreshCollections()]);
+    await Promise.all([
+      refreshMemories(),
+      refreshCollections(),
+    ]);
   }, [refreshMemories, refreshCollections]);
-
-  const { refreshing, onRefresh } = useRefresh(refreshMemoriesScreen);
 
   useEffect(() => {
     if (route?.params?.filter) {
@@ -447,15 +472,15 @@ function MemoriesScreen({ navigation, route }) {
 
         uniqueMemoryTags.add(normalizedTag);
 
-        tagCounts.set(normalizedTag, (tagCounts.get(normalizedTag) || 0) + 1);
+        tagCounts.set(
+          normalizedTag,
+          (tagCounts.get(normalizedTag) || 0) + 1,
+        );
       }
     }
 
     return Array.from(tagCounts.entries())
-      .map(([name, count]) => ({
-        name,
-        count,
-      }))
+      .map(([name, count]) => ({ name, count }))
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [memories]);
 
@@ -464,7 +489,9 @@ function MemoriesScreen({ navigation, route }) {
       return;
     }
 
-    const exists = availableTags.some((tag) => tag.name === selectedTag);
+    const exists = availableTags.some(
+      (tag) => tag.name === selectedTag,
+    );
 
     if (!exists) {
       setSelectedTag(null);
@@ -474,32 +501,20 @@ function MemoriesScreen({ navigation, route }) {
   const advancedFilterCount = useMemo(() => {
     let count = 0;
 
-    if (advancedFilters.favoriteOnly) {
-      count += 1;
-    }
-
-    if (advancedFilters.hasPhotos) {
-      count += 1;
-    }
-
-    if (advancedFilters.dateRange !== "all") {
-      count += 1;
-    }
-
-    if (advancedFilters.tag) {
-      count += 1;
-    }
-
-    if (advancedFilters.collectionId) {
-      count += 1;
-    }
+    if (advancedFilters.favoriteOnly) count += 1;
+    if (advancedFilters.hasPhotos) count += 1;
+    if (advancedFilters.dateRange !== "all") count += 1;
+    if (advancedFilters.tag) count += 1;
+    if (advancedFilters.collectionId) count += 1;
 
     const defaultSearchIn = DEFAULT_ADVANCED_FILTERS.searchIn;
     const currentSearchIn = advancedFilters.searchIn || [];
 
     const searchInChanged =
       currentSearchIn.length !== defaultSearchIn.length ||
-      defaultSearchIn.some((field) => !currentSearchIn.includes(field));
+      defaultSearchIn.some(
+        (field) => !currentSearchIn.includes(field),
+      );
 
     if (searchInChanged) {
       count += 1;
@@ -515,14 +530,18 @@ function MemoriesScreen({ navigation, route }) {
 
     if (query) {
       filtered = filtered.filter((memory) => {
-        const memoryTags = Array.isArray(memory.tags) ? memory.tags : [];
+        const memoryTags = Array.isArray(memory.tags)
+          ? memory.tags
+          : [];
 
         const normalizedTags = memoryTags
           .filter((tag) => typeof tag === "string")
           .flatMap((tag) => {
             const normalized = normalizeTag(tag);
 
-            return normalized ? [normalized, `#${normalized}`] : [];
+            return normalized
+              ? [normalized, `#${normalized}`]
+              : [];
           });
 
         const searchFields =
@@ -554,45 +573,47 @@ function MemoriesScreen({ navigation, route }) {
 
         searchableParts.push(memory.date);
 
-        const searchableText = searchableParts
+        return searchableParts
           .filter(Boolean)
           .join(" ")
-          .toLowerCase();
-
-        return searchableText.includes(query);
+          .toLowerCase()
+          .includes(query);
       });
     }
 
     if (selectedTag) {
       filtered = filtered.filter((memory) => {
-        const memoryTags = Array.isArray(memory.tags) ? memory.tags : [];
+        const tags = Array.isArray(memory.tags) ? memory.tags : [];
 
-        return memoryTags.some((tag) => normalizeTag(tag) === selectedTag);
+        return tags.some(
+          (tag) => normalizeTag(tag) === selectedTag,
+        );
       });
     }
 
     if (advancedFilters.tag) {
       filtered = filtered.filter((memory) => {
-        const memoryTags = Array.isArray(memory.tags) ? memory.tags : [];
+        const tags = Array.isArray(memory.tags) ? memory.tags : [];
 
-        return memoryTags.some(
+        return tags.some(
           (tag) => normalizeTag(tag) === advancedFilters.tag,
         );
       });
     }
 
     if (filter === "favorites" || advancedFilters.favoriteOnly) {
-      filtered = filtered.filter((memory) => memory.favorite === true);
+      filtered = filtered.filter(
+        (memory) => memory.favorite === true,
+      );
     }
 
     if (filter === "recent") {
       const now = Date.now();
-      const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000;
+      const cutoff = now - 30 * 24 * 60 * 60 * 1000;
 
       filtered = filtered.filter((memory) => {
-        const memoryTime = getMemoryTime(memory);
-
-        return memoryTime >= thirtyDaysAgo && memoryTime <= now;
+        const time = getMemoryTime(memory);
+        return time >= cutoff && time <= now;
       });
     }
 
@@ -627,22 +648,22 @@ function MemoriesScreen({ navigation, route }) {
           cutoff = now - 90 * 24 * 60 * 60 * 1000;
           break;
 
-        case "year": {
-          const startOfYear = new Date(new Date().getFullYear(), 0, 1);
-
-          cutoff = startOfYear.getTime();
+        case "year":
+          cutoff = new Date(
+            new Date().getFullYear(),
+            0,
+            1,
+          ).getTime();
           break;
-        }
 
         default:
-          cutoff = null;
+          break;
       }
 
       if (cutoff !== null) {
         filtered = filtered.filter((memory) => {
-          const memoryTime = getMemoryTime(memory);
-
-          return memoryTime >= cutoff && memoryTime <= now;
+          const time = getMemoryTime(memory);
+          return time >= cutoff && time <= now;
         });
       }
     }
@@ -651,53 +672,58 @@ function MemoriesScreen({ navigation, route }) {
       const selectedCollection = collections.find((collection) => {
         const collectionId = collection?._id || collection?.id;
 
-        return String(collectionId) === String(advancedFilters.collectionId);
+        return (
+          String(collectionId) ===
+          String(advancedFilters.collectionId)
+        );
       });
 
-      const collectionMemoryIds = getCollectionMemoryIds(selectedCollection);
+      const collectionMemoryIds =
+        getCollectionMemoryIds(selectedCollection);
 
       filtered = filtered.filter((memory) => {
-        const memoryId = memory?.id || memory?._id || memory?.clientMemoryId;
+        const memoryId =
+          memory?.id ||
+          memory?._id ||
+          memory?.clientMemoryId;
 
         return collectionMemoryIds.has(String(memoryId));
       });
     }
 
     if (timelineMonth) {
-      const selectedYear = timelineMonth.getFullYear();
-      const selectedMonth = timelineMonth.getMonth();
+      const year = timelineMonth.getFullYear();
+      const month = timelineMonth.getMonth();
 
       filtered = filtered.filter((memory) => {
-        const memoryTime = getTimelineTime(memory);
+        const time = getTimelineTime(memory);
 
-        if (!memoryTime) {
+        if (!time) {
           return false;
         }
 
-        const memoryDate = new Date(memoryTime);
+        const date = new Date(time);
 
         return (
-          memoryDate.getFullYear() === selectedYear &&
-          memoryDate.getMonth() === selectedMonth
+          date.getFullYear() === year &&
+          date.getMonth() === month
         );
       });
     }
 
-    const sorted = [...filtered];
+    return [...filtered].sort((a, b) => {
+      const dateA = timelineMonth
+        ? getTimelineTime(a)
+        : getMemoryTime(a);
 
-    sorted.sort((a, b) => {
-      const dateA = timelineMonth ? getTimelineTime(a) : getMemoryTime(a);
+      const dateB = timelineMonth
+        ? getTimelineTime(b)
+        : getMemoryTime(b);
 
-      const dateB = timelineMonth ? getTimelineTime(b) : getMemoryTime(b);
-
-      if (sortOrder === "newest") {
-        return dateB - dateA;
-      }
-
-      return dateA - dateB;
+      return sortOrder === "newest"
+        ? dateB - dateA
+        : dateA - dateB;
     });
-
-    return sorted;
   }, [
     memories,
     filter,
@@ -712,15 +738,16 @@ function MemoriesScreen({ navigation, route }) {
   ]);
 
   const favoriteCount = useMemo(
-    () => memories.filter((memory) => memory.favorite === true).length,
+    () =>
+      memories.filter(
+        (memory) => memory.favorite === true,
+      ).length,
     [memories],
   );
 
   const handleMemoryPress = useCallback(
     (memoryId) => {
-      navigation.navigate("MemoryDetails", {
-        memoryId,
-      });
+      navigation.navigate("MemoryDetails", { memoryId });
     },
     [navigation],
   );
@@ -729,54 +756,61 @@ function MemoriesScreen({ navigation, route }) {
     navigation.navigate("Create");
   }, [navigation]);
 
-const handleToggleFavorite = useCallback(
-  async (memory) => {
-    const memoryId =
-      memory?.id || memory?._id || memory?.clientMemoryId;
+  const handleToggleFavorite = useCallback(
+    async (memory) => {
+      const memoryId =
+        memory?.id ||
+        memory?._id ||
+        memory?.clientMemoryId;
 
-    if (!memoryId) {
-      showAlert({
-        type: "danger",
-        icon: "heart-dislike-outline",
-        title: "Favorite Failed",
-        message: "This memory could not be identified.",
-        confirmText: "OK",
-      });
+      if (!memoryId) {
+        showAlert({
+          type: "danger",
+          icon: "heart-dislike-outline",
+          title: "Favorite Failed",
+          message: "This memory could not be identified.",
+          confirmText: "OK",
+        });
 
-      return;
-    }
+        return;
+      }
 
-    const wasFavorite = memory.favorite === true;
+      const wasFavorite = memory.favorite === true;
 
-    try {
-      const result = await toggleFavorite(memoryId);
+      try {
+        const result = await toggleFavorite(memoryId);
 
-      if (result === false || result?.success === false) {
-        throw new Error(
-          result?.message || "Unable to update favorite status."
+        if (
+          result === false ||
+          result?.success === false
+        ) {
+          throw new Error(
+            result?.message ||
+              "Unable to update favorite status.",
+          );
+        }
+
+        if (wasFavorite) {
+          notify("favoriteRemoved", {
+            message: `"${memory.title || "Your memory"}" has been removed from favorites.`,
+          });
+        } else {
+          notify("favoriteAdded", {
+            message: `"${memory.title || "Your memory"}" has been added to favorites.`,
+          });
+        }
+      } catch (error) {
+        console.error("Favorite error:", error);
+
+        notifyError(
+          "Favorite Update Failed",
+          error?.message ||
+            "Unable to update favorite status. Please try again.",
         );
       }
-
-      if (wasFavorite) {
-        notify("favoriteRemoved", {
-          message: `"${memory.title || "Your memory"}" has been removed from favorites.`,
-        });
-      } else {
-        notify("favoriteAdded", {
-          message: `"${memory.title || "Your memory"}" has been added to favorites.`,
-        });
-      }
-    } catch (error) {
-      console.error("Favorite error:", error);
-
-      notifyError(
-        "Favorite Update Failed",
-        error?.message || "Unable to update favorite status. Please try again."
-      );
-    }
-  },
-  [toggleFavorite, showAlert, notify, notifyError]
-);
+    },
+    [toggleFavorite, showAlert, notify, notifyError],
+  );
 
   const handleOpenAdvancedSearch = useCallback(() => {
     advancedSearchRef.current?.open();
@@ -866,7 +900,12 @@ const handleToggleFavorite = useCallback(
 
   const keyExtractor = useCallback(
     (item, index) =>
-      String(item.id || item.clientMemoryId || `memory-${index}`),
+      String(
+        item.id ||
+          item._id ||
+          item.clientMemoryId ||
+          `memory-${index}`,
+      ),
     [],
   );
 
@@ -885,7 +924,11 @@ const handleToggleFavorite = useCallback(
     if (timelineMonth && !searchQuery.trim()) {
       return (
         <View style={screenStyles.timelineEmptyState}>
-          <Ionicons name="calendar-outline" size={40} color={colors.primary} />
+          <Ionicons
+            name="calendar-outline"
+            size={40}
+            color={colors.primary}
+          />
 
           <Text style={screenStyles.timelineEmptyTitle}>
             No memories in {MONTHS[timelineMonth.getMonth()]}{" "}
@@ -928,9 +971,15 @@ const handleToggleFavorite = useCallback(
         />
 
         <View style={screenStyles.loadingState}>
-          <Ionicons name="hourglass-outline" size={30} color={colors.primary} />
+          <Ionicons
+            name="hourglass-outline"
+            size={30}
+            color={colors.primary}
+          />
 
-          <Text style={screenStyles.loadingTitle}>Loading memories...</Text>
+          <Text style={screenStyles.loadingTitle}>
+            Loading memories...
+          </Text>
         </View>
       </View>
     );
@@ -943,39 +992,30 @@ const handleToggleFavorite = useCallback(
         backgroundColor={colors.background}
       />
 
-      <FlatList
-        style={{
-          backgroundColor: colors.background,
-        }}
-        data={displayedMemories}
-        renderItem={renderItem}
-        keyExtractor={keyExtractor}
-        ListHeaderComponent={headerComponent}
-        ListEmptyComponent={renderEmptyState}
-        ListFooterComponent={renderFooter}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={screenStyles.scrollContent}
-        initialNumToRender={4}
-        maxToRenderPerBatch={4}
-        windowSize={5}
-        removeClippedSubviews={true}
-        updateCellsBatchingPeriod={50}
-        refreshing={refreshing}
-        onRefresh={onRefresh}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={colors.primary}
-            colors={[colors.primary]}
-            progressBackgroundColor={colors.surface}
-          />
-        }
-      />
+      <MementoRefresh
+        onRefresh={refreshMemoriesScreen}
+        label="Refreshing memories..."
+      >
+        <FlatList
+          style={{ backgroundColor: colors.background }}
+          data={displayedMemories}
+          renderItem={renderItem}
+          keyExtractor={keyExtractor}
+          ListHeaderComponent={headerComponent}
+          ListEmptyComponent={renderEmptyState}
+          ListFooterComponent={renderFooter}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={screenStyles.scrollContent}
+          initialNumToRender={4}
+          maxToRenderPerBatch={4}
+          windowSize={5}
+          removeClippedSubviews
+          updateCellsBatchingPeriod={50}
+        />
+      </MementoRefresh>
 
       {/* ADVANCED SEARCH */}
-
       <AdvancedSearch
         ref={advancedSearchRef}
         filters={advancedFilters}
@@ -988,7 +1028,6 @@ const handleToggleFavorite = useCallback(
       />
 
       {/* TIMELINE */}
-
       <TimelineBottomSheet
         ref={timelineSheetRef}
         selectedMonth={timelineMonth}

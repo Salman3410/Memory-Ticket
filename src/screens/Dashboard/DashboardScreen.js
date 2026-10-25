@@ -1,49 +1,45 @@
-import React, { useCallback, useMemo } from "react";
+import React, {
+  useCallback,
+  useMemo,
+} from "react";
 import {
   ActivityIndicator,
-  RefreshControl,
   ScrollView,
   StatusBar,
   View,
 } from "react-native";
 import { useAuth } from "../../hooks/useAuth";
 import useDashboard from "../../hooks/useDashboard";
-import useRefresh from "../../hooks/useRefresh";
 import { useMemory } from "../../hooks/useMemory";
 import { useCollection } from "../../hooks/useCollection";
 import { useTheme } from "../../context/ThemeContext";
+import MementoRefresh from "../../components/common/MementoRefresh";
 import DashboardHeader from "./components/DashboardHeader";
 import DashboardHero from "./components/DashboardHero";
 import MemoryPulseCard from "./components/MemoryPulseCard";
 import OnThisDayCard from "./components/OnThisDayCard";
-import DashboardSpotlightCard from "./components/DashboardSpotlightCard";
-import DashboardMemoryCard from "./components/DashboardMemoryCard";
-import DashboardSectionHeader from "./components/DashboardSectionHeader";
-import HomeCollectionsSection from "../../components/collections/HomeCollectionsSection";
 import { createDashboardStyles } from "./dashboardStyles";
 
 function DashboardScreen({ navigation }) {
   const { user } = useAuth();
+
   const { refreshMemories } = useMemory();
   const { refreshCollections } = useCollection();
+
   const { theme, isDark } = useTheme();
   const { colors } = theme;
 
   const styles = useMemo(
     () => createDashboardStyles(theme, isDark),
-    [theme, isDark]
+    [theme, isDark],
   );
 
   const {
     stats,
-    recentMemories,
-    favoriteMemories,
-    recentCollections,
     onThisDay,
     monthlyActivity,
     thisMonthCount,
     mostActiveMonth,
-    featuredMemory,
     loading,
   } = useDashboard();
 
@@ -54,44 +50,6 @@ function DashboardScreen({ navigation }) {
     ]);
   }, [refreshMemories, refreshCollections]);
 
-  const { refreshing, onRefresh } = useRefresh(refreshDashboard);
-
-  const openMemory = useCallback(
-    (memory) => {
-      if (!memory?.id) {
-        return;
-      }
-
-      navigation.navigate("MemoryDetails", {
-        memoryId: memory.id,
-      });
-    },
-    [navigation]
-  );
-
-  const handleViewCollections = useCallback(() => {
-    navigation.navigate("Collections");
-  }, [navigation]);
-
-  const handleCreateCollection = useCallback(() => {
-    navigation.navigate("CreateCollection");
-  }, [navigation]);
-
-  const handleCollectionPress = useCallback(
-    (collection) => {
-      const collectionId = collection?._id || collection?.id;
-
-      if (!collectionId) {
-        return;
-      }
-
-      navigation.navigate("CollectionDetails", {
-        collectionId,
-      });
-    },
-    [navigation]
-  );
-
   const openOnThisDay = useCallback(() => {
     navigation.navigate("OnThisDay");
   }, [navigation]);
@@ -100,7 +58,9 @@ function DashboardScreen({ navigation }) {
     return (
       <View style={styles.loadingContainer}>
         <StatusBar
-          barStyle={isDark ? "light-content" : "dark-content"}
+          barStyle={
+            isDark ? "light-content" : "dark-content"
+          }
           backgroundColor={colors.background}
         />
 
@@ -115,127 +75,62 @@ function DashboardScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <StatusBar
-        barStyle={isDark ? "light-content" : "dark-content"}
+        barStyle={
+          isDark ? "light-content" : "dark-content"
+        }
         backgroundColor={colors.background}
       />
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.content}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={colors.accent}
-            colors={[colors.accent]}
-            progressBackgroundColor={colors.surface}
-          />
-        }
+      <MementoRefresh
+        onRefresh={refreshDashboard}
+        label="Refreshing dashboard..."
       >
-        {/* Header */}
-        <DashboardHeader
-          name={user?.name}
-          colors={colors}
-          isDark={isDark}
-        />
+        <ScrollView
+          style={{
+            backgroundColor: colors.background,
+          }}
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Header */}
 
-        {/* Dashboard Hero */}
-        <DashboardHero
-          stats={stats}
-          colors={colors}
-          isDark={isDark}
-        />
-
-        {/* Memory Activity */}
-        <MemoryPulseCard
-          activity={monthlyActivity}
-          thisMonthCount={thisMonthCount}
-          mostActiveMonth={mostActiveMonth}
-          colors={colors}
-          isDark={isDark}
-        />
-
-        {/* On This Day */}
-        <View style={styles.section}>
-          <OnThisDayCard
-            memories={onThisDay}
-            onPress={openOnThisDay}
+          <DashboardHeader
+            name={user?.name}
             colors={colors}
             isDark={isDark}
           />
-        </View>
 
-        {/* Memory Spotlight */}
-        {featuredMemory && (
+          {/* Dashboard Hero */}
+
+          <DashboardHero
+            stats={stats}
+            colors={colors}
+            isDark={isDark}
+          />
+
+          {/* Memory Activity */}
+
+          <MemoryPulseCard
+            activity={monthlyActivity}
+            thisMonthCount={thisMonthCount}
+            mostActiveMonth={mostActiveMonth}
+            colors={colors}
+            isDark={isDark}
+          />
+
+          {/* On This Day */}
+
           <View style={styles.section}>
-            <DashboardSectionHeader
-              title="Memory Spotlight"
-              actionLabel="Open"
-              onPress={() => openMemory(featuredMemory)}
-              colors={colors}
-              isDark={isDark}
-            />
-
-            <DashboardSpotlightCard
-              memory={featuredMemory}
-              onPress={() => openMemory(featuredMemory)}
+            <OnThisDayCard
+              memories={onThisDay}
+              onPress={openOnThisDay}
               colors={colors}
               isDark={isDark}
             />
           </View>
-        )}
-
-        {/* Favorites */}
-        {favoriteMemories.length > 0 && (
-          <View style={styles.section}>
-            <DashboardSectionHeader
-              title="Little Favorites"
-              actionLabel="See all"
-              onPress={() =>
-                navigation.navigate("Memories", {
-                  filter: "favorites",
-                })
-              }
-              colors={colors}
-              isDark={isDark}
-            />
-
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.horizontalContent}
-            >
-              {favoriteMemories.map((memory) => (
-                <DashboardMemoryCard
-                  key={
-                    memory?.id ||
-                    memory?._id ||
-                    memory?.clientMemoryId
-                  }
-                  memory={memory}
-                  onPress={() => openMemory(memory)}
-                  colors={colors}
-                  isDark={isDark}
-                />
-              ))}
-            </ScrollView>
-          </View>
-        )}
-
-        {/* Collections */}
-        <HomeCollectionsSection
-          collections={
-            Array.isArray(recentCollections)
-              ? recentCollections.slice(0, 3)
-              : []
-          }
-          onViewAll={handleViewCollections}
-          onCreate={handleCreateCollection}
-          onCollectionPress={handleCollectionPress}
-          colors={colors}
-          isDark={isDark}
-        />
-      </ScrollView>
+        </ScrollView>
+      </MementoRefresh>
     </View>
   );
 }

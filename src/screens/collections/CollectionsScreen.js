@@ -1,20 +1,24 @@
-import { useCallback } from "react";
+import React, { useCallback } from "react";
+
 import {
   ActivityIndicator,
   FlatList,
-  RefreshControl,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
   StatusBar,
 } from "react-native";
+
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
+
 import { useCollection } from "../../hooks/useCollection";
-import useRefresh from "../../hooks/useRefresh";
+
 import CollectionCardComponent from "../../components/collections/CollectionCard";
 import TactileButton from "../../components/common/TactileButton";
+import MementoRefresh from "../../components/common/MementoRefresh";
+
 import { useMementoNotifications } from "../../hooks/useMementoNotifications";
 import { useTheme } from "../../context/ThemeContext";
 import { useAppAlert } from "../../context/AlertContext";
@@ -23,10 +27,12 @@ function CollectionsScreen({ navigation }) {
   const { notifyError } = useMementoNotifications();
   const { theme, isDark } = useTheme();
   const { showAlert } = useAppAlert();
+
   const colors = theme?.colors || {};
 
   const screenBackground =
-    colors.background || (isDark ? "#171624" : "#F1F0F6");
+    colors.background ||
+    (isDark ? "#171624" : "#F1F0F6");
 
   const surfaceColor =
     colors.surface ||
@@ -34,7 +40,8 @@ function CollectionsScreen({ navigation }) {
     (isDark ? "#211F30" : "#FFFFFF");
 
   const textColor =
-    colors.text || (isDark ? "#F7F5FC" : "#242424");
+    colors.text ||
+    (isDark ? "#F7F5FC" : "#242424");
 
   const secondaryTextColor =
     colors.textSecondary ||
@@ -42,10 +49,12 @@ function CollectionsScreen({ navigation }) {
     (isDark ? "#C4C0D0" : "#707080");
 
   const borderColor =
-    colors.border || (isDark ? "#39364D" : "#D9D8E2");
+    colors.border ||
+    (isDark ? "#39364D" : "#D9D8E2");
 
   const primaryColor =
-    colors.primary || (isDark ? "#C8C2FF" : "#34345C");
+    colors.primary ||
+    (isDark ? "#C8C2FF" : "#34345C");
 
   const primaryTextColor =
     colors.primaryText ||
@@ -53,9 +62,9 @@ function CollectionsScreen({ navigation }) {
       ? "#25223D"
       : "#FFFFFF");
 
-  // --------------------------------------------------
-  // COLLECTION CONTEXT
-  // --------------------------------------------------
+  /* ==========================================================
+     COLLECTION CONTEXT
+  ========================================================== */
 
   const {
     collections,
@@ -67,12 +76,21 @@ function CollectionsScreen({ navigation }) {
     ? collections
     : [];
 
-const showRefreshError = useCallback(() => {
-  notifyError(
-    "Unable to Refresh Collections",
-    "Your collections could not be refreshed. Check your connection and try again."
-  );
-}, [notifyError]);
+  /* ==========================================================
+     ERROR HANDLING
+  ========================================================== */
+
+  const showRefreshError = useCallback(() => {
+    notifyError(
+      "Unable to Refresh Collections",
+      "Your collections could not be refreshed. Check your connection and try again.",
+    );
+  }, [notifyError]);
+
+  /* ==========================================================
+     AUTO-REFRESH WHEN SCREEN GAINS FOCUS
+  ========================================================== */
+
   useFocusEffect(
     useCallback(() => {
       let active = true;
@@ -92,7 +110,7 @@ const showRefreshError = useCallback(() => {
         }
       };
 
-      refreshOnFocus();
+      void refreshOnFocus();
 
       return () => {
         active = false;
@@ -100,18 +118,26 @@ const showRefreshError = useCallback(() => {
     }, [refreshCollections, showRefreshError]),
   );
 
+  /* ==========================================================
+     PULL-TO-REFRESH
+  ========================================================== */
+
   const refreshCollectionsScreen = useCallback(async () => {
     try {
       await refreshCollections();
     } catch (error) {
-      console.error("Failed to refresh collections:", error);
+      console.error(
+        "Failed to refresh collections:",
+        error,
+      );
+
       showRefreshError();
     }
   }, [refreshCollections, showRefreshError]);
 
-  const { refreshing, onRefresh } = useRefresh(
-    refreshCollectionsScreen,
-  );
+  /* ==========================================================
+     NAVIGATION
+  ========================================================== */
 
   const handleGoBack = useCallback(() => {
     navigation.goBack();
@@ -127,7 +153,10 @@ const showRefreshError = useCallback(() => {
         collection?._id || collection?.id;
 
       if (!collectionId) {
-        console.warn("Collection ID missing:", collection);
+        console.warn(
+          "Collection ID missing:",
+          collection,
+        );
 
         showAlert({
           type: "warning",
@@ -148,6 +177,10 @@ const showRefreshError = useCallback(() => {
     },
     [navigation, showAlert],
   );
+
+  /* ==========================================================
+     LIST RENDERERS
+  ========================================================== */
 
   const renderItem = useCallback(
     ({ item }) => (
@@ -174,7 +207,9 @@ const showRefreshError = useCallback(() => {
       <View
         style={[
           styles.emptyState,
-          { backgroundColor: screenBackground },
+          {
+            backgroundColor: screenBackground,
+          },
         ]}
       >
         <View
@@ -196,7 +231,9 @@ const showRefreshError = useCallback(() => {
         <Text
           style={[
             styles.emptyTitle,
-            { color: textColor },
+            {
+              color: textColor,
+            },
           ]}
         >
           Give your memories a place
@@ -205,11 +242,13 @@ const showRefreshError = useCallback(() => {
         <Text
           style={[
             styles.emptyText,
-            { color: secondaryTextColor },
+            {
+              color: secondaryTextColor,
+            },
           ]}
         >
-          Create a collection for trips, people, events, or anything you want
-          to remember together.
+          Create a collection for trips, people, events, or
+          anything you want to remember together.
         </Text>
 
         <TactileButton
@@ -241,15 +280,23 @@ const showRefreshError = useCallback(() => {
     handleCreateCollection,
   ]);
 
+  /* ==========================================================
+     SCREEN
+  ========================================================== */
+
   return (
     <View
       style={[
         styles.container,
-        { backgroundColor: screenBackground },
+        {
+          backgroundColor: screenBackground,
+        },
       ]}
     >
       <StatusBar
-        barStyle={isDark ? "light-content" : "dark-content"}
+        barStyle={
+          isDark ? "light-content" : "dark-content"
+        }
         backgroundColor={screenBackground}
       />
 
@@ -258,7 +305,9 @@ const showRefreshError = useCallback(() => {
       <View
         style={[
           styles.header,
-          { backgroundColor: screenBackground },
+          {
+            backgroundColor: screenBackground,
+          },
         ]}
       >
         <View style={styles.headerLeft}>
@@ -286,7 +335,9 @@ const showRefreshError = useCallback(() => {
             <Text
               style={[
                 styles.eyebrow,
-                { color: secondaryTextColor },
+                {
+                  color: secondaryTextColor,
+                },
               ]}
             >
               YOUR STORIES
@@ -295,7 +346,9 @@ const showRefreshError = useCallback(() => {
             <Text
               style={[
                 styles.title,
-                { color: textColor },
+                {
+                  color: textColor,
+                },
               ]}
             >
               Collections
@@ -304,7 +357,9 @@ const showRefreshError = useCallback(() => {
             <Text
               style={[
                 styles.subtitle,
-                { color: secondaryTextColor },
+                {
+                  color: secondaryTextColor,
+                },
               ]}
             >
               Keep moments that belong together.
@@ -315,7 +370,9 @@ const showRefreshError = useCallback(() => {
         <TouchableOpacity
           style={[
             styles.createButton,
-            { backgroundColor: primaryColor },
+            {
+              backgroundColor: primaryColor,
+            },
           ]}
           onPress={handleCreateCollection}
           activeOpacity={0.85}
@@ -352,7 +409,9 @@ const showRefreshError = useCallback(() => {
             <Text
               style={[
                 styles.summaryText,
-                { color: textColor },
+                {
+                  color: textColor,
+                },
               ]}
             >
               {collectionList.length}{" "}
@@ -365,7 +424,9 @@ const showRefreshError = useCallback(() => {
           <Text
             style={[
               styles.summaryHint,
-              { color: secondaryTextColor },
+              {
+                color: secondaryTextColor,
+              },
             ]}
           >
             Your memories, together
@@ -379,7 +440,9 @@ const showRefreshError = useCallback(() => {
         <View
           style={[
             styles.loadingContainer,
-            { backgroundColor: screenBackground },
+            {
+              backgroundColor: screenBackground,
+            },
           ]}
         >
           <ActivityIndicator
@@ -390,55 +453,61 @@ const showRefreshError = useCallback(() => {
           <Text
             style={[
               styles.loadingText,
-              { color: secondaryTextColor },
+              {
+                color: secondaryTextColor,
+              },
             ]}
           >
             Loading collections...
           </Text>
         </View>
       ) : (
-        <FlatList
-          data={collectionList}
-          renderItem={renderItem}
-          keyExtractor={keyExtractor}
-          numColumns={2}
-          columnWrapperStyle={
-            collectionList.length > 1
-              ? styles.columnWrapper
-              : undefined
-          }
-          contentContainerStyle={[
-            collectionList.length === 0
-              ? styles.emptyList
-              : styles.listContent,
-            { backgroundColor: screenBackground },
-          ]}
-          style={{ backgroundColor: screenBackground }}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={primaryColor}
-              colors={[primaryColor]}
-              progressBackgroundColor={surfaceColor}
-            />
-          }
-          ListEmptyComponent={renderEmpty}
-          initialNumToRender={6}
-          maxToRenderPerBatch={6}
-          windowSize={5}
-        />
+        /*
+         * MementoRefresh owns the pull gesture and indicator.
+         * No RefreshControl or useRefresh is needed here.
+         */
+        <MementoRefresh
+          onRefresh={refreshCollectionsScreen}
+          label="Refreshing collections..."
+        >
+          <FlatList
+            data={collectionList}
+            renderItem={renderItem}
+            keyExtractor={keyExtractor}
+            numColumns={2}
+            columnWrapperStyle={
+              collectionList.length > 1
+                ? styles.columnWrapper
+                : undefined
+            }
+            contentContainerStyle={[
+              collectionList.length === 0
+                ? styles.emptyList
+                : styles.listContent,
+              {
+                backgroundColor: screenBackground,
+              },
+            ]}
+            style={{
+              backgroundColor: screenBackground,
+            }}
+            showsVerticalScrollIndicator={false}
+            ListEmptyComponent={renderEmpty}
+            initialNumToRender={6}
+            maxToRenderPerBatch={6}
+            windowSize={5}
+          />
+        </MementoRefresh>
       )}
     </View>
   );
 }
 
-export default CollectionsScreen;
+export default React.memo(CollectionsScreen);
 
-// --------------------------------------------------
-// STYLES
-// --------------------------------------------------
+/* ============================================================
+   STYLES
+============================================================ */
 
 const styles = StyleSheet.create({
   container: {
@@ -446,7 +515,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#F1F0F6",
   },
 
-  // HEADER
+  /* HEADER */
 
   header: {
     paddingHorizontal: 20,
@@ -509,7 +578,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
-  // SUMMARY
+  /* SUMMARY */
 
   summaryRow: {
     minHeight: 45,
@@ -536,7 +605,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
   },
 
-  // COLLECTION GRID
+  /* COLLECTION GRID */
 
   listContent: {
     paddingHorizontal: 14,
@@ -549,7 +618,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
 
-  // LOADING
+  /* LOADING */
 
   loadingContainer: {
     flex: 1,
@@ -562,7 +631,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
 
-  // EMPTY STATE
+  /* EMPTY STATE */
 
   emptyList: {
     flexGrow: 1,
