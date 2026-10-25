@@ -191,22 +191,9 @@ function getNextAnniversary(memoryDate) {
   }
 
   const now = new Date();
-  let year = now.getFullYear();
 
-  let target = new Date(
-    year,
-    source.getMonth(),
-    source.getDate(),
-    10,
-    0,
-    0,
-    0,
-  );
-
-  if (target.getTime() <= now.getTime()) {
-    year += 1;
-
-    target = new Date(
+  const createTarget = (year) => {
+    const target = new Date(
       year,
       source.getMonth(),
       source.getDate(),
@@ -215,6 +202,24 @@ function getNextAnniversary(memoryDate) {
       0,
       0,
     );
+
+    // Keep February 29 anniversaries in February
+    // when the target year is not a leap year.
+    if (
+      source.getMonth() === 1 &&
+      source.getDate() === 29 &&
+      target.getMonth() !== 1
+    ) {
+      target.setDate(0);
+    }
+
+    return target;
+  };
+
+  let target = createTarget(now.getFullYear());
+
+  if (target.getTime() <= now.getTime()) {
+    target = createTarget(now.getFullYear() + 1);
   }
 
   return target;
@@ -306,7 +311,40 @@ async function scheduleDailyAndOnThisDay(memories = []) {
 export async function scheduleDailyMemoryReminderAndOnThisDay(
   memories = [],
 ) {
-  return scheduleDailyAndOnThisDay(memories);
+  const enabled = await isNotificationsEnabled();
+
+  if (!enabled) {
+    return {
+      enabled: false,
+      notificationsDisabled: true,
+    };
+  }
+
+  const permitted = await hasNotificationPermission();
+
+  if (!permitted) {
+    return {
+      enabled: false,
+      permissionDenied: true,
+    };
+  }
+
+  await configureNotifications();
+
+  await cancelScheduledNotificationTypes([
+    NOTIFICATION_TYPES.DAILY,
+    NOTIFICATION_TYPES.ON_THIS_DAY,
+  ]);
+
+  const scheduled = await scheduleDailyAndOnThisDay(
+    memories,
+  );
+
+  return {
+    enabled: true,
+    permissionDenied: false,
+    ...scheduled,
+  };
 }
 
 export async function scheduleMemoryReminder(
@@ -479,10 +517,12 @@ export async function getScheduledMemoryReminders() {
 
 async function rescheduleSavedMemoryReminders() {
   const reminders = await getReminderStore();
-  const scheduled = await getMementoScheduledNotifications();
+
+  const scheduled =
+    await getMementoScheduledNotifications();
 
   const pendingByMemoryId = new Map();
-
+  let changed = false;
   for (const notification of scheduled) {
     if (
       notification.content?.data?.type !==
@@ -495,20 +535,35 @@ async function rescheduleSavedMemoryReminders() {
       notification.content?.data?.memoryId || "",
     );
 
-    if (!memoryId) {
+    const hasSavedReminder =
+      Boolean(memoryId) &&
+      Object.prototype.hasOwnProperty.call(
+        reminders,
+        memoryId,
+      );
+
+    if (!hasSavedReminder) {
+      await Notifications.cancelScheduledNotificationAsync(
+        notification.identifier,
+      );
+
       continue;
     }
 
-    const existing = pendingByMemoryId.get(memoryId) || [];
+    const existing =
+      pendingByMemoryId.get(memoryId) || [];
+
     existing.push(notification);
+
     pendingByMemoryId.set(memoryId, existing);
   }
 
-  let changed = false;
-
-  for (const [memoryId, reminder] of Object.entries(reminders)) {
+  for (const [memoryId, reminder] of Object.entries(
+    reminders,
+  )) {
     const date = new Date(reminder.scheduledAt);
 
+    // Remove expired or invalid reminder records.
     if (
       Number.isNaN(date.getTime()) ||
       date.getTime() <= Date.now()
@@ -516,7 +571,8 @@ async function rescheduleSavedMemoryReminders() {
       delete reminders[memoryId];
       changed = true;
 
-      const expired = pendingByMemoryId.get(memoryId) || [];
+      const expired =
+        pendingByMemoryId.get(memoryId) || [];
 
       await Promise.all(
         expired.map((notification) =>
@@ -529,8 +585,10 @@ async function rescheduleSavedMemoryReminders() {
       continue;
     }
 
-    const pending = pendingByMemoryId.get(memoryId) || [];
+    const pending =
+      pendingByMemoryId.get(memoryId) || [];
 
+    // Keep one scheduled notification and cancel duplicates.
     if (pending.length > 0) {
       const [keep, ...duplicates] = pending;
 
@@ -554,6 +612,8 @@ async function rescheduleSavedMemoryReminders() {
       continue;
     }
 
+    // The reminder is saved but was not scheduled on the
+    // device, so recreate it.
     const notificationId =
       await Notifications.scheduleNotificationAsync({
         content: {

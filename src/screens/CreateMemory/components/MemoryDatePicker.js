@@ -4,7 +4,6 @@ import {
   useRef,
   useState,
 } from "react";
-
 import {
   Animated,
   Dimensions,
@@ -14,16 +13,10 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
-
 import { Ionicons } from "@expo/vector-icons";
 import TactileButton from "../../../components/common/TactileButton";
-
-// --------------------------------------------------
-// DATE HELPERS
-// --------------------------------------------------
 
 function normalizeDate(value) {
   let date;
@@ -79,22 +72,6 @@ function formatDate(date) {
   });
 }
 
-function formatTime(date) {
-  if (
-    !(date instanceof Date) ||
-    Number.isNaN(date.getTime())
-  ) {
-    return "12:00 PM";
-  }
-
-  const hours = date.getHours();
-  const hour12 = hours % 12 || 12;
-  const minutes = String(date.getMinutes()).padStart(2, "0");
-  const period = hours >= 12 ? "PM" : "AM";
-
-  return `${String(hour12).padStart(2, "0")}:${minutes} ${period}`;
-}
-
 function isSameDay(first, second) {
   return (
     first.getFullYear() === second.getFullYear() &&
@@ -102,83 +79,6 @@ function isSameDay(first, second) {
     first.getDate() === second.getDate()
   );
 }
-
-// --------------------------------------------------
-// TIME CONTROL
-// --------------------------------------------------
-
-function TimeStepper({
-  label,
-  value,
-  onDecrease,
-  onIncrease,
-  colors,
-  styles,
-}) {
-  return (
-    <View style={styles.timeUnit}>
-      <Text
-        style={[
-          styles.timeUnitLabel,
-          { color: colors.muted },
-        ]}
-      >
-        {label}
-      </Text>
-
-      <View
-        style={[
-          styles.timeStepper,
-          {
-            backgroundColor: colors.background,
-            borderColor: colors.border,
-          },
-        ]}
-      >
-        <TouchableOpacity
-          style={styles.timeArrow}
-          onPress={onDecrease}
-          activeOpacity={0.7}
-          accessibilityRole="button"
-          accessibilityLabel={`Decrease ${label.toLowerCase()}`}
-        >
-          <Ionicons
-            name="remove"
-            size={18}
-            color={colors.text}
-          />
-        </TouchableOpacity>
-
-        <Text
-          style={[
-            styles.timeValue,
-            { color: colors.text },
-          ]}
-        >
-          {String(value).padStart(2, "0")}
-        </Text>
-
-        <TouchableOpacity
-          style={styles.timeArrow}
-          onPress={onIncrease}
-          activeOpacity={0.7}
-          accessibilityRole="button"
-          accessibilityLabel={`Increase ${label.toLowerCase()}`}
-        >
-          <Ionicons
-            name="add"
-            size={18}
-            color={colors.text}
-          />
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-}
-
-// --------------------------------------------------
-// MEMORY DATE PICKER
-// --------------------------------------------------
 
 function MemoryDatePicker({
   value,
@@ -244,10 +144,6 @@ function MemoryDatePicker({
     "Sat",
   ];
 
-  // --------------------------------------------------
-  // DRAG TO DISMISS
-  // --------------------------------------------------
-
   const panResponder = useMemo(
     () =>
       PanResponder.create({
@@ -300,10 +196,6 @@ function MemoryDatePicker({
     [screenHeight, sheetTranslateY]
   );
 
-  // --------------------------------------------------
-  // SYNC WITH PARENT VALUE
-  // --------------------------------------------------
-
   useEffect(() => {
     const nextDate = normalizeDate(value);
 
@@ -313,10 +205,6 @@ function MemoryDatePicker({
       setVisibleMonth(getMonthStart(nextDate));
     }
   }, [value, isOpen]);
-
-  // --------------------------------------------------
-  // CALENDAR
-  // --------------------------------------------------
 
   const calendarDays = useMemo(() => {
     const year = visibleMonth.getFullYear();
@@ -349,15 +237,6 @@ function MemoryDatePicker({
 
   const today = normalizeDate(new Date());
 
-  const selectedHours = selectedDate.getHours();
-  const selectedHour12 = selectedHours % 12 || 12;
-  const selectedMinutes = selectedDate.getMinutes();
-  const selectedPeriod = selectedHours >= 12 ? "PM" : "AM";
-
-  // --------------------------------------------------
-  // OPEN / CLOSE
-  // --------------------------------------------------
-
   const openPicker = () => {
     const currentDate = normalizeDate(value);
 
@@ -371,10 +250,6 @@ function MemoryDatePicker({
   const closePicker = () => {
     setIsOpen(false);
   };
-
-  // --------------------------------------------------
-  // MONTH NAVIGATION
-  // --------------------------------------------------
 
   const goToPreviousMonth = () => {
     setVisibleMonth((current) =>
@@ -396,10 +271,6 @@ function MemoryDatePicker({
     );
   };
 
-  // --------------------------------------------------
-  // SELECT DATE
-  // --------------------------------------------------
-
   const handleSelectDay = (day) => {
     if (!day) {
       return;
@@ -418,46 +289,10 @@ function MemoryDatePicker({
     );
   };
 
-  // --------------------------------------------------
-  // SELECT TIME
-  // --------------------------------------------------
-
-  const adjustHour = (amount) => {
-    setSelectedDate((current) => {
-      const next = new Date(current);
-      next.setHours(next.getHours() + amount);
-      return next;
-    });
-  };
-
-  const adjustMinutes = (amount) => {
-    setSelectedDate((current) => {
-      const next = new Date(current);
-      next.setMinutes(next.getMinutes() + amount * 5);
-      return next;
-    });
-  };
-
-  const togglePeriod = () => {
-    setSelectedDate((current) => {
-      const next = new Date(current);
-      next.setHours((next.getHours() + 12) % 24);
-      return next;
-    });
-  };
-
-  // --------------------------------------------------
-  // CONFIRM
-  // --------------------------------------------------
-
   const handleConfirmDate = () => {
     onChange?.(normalizeDate(selectedDate));
     setIsOpen(false);
   };
-
-  // --------------------------------------------------
-  // UI
-  // --------------------------------------------------
 
   return (
     <View style={styles.container}>
@@ -498,7 +333,7 @@ function MemoryDatePicker({
               { color: colors.text },
             ]}
           >
-            Memory date & time
+            Memory date
           </Text>
 
           <Text
@@ -509,7 +344,7 @@ function MemoryDatePicker({
             numberOfLines={2}
           >
             {value
-              ? `${formatDate(normalizeDate(value))} • ${formatTime(normalizeDate(value))}`
+              ? `${formatDate(normalizeDate(value))}`
               : "Choose when it happened"}
           </Text>
         </View>
@@ -572,7 +407,7 @@ function MemoryDatePicker({
                     { color: colors.text },
                   ]}
                 >
-                  Choose date & time
+                  Choose date
                 </Text>
 
                 <Text
@@ -747,92 +582,6 @@ function MemoryDatePicker({
               })}
             </View>
 
-            {/* TIME PICKER */}
-
-            <View
-              style={[
-                styles.timeSection,
-                {
-                  backgroundColor: colors.background,
-                  borderColor: colors.border,
-                },
-              ]}
-            >
-              <View style={styles.timeHeader}>
-                <Ionicons
-                  name="time-outline"
-                  size={18}
-                  color={colors.accent}
-                />
-
-                <View style={styles.timeHeadingText}>
-                  <Text
-                    style={[
-                      styles.timeTitle,
-                      { color: colors.text },
-                    ]}
-                  >
-                    Time of memory
-                  </Text>
-
-                  <Text
-                    style={[
-                      styles.timeSubtitle,
-                      { color: colors.muted },
-                    ]}
-                  >
-                    Adjust hours and minutes
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.timeControls}>
-                <TimeStepper
-                  label="HOUR"
-                  value={selectedHour12}
-                  onDecrease={() => adjustHour(-1)}
-                  onIncrease={() => adjustHour(1)}
-                  colors={colors}
-                  styles={styles}
-                />
-
-                <Text
-                  style={[
-                    styles.timeColon,
-                    { color: colors.text },
-                  ]}
-                >
-                  :
-                </Text>
-
-                <TimeStepper
-                  label="MINUTE"
-                  value={selectedMinutes}
-                  onDecrease={() => adjustMinutes(-1)}
-                  onIncrease={() => adjustMinutes(1)}
-                  colors={colors}
-                  styles={styles}
-                />
-
-                <TouchableOpacity
-                  style={[
-                    styles.periodButton,
-                    {
-                      backgroundColor: colors.accent,
-                    },
-                  ]}
-                  onPress={togglePeriod}
-                  activeOpacity={0.8}
-                  accessibilityRole="button"
-                  accessibilityLabel="Toggle AM or PM"
-                >
-                  <Text style={styles.periodButtonText}>
-                    {selectedPeriod}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
             {/* SELECTED DATE AND TIME */}
 
             <View
@@ -857,7 +606,7 @@ function MemoryDatePicker({
                     { color: colors.muted },
                   ]}
                 >
-                  Selected date & time
+                  Selected date
                 </Text>
 
                 <Text
@@ -867,15 +616,6 @@ function MemoryDatePicker({
                   ]}
                 >
                   {formatDate(selectedDate)}
-                </Text>
-
-                <Text
-                  style={[
-                    styles.selectedTimeValue,
-                    { color: colors.accent },
-                  ]}
-                >
-                  {formatTime(selectedDate)}
                 </Text>
               </View>
             </View>
@@ -934,10 +674,6 @@ function MemoryDatePicker({
     </View>
   );
 }
-
-// --------------------------------------------------
-// STYLES
-// --------------------------------------------------
 
 const styles = StyleSheet.create({
   container: {
