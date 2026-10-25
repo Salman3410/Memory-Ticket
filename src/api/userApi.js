@@ -7,15 +7,21 @@ export async function getProfile(token) {
   });
 }
 
-export async function updateProfile(token, { name, email, profileImage } = {}) {
+export async function updateProfile(
+  token,
+  { name, profileImage } = {},
+) {
   const formData = new FormData();
 
   if (name !== undefined) {
-    formData.append("name", name.trim());
-  }
+    if (typeof name !== "string" || !name.trim()) {
+      return {
+        success: false,
+        message: "Name cannot be empty.",
+      };
+    }
 
-  if (email !== undefined) {
-    formData.append("email", email.trim().toLowerCase());
+    formData.append("name", name.trim());
   }
 
   if (profileImage) {
@@ -24,7 +30,8 @@ export async function updateProfile(token, { name, email, profileImage } = {}) {
 
     const extension = filename.split(".").pop()?.toLowerCase() || "jpg";
 
-    const mimeType = extension === "png" ? "image/png" : "image/jpeg";
+    const mimeType =
+      extension === "png" ? "image/png" : "image/jpeg";
 
     formData.append("profileImage", {
       uri: profileImage,

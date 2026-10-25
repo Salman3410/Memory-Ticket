@@ -1,9 +1,10 @@
-import { createContext, useEffect, useState } from "react";
-
+import {
+  createContext,
+  useEffect,
+  useState,
+} from "react";
 import * as SecureStore from "expo-secure-store";
-
 import { getDeviceInfo } from "../utils/deviceInfo";
-
 import {
   registerUser,
   verifySignupOtp as verifySignupOtpApi,
@@ -14,16 +15,76 @@ import {
   verifyOtp as verifyOtpApi,
   resetPassword as resetPasswordApi,
 } from "../api/authApi";
-
 import {
   updateProfile as updateProfileApi,
   changePassword as changePasswordApi,
   deleteAccount as deleteAccountApi,
 } from "../api/userApi";
+import {
+  clearAllOfflineMemoryData,
+} from "../services/offlineMemoryService";
 
-export const AuthContext = createContext();
+export const AuthContext = createContext(null);
 
 const TOKEN_KEY = "memory_ticket_auth_token";
+
+async function clearStoredSession() {
+  try {
+    await SecureStore.deleteItemAsync(TOKEN_KEY);
+    return true;
+  } catch (error) {
+    console.error(
+      "Failed to remove stored authentication token:",
+      error,
+    );
+
+    return false;
+  }
+}
+
+async function clearAccountLocalData() {
+  const tasks = [
+    {
+      name: "authentication token",
+      run: clearStoredSession,
+    },
+    {
+      name: "offline memory data and image files",
+      run: clearAllOfflineMemoryData,
+    },
+  ];
+
+  const results = await Promise.allSettled(
+    tasks.map((task) => task.run()),
+  );
+
+  const failures = [];
+
+  results.forEach((result, index) => {
+    if (result.status === "fulfilled") {
+      if (
+        tasks[index].name === "authentication token" &&
+        result.value !== true
+      ) {
+        failures.push(tasks[index].name);
+      }
+
+      return;
+    }
+
+    console.error(
+      `Account cleanup failed for ${tasks[index].name}:`,
+      result.reason,
+    );
+
+    failures.push(tasks[index].name);
+  });
+
+  return {
+    success: failures.length === 0,
+    failures,
+  };
+}
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -31,9 +92,14 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
+
     const restoreSession = async () => {
       try {
-        const storedToken = await SecureStore.getItemAsync(TOKEN_KEY);
+        const storedToken =
+          await SecureStore.getItemAsync(TOKEN_KEY);
+
+        if (cancelled) return;
 
         if (!storedToken) {
           return;
@@ -41,9 +107,13 @@ export function AuthProvider({ children }) {
 
         const result = await getCurrentUser(storedToken);
 
-        if (!result.success) {
-          await SecureStore.deleteItemAsync(TOKEN_KEY);
+        if (cancelled) return;
 
+        if (
+          !result.success ||
+          !result.data?.user
+        ) {
+          await SecureStore.deleteItemAsync(TOKEN_KEY);
           return;
         }
 
@@ -55,22 +125,42 @@ export function AuthProvider({ children }) {
         try {
           await SecureStore.deleteItemAsync(TOKEN_KEY);
         } catch (deleteError) {
-          console.error("Failed to delete invalid session:", deleteError);
+          console.error(
+            "Failed to delete invalid session:",
+            deleteError,
+          );
         }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     };
 
-    restoreSession();
+    void restoreSession();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const saveSession = async (authToken, userData) => {
     if (!authToken) {
-      throw new Error("Authentication token is missing.");
+      throw new Error(
+        "Authentication token is missing.",
+      );
     }
 
-    await SecureStore.setItemAsync(TOKEN_KEY, authToken);
+    if (!userData) {
+      throw new Error(
+        "Authenticated user information is missing.",
+      );
+    }
+
+    await SecureStore.setItemAsync(
+      TOKEN_KEY,
+      authToken,
+    );
 
     setToken(authToken);
     setUser(userData);
@@ -80,18 +170,27 @@ export function AuthProvider({ children }) {
     try {
       const device = getDeviceInfo();
 
-      const result = await registerUser(name, email, password, device);
+      const result = await registerUser(
+        name,
+        email,
+        password,
+        device,
+      );
 
       if (!result.success) {
         return {
           success: false,
-          message: result.message || "Unable to start account creation.",
+          message:
+            result.message ||
+            "Unable to start account creation.",
         };
       }
 
       return {
         success: true,
-        message: result.data?.message || "Verification OTP sent successfully.",
+        message:
+          result.data?.message ||
+          "Verification OTP sent successfully.",
       };
     } catch (error) {
       console.error("Signup error:", error);
@@ -105,7 +204,10 @@ export function AuthProvider({ children }) {
 
   const verifySignupOtp = async (email, otp) => {
     try {
-      const result = await verifySignupOtpApi(email, otp);
+      const result = await verifySignupOtpApi(
+        email,
+        otp,
+      );
 
       if (!result.success) {
         return {
@@ -116,10 +218,15 @@ export function AuthProvider({ children }) {
 
       return {
         success: true,
-        message: result.data?.message || "Account verified successfully.",
+        message:
+          result.data?.message ||
+          "Account verified successfully.",
       };
     } catch (error) {
-      console.error("Verify signup OTP error:", error);
+      console.error(
+        "Verify signup OTP error:",
+        error,
+      );
 
       return {
         success: false,
@@ -135,16 +242,22 @@ export function AuthProvider({ children }) {
       if (!result.success) {
         return {
           success: false,
-          message: result.message || "Unable to resend OTP.",
+          message:
+            result.message || "Unable to resend OTP.",
         };
       }
 
       return {
         success: true,
-        message: result.data?.message || "OTP resent successfully.",
+        message:
+          result.data?.message ||
+          "OTP resent successfully.",
       };
     } catch (error) {
-      console.error("Resend signup OTP error:", error);
+      console.error(
+        "Resend signup OTP error:",
+        error,
+      );
 
       return {
         success: false,
@@ -157,7 +270,11 @@ export function AuthProvider({ children }) {
     try {
       const device = getDeviceInfo();
 
-      const result = await loginUser(email, password, device);
+      const result = await loginUser(
+        email,
+        password,
+        device,
+      );
 
       if (!result.success) {
         return {
@@ -166,7 +283,10 @@ export function AuthProvider({ children }) {
         };
       }
 
-      const { token: authToken, user: loggedInUser } = result.data;
+      const {
+        token: authToken,
+        user: loggedInUser,
+      } = result.data || {};
 
       if (!authToken || !loggedInUser) {
         return {
@@ -199,13 +319,16 @@ export function AuthProvider({ children }) {
         return {
           success: false,
           message:
-            result.message || "Unable to process password reset request.",
+            result.message ||
+            "Unable to process password reset request.",
         };
       }
 
       return {
         success: true,
-        message: result.data?.message || "OTP sent successfully.",
+        message:
+          result.data?.message ||
+          "OTP sent successfully.",
         data: result.data,
       };
     } catch (error) {
@@ -213,7 +336,8 @@ export function AuthProvider({ children }) {
 
       return {
         success: false,
-        message: "Unable to process password reset request.",
+        message:
+          "Unable to process password reset request.",
       };
     }
   };
@@ -231,7 +355,9 @@ export function AuthProvider({ children }) {
 
       return {
         success: true,
-        message: result.data?.message || "OTP verified successfully.",
+        message:
+          result.data?.message ||
+          "OTP verified successfully.",
         data: result.data,
       };
     } catch (error) {
@@ -244,20 +370,32 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const resetPassword = async (email, resetToken, newPassword) => {
+  const resetPassword = async (
+    email,
+    resetToken,
+    newPassword,
+  ) => {
     try {
-      const result = await resetPasswordApi(email, resetToken, newPassword);
+      const result = await resetPasswordApi(
+        email,
+        resetToken,
+        newPassword,
+      );
 
       if (!result.success) {
         return {
           success: false,
-          message: result.message || "Unable to reset password.",
+          message:
+            result.message ||
+            "Unable to reset password.",
         };
       }
 
       return {
         success: true,
-        message: result.data?.message || "Password reset successfully.",
+        message:
+          result.data?.message ||
+          "Password reset successfully.",
         data: result.data,
       };
     } catch (error) {
@@ -279,16 +417,33 @@ export function AuthProvider({ children }) {
         };
       }
 
-      const result = await updateProfileApi(token, updatedData);
+      const {
+        name,
+        profileImage,
+      } = updatedData || {};
+
+      const result = await updateProfileApi(token, {
+        name,
+        profileImage,
+      });
 
       if (!result.success) {
         return {
           success: false,
-          message: result.message || "Unable to update profile.",
+          message:
+            result.message ||
+            "Unable to update profile.",
         };
       }
 
-      const updatedUser = result.data.user;
+      const updatedUser = result.data?.user;
+
+      if (!updatedUser) {
+        return {
+          success: false,
+          message: "Invalid response from server.",
+        };
+      }
 
       setUser(updatedUser);
 
@@ -306,7 +461,10 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const changePassword = async (currentPassword, newPassword) => {
+  const changePassword = async (
+    currentPassword,
+    newPassword,
+  ) => {
     try {
       if (!token || !user) {
         return {
@@ -324,18 +482,23 @@ export function AuthProvider({ children }) {
       if (!result.success) {
         return {
           success: false,
-          message: result.message || "Unable to change password.",
+          message:
+            result.message ||
+            "Unable to change password.",
         };
       }
-
-      await SecureStore.deleteItemAsync(TOKEN_KEY);
 
       setToken(null);
       setUser(null);
 
+      const tokenRemoved = await clearStoredSession();
+
       return {
         success: true,
-        message: result.data?.message || "Password changed successfully.",
+        sessionCleanupComplete: tokenRemoved,
+        message:
+          result.data?.message ||
+          "Password changed successfully. Please log in again.",
       };
     } catch (error) {
       console.error("Change password error:", error);
@@ -348,60 +511,80 @@ export function AuthProvider({ children }) {
   };
 
   const deleteAccount = async () => {
-    try {
-      if (!token || !user) {
-        return {
-          success: false,
-          message: "No authenticated user.",
-        };
-      }
+    if (!token || !user) {
+      return {
+        success: false,
+        message: "No authenticated user.",
+      };
+    }
 
+    try {
       const result = await deleteAccountApi(token);
 
       if (!result.success) {
         return {
           success: false,
-          message: result.message || "Unable to delete account.",
+          message:
+            result.message ||
+            "Unable to delete account.",
         };
       }
-
-      await SecureStore.deleteItemAsync(TOKEN_KEY);
 
       setToken(null);
       setUser(null);
 
+      const cleanup = await clearAccountLocalData();
+
+      if (!cleanup.success) {
+        console.error(
+          "Account deleted, but local cleanup was incomplete:",
+          cleanup.failures,
+        );
+
+        return {
+          success: true,
+          localCleanupComplete: false,
+          cleanupFailures: cleanup.failures,
+          message:
+            "Your account was deleted, but some local data could not be cleared. Do not sign in to another account on this device until local cleanup is complete.",
+        };
+      }
+
       return {
         success: true,
-        message: result.data?.message || "Account deleted successfully.",
+        localCleanupComplete: true,
+        message:
+          result.data?.message ||
+          "Account deleted successfully.",
       };
     } catch (error) {
       console.error("Delete account error:", error);
 
       return {
         success: false,
-        message: "Unable to delete account.",
+        message:
+          "Unable to complete the account deletion request.",
       };
     }
   };
 
   const logout = async () => {
-    try {
-      await SecureStore.deleteItemAsync(TOKEN_KEY);
+    setToken(null);
+    setUser(null);
 
-      setToken(null);
-      setUser(null);
+    const tokenRemoved = await clearStoredSession();
 
-      return {
-        success: true,
-      };
-    } catch (error) {
-      console.error("Logout error:", error);
-
+    if (!tokenRemoved) {
       return {
         success: false,
-        message: "Unable to logout.",
+        message:
+          "You have been signed out in the app, but the stored session token could not be removed.",
       };
     }
+
+    return {
+      success: true,
+    };
   };
 
   return (
