@@ -40,9 +40,6 @@ import {
 import {
   normalizeTicketCustomization,
 } from "../utils/ticketCustomization";
-import {
-  refreshMementoWidget,
-} from "../services/memoryWidgetService";
 
 export const MemoryContext = createContext(null);
 
@@ -117,8 +114,6 @@ export function MemoryProvider({ children }) {
 
   const preparingMemoryIdsRef = useRef(new Set());
   const cancelledMemoryIdsRef = useRef(new Set());
-
-  const widgetTokenRef = useRef(token);
 
   const normalizeMemory = useCallback((memory) => {
     if (!memory) {
@@ -1978,45 +1973,6 @@ export function MemoryProvider({ children }) {
         result.data?.deletedCount || 0,
     };
   }, [token]);
-
-  useEffect(() => {
-    if (authLoading) {
-      return;
-    }
-
-    if (widgetTokenRef.current !== token) {
-      widgetTokenRef.current = token;
-
-      refreshMementoWidget(null).catch((error) => {
-        console.warn(
-          "Unable to clear the Memento widget:",
-          error,
-        );
-      });
-
-      return;
-    }
-
-    if (loading) {
-      return;
-    }
-
-    const latestMemory = token
-      ? memories[0] || null
-      : null;
-
-    refreshMementoWidget(latestMemory).catch((error) => {
-      console.warn(
-        "Memento widget synchronization failed:",
-        error,
-      );
-    });
-  }, [
-    authLoading,
-    token,
-    loading,
-    memories,
-  ]);
 
   const contextValue = useMemo(
     () => ({
