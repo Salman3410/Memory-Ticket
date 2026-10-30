@@ -22,8 +22,8 @@ import { useTheme } from "../../context/ThemeContext";
 
 const SUGGESTED_PROMPTS = [
   {
-    label: "Latest memories",
-    question: "Summarize my latest memories",
+    label: "Latest memory",
+    question: "Show my latest saved memory",
     icon: "time-outline",
   },
   {
@@ -44,31 +44,56 @@ const createMessageId = () =>
 function AssistantScreen({ navigation }) {
   const { token } = useAuth();
   const { theme, isDark } = useTheme();
-  const { getMemoryById, refreshMemories } = useMemory();
+
+  const {
+    getMemoryById,
+    refreshMemories,
+  } = useMemory();
 
   const themeColors = theme?.colors || {};
 
   const colors = {
-    background: themeColors.background || "#F1F0F6",
-    surface: themeColors.surface || "#FFFFFF",
-    card: themeColors.card || themeColors.surface || "#FFFFFF",
-    text: themeColors.text || (isDark ? "#F7F5FC" : "#24243A"),
+    background:
+      themeColors.background || "#F1F0F6",
+
+    surface:
+      themeColors.surface || "#FFFFFF",
+
+    card:
+      themeColors.card ||
+      themeColors.surface ||
+      "#FFFFFF",
+
+    text:
+      themeColors.text ||
+      (isDark ? "#F7F5FC" : "#24243A"),
+
     secondary:
       themeColors.textSecondary ||
       themeColors.textMuted ||
       (isDark ? "#B9B5C8" : "#747386"),
-    primary: themeColors.primary || "#34345C",
-    accent: themeColors.accent || "#E76F51",
-    border: themeColors.border || (isDark ? "#39364D" : "#E1DFE9"),
-    muted: themeColors.iconMuted || "#9290A2",
+
+    primary:
+      themeColors.primary || "#34345C",
+
+    accent:
+      themeColors.accent || "#E76F51",
+
+    border:
+      themeColors.border ||
+      (isDark ? "#39364D" : "#E1DFE9"),
+
+    muted:
+      themeColors.iconMuted || "#9290A2",
   };
 
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
 
+  const requestLockRef = useRef(false);
+
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
-
   const [messages, setMessages] = useState([
     {
       id: "welcome",
@@ -81,10 +106,16 @@ function AssistantScreen({ navigation }) {
     },
   ]);
 
-  const handleSend = async (value = input) => {
-    const question = value.trim();
+  const handleSend = async (
+    value = input,
+    options = {},
+  ) => {
+    const question =
+      typeof value === "string" ? value.trim() : "";
 
-    if (!question || isSending) {
+    const isRetry = options.isRetry === true;
+
+    if (!question || requestLockRef.current) {
       return;
     }
 
@@ -94,42 +125,69 @@ function AssistantScreen({ navigation }) {
         {
           id: createMessageId(),
           role: "assistant",
-          text: "Your session is unavailable. Please sign in again.",
+          text:
+            "Your session is unavailable. Please sign in again.",
           sources: [],
+          isError: true,
+          retryable: false,
         },
       ]);
 
       return;
     }
 
-    Keyboard.dismiss();
-    setInput("");
+    requestLockRef.current = true;
+
     setIsSending(true);
 
-    const userMessage = {
-      id: createMessageId(),
-      role: "user",
-      text: question,
-      sources: [],
-    };
+    if (!isRetry) {
+      Keyboard.dismiss();
+      setInput("");
 
-    setMessages((previous) => [...previous, userMessage]);
+      const userMessage = {
+        id: createMessageId(),
+        role: "user",
+        text: question,
+        sources: [],
+      };
+
+      setMessages((previous) => [
+        ...previous,
+        userMessage,
+      ]);
+    }
 
     try {
       const result = await askAssistant(token, question);
 
-      if (!result.success) {
-        throw new Error(
-          result.message || "Unable to contact Ask Memento.",
+      if (!result?.success) {
+        const error = new Error(
+          result?.message ||
+            "Unable to contact Ask Memento.",
         );
+
+        error.status = result?.status || 0;
+        error.retryable =
+          error.status === 0 || error.status >= 500;
+
+        throw error;
       }
 
       const payload = result.data;
 
-      if (!payload?.success || typeof payload.answer !== "string") {
-        throw new Error(
-          payload?.message || "The assistant returned an invalid response.",
+      if (
+        !payload?.success ||
+        typeof payload.answer !== "string" ||
+        !payload.answer.trim()
+      ) {
+        const error = new Error(
+          payload?.message ||
+            "The assistant returned an invalid response.",
         );
+
+        error.retryable = false;
+
+        throw error;
       }
 
       setMessages((previous) => [
@@ -141,25 +199,65 @@ function AssistantScreen({ navigation }) {
           sources: Array.isArray(payload.sources)
             ? payload.sources
             : [],
+          usedMemoryCount:
+            payload.usedMemoryCount || 0,
         },
       ]);
     } catch (error) {
+      console.error("[Ask Memento] Request failed:", {
+        status: error?.status,
+        code: error?.code,
+        message: error?.message,
+      });
+
+      const retryable =
+        typeof error?.retryable === "boolean"
+          ? error.retryable
+          : error?.status === 0 ||
+            error?.status >= 500;
+
       setMessages((previous) => [
         ...previous,
         {
-            id: createMessageId(),
-            role: "assistant",
-            text:
+          id: createMessageId(),
+          role: "assistant",
+
+          text:
             error?.message ||
             "Something went wrong. Please try again.",
-            sources: [],
-            isError: true,
-            retryQuestion: question,
+
+          sources: [],
+          isError: true,
+
+          retryQuestion: question,
+          retryable,
+
+          errorCode: error?.code || null,
+          status: error?.status || null,
         },
-        ]);
+      ]);
     } finally {
+      // Always release the request lock.
+      requestLockRef.current = false;
+
       setIsSending(false);
     }
+  };
+
+  const handleRetry = (message) => {
+    if (
+      !message?.retryQuestion ||
+      message.retryable !== true ||
+      requestLockRef.current
+    ) {
+      return;
+    }
+
+    // Retry the original question without adding
+    // another duplicate user message.
+    handleSend(message.retryQuestion, {
+      isRetry: true,
+    });
   };
 
   const handleOpenMemory = async (source) => {
@@ -168,10 +266,9 @@ function AssistantScreen({ navigation }) {
     }
 
     try {
-      // Most memories will already be in MemoryContext.
-      // Refresh only if this source is not currently available locally.
       const localMemory = getMemoryById(source.id);
 
+      // Refresh if this memory isn't available locally.
       if (!localMemory && refreshMemories) {
         await refreshMemories();
       }
@@ -180,7 +277,10 @@ function AssistantScreen({ navigation }) {
         memoryId: source.id,
       });
     } catch (error) {
-      console.error("Unable to open assistant memory source:", error);
+      console.error(
+        "Unable to open assistant memory source:",
+        error,
+      );
 
       navigation.navigate("MemoryDetails", {
         memoryId: source.id,
@@ -219,7 +319,9 @@ function AssistantScreen({ navigation }) {
       onPress={() => handleOpenMemory(source)}
       activeOpacity={0.8}
       accessibilityRole="button"
-      accessibilityLabel={`Open memory ${source.title || "memory"}`}
+      accessibilityLabel={`Open memory ${
+        source.title || "memory"
+      }`}
     >
       {source.thumbnail ? (
         <Image
@@ -231,7 +333,9 @@ function AssistantScreen({ navigation }) {
         <View
           style={[
             styles.sourceImagePlaceholder,
-            { backgroundColor: colors.background },
+            {
+              backgroundColor: colors.background,
+            },
           ]}
         >
           <Ionicons
@@ -244,26 +348,39 @@ function AssistantScreen({ navigation }) {
 
       <View style={styles.sourceContent}>
         <Text
-          style={[styles.sourceTitle, { color: colors.text }]}
+          style={[
+            styles.sourceTitle,
+            { color: colors.text },
+          ]}
           numberOfLines={2}
         >
           {source.title || "Untitled memory"}
         </Text>
 
         <Text
-          style={[styles.sourceMeta, { color: colors.secondary }]}
+          style={[
+            styles.sourceMeta,
+            { color: colors.secondary },
+          ]}
           numberOfLines={1}
         >
           {formatDate(source.date)}
-          {source.location ? ` · ${source.location}` : ""}
+          {source.location
+            ? ` · ${source.location}`
+            : ""}
         </Text>
 
         {!!source.tags?.length && (
           <Text
-            style={[styles.sourceTags, { color: colors.secondary }]}
+            style={[
+              styles.sourceTags,
+              { color: colors.secondary },
+            ]}
             numberOfLines={1}
           >
-            {source.tags.map((tag) => `#${tag}`).join("  ")}
+            {source.tags
+              .map((tag) => `#${tag}`)
+              .join("  ")}
           </Text>
         )}
       </View>
@@ -284,14 +401,18 @@ function AssistantScreen({ navigation }) {
         key={message.id}
         style={[
           styles.messageRow,
-          isUser ? styles.userMessageRow : styles.assistantMessageRow,
+          isUser
+            ? styles.userMessageRow
+            : styles.assistantMessageRow,
         ]}
       >
         {!isUser && (
           <View
             style={[
               styles.assistantAvatar,
-              { backgroundColor: colors.primary },
+              {
+                backgroundColor: colors.primary,
+              },
             ]}
           >
             <Ionicons
@@ -310,6 +431,7 @@ function AssistantScreen({ navigation }) {
                 backgroundColor: isUser
                   ? colors.primary
                   : colors.card,
+
                 borderColor: isUser
                   ? colors.primary
                   : colors.border,
@@ -321,7 +443,9 @@ function AssistantScreen({ navigation }) {
               style={[
                 styles.messageText,
                 {
-                  color: isUser ? "#FFFFFF" : colors.text,
+                  color: isUser
+                    ? "#FFFFFF"
+                    : colors.text,
                 },
               ]}
             >
@@ -329,36 +453,58 @@ function AssistantScreen({ navigation }) {
             </Text>
           </View>
 
-          {!isUser && message.sources?.length > 0 && (
-            <View style={styles.sourcesContainer}>
-              <Text
+          {/* MEMORY SOURCES */}
+
+          {!isUser &&
+            message.sources?.length > 0 && (
+              <View style={styles.sourcesContainer}>
+                <Text
+                  style={[
+                    styles.sourcesHeading,
+                    { color: colors.secondary },
+                  ]}
+                >
+                  MEMORIES FOUND · {message.sources.length}
+                </Text>
+
+                {message.sources.map(renderSource)}
+              </View>
+            )}
+
+          {/* RETRY ACTION */}
+
+          {message.isError &&
+            message.retryable === true && (
+              <TouchableOpacity
                 style={[
-                  styles.sourcesHeading,
-                  { color: colors.secondary },
+                  styles.retryButton,
+                  {
+                    opacity: isSending ? 0.45 : 1,
+                  },
                 ]}
+                onPress={() => handleRetry(message)}
+                disabled={isSending}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel="Retry failed question"
               >
-                MEMORIES FOUND · {message.sources.length}
-              </Text>
+                <Ionicons
+                  name="refresh-outline"
+                  size={15}
+                  color={colors.accent}
+                />
 
-              {message.sources.map(renderSource)}
-            </View>
-          )}
-
-          {message.isError && (
-            <TouchableOpacity
-              style={styles.retryButton}
-              onPress={() => handleSend(message.retryQuestion || "")}
-            >
-              <Ionicons
-                name="refresh-outline"
-                size={15}
-                color={colors.accent}
-              />
-              <Text style={{ color: colors.accent, fontSize: 12 }}>
-                Retry
-              </Text>
-            </TouchableOpacity>
-          )}
+                <Text
+                  style={{
+                    color: colors.accent,
+                    fontSize: 12,
+                    fontWeight: "700",
+                  }}
+                >
+                  Try again
+                </Text>
+              </TouchableOpacity>
+            )}
         </View>
       </View>
     );
@@ -366,17 +512,28 @@ function AssistantScreen({ navigation }) {
 
   return (
     <SafeAreaView
-      style={[styles.safeArea, { backgroundColor: colors.background }]}
+      style={[
+        styles.safeArea,
+        {
+          backgroundColor: colors.background,
+        },
+      ]}
     >
       <StatusBar
-        barStyle={isDark ? "light-content" : "dark-content"}
+        barStyle={
+          isDark ? "light-content" : "dark-content"
+        }
         backgroundColor={colors.background}
       />
 
       <KeyboardAvoidingView
         style={styles.container}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={
+          Platform.OS === "ios" ? "padding" : undefined
+        }
       >
+        {/* HEADER */}
+
         <View
           style={[
             styles.header,
@@ -388,7 +545,9 @@ function AssistantScreen({ navigation }) {
           <TouchableOpacity
             style={[
               styles.headerButton,
-              { backgroundColor: colors.card },
+              {
+                backgroundColor: colors.card,
+              },
             ]}
             onPress={() => navigation.goBack()}
             accessibilityRole="button"
@@ -402,11 +561,20 @@ function AssistantScreen({ navigation }) {
           </TouchableOpacity>
 
           <View style={styles.headerTitleContainer}>
-            <Text style={[styles.headerTitle, { color: colors.text }]}>
+            <Text
+              style={[
+                styles.headerTitle,
+                { color: colors.text },
+              ]}
+            >
               Ask Memento
             </Text>
+
             <Text
-              style={[styles.headerSubtitle, { color: colors.secondary }]}
+              style={[
+                styles.headerSubtitle,
+                { color: colors.secondary },
+              ]}
             >
               Explore your memories
             </Text>
@@ -415,12 +583,20 @@ function AssistantScreen({ navigation }) {
           <View
             style={[
               styles.headerAvatar,
-              { backgroundColor: colors.primary },
+              {
+                backgroundColor: colors.primary,
+              },
             ]}
           >
-            <Ionicons name="sparkles" size={21} color="#FFFFFF" />
+            <Ionicons
+              name="sparkles"
+              size={21}
+              color="#FFFFFF"
+            />
           </View>
         </View>
+
+        {/* CHAT */}
 
         <ScrollView
           ref={scrollRef}
@@ -428,20 +604,30 @@ function AssistantScreen({ navigation }) {
           contentContainerStyle={styles.chatContent}
           keyboardShouldPersistTaps="handled"
           onContentSizeChange={() =>
-            scrollRef.current?.scrollToEnd({ animated: true })
+            scrollRef.current?.scrollToEnd({
+              animated: true,
+            })
           }
         >
           {messages.map(renderMessage)}
+
+          {/* LOADING */}
 
           {isSending && (
             <View style={styles.loadingRow}>
               <View
                 style={[
                   styles.assistantAvatar,
-                  { backgroundColor: colors.primary },
+                  {
+                    backgroundColor: colors.primary,
+                  },
                 ]}
               >
-                <Ionicons name="sparkles" size={17} color="#FFFFFF" />
+                <Ionicons
+                  name="sparkles"
+                  size={17}
+                  color="#FFFFFF"
+                />
               </View>
 
               <View
@@ -457,6 +643,7 @@ function AssistantScreen({ navigation }) {
                   size="small"
                   color={colors.accent}
                 />
+
                 <Text
                   style={[
                     styles.loadingText,
@@ -468,6 +655,8 @@ function AssistantScreen({ navigation }) {
               </View>
             </View>
           )}
+
+          {/* SUGGESTED PROMPTS */}
 
           {messages.length === 1 && !isSending && (
             <View style={styles.suggestionsContainer}>
@@ -490,8 +679,11 @@ function AssistantScreen({ navigation }) {
                       borderColor: colors.border,
                     },
                   ]}
-                  onPress={() => handleSend(prompt.question)}
+                  onPress={() =>
+                    handleSend(prompt.question)
+                  }
                   activeOpacity={0.8}
+                  disabled={isSending}
                 >
                   <Ionicons
                     name={prompt.icon}
@@ -518,11 +710,18 @@ function AssistantScreen({ navigation }) {
             </View>
           )}
 
-          <Text style={[styles.disclaimer, { color: colors.secondary }]}>
+          <Text
+            style={[
+              styles.disclaimer,
+              { color: colors.secondary },
+            ]}
+          >
             Answers are generated from retrieved saved memories.
             Check the linked tickets for the original details.
           </Text>
         </ScrollView>
+
+        {/* MESSAGE COMPOSER */}
 
         <View
           style={[
@@ -544,7 +743,10 @@ function AssistantScreen({ navigation }) {
           >
             <TextInput
               ref={inputRef}
-              style={[styles.input, { color: colors.text }]}
+              style={[
+                styles.input,
+                { color: colors.text },
+              ]}
               value={input}
               onChangeText={setInput}
               placeholder="Ask about your memories..."
@@ -562,11 +764,17 @@ function AssistantScreen({ navigation }) {
                 {
                   backgroundColor: colors.accent,
                   opacity:
-                    input.trim() && !isSending ? 1 : 0.45,
+                    input.trim() && !isSending
+                      ? 1
+                      : 0.45,
                 },
               ]}
               onPress={() => handleSend()}
-              disabled={!input.trim() || isSending}
+              disabled={
+                !input.trim() ||
+                isSending
+              }
+              activeOpacity={0.8}
               accessibilityRole="button"
               accessibilityLabel="Send question"
             >
@@ -578,7 +786,12 @@ function AssistantScreen({ navigation }) {
             </TouchableOpacity>
           </View>
 
-          <Text style={[styles.footerText, { color: colors.secondary }]}>
+          <Text
+            style={[
+              styles.footerText,
+              { color: colors.secondary },
+            ]}
+          >
             Your memories stay in your Memento account.
           </Text>
         </View>
@@ -606,7 +819,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderBottomWidth: StyleSheet.hairlineWidth,
     gap: 12,
-    marginTop:22
+    marginTop: 22,
   },
 
   headerButton: {
