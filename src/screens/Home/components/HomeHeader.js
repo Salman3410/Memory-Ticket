@@ -1,36 +1,137 @@
 import { View, Text, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../../context/ThemeContext";
-
 import styles from "../homeStyles";
 
 function HomeHeader({ navigation }) {
   const { theme, isDark } = useTheme();
   const colors = theme?.colors || {};
-  const screenBackground = colors.background || (isDark ? "#171624" : "#F1F0F6");
-  const surfaceColor = colors.surface || (isDark ? "#211F30" : "#FFFFFF");
-  const surfaceSecondary = colors.surfaceSecondary || (isDark ? "#292740" : "#F1F0F6");
-  const textColor = colors.text || (isDark ? "#F7F5FC" : "#242424");
-  const secondaryTextColor = colors.textSecondary || colors.textMuted || (isDark ? "#C4C0D0" : "#707080");
-  const borderColor = colors.border || (isDark ? "#39364D" : "#D9D8E2");
+
+  const backgroundColor =
+    colors.background || (isDark ? "#171624" : "#F1F0F6");
+
+  const surfaceColor =
+    colors.surface || (isDark ? "#211F30" : "#FFFFFF");
+
+  const textColor =
+    colors.text || (isDark ? "#F7F5FC" : "#242424");
+
+  const primaryColor = colors.primary || "#34345C";
+  const accentColor = colors.accent || "#E76F51";
+  const borderColor =
+    colors.border || (isDark ? "#39364D" : "#D9D8E2");
+
+  const handleOpenAssistant = () => {
+    const parentNavigation = navigation?.getParent?.();
+
+    if (parentNavigation) {
+      parentNavigation.navigate("Assistant");
+    } else {
+      navigation?.navigate?.("Assistant");
+    }
+  };
 
   return (
-    <View style={[styles.header, { backgroundColor: colors.background || (isDark ? "#171624" : "#F1F0F6") }]}>
-      <View>
-        <Text style={[styles.eyebrow, { color: colors.accent || "#E76F51" }]}>YOUR MEMORY JOURNAL</Text>
+    <View
+      style={[
+        styles.header,
+        { backgroundColor },
+      ]}
+    >
+      <View style={{ flex: 1, minWidth: 0, paddingRight: 8 }}>
+        <Text
+          style={[
+            styles.eyebrow,
+            { color: accentColor },
+          ]}
+          numberOfLines={1}
+        >
+          YOUR MEMORY JOURNAL
+        </Text>
 
-        <Text style={[styles.title, { color: colors.text || (isDark ? "#F7F5FC" : "#242424") }]}>Keep the moment.</Text>
+        <Text
+          style={[
+            styles.title,
+            { color: textColor },
+          ]}
+          numberOfLines={2}
+        >
+          Keep the moment.
+        </Text>
 
-        <Text style={[styles.subtitle, { color: colors.primary || "#34345C" }]}>Keep the story.</Text>
+        <Text
+          style={[
+            styles.subtitle,
+            { color: primaryColor },
+          ]}
+          numberOfLines={1}
+        >
+          Keep the story.
+        </Text>
       </View>
 
-      <TouchableOpacity
-        style={[styles.profileButton, { backgroundColor: colors.surface || (isDark ? "#211F30" : "#FFFFFF"), borderColor: colors.border || (isDark ? "#39364D" : "#D9D8E2") }]}
-        onPress={() => navigation.navigate("Profile")}
-        activeOpacity={0.8}
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 8,
+        }}
       >
-        <Ionicons name="person-outline" size={21} color={colors.primary || "#34345C"} />
-      </TouchableOpacity>
+        <TouchableOpacity
+          style={{
+            height: 42,
+            paddingHorizontal: 10,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 6,
+            borderRadius: 14,
+            borderWidth: 1,
+            borderColor,
+            backgroundColor: surfaceColor,
+          }}
+          onPress={handleOpenAssistant}
+          activeOpacity={0.75}
+          accessibilityRole="button"
+          accessibilityLabel="Open Ask Memento AI assistant"
+        >
+          <Ionicons
+            name="sparkles"
+            size={17}
+            color={accentColor}
+          />
+
+          <Text
+            style={{
+              color: primaryColor,
+              fontSize: 12,
+              fontWeight: "800",
+            }}
+          >
+            Ask AI
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.profileButton,
+            {
+              backgroundColor: surfaceColor,
+              borderColor,
+            },
+          ]}
+          onPress={() => navigation.navigate("Profile")}
+          activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel="Open profile"
+        >
+          <Ionicons
+            name="person-outline"
+            size={21}
+            color={primaryColor}
+          />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }

@@ -17,6 +17,7 @@ import OnThisDayScreen from "../screens/OnThisDay/OnThisDayScreen";
 import PremiumScreen from "../screens/Premium/PremiumScreen";
 import RewardsScreen from "../screens/rewards/RewardsScreen";
 import ExportPdfScreen from "../screens/ExportPdf/ExportPdfScreen";
+import AssistantScreen from "../screens/Assistant/AssistantScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -43,6 +44,10 @@ function AppNavigator() {
       <Stack.Screen name="Premium" component={PremiumScreen} />
       <Stack.Screen name="Rewards" component={RewardsScreen} />
       <Stack.Screen name="ExportPdf" component={ExportPdfScreen} />
+      <Stack.Screen
+        name="Assistant"
+        component={AssistantScreen}
+      />
     </Stack.Navigator>
   );
 }
