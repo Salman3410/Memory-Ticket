@@ -893,7 +893,7 @@ function createStyles(colors, isDark) {
       fontSize: 9,
       fontWeight: "800",
       letterSpacing: 1.8,
-      color: "#D9D8E2",
+      color: "#ffffff",
     },
 
     coverOverlay: {
