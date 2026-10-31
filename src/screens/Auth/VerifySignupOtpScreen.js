@@ -244,7 +244,7 @@ function VerifySignupOtpScreen({ navigation, route }) {
             ]}
           >
             <Image
-              source={require("../../../assets/icon.png")}
+              source={require("../../../assets/appIcon.png")}
               style={styles.logoImage}
               resizeMode="contain"
             />

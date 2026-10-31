@@ -5,11 +5,11 @@
     "scheme": "memento",
     "version": "2.5.0",
     "orientation": "portrait",
-    "icon": "./assets/Memento-icon.png",
+    "icon": "./assets/appIcon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/Memento-icon.png",
+      "image": "./assets/appIcon.png",
       "resizeMode": "contain",
       "backgroundColor": "#34345C"
     },

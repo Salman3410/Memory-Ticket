@@ -1,6 +1,6 @@
 import { Image, StyleSheet, View } from "react-native";
 
-const logo = require("../../../assets/Memento-icon.png");
+const logo = require("../../../assets/appIcon.png");
 
 function MementoLogo({ size = 52, borderRadius = 26 }) {
   return (

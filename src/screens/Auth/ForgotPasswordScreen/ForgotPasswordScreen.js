@@ -394,7 +394,7 @@ function ForgotPasswordScreen({ navigation }) {
         ]}
       >
         <Image
-          source={require("../../../../assets/icon.png")}
+          source={require("../../../../assets/appIcon.png")}
           style={styles.logoImage}
           resizeMode="contain"
         />
