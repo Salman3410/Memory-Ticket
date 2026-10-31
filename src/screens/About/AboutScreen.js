@@ -1,17 +1,13 @@
-import React from "react";
-
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
   StatusBar,
+  Image
 } from "react-native";
-
 import { Ionicons } from "@expo/vector-icons";
-
 import { useTheme } from "../../context/ThemeContext";
-
 import styles from "./aboutStyles";
 
 function AboutScreen({ navigation }) {
@@ -85,7 +81,7 @@ function AboutScreen({ navigation }) {
               },
             ]}
           >
-            <Ionicons name="ticket" size={30} color="#FFFFFF" />
+            <Image source={require("../../../assets/splashIcon.png")} style={styles.appIcon}/>
           </View>
 
           <Text

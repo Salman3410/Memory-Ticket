@@ -178,6 +178,11 @@ const styles = StyleSheet.create({
 
     marginTop: 20,
   },
+
+  appIcon:{
+    width:60,
+    height:60
+  }
 });
 
 export default styles;
