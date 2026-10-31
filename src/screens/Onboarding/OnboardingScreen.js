@@ -341,7 +341,7 @@ function OnboardingScreen({ onComplete }) {
         <View style={styles.header}>
           <View style={styles.brandLockup}>
             <Image
-              source={require("../../../assets/splash-logo.png")}
+              source={require("../../../assets/splashIcon.png")}
               style={styles.logo}
               resizeMode="contain"
             />
