@@ -8,7 +8,9 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
-import mementoLogo from "../../../assets/splashIcon.png";
+import lightSplashLogo from "../../../assets/lightIcon.png";
+import darkSplashLogo from "../../../assets/splashIcon.png";
+import { useTheme } from "../../context/ThemeContext";
 
 const PARTICLE_COUNT = 18;
 
@@ -28,11 +30,20 @@ function createParticles(width, height) {
 function SplashScreen({ onFinish }) {
   const { width, height } = useWindowDimensions();
 
+  const { theme, isDark } = useTheme();
+
+  const mementoLogo = isDark
+    ? darkSplashLogo
+    : lightSplashLogo;
+
   const logoOpacity = useRef(new Animated.Value(0)).current;
+
   const logoTranslateY = useRef(
     new Animated.Value(Math.min(height * 0.38, 320))
   ).current;
+
   const logoScale = useRef(new Animated.Value(0.92)).current;
+
   const particles = useRef(
     createParticles(width, height)
   ).current;
@@ -45,6 +56,10 @@ function SplashScreen({ onFinish }) {
       scale: new Animated.Value(0.7),
     }))
   ).current;
+
+  const particleColor = isDark
+    ? "rgba(255, 255, 255, 0.55)"
+    : "rgba(52, 52, 92, 0.22)";
 
   useEffect(() => {
     let mounted = true;
@@ -81,7 +96,6 @@ function SplashScreen({ onFinish }) {
       ]),
     ]).start();
 
-    // Floating particles
     const particleLoops = particleAnimations.map(
       (animation, index) => {
         const particle = particles[index];
@@ -187,7 +201,9 @@ function SplashScreen({ onFinish }) {
       logoTranslateY.stopAnimation();
       logoScale.stopAnimation();
 
-      particleLoops.forEach((loop) => loop.stop());
+      particleLoops.forEach((loop) => {
+        loop.stop();
+      });
 
       particleAnimations.forEach((animation) => {
         animation.translateY.stopAnimation();
@@ -199,9 +215,22 @@ function SplashScreen({ onFinish }) {
   }, []);
 
   return (
-    <View style={styles.container}>
-      <View style={styles.splash}>
-
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: theme.colors.surfaceSecondary,
+        },
+      ]}
+    >
+      <View
+        style={[
+          styles.splash,
+          {
+            backgroundColor: theme.colors.surfaceSecondary,
+          },
+        ]}
+      >
         {/* Floating particles */}
         {particles.map((particle, index) => {
           const animation = particleAnimations[index];
@@ -218,6 +247,7 @@ function SplashScreen({ onFinish }) {
                   width: particle.size,
                   height: particle.size,
                   opacity: animation.opacity,
+                  backgroundColor: particleColor,
 
                   transform: [
                     { translateY: animation.translateY },
@@ -244,8 +274,7 @@ function SplashScreen({ onFinish }) {
             },
           ]}
         >
-
-          {/* Existing logo - unchanged */}
+          {/* Theme-specific logo */}
           <Image
             source={mementoLogo}
             style={styles.logo}
@@ -253,15 +282,28 @@ function SplashScreen({ onFinish }) {
           />
 
           {/* Memento wordmark */}
-          <Text style={styles.brandName}>
+          <Text
+            style={[
+              styles.brandName,
+              {
+                color: theme.colors.text,
+              },
+            ]}
+          >
             memento
           </Text>
 
           {/* Tagline */}
-          <Text style={styles.tagline}>
+          <Text
+            style={[
+              styles.tagline,
+              {
+                color: theme.colors.textSecondary,
+              },
+            ]}
+          >
             CAPTURE · COLLECT · RELIVE
           </Text>
-
         </Animated.View>
       </View>
     </View>
@@ -271,13 +313,11 @@ function SplashScreen({ onFinish }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#171624",
   },
 
   splash: {
     flex: 1,
     width: "100%",
-    backgroundColor: "#171624",
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
@@ -294,7 +334,6 @@ const styles = StyleSheet.create({
   },
 
   brandName: {
-    color: "#F7F5FC",
     fontFamily: "Georgia",
     fontSize: 54,
     fontWeight: "bold",
@@ -304,7 +343,6 @@ const styles = StyleSheet.create({
   },
 
   tagline: {
-    color: "#C4C0D0",
     fontFamily: "Arial",
     fontSize: 10,
     fontWeight: "700",
@@ -317,7 +355,6 @@ const styles = StyleSheet.create({
   particle: {
     position: "absolute",
     borderRadius: 999,
-    backgroundColor: "rgba(255, 255, 255, 0.55)",
   },
 });
 

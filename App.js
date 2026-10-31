@@ -4,22 +4,16 @@ import {
   useRef,
   useState,
 } from "react";
-
 import {
   NavigationContainer,
   createNavigationContainerRef,
 } from "@react-navigation/native";
-
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-
-import * as ExpoSplashScreen from "expo-splash-screen";
 import * as Notifications from "expo-notifications";
-
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
 import { AuthProvider } from "./src/context/AuthContext";
 import { MemoryProvider } from "./src/context/MemoryContext";
 import { CollectionProvider } from "./src/context/CollectionContext";
@@ -27,22 +21,17 @@ import { RewardsProvider } from "./src/context/RewardsContext";
 import { SubscriptionProvider } from "./src/context/SubscriptionContext";
 import { ThemeProvider } from "./src/context/ThemeContext";
 import AlertProvider from "./src/context/AlertContext";
-
 import {
   AnimatedNotificationProvider,
 } from "./src/context/AnimatedNotificationContext";
-
 import {
   configureNotifications,
 } from "./src/services/notificationService";
-
 import {
   getAppLockEnabled,
 } from "./src/services/appLockService";
-
 import { useAuth } from "./src/hooks/useAuth";
 import { useMemory } from "./src/hooks/useMemory";
-
 import RootNavigator from "./src/navigation/RootNavigator";
 import MementoSplashScreen from "./src/components/Splash/SplashScreen";
 import AppLockScreen from "./src/components/AppLock/AppLockScreen";
@@ -52,43 +41,22 @@ const ONBOARDING_SEEN_KEY = "memory_ticket_onboarding_seen";
 
 const navigationRef = createNavigationContainerRef();
 
-ExpoSplashScreen.preventAutoHideAsync().catch((error) => {
-  console.warn(
-    "Unable to prevent native splash auto-hide:",
-    error
-  );
-});
-
-// --------------------------------------------------
-// APP CONTENT
-// --------------------------------------------------
-
 function AppContent() {
   const { user, loading } = useAuth();
   const { loading: memoriesLoading } = useMemory();
 
   const [showMementoSplash, setShowMementoSplash] = useState(true);
-
   const [appLocked, setAppLocked] = useState(false);
   const [appLockReady, setAppLockReady] = useState(false);
-
   const [onboardingReady, setOnboardingReady] = useState(false);
   const [hasSeenOnboarding, setHasSeenOnboarding] = useState(false);
-
   const [navigationReady, setNavigationReady] = useState(false);
   const [navigationStateVersion, setNavigationStateVersion] = useState(0);
-
   const [pendingNotification, setPendingNotification] = useState(null);
 
-  const nativeSplashHidden = useRef(false);
   const pendingNotificationKeyRef = useRef(null);
 
-  // --------------------------------------------------
-  // INITIAL APP SETUP
-  // --------------------------------------------------
-
   useEffect(() => {
-    // Load App Lock state.
     getAppLockEnabled()
       .then(setAppLocked)
       .catch((error) => {
@@ -99,7 +67,6 @@ function AppContent() {
         setAppLockReady(true);
       });
 
-    // Load onboarding status.
     AsyncStorage.getItem(ONBOARDING_SEEN_KEY)
       .then((value) => {
         setHasSeenOnboarding(value === "true");
@@ -112,34 +79,10 @@ function AppContent() {
         setOnboardingReady(true);
       });
 
-    // Keep device notifications enabled.
     configureNotifications().catch((error) => {
       console.warn("Notification setup failed:", error);
     });
-
-    // Hide the native splash screen.
-    const hideNativeSplash = async () => {
-      if (nativeSplashHidden.current) {
-        return;
-      }
-
-      nativeSplashHidden.current = true;
-
-      try {
-        await ExpoSplashScreen.hideAsync();
-      } catch (error) {
-        console.warn("Failed to hide native splash:", error);
-      }
-    };
-
-    requestAnimationFrame(() => {
-      hideNativeSplash();
-    });
   }, []);
-
-  // --------------------------------------------------
-  // CLEAR HANDLED NOTIFICATION
-  // --------------------------------------------------
 
   const clearPendingNotification = useCallback(() => {
     pendingNotificationKeyRef.current = null;
@@ -155,10 +98,6 @@ function AppContent() {
     );
   }, []);
 
-  // --------------------------------------------------
-  // QUEUE NOTIFICATION RESPONSE
-  // --------------------------------------------------
-
   const queueNotificationResponse = useCallback((response) => {
     const request = response?.notification?.request;
 
@@ -173,7 +112,7 @@ function AppContent() {
       response.actionIdentifier || "default",
     ].join(":");
 
-    // Prevent processing the same notification response twice.
+    // Prevent processing the same notification twice.
     if (pendingNotificationKeyRef.current === key) {
       return;
     }
@@ -189,10 +128,6 @@ function AppContent() {
     });
   }, []);
 
-  // --------------------------------------------------
-  // LISTEN FOR NOTIFICATION TAPS
-  // --------------------------------------------------
-
   useEffect(() => {
     let mounted = true;
 
@@ -201,7 +136,6 @@ function AppContent() {
         queueNotificationResponse
       );
 
-    // Handle a notification that launched the app.
     Notifications.getLastNotificationResponseAsync()
       .then((response) => {
         if (mounted && response) {
@@ -220,10 +154,6 @@ function AppContent() {
       subscription.remove();
     };
   }, [queueNotificationResponse]);
-
-  // --------------------------------------------------
-  // PROCESS NOTIFICATION NAVIGATION
-  // --------------------------------------------------
 
   useEffect(() => {
     if (!pendingNotification) {
@@ -244,18 +174,15 @@ function AppContent() {
       return;
     }
 
-    // Keep notification navigation pending until onboarding is complete.
     if (!hasSeenOnboarding) {
       return;
     }
 
-    // A logged-out user cannot open a private memory.
     if (!user) {
       clearPendingNotification();
       return;
     }
 
-    // Wait until App Lock has been unlocked.
     if (appLocked) {
       return;
     }
@@ -271,7 +198,6 @@ function AppContent() {
       return;
     }
 
-    // Handle On This Day and memory reminder notifications.
     if (
       pendingNotification.type === "ON_THIS_DAY" ||
       pendingNotification.type === "MEMORY_REMINDER"
@@ -287,10 +213,8 @@ function AppContent() {
     } else if (
       pendingNotification.type === "DAILY_MEMORY_REMINDER"
     ) {
-      // Open the main app for daily reminders.
       navigationRef.navigate("MainTabs");
     } else {
-      // Ignore unsupported notification types.
       clearPendingNotification();
       return;
     }
@@ -311,19 +235,11 @@ function AppContent() {
     clearPendingNotification,
   ]);
 
-  // --------------------------------------------------
-  // APP READINESS
-  // --------------------------------------------------
-
   const appReady =
     !loading &&
     !showMementoSplash &&
     onboardingReady &&
     appLockReady;
-
-  // --------------------------------------------------
-  // ONBOARDING
-  // --------------------------------------------------
 
   const handleOnboardingComplete = async () => {
     try {
@@ -341,10 +257,6 @@ function AppContent() {
     }
   };
 
-  // --------------------------------------------------
-  // NAVIGATION READINESS
-  // --------------------------------------------------
-
   const handleNavigationReady = () => {
     setNavigationReady(true);
 
@@ -354,10 +266,6 @@ function AppContent() {
   const handleNavigationStateChange = () => {
     setNavigationStateVersion((version) => version + 1);
   };
-
-  // --------------------------------------------------
-  // RENDER
-  // --------------------------------------------------
 
   return (
     <NavigationContainer
@@ -386,10 +294,6 @@ function AppContent() {
   );
 }
 
-// --------------------------------------------------
-// APP READINESS CHECK
-// --------------------------------------------------
-
 function appReadyCheck({
   showMementoSplash,
   appLockReady,
@@ -405,10 +309,6 @@ function appReadyCheck({
     !memoriesLoading
   );
 }
-
-// --------------------------------------------------
-// APP ROOT
-// --------------------------------------------------
 
 function App() {
   return (
