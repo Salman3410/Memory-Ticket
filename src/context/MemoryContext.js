@@ -1,3 +1,4 @@
+
 import {
   createContext,
   useCallback,
@@ -6,12 +7,16 @@ import {
   useRef,
   useState,
 } from "react";
+
 import { useAuth } from "../hooks/useAuth";
+
 import {
   getNetworkInfo,
   addNetworkListener,
 } from "../services/networkService";
+
 import { getCurrentLocation } from "../services/locationService";
+
 import {
   getMemories as getMemoriesApi,
   createMemory as createMemoryApi,
@@ -20,6 +25,7 @@ import {
   deleteAllMemories as deleteAllMemoriesApi,
   toggleFavorite as toggleFavoriteApi,
 } from "../api/memoryApi";
+
 import {
   generateClientMemoryId,
   persistMemoryImages as persistMemoryImagesForAccount,
@@ -132,6 +138,7 @@ export function MemoryProvider({ children }) {
   const [memories, setMemories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [loadedAccountId, setLoadedAccountId] = useState(null);
 
   const accountStorage = useMemo(() => {
     const requireAccountId = () => {
@@ -235,15 +242,6 @@ export function MemoryProvider({ children }) {
     };
   }, [accountId]);
 
-  /* ============================================================
-     SESSION VALIDATION
-
-     Both token and account ID must match.
-
-     This prevents asynchronous work from an older account
-     from modifying the active account's React state.
-  ============================================================ */
-
   const currentSessionRef = useRef({
     token,
     accountId,
@@ -270,25 +268,12 @@ export function MemoryProvider({ children }) {
     [accountId],
   );
 
-  /* ============================================================
-     SYNC REFERENCES
-  ============================================================ */
-
   const syncPromiseRef = useRef(null);
   const syncRequestedRef = useRef(false);
   const refreshPromiseRef = useRef(null);
 
   const preparingMemoryIdsRef = useRef(new Set());
   const cancelledMemoryIdsRef = useRef(new Set());
-
-  /* ============================================================
-     SESSION CHANGE HANDLING
-
-     Reset in-memory state whenever either the token or
-     authenticated account changes.
-
-     Account-specific AsyncStorage data is preserved.
-  ============================================================ */
 
   const previousSessionRef = useRef({
     token,
@@ -319,6 +304,7 @@ export function MemoryProvider({ children }) {
     cancelledMemoryIdsRef.current.clear();
 
     setMemories([]);
+    setLoadedAccountId(null);
     setSyncing(false);
     setLoading(Boolean(token && accountId));
   }, [token, accountId]);
@@ -1115,6 +1101,7 @@ export function MemoryProvider({ children }) {
   const loadMemories = useCallback(async () => {
     if (!token || !accountId) {
       setMemories([]);
+      setLoadedAccountId(null);
       setLoading(false);
       setSyncing(false);
       return;
@@ -1127,6 +1114,7 @@ export function MemoryProvider({ children }) {
     const startedAt = perfNow();
 
     setLoading(true);
+    setLoadedAccountId(null);
 
     try {
       await loadLocalMemories();
@@ -1135,6 +1123,7 @@ export function MemoryProvider({ children }) {
         return;
       }
 
+      setLoadedAccountId(accountId);
       setLoading(false);
 
       const network = await getNetworkInfo().catch(
@@ -1154,6 +1143,8 @@ export function MemoryProvider({ children }) {
           "Load memories error:",
           error,
         );
+
+        setLoadedAccountId(accountId);
       }
     } finally {
       if (isCurrentSession(token)) {
@@ -2996,6 +2987,7 @@ export function MemoryProvider({ children }) {
 
   const contextValue = useMemo(
     () => ({
+      accountId: loadedAccountId,
       memories,
       loading,
       syncing,
@@ -3010,6 +3002,7 @@ export function MemoryProvider({ children }) {
       clearMemories,
     }),
     [
+      loadedAccountId,
       memories,
       loading,
       syncing,

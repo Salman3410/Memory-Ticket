@@ -1,10 +1,14 @@
+
 import {
   createContext,
   useEffect,
   useState,
 } from "react";
+
 import * as SecureStore from "expo-secure-store";
+
 import { getDeviceInfo } from "../utils/deviceInfo";
+
 import {
   registerUser,
   verifySignupOtp as verifySignupOtpApi,
@@ -15,14 +19,21 @@ import {
   verifyOtp as verifyOtpApi,
   resetPassword as resetPasswordApi,
 } from "../api/authApi";
+
 import {
   updateProfile as updateProfileApi,
   changePassword as changePasswordApi,
   deleteAccount as deleteAccountApi,
 } from "../api/userApi";
+
 import {
   clearAllOfflineMemoryData,
 } from "../services/offlineMemoryService";
+
+import {
+  cancelAccountMemoryNotifications,
+  clearAccountMemoryNotifications,
+} from "../services/notificationService";
 
 export const AuthContext = createContext(null);
 
@@ -73,6 +84,11 @@ async function clearAccountLocalData(accountId) {
       name: "offline memory data and image files",
       run: () =>
         clearAllOfflineMemoryData(accountId),
+    },
+    {
+      name: "scheduled notifications and reminder data",
+      run: () =>
+        clearAccountMemoryNotifications(accountId),
     },
   ];
 
@@ -161,7 +177,10 @@ export function AuthProvider({ children }) {
         const restoredUser =
           result.data?.user;
 
-        if (!restoredUser || !getAccountId(restoredUser)) {
+        if (
+          !restoredUser ||
+          !getAccountId(restoredUser)
+        ) {
           console.error(
             "Session restoration returned an invalid user or missing account ID.",
           );
@@ -368,12 +387,40 @@ export function AuthProvider({ children }) {
         };
       }
 
-      if (!getAccountId(loggedInUser)) {
+      const nextAccountId =
+        getAccountId(loggedInUser);
+
+      if (!nextAccountId) {
         return {
           success: false,
           message:
             "User account ID is missing from the server response.",
         };
+      }
+
+      const previousAccountId =
+        getAccountId(user);
+
+      if (
+        previousAccountId &&
+        previousAccountId !== nextAccountId
+      ) {
+        try {
+          await cancelAccountMemoryNotifications(
+            previousAccountId,
+          );
+        } catch (error) {
+          console.error(
+            "Unable to cancel previous account notifications:",
+            error,
+          );
+
+          return {
+            success: false,
+            message:
+              "Unable to safely switch accounts because the previous account's notifications could not be cancelled. Please try again.",
+          };
+        }
       }
 
       await saveSession(
@@ -613,15 +660,42 @@ export function AuthProvider({ children }) {
         };
       }
 
+      const accountId = getAccountId(user);
+
       setToken(null);
       setUser(null);
 
+      const [tokenResult, notificationResult] =
+        await Promise.allSettled([
+          clearStoredSession(),
+          accountId
+            ? cancelAccountMemoryNotifications(
+                accountId,
+              )
+            : Promise.reject(
+                new Error("Account ID is missing."),
+              ),
+        ]);
+
       const tokenRemoved =
-        await clearStoredSession();
+        tokenResult.status === "fulfilled" &&
+        tokenResult.value === true;
+
+      const notificationsCancelled =
+        notificationResult.status === "fulfilled";
+
+      if (!notificationsCancelled) {
+        console.error(
+          "Unable to cancel account notifications after password change:",
+          notificationResult.reason,
+        );
+      }
 
       return {
         success: true,
         sessionCleanupComplete: tokenRemoved,
+        notificationsCleanupComplete:
+          notificationsCancelled,
         message:
           result.data?.message ||
           "Password changed successfully. Please log in again.",
@@ -655,7 +729,7 @@ export function AuthProvider({ children }) {
       return {
         success: false,
         message:
-          "Account ID is missing. Unable to safely clear account-specific offline data.",
+          "Account ID is missing. Unable to safely clear account-specific data.",
       };
     }
 
@@ -714,15 +788,40 @@ export function AuthProvider({ children }) {
   };
 
   const logout = async () => {
+    const accountId = getAccountId(user);
+
     setToken(null);
     setUser(null);
 
+    const [tokenResult, notificationResult] =
+      await Promise.allSettled([
+        clearStoredSession(),
+        accountId
+          ? cancelAccountMemoryNotifications(
+              accountId,
+            )
+          : Promise.resolve(0),
+      ]);
+
     const tokenRemoved =
-      await clearStoredSession();
+      tokenResult.status === "fulfilled" &&
+      tokenResult.value === true;
+
+    const notificationsCancelled =
+      notificationResult.status === "fulfilled";
+
+    if (!notificationsCancelled) {
+      console.error(
+        "Unable to cancel account notifications during logout:",
+        notificationResult.reason,
+      );
+    }
 
     if (!tokenRemoved) {
       return {
         success: false,
+        notificationsCleanupComplete:
+          notificationsCancelled,
         message:
           "You have been signed out in the app, but the stored session token could not be removed.",
       };
@@ -730,6 +829,8 @@ export function AuthProvider({ children }) {
 
     return {
       success: true,
+      notificationsCleanupComplete:
+        notificationsCancelled,
     };
   };
 

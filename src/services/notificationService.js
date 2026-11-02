@@ -6,7 +6,8 @@ import { Platform } from "react-native";
 export const NOTIFICATIONS_ENABLED_KEY = "notificationsEnabled";
 
 const NOTIFICATION_CHANNEL_ID = "memento-default";
-const MEMORY_REMINDERS_KEY = "mementoMemoryReminders";
+const LEGACY_MEMORY_REMINDERS_KEY = "mementoMemoryReminders";
+const MEMORY_REMINDERS_KEY_PREFIX = "mementoMemoryReminders:";
 
 const NOTIFICATION_TYPES = {
   DAILY: "DAILY_MEMORY_REMINDER",
@@ -17,6 +18,43 @@ const NOTIFICATION_TYPES = {
 const ALL_MEMENTO_NOTIFICATION_TYPES = Object.values(
   NOTIFICATION_TYPES,
 );
+
+const NOTIFICATION_TYPE_SET = new Set(
+  ALL_MEMENTO_NOTIFICATION_TYPES,
+);
+
+const requireAccountId = (accountId) => {
+  if (
+    accountId === null ||
+    accountId === undefined ||
+    String(accountId).trim() === ""
+  ) {
+    throw new Error(
+      "A valid account ID is required for memory notifications.",
+    );
+  }
+
+  return String(accountId).trim();
+};
+
+const getReminderStorageKey = (accountId) =>
+  `${MEMORY_REMINDERS_KEY_PREFIX}${encodeURIComponent(
+    requireAccountId(accountId),
+  )}`;
+
+const getNotificationOwner = (notification) => {
+  const owner =
+    notification?.content?.data?.ownerAccountId;
+
+  return owner === undefined || owner === null
+    ? null
+    : String(owner);
+};
+
+const isMementoNotification = (notification) =>
+  NOTIFICATION_TYPE_SET.has(
+    notification?.content?.data?.type,
+  );
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -42,16 +80,22 @@ export async function configureNotifications() {
 }
 
 export async function getNotificationPermissionStatus() {
-  const permissions = await Notifications.getPermissionsAsync();
+  const permissions =
+    await Notifications.getPermissionsAsync();
+
   return permissions.status;
 }
 
 export async function requestNotificationPermission() {
   await configureNotifications();
 
-  const current = await Notifications.getPermissionsAsync();
+  const current =
+    await Notifications.getPermissionsAsync();
 
-  if (current.granted || current.status === "granted") {
+  if (
+    current.granted ||
+    current.status === "granted"
+  ) {
     return current;
   }
 
@@ -73,18 +117,22 @@ export async function isNotificationsEnabled() {
 }
 
 async function hasNotificationPermission() {
-  const permission = await Notifications.getPermissionsAsync();
+  const permission =
+    await Notifications.getPermissionsAsync();
 
   return Boolean(
-    permission.granted || permission.status === "granted",
+    permission.granted ||
+      permission.status === "granted",
   );
 }
 
-async function getReminderStore() {
+async function getReminderStore(accountId) {
+  const storageKey =
+    getReminderStorageKey(accountId);
+
   try {
-    const value = await AsyncStorage.getItem(
-      MEMORY_REMINDERS_KEY,
-    );
+    const value =
+      await AsyncStorage.getItem(storageKey);
 
     if (!value) {
       return {};
@@ -92,21 +140,89 @@ async function getReminderStore() {
 
     const parsed = JSON.parse(value);
 
-    return parsed &&
-      typeof parsed === "object" &&
-      !Array.isArray(parsed)
-      ? parsed
-      : {};
+    if (
+      !parsed ||
+      typeof parsed !== "object" ||
+      Array.isArray(parsed)
+    ) {
+      return {};
+    }
+
+    const reminders = {};
+
+    for (const [memoryId, reminder] of Object.entries(
+      parsed,
+    )) {
+      if (
+        !reminder ||
+        typeof reminder !== "object"
+      ) {
+        continue;
+      }
+
+      if (
+        reminder.ownerAccountId &&
+        String(reminder.ownerAccountId) !==
+          requireAccountId(accountId)
+      ) {
+        continue;
+      }
+
+      reminders[memoryId] = {
+        ...reminder,
+        ownerAccountId: requireAccountId(accountId),
+      };
+    }
+
+    return reminders;
   } catch (error) {
-    console.error("Unable to read memory reminders:", error);
+    console.error(
+      "Unable to read account memory reminders:",
+      error,
+    );
+
     return {};
   }
 }
 
-async function saveReminderStore(reminders) {
+async function saveReminderStore(
+  accountId,
+  reminders,
+) {
+  const normalizedAccountId =
+    requireAccountId(accountId);
+
+  const safeReminders = {};
+
+  for (const [memoryId, reminder] of Object.entries(
+    reminders || {},
+  )) {
+    if (
+      !reminder ||
+      typeof reminder !== "object"
+    ) {
+      continue;
+    }
+
+    if (
+      reminder.ownerAccountId &&
+      String(reminder.ownerAccountId) !==
+        normalizedAccountId
+    ) {
+      throw new Error(
+        "Cannot save a reminder belonging to another account.",
+      );
+    }
+
+    safeReminders[memoryId] = {
+      ...reminder,
+      ownerAccountId: normalizedAccountId,
+    };
+  }
+
   await AsyncStorage.setItem(
-    MEMORY_REMINDERS_KEY,
-    JSON.stringify(reminders),
+    getReminderStorageKey(normalizedAccountId),
+    JSON.stringify(safeReminders),
   );
 }
 
@@ -132,13 +248,11 @@ async function getMementoScheduledNotifications() {
   return Notifications.getAllScheduledNotificationsAsync();
 }
 
-async function cancelScheduledNotificationTypes(types) {
-  const typeSet = new Set(types);
-  const scheduled = await getMementoScheduledNotifications();
+async function cancelNotificationsWhere(predicate) {
+  const scheduled =
+    await getMementoScheduledNotifications();
 
-  const matching = scheduled.filter((notification) =>
-    typeSet.has(notification.content?.data?.type),
-  );
+  const matching = scheduled.filter(predicate);
 
   await Promise.all(
     matching.map((notification) =>
@@ -151,22 +265,130 @@ async function cancelScheduledNotificationTypes(types) {
   return matching.length;
 }
 
-export async function cancelAllMemoryNotifications() {
-  return cancelScheduledNotificationTypes(
-    ALL_MEMENTO_NOTIFICATION_TYPES,
+async function cancelScheduledNotificationTypes(
+  types,
+  accountId,
+) {
+  const normalizedAccountId =
+    requireAccountId(accountId);
+
+  const typeSet = new Set(types);
+
+  return cancelNotificationsWhere(
+    (notification) =>
+      typeSet.has(
+        notification.content?.data?.type,
+      ) &&
+      getNotificationOwner(notification) ===
+        normalizedAccountId,
   );
 }
 
+async function cancelNotificationsOwnedByAccount(
+  accountId,
+) {
+  const normalizedAccountId =
+    requireAccountId(accountId);
+
+  return cancelNotificationsWhere(
+    (notification) =>
+      isMementoNotification(notification) &&
+      getNotificationOwner(notification) ===
+        normalizedAccountId,
+  );
+}
+
+async function cancelNotificationsNotOwnedByAccount(
+  accountId,
+) {
+  const normalizedAccountId =
+    requireAccountId(accountId);
+
+  return cancelNotificationsWhere(
+    (notification) =>
+      isMementoNotification(notification) &&
+      getNotificationOwner(notification) !==
+        normalizedAccountId,
+  );
+}
+
+export async function cancelAllScheduledMemoryNotifications() {
+  return cancelNotificationsWhere(
+    isMementoNotification,
+  );
+}
+
+export async function cancelAllMemoryNotifications(
+  accountId = null,
+) {
+  if (
+    accountId === null ||
+    accountId === undefined
+  ) {
+    return cancelAllScheduledMemoryNotifications();
+  }
+
+  return cancelAccountMemoryNotifications(accountId);
+}
+
+export async function cancelAccountMemoryNotifications(
+  accountId,
+) {
+  const normalizedAccountId =
+    requireAccountId(accountId);
+
+  return cancelNotificationsWhere(
+    (notification) => {
+      if (!isMementoNotification(notification)) {
+        return false;
+      }
+
+      const owner =
+        getNotificationOwner(notification);
+
+      return (
+        owner === normalizedAccountId ||
+        owner === null
+      );
+    },
+  );
+}
+
+export async function clearAccountMemoryNotifications(
+  accountId,
+) {
+  const normalizedAccountId =
+    requireAccountId(accountId);
+
+  await cancelAccountMemoryNotifications(
+    normalizedAccountId,
+  );
+
+  await AsyncStorage.removeItem(
+    getReminderStorageKey(normalizedAccountId),
+  );
+
+  return {
+    success: true,
+    accountId: normalizedAccountId,
+  };
+}
+
 async function scheduleDailyMemoryReminder(
+  accountId,
   hour = 20,
   minute = 0,
 ) {
+  const normalizedAccountId =
+    requireAccountId(accountId);
+
   return Notifications.scheduleNotificationAsync({
     content: {
       title: "Memento",
       body: "Take a moment to save today's memory.",
       data: {
         type: NOTIFICATION_TYPES.DAILY,
+        ownerAccountId: normalizedAccountId,
       },
       sound: undefined,
     },
@@ -203,8 +425,6 @@ function getNextAnniversary(memoryDate) {
       0,
     );
 
-    // Keep February 29 anniversaries in February
-    // when the target year is not a leap year.
     if (
       source.getMonth() === 1 &&
       source.getDate() === 29 &&
@@ -225,7 +445,13 @@ function getNextAnniversary(memoryDate) {
   return target;
 }
 
-async function scheduleOnThisDayNotifications(memories = []) {
+async function scheduleOnThisDayNotifications(
+  accountId,
+  memories = [],
+) {
+  const normalizedAccountId =
+    requireAccountId(accountId);
+
   const currentYear = new Date().getFullYear();
 
   const candidates = (
@@ -261,13 +487,20 @@ async function scheduleOnThisDayNotifications(memories = []) {
   const seenDays = new Set();
   let scheduled = 0;
 
-  for (const { memory, date, memoryId, target } of candidates) {
+  for (const {
+    memory,
+    date,
+    memoryId,
+    target,
+  } of candidates) {
     if (scheduled >= 10) {
       break;
     }
 
     const source = new Date(date);
-    const dayKey = `${source.getMonth()}-${source.getDate()}`;
+
+    const dayKey =
+      `${source.getMonth()}-${source.getDate()}`;
 
     if (seenDays.has(dayKey)) {
       continue;
@@ -280,6 +513,7 @@ async function scheduleOnThisDayNotifications(memories = []) {
         data: {
           type: NOTIFICATION_TYPES.ON_THIS_DAY,
           memoryId,
+          ownerAccountId: normalizedAccountId,
         },
         sound: undefined,
       },
@@ -297,10 +531,18 @@ async function scheduleOnThisDayNotifications(memories = []) {
   return scheduled;
 }
 
-async function scheduleDailyAndOnThisDay(memories = []) {
-  const dailyId = await scheduleDailyMemoryReminder();
+async function scheduleDailyAndOnThisDay(
+  accountId,
+  memories = [],
+) {
+  const dailyId =
+    await scheduleDailyMemoryReminder(accountId);
+
   const onThisDayCount =
-    await scheduleOnThisDayNotifications(memories);
+    await scheduleOnThisDayNotifications(
+      accountId,
+      memories,
+    );
 
   return {
     dailyId,
@@ -309,48 +551,23 @@ async function scheduleDailyAndOnThisDay(memories = []) {
 }
 
 export async function scheduleDailyMemoryReminderAndOnThisDay(
+  accountId,
   memories = [],
 ) {
-  const enabled = await isNotificationsEnabled();
-
-  if (!enabled) {
-    return {
-      enabled: false,
-      notificationsDisabled: true,
-    };
-  }
-
-  const permitted = await hasNotificationPermission();
-
-  if (!permitted) {
-    return {
-      enabled: false,
-      permissionDenied: true,
-    };
-  }
-
-  await configureNotifications();
-
-  await cancelScheduledNotificationTypes([
-    NOTIFICATION_TYPES.DAILY,
-    NOTIFICATION_TYPES.ON_THIS_DAY,
-  ]);
-
-  const scheduled = await scheduleDailyAndOnThisDay(
+  return activateAccountMemoryNotifications(
+    accountId,
     memories,
   );
-
-  return {
-    enabled: true,
-    permissionDenied: false,
-    ...scheduled,
-  };
 }
 
 export async function scheduleMemoryReminder(
+  accountId,
   memory,
   reminderDate,
 ) {
+  const normalizedAccountId =
+    requireAccountId(accountId);
+
   const memoryId = getMemoryId(memory);
 
   if (!memoryId) {
@@ -379,7 +596,8 @@ export async function scheduleMemoryReminder(
     };
   }
 
-  const permitted = await hasNotificationPermission();
+  const permitted =
+    await hasNotificationPermission();
 
   if (!permitted) {
     return {
@@ -390,17 +608,23 @@ export async function scheduleMemoryReminder(
 
   await configureNotifications();
 
-  const reminders = await getReminderStore();
+  const reminders =
+    await getReminderStore(normalizedAccountId);
+
   const existing = reminders[memoryId];
 
-  const scheduled = await getMementoScheduledNotifications();
+  const scheduled =
+    await getMementoScheduledNotifications();
 
   const existingNotifications = scheduled.filter(
     (notification) =>
       notification.content?.data?.type ===
         NOTIFICATION_TYPES.MEMORY_REMINDER &&
-      String(notification.content?.data?.memoryId) ===
-        memoryId,
+      String(
+        notification.content?.data?.memoryId,
+      ) === memoryId &&
+      getNotificationOwner(notification) ===
+        normalizedAccountId,
   );
 
   const title = getMemoryTitle(memory);
@@ -413,6 +637,7 @@ export async function scheduleMemoryReminder(
         data: {
           type: NOTIFICATION_TYPES.MEMORY_REMINDER,
           memoryId,
+          ownerAccountId: normalizedAccountId,
         },
         sound: undefined,
       },
@@ -428,10 +653,14 @@ export async function scheduleMemoryReminder(
     title,
     scheduledAt: date.toISOString(),
     notificationId,
+    ownerAccountId: normalizedAccountId,
   };
 
   try {
-    await saveReminderStore(reminders);
+    await saveReminderStore(
+      normalizedAccountId,
+      reminders,
+    );
   } catch (error) {
     await Notifications.cancelScheduledNotificationAsync(
       notificationId,
@@ -464,21 +693,34 @@ export async function scheduleMemoryReminder(
   };
 }
 
-export async function cancelMemoryReminder(memoryId) {
+export async function cancelMemoryReminder(
+  accountId,
+  memoryId,
+) {
+  const normalizedAccountId =
+    requireAccountId(accountId);
+
   if (!memoryId) {
     return false;
   }
 
   const normalizedId = String(memoryId);
-  const reminders = await getReminderStore();
-  const scheduled = await getMementoScheduledNotifications();
+
+  const reminders =
+    await getReminderStore(normalizedAccountId);
+
+  const scheduled =
+    await getMementoScheduledNotifications();
 
   const matching = scheduled.filter(
     (notification) =>
       notification.content?.data?.type ===
         NOTIFICATION_TYPES.MEMORY_REMINDER &&
-      String(notification.content?.data?.memoryId) ===
-        normalizedId,
+      String(
+        notification.content?.data?.memoryId,
+      ) === normalizedId &&
+      getNotificationOwner(notification) ===
+        normalizedAccountId,
   );
 
   await Promise.all(
@@ -490,23 +732,40 @@ export async function cancelMemoryReminder(memoryId) {
   );
 
   delete reminders[normalizedId];
-  await saveReminderStore(reminders);
+
+  await saveReminderStore(
+    normalizedAccountId,
+    reminders,
+  );
 
   return true;
 }
 
-export async function getMemoryReminder(memoryId) {
+export async function getMemoryReminder(
+  accountId,
+  memoryId,
+) {
+  const normalizedAccountId =
+    requireAccountId(accountId);
+
   if (!memoryId) {
     return null;
   }
 
-  const reminders = await getReminderStore();
+  const reminders =
+    await getReminderStore(normalizedAccountId);
 
   return reminders[String(memoryId)] || null;
 }
 
-export async function getScheduledMemoryReminders() {
-  const reminders = await getReminderStore();
+export async function getScheduledMemoryReminders(
+  accountId,
+) {
+  const normalizedAccountId =
+    requireAccountId(accountId);
+
+  const reminders =
+    await getReminderStore(normalizedAccountId);
 
   return Object.values(reminders).sort(
     (a, b) =>
@@ -515,19 +774,41 @@ export async function getScheduledMemoryReminders() {
   );
 }
 
-async function rescheduleSavedMemoryReminders() {
-  const reminders = await getReminderStore();
+async function rescheduleSavedMemoryReminders(
+  accountId,
+) {
+  const normalizedAccountId =
+    requireAccountId(accountId);
+
+  const reminders =
+    await getReminderStore(normalizedAccountId);
 
   const scheduled =
     await getMementoScheduledNotifications();
 
   const pendingByMemoryId = new Map();
   let changed = false;
+
   for (const notification of scheduled) {
     if (
       notification.content?.data?.type !==
       NOTIFICATION_TYPES.MEMORY_REMINDER
     ) {
+      continue;
+    }
+
+    const owner =
+      getNotificationOwner(notification);
+
+    if (owner === null) {
+      await Notifications.cancelScheduledNotificationAsync(
+        notification.identifier,
+      );
+
+      continue;
+    }
+
+    if (owner !== normalizedAccountId) {
       continue;
     }
 
@@ -555,15 +836,25 @@ async function rescheduleSavedMemoryReminders() {
 
     existing.push(notification);
 
-    pendingByMemoryId.set(memoryId, existing);
+    pendingByMemoryId.set(
+      memoryId,
+      existing,
+    );
   }
 
   for (const [memoryId, reminder] of Object.entries(
     reminders,
   )) {
+    if (
+      reminder.ownerAccountId &&
+      String(reminder.ownerAccountId) !==
+        normalizedAccountId
+    ) {
+      continue;
+    }
+
     const date = new Date(reminder.scheduledAt);
 
-    // Remove expired or invalid reminder records.
     if (
       Number.isNaN(date.getTime()) ||
       date.getTime() <= Date.now()
@@ -588,7 +879,6 @@ async function rescheduleSavedMemoryReminders() {
     const pending =
       pendingByMemoryId.get(memoryId) || [];
 
-    // Keep one scheduled notification and cancel duplicates.
     if (pending.length > 0) {
       const [keep, ...duplicates] = pending;
 
@@ -600,10 +890,13 @@ async function rescheduleSavedMemoryReminders() {
         ),
       );
 
-      if (reminder.notificationId !== keep.identifier) {
+      if (
+        reminder.notificationId !== keep.identifier
+      ) {
         reminders[memoryId] = {
           ...reminder,
           notificationId: keep.identifier,
+          ownerAccountId: normalizedAccountId,
         };
 
         changed = true;
@@ -612,8 +905,6 @@ async function rescheduleSavedMemoryReminders() {
       continue;
     }
 
-    // The reminder is saved but was not scheduled on the
-    // device, so recreate it.
     const notificationId =
       await Notifications.scheduleNotificationAsync({
         content: {
@@ -622,6 +913,7 @@ async function rescheduleSavedMemoryReminders() {
           data: {
             type: NOTIFICATION_TYPES.MEMORY_REMINDER,
             memoryId,
+            ownerAccountId: normalizedAccountId,
           },
           sound: undefined,
         },
@@ -635,19 +927,93 @@ async function rescheduleSavedMemoryReminders() {
     reminders[memoryId] = {
       ...reminder,
       notificationId,
+      ownerAccountId: normalizedAccountId,
     };
 
     changed = true;
   }
 
   if (changed) {
-    await saveReminderStore(reminders);
+    await saveReminderStore(
+      normalizedAccountId,
+      reminders,
+    );
   }
+
+  return Object.keys(reminders).length;
+}
+
+export async function activateAccountMemoryNotifications(
+  accountId,
+  memories = [],
+) {
+  const normalizedAccountId =
+    requireAccountId(accountId);
+
+  await cancelNotificationsNotOwnedByAccount(
+    normalizedAccountId,
+  );
+
+  const enabled = await isNotificationsEnabled();
+
+  if (!enabled) {
+    await cancelNotificationsOwnedByAccount(
+      normalizedAccountId,
+    );
+
+    return {
+      enabled: false,
+      notificationsDisabled: true,
+    };
+  }
+
+  const permitted =
+    await hasNotificationPermission();
+
+  if (!permitted) {
+    await cancelNotificationsOwnedByAccount(
+      normalizedAccountId,
+    );
+
+    return {
+      enabled: false,
+      permissionDenied: true,
+    };
+  }
+
+  await configureNotifications();
+
+  await cancelScheduledNotificationTypes(
+    [
+      NOTIFICATION_TYPES.DAILY,
+      NOTIFICATION_TYPES.ON_THIS_DAY,
+    ],
+    normalizedAccountId,
+  );
+
+  const scheduled =
+    await scheduleDailyAndOnThisDay(
+      normalizedAccountId,
+      memories,
+    );
+
+  const reminderCount =
+    await rescheduleSavedMemoryReminders(
+      normalizedAccountId,
+    );
+
+  return {
+    enabled: true,
+    permissionDenied: false,
+    reminderCount,
+    ...scheduled,
+  };
 }
 
 export async function setNotificationsEnabled(
   enabled,
   memories = [],
+  accountId = null,
 ) {
   if (!enabled) {
     await AsyncStorage.setItem(
@@ -655,7 +1021,7 @@ export async function setNotificationsEnabled(
       "false",
     );
 
-    await cancelAllMemoryNotifications();
+    await cancelAllScheduledMemoryNotifications();
 
     return {
       enabled: false,
@@ -663,15 +1029,26 @@ export async function setNotificationsEnabled(
     };
   }
 
-  const permission = await requestNotificationPermission();
+  if (!accountId) {
+    return {
+      enabled: false,
+      invalidAccount: true,
+    };
+  }
 
-  if (!permission.granted && permission.status !== "granted") {
+  const permission =
+    await requestNotificationPermission();
+
+  if (
+    !permission.granted &&
+    permission.status !== "granted"
+  ) {
     await AsyncStorage.setItem(
       NOTIFICATIONS_ENABLED_KEY,
       "false",
     );
 
-    await cancelAllMemoryNotifications();
+    await cancelAllScheduledMemoryNotifications();
 
     return {
       enabled: false,
@@ -684,56 +1061,23 @@ export async function setNotificationsEnabled(
     "true",
   );
 
-  await cancelScheduledNotificationTypes([
-    NOTIFICATION_TYPES.DAILY,
-    NOTIFICATION_TYPES.ON_THIS_DAY,
-  ]);
-
-  await configureNotifications();
-
-  const scheduled = await scheduleDailyAndOnThisDay(memories);
-
-  await rescheduleSavedMemoryReminders();
-
-  return {
-    enabled: true,
-    permissionDenied: false,
-    ...scheduled,
-  };
+  return activateAccountMemoryNotifications(
+    accountId,
+    memories,
+  );
 }
 
-export async function syncMemoryNotifications(memories = []) {
-  const enabled = await isNotificationsEnabled();
-
-  if (!enabled) {
-    return {
-      enabled: false,
-    };
-  }
-
-  const permitted = await hasNotificationPermission();
-
-  if (!permitted) {
-    return {
-      enabled: false,
-      permissionDenied: true,
-    };
-  }
-
-  await configureNotifications();
-
-  await cancelScheduledNotificationTypes([
-    NOTIFICATION_TYPES.DAILY,
-    NOTIFICATION_TYPES.ON_THIS_DAY,
-  ]);
-
-  const scheduled = await scheduleDailyAndOnThisDay(memories);
-
-  await rescheduleSavedMemoryReminders();
-
-  return {
-    enabled: true,
-    permissionDenied: false,
-    ...scheduled,
-  };
+export async function syncMemoryNotifications(
+  accountId,
+  memories = [],
+) {
+  return activateAccountMemoryNotifications(
+    accountId,
+    memories,
+  );
 }
+
+export const LEGACY_NOTIFICATION_STORAGE_KEYS =
+  Object.freeze({
+    memoryReminders: LEGACY_MEMORY_REMINDERS_KEY,
+  });

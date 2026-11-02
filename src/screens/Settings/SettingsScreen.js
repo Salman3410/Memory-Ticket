@@ -26,13 +26,19 @@ import PreferenceRow from "./components/PreferenceRow";
 import StorageSection from "./components/StorageSection";
 import AppearanceSection from "./components/AppearanceSection";
 import AccountSection from "./components/AccountSection";
-
 import styles from "./settingsStyles";
 
 function SettingsScreen({ navigation }) {
   const { notify, notifyError } = useMementoNotifications();
   const { memories, clearMemories } = useMemory();
-  const { deleteAccount } = useAuth();
+  const { deleteAccount, user } = useAuth();
+
+  const rawAccountId = user?._id ?? user?.id ?? null;
+
+  const accountId =
+    rawAccountId !== null && rawAccountId !== undefined
+      ? String(rawAccountId).trim() || null
+      : null;
 
   useSubscription();
 
@@ -43,11 +49,9 @@ function SettingsScreen({ navigation }) {
   const [notifications, setNotifications] = useState(false);
   const [appLock, setAppLock] = useState(false);
   const [loading, setLoading] = useState(true);
-
   const [storageSize, setStorageSize] = useState(0);
   const [storageLoading, setStorageLoading] = useState(true);
 
-  // Load saved settings.
   useEffect(() => {
     loadSettings();
   }, []);
@@ -68,7 +72,7 @@ function SettingsScreen({ navigation }) {
           memory.localImages.length
         ) {
           localImageUris.push(
-            ...memory.localImages.filter(Boolean),
+            ...memory.localImages.filter(Boolean)
           );
 
           continue;
@@ -84,8 +88,8 @@ function SettingsScreen({ navigation }) {
           ...memoryImages.filter(
             (uri) =>
               typeof uri === "string" &&
-              uri.startsWith("file://"),
-          ),
+              uri.startsWith("file://")
+          )
         );
       }
 
@@ -106,28 +110,26 @@ function SettingsScreen({ navigation }) {
             const file = new File(imageUri);
             const info = file.info();
 
-            return (
-              info.exists &&
+            return info.exists &&
               typeof info.size === "number"
-            )
               ? info.size
               : 0;
           } catch {
             return 0;
           }
-        }),
+        })
       );
 
       setStorageSize(
         sizes.reduce(
           (total, size) => total + size,
-          0,
-        ),
+          0
+        )
       );
     } catch (error) {
       console.error(
         "Storage calculation error:",
-        error,
+        error
       );
 
       setStorageSize(0);
@@ -166,50 +168,66 @@ function SettingsScreen({ navigation }) {
     } catch (error) {
       console.log(
         "Load settings error:",
-        error,
+        error
       );
     } finally {
       setLoading(false);
     }
   };
 
-const handleNotifications = async (value) => {
-  try {
-    const result = await setNotificationsEnabled(value, memories);
+  const handleNotifications = async (value) => {
+    try {
+      if (value && !accountId) {
+        notifyError(
+          "Notifications Unavailable",
+          "Please sign in again before enabling notifications."
+        );
 
-    if (result?.permissionDenied) {
-      setNotifications(false);
+        return;
+      }
 
-      showAlert({
-        type: "warning",
-        icon: "notifications-off-outline",
-        title: "Notifications Permission Required",
-        message:
-          "Memento cannot schedule reminders until notification permission is granted.",
-        confirmText: "OK",
-      });
+      const result = await setNotificationsEnabled(
+        value,
+        memories,
+        accountId
+      );
 
-      return;
+      if (result?.permissionDenied) {
+        setNotifications(false);
+
+        showAlert({
+          type: "warning",
+          icon: "notifications-off-outline",
+          title: "Notifications Permission Required",
+          message:
+            "Memento cannot schedule reminders until notification permission is granted.",
+          confirmText: "OK",
+        });
+
+        return;
+      }
+
+      const enabled = Boolean(result?.enabled);
+
+      setNotifications(enabled);
+
+      if (enabled) {
+        notify("notificationsEnabled");
+      } else {
+        notify("notificationsDisabled");
+      }
+    } catch (error) {
+      console.error(
+        "Notification setting error:",
+        error
+      );
+
+      notifyError(
+        "Notifications Failed",
+        "Unable to update notification settings. Please try again."
+      );
     }
-
-    const enabled = Boolean(result?.enabled);
-
-    setNotifications(enabled);
-
-    if (enabled) {
-      notify("notificationsEnabled");
-    } else {
-      notify("notificationsDisabled");
-    }
-  } catch (error) {
-    console.error("Notification setting error:", error);
-
-    notifyError(
-      "Notifications Failed",
-      "Unable to update notification settings. Please try again."
-    );
-  }
-};
+  };
 
   const handleAppLock = async (value) => {
     if (!value) {
@@ -257,7 +275,7 @@ const handleNotifications = async (value) => {
     } catch (error) {
       console.error(
         "App lock setting error:",
-        error,
+        error
       );
 
       showAlert({
@@ -308,7 +326,7 @@ const handleNotifications = async (value) => {
           ) {
             throw new Error(
               result.message ||
-                "Unable to clear memory storage.",
+                "Unable to clear memory storage."
             );
           }
 
@@ -325,7 +343,7 @@ const handleNotifications = async (value) => {
         } catch (error) {
           console.error(
             "Clear storage error:",
-            error,
+            error
           );
 
           showAlert({
@@ -342,43 +360,47 @@ const handleNotifications = async (value) => {
     });
   };
 
-const handleDeleteAccount = () => {
-  showAlert({
-    type: "danger",
-    icon: "person-remove-outline",
-    title: "Delete Account?",
-    message:
-      "This will permanently delete your account, memories, and associated images. This action cannot be undone.",
-    cancelText: "Cancel",
-    confirmText: "Delete Account",
-    showCancel: true,
+  const handleDeleteAccount = () => {
+    showAlert({
+      type: "danger",
+      icon: "person-remove-outline",
+      title: "Delete Account?",
+      message:
+        "This will permanently delete your account, memories, and associated images. This action cannot be undone.",
+      cancelText: "Cancel",
+      confirmText: "Delete Account",
+      showCancel: true,
 
-    onConfirm: async () => {
-      try {
-        const result = await deleteAccount();
+      onConfirm: async () => {
+        try {
+          const result = await deleteAccount();
 
-        if (!result?.success) {
+          if (!result?.success) {
+            notifyError(
+              "Delete Account Failed",
+              result?.message ||
+                "Unable to delete your account. Please try again."
+            );
+
+            return;
+          }
+
+          notify("accountDeleted");
+        } catch (error) {
+          console.error(
+            "Delete account error:",
+            error
+          );
+
           notifyError(
             "Delete Account Failed",
-            result?.message ||
+            error?.message ||
               "Unable to delete your account. Please try again."
           );
-          return;
         }
-
-        notify("accountDeleted");
-      } catch (error) {
-        console.error("Delete account error:", error);
-
-        notifyError(
-          "Delete Account Failed",
-          error?.message ||
-            "Unable to delete your account. Please try again."
-        );
-      }
-    },
-  });
-};
+      },
+    });
+  };
 
   return (
     <View

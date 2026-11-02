@@ -26,6 +26,9 @@ import {
 } from "./src/context/AnimatedNotificationContext";
 import {
   configureNotifications,
+  activateAccountMemoryNotifications,
+  cancelAccountMemoryNotifications,
+  cancelAllScheduledMemoryNotifications,
 } from "./src/services/notificationService";
 import {
   getAppLockEnabled,
@@ -37,30 +40,91 @@ import MementoSplashScreen from "./src/components/Splash/SplashScreen";
 import AppLockScreen from "./src/components/AppLock/AppLockScreen";
 import OnboardingScreen from "./src/screens/Onboarding/OnboardingScreen";
 
-const ONBOARDING_SEEN_KEY = "memory_ticket_onboarding_seen";
+const ONBOARDING_SEEN_KEY =
+  "memory_ticket_onboarding_seen";
 
-const navigationRef = createNavigationContainerRef();
+const navigationRef =
+  createNavigationContainerRef();
+
+const getAccountId = (user) => {
+  const id = user?._id ?? user?.id ?? null;
+
+  if (
+    id === null ||
+    id === undefined ||
+    String(id).trim() === ""
+  ) {
+    return null;
+  }
+
+  return String(id).trim();
+};
 
 function AppContent() {
-  const { user, loading } = useAuth();
-  const { loading: memoriesLoading } = useMemory();
+  const {
+    user,
+    loading,
+  } = useAuth();
 
-  const [showMementoSplash, setShowMementoSplash] = useState(true);
-  const [appLocked, setAppLocked] = useState(false);
-  const [appLockReady, setAppLockReady] = useState(false);
-  const [onboardingReady, setOnboardingReady] = useState(false);
-  const [hasSeenOnboarding, setHasSeenOnboarding] = useState(false);
-  const [navigationReady, setNavigationReady] = useState(false);
-  const [navigationStateVersion, setNavigationStateVersion] = useState(0);
-  const [pendingNotification, setPendingNotification] = useState(null);
+  const {
+    memories,
+    loading: memoriesLoading,
+    accountId: memoryAccountId,
+  } = useMemory();
 
-  const pendingNotificationKeyRef = useRef(null);
+  const accountId = getAccountId(user);
+
+  const [
+    showMementoSplash,
+    setShowMementoSplash,
+  ] = useState(true);
+
+  const [appLocked, setAppLocked] =
+    useState(false);
+
+  const [appLockReady, setAppLockReady] =
+    useState(false);
+
+  const [onboardingReady, setOnboardingReady] =
+    useState(false);
+
+  const [hasSeenOnboarding, setHasSeenOnboarding] =
+    useState(false);
+
+  const [navigationReady, setNavigationReady] =
+    useState(false);
+
+  const [
+    navigationStateVersion,
+    setNavigationStateVersion,
+  ] = useState(0);
+
+  const [
+    pendingNotification,
+    setPendingNotification,
+  ] = useState(null);
+
+  const pendingNotificationKeyRef =
+    useRef(null);
+
+  const notificationAccountRef =
+    useRef(null);
+
+  const notificationGenerationRef =
+    useRef(0);
+
+  const notificationWorkRef =
+    useRef(Promise.resolve());
 
   useEffect(() => {
     getAppLockEnabled()
       .then(setAppLocked)
       .catch((error) => {
-        console.warn("Unable to load App Lock state:", error);
+        console.warn(
+          "Unable to load App Lock state:",
+          error,
+        );
+
         setAppLocked(false);
       })
       .finally(() => {
@@ -72,7 +136,11 @@ function AppContent() {
         setHasSeenOnboarding(value === "true");
       })
       .catch((error) => {
-        console.warn("Unable to load onboarding state:", error);
+        console.warn(
+          "Unable to load onboarding state:",
+          error,
+        );
+
         setHasSeenOnboarding(false);
       })
       .finally(() => {
@@ -80,60 +148,171 @@ function AppContent() {
       });
 
     configureNotifications().catch((error) => {
-      console.warn("Notification setup failed:", error);
+      console.warn(
+        "Notification setup failed:",
+        error,
+      );
     });
   }, []);
 
-  const clearPendingNotification = useCallback(() => {
-    pendingNotificationKeyRef.current = null;
-    setPendingNotification(null);
+  useEffect(() => {
+    if (loading) {
+      return undefined;
+    }
 
-    Notifications.clearLastNotificationResponseAsync().catch(
-      (error) => {
-        console.warn(
-          "Unable to clear the handled notification response:",
-          error
-        );
+    let active = true;
+
+    const generation =
+      ++notificationGenerationRef.current;
+
+    const notificationTask =
+      notificationWorkRef.current
+        .catch(() => {})
+        .then(async () => {
+          if (
+            !active ||
+            generation !==
+              notificationGenerationRef.current
+          ) {
+            return;
+          }
+
+          if (!accountId) {
+            notificationAccountRef.current = null;
+
+            await cancelAllScheduledMemoryNotifications();
+
+            return;
+          }
+
+          if (
+            memoriesLoading ||
+            memoryAccountId !== accountId
+          ) {
+            return;
+          }
+
+          const previousAccountId =
+            notificationAccountRef.current;
+
+          if (
+            previousAccountId &&
+            previousAccountId !== accountId
+          ) {
+            await cancelAccountMemoryNotifications(
+              previousAccountId,
+            );
+          }
+
+          if (
+            !active ||
+            generation !==
+              notificationGenerationRef.current
+          ) {
+            return;
+          }
+
+          await activateAccountMemoryNotifications(
+            accountId,
+            memories,
+          );
+
+          if (
+            !active ||
+            generation !==
+              notificationGenerationRef.current
+          ) {
+            return;
+          }
+
+          notificationAccountRef.current =
+            accountId;
+        });
+
+    notificationWorkRef.current =
+      notificationTask;
+
+    notificationTask.catch((error) => {
+      console.error(
+        "Account notification synchronization failed:",
+        error,
+      );
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [
+    loading,
+    accountId,
+    memories,
+    memoriesLoading,
+    memoryAccountId,
+  ]);
+
+  const clearPendingNotification =
+    useCallback(() => {
+      pendingNotificationKeyRef.current = null;
+
+      setPendingNotification(null);
+
+      Notifications.clearLastNotificationResponseAsync().catch(
+        (error) => {
+          console.warn(
+            "Unable to clear the handled notification response:",
+            error,
+          );
+        },
+      );
+    }, []);
+
+  const queueNotificationResponse =
+    useCallback((response) => {
+      const request =
+        response?.notification?.request;
+
+      if (!request) {
+        return;
       }
-    );
-  }, []);
 
-  const queueNotificationResponse = useCallback((response) => {
-    const request = response?.notification?.request;
+      const data =
+        request.content?.data || {};
 
-    if (!request) {
-      return;
-    }
+      const key = [
+        request.identifier,
+        response.actionIdentifier || "default",
+      ].join(":");
 
-    const data = request.content?.data || {};
+      if (
+        pendingNotificationKeyRef.current === key
+      ) {
+        return;
+      }
 
-    const key = [
-      request.identifier,
-      response.actionIdentifier || "default",
-    ].join(":");
+      pendingNotificationKeyRef.current = key;
 
-    // Prevent processing the same notification twice.
-    if (pendingNotificationKeyRef.current === key) {
-      return;
-    }
+      setPendingNotification({
+        key,
+        type: data.type,
 
-    pendingNotificationKeyRef.current = key;
+        memoryId: data.memoryId
+          ? String(data.memoryId)
+          : null,
 
-    setPendingNotification({
-      key,
-      type: data.type,
-      memoryId: data.memoryId
-        ? String(data.memoryId)
-        : null,
-    });
-  }, []);
+        ownerAccountId:
+          data.ownerAccountId !== undefined &&
+          data.ownerAccountId !== null
+            ? String(data.ownerAccountId)
+            : null,
+      });
+    }, []);
 
   useEffect(() => {
     let mounted = true;
 
     const subscription =
       Notifications.addNotificationResponseReceivedListener(
-        queueNotificationResponse
+        queueNotificationResponse,
       );
 
     Notifications.getLastNotificationResponseAsync()
@@ -145,7 +324,7 @@ function AppContent() {
       .catch((error) => {
         console.warn(
           "Unable to read the initial notification response:",
-          error
+          error,
         );
       });
 
@@ -178,7 +357,15 @@ function AppContent() {
       return;
     }
 
-    if (!user) {
+    if (!user || !accountId) {
+      clearPendingNotification();
+      return;
+    }
+
+    if (
+      !pendingNotification.ownerAccountId ||
+      pendingNotification.ownerAccountId !== accountId
+    ) {
       clearPendingNotification();
       return;
     }
@@ -187,8 +374,11 @@ function AppContent() {
       return;
     }
 
-    const rootState = navigationRef.getRootState();
-    const rootRouteNames = rootState?.routeNames || [];
+    const rootState =
+      navigationRef.getRootState();
+
+    const rootRouteNames =
+      rootState?.routeNames || [];
 
     const appNavigatorReady =
       rootRouteNames.includes("MainTabs") &&
@@ -211,7 +401,8 @@ function AppContent() {
         memoryId: pendingNotification.memoryId,
       });
     } else if (
-      pendingNotification.type === "DAILY_MEMORY_REMINDER"
+      pendingNotification.type ===
+      "DAILY_MEMORY_REMINDER"
     ) {
       navigationRef.navigate("MainTabs");
     } else {
@@ -224,6 +415,7 @@ function AppContent() {
     pendingNotification,
     loading,
     user,
+    accountId,
     appLockReady,
     appLocked,
     onboardingReady,
@@ -241,30 +433,35 @@ function AppContent() {
     onboardingReady &&
     appLockReady;
 
-  const handleOnboardingComplete = async () => {
-    try {
-      await AsyncStorage.setItem(
-        ONBOARDING_SEEN_KEY,
-        "true"
-      );
-    } catch (error) {
-      console.warn(
-        "Unable to persist onboarding state:",
-        error
-      );
-    } finally {
-      setHasSeenOnboarding(true);
-    }
-  };
+  const handleOnboardingComplete =
+    async () => {
+      try {
+        await AsyncStorage.setItem(
+          ONBOARDING_SEEN_KEY,
+          "true",
+        );
+      } catch (error) {
+        console.warn(
+          "Unable to persist onboarding state:",
+          error,
+        );
+      } finally {
+        setHasSeenOnboarding(true);
+      }
+    };
 
   const handleNavigationReady = () => {
     setNavigationReady(true);
 
-    setNavigationStateVersion((version) => version + 1);
+    setNavigationStateVersion(
+      (version) => version + 1,
+    );
   };
 
   const handleNavigationStateChange = () => {
-    setNavigationStateVersion((version) => version + 1);
+    setNavigationStateVersion(
+      (version) => version + 1,
+    );
   };
 
   return (
