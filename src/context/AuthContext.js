@@ -28,6 +28,20 @@ export const AuthContext = createContext(null);
 
 const TOKEN_KEY = "memory_ticket_auth_token";
 
+const getAccountId = (user) => {
+  const id = user?._id ?? user?.id ?? null;
+
+  if (
+    id === null ||
+    id === undefined ||
+    String(id).trim() === ""
+  ) {
+    return null;
+  }
+
+  return String(id).trim();
+};
+
 async function clearStoredSession() {
   try {
     await SecureStore.deleteItemAsync(TOKEN_KEY);
@@ -42,7 +56,14 @@ async function clearStoredSession() {
   }
 }
 
-async function clearAccountLocalData() {
+async function clearAccountLocalData(accountId) {
+  if (!accountId) {
+    return {
+      success: false,
+      failures: ["valid account ID"],
+    };
+  }
+
   const tasks = [
     {
       name: "authentication token",
@@ -50,7 +71,8 @@ async function clearAccountLocalData() {
     },
     {
       name: "offline memory data and image files",
-      run: clearAllOfflineMemoryData,
+      run: () =>
+        clearAllOfflineMemoryData(accountId),
     },
   ];
 
@@ -61,23 +83,29 @@ async function clearAccountLocalData() {
   const failures = [];
 
   results.forEach((result, index) => {
-    if (result.status === "fulfilled") {
-      if (
-        tasks[index].name === "authentication token" &&
-        result.value !== true
-      ) {
-        failures.push(tasks[index].name);
+    const taskName = tasks[index].name;
+
+    if (result.status === "rejected") {
+      console.error(
+        `Account cleanup failed for ${taskName}:`,
+        result.reason,
+      );
+
+      failures.push(taskName);
+      return;
+    }
+
+    if (taskName === "authentication token") {
+      if (result.value !== true) {
+        failures.push(taskName);
       }
 
       return;
     }
 
-    console.error(
-      `Account cleanup failed for ${tasks[index].name}:`,
-      result.reason,
-    );
-
-    failures.push(tasks[index].name);
+    if (result.value?.success !== true) {
+      failures.push(taskName);
+    }
   });
 
   return {
@@ -105,31 +133,51 @@ export function AuthProvider({ children }) {
           return;
         }
 
-        const result = await getCurrentUser(storedToken);
+        const result =
+          await getCurrentUser(storedToken);
 
         if (cancelled) return;
 
-        if (
-          !result.success ||
-          !result.data?.user
-        ) {
-          await SecureStore.deleteItemAsync(TOKEN_KEY);
+        if (!result?.success) {
+          if (result?.status === 401) {
+            const removed =
+              await clearStoredSession();
+
+            if (!removed) {
+              console.error(
+                "Unable to remove the invalid authentication token.",
+              );
+            }
+          } else {
+            console.warn(
+              "Session restoration failed temporarily. The stored token has been preserved.",
+              result?.message,
+            );
+          }
+
           return;
         }
 
-        setToken(storedToken);
-        setUser(result.data.user);
-      } catch (error) {
-        console.error("Restore session error:", error);
+        const restoredUser =
+          result.data?.user;
 
-        try {
-          await SecureStore.deleteItemAsync(TOKEN_KEY);
-        } catch (deleteError) {
+        if (!restoredUser || !getAccountId(restoredUser)) {
           console.error(
-            "Failed to delete invalid session:",
-            deleteError,
+            "Session restoration returned an invalid user or missing account ID.",
           );
+
+          return;
         }
+
+        if (cancelled) return;
+
+        setToken(storedToken);
+        setUser(restoredUser);
+      } catch (error) {
+        console.error(
+          "Restore session error:",
+          error,
+        );
       } finally {
         if (!cancelled) {
           setLoading(false);
@@ -144,7 +192,10 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
-  const saveSession = async (authToken, userData) => {
+  const saveSession = async (
+    authToken,
+    userData,
+  ) => {
     if (!authToken) {
       throw new Error(
         "Authentication token is missing.",
@@ -157,6 +208,12 @@ export function AuthProvider({ children }) {
       );
     }
 
+    if (!getAccountId(userData)) {
+      throw new Error(
+        "Authenticated user ID is missing.",
+      );
+    }
+
     await SecureStore.setItemAsync(
       TOKEN_KEY,
       authToken,
@@ -166,7 +223,11 @@ export function AuthProvider({ children }) {
     setUser(userData);
   };
 
-  const signup = async (name, email, password) => {
+  const signup = async (
+    name,
+    email,
+    password,
+  ) => {
     try {
       const device = getDeviceInfo();
 
@@ -197,12 +258,16 @@ export function AuthProvider({ children }) {
 
       return {
         success: false,
-        message: "Unable to start account creation.",
+        message:
+          "Unable to start account creation.",
       };
     }
   };
 
-  const verifySignupOtp = async (email, otp) => {
+  const verifySignupOtp = async (
+    email,
+    otp,
+  ) => {
     try {
       const result = await verifySignupOtpApi(
         email,
@@ -212,7 +277,8 @@ export function AuthProvider({ children }) {
       if (!result.success) {
         return {
           success: false,
-          message: result.message || "Invalid OTP.",
+          message:
+            result.message || "Invalid OTP.",
         };
       }
 
@@ -230,20 +296,24 @@ export function AuthProvider({ children }) {
 
       return {
         success: false,
-        message: "Unable to verify OTP.",
+        message:
+          "Unable to verify OTP.",
       };
     }
   };
 
   const resendSignupOtp = async (email) => {
     try {
-      const result = await resendSignupOtpApi(email);
+      const result = await resendSignupOtpApi(
+        email,
+      );
 
       if (!result.success) {
         return {
           success: false,
           message:
-            result.message || "Unable to resend OTP.",
+            result.message ||
+            "Unable to resend OTP.",
         };
       }
 
@@ -261,7 +331,8 @@ export function AuthProvider({ children }) {
 
       return {
         success: false,
-        message: "Unable to resend OTP.",
+        message:
+          "Unable to resend OTP.",
       };
     }
   };
@@ -279,7 +350,8 @@ export function AuthProvider({ children }) {
       if (!result.success) {
         return {
           success: false,
-          message: result.message || "Unable to login.",
+          message:
+            result.message || "Unable to login.",
         };
       }
 
@@ -291,11 +363,23 @@ export function AuthProvider({ children }) {
       if (!authToken || !loggedInUser) {
         return {
           success: false,
-          message: "Invalid response from server.",
+          message:
+            "Invalid response from server.",
         };
       }
 
-      await saveSession(authToken, loggedInUser);
+      if (!getAccountId(loggedInUser)) {
+        return {
+          success: false,
+          message:
+            "User account ID is missing from the server response.",
+        };
+      }
+
+      await saveSession(
+        authToken,
+        loggedInUser,
+      );
 
       return {
         success: true,
@@ -306,14 +390,17 @@ export function AuthProvider({ children }) {
 
       return {
         success: false,
-        message: "Unable to login.",
+        message:
+          error.message || "Unable to login.",
       };
     }
   };
 
   const forgotPassword = async (email) => {
     try {
-      const result = await forgotPasswordApi(email);
+      const result = await forgotPasswordApi(
+        email,
+      );
 
       if (!result.success) {
         return {
@@ -332,7 +419,10 @@ export function AuthProvider({ children }) {
         data: result.data,
       };
     } catch (error) {
-      console.error("Forgot password error:", error);
+      console.error(
+        "Forgot password error:",
+        error,
+      );
 
       return {
         success: false,
@@ -344,12 +434,16 @@ export function AuthProvider({ children }) {
 
   const verifyOtp = async (email, otp) => {
     try {
-      const result = await verifyOtpApi(email, otp);
+      const result = await verifyOtpApi(
+        email,
+        otp,
+      );
 
       if (!result.success) {
         return {
           success: false,
-          message: result.message || "Invalid OTP.",
+          message:
+            result.message || "Invalid OTP.",
         };
       }
 
@@ -361,11 +455,15 @@ export function AuthProvider({ children }) {
         data: result.data,
       };
     } catch (error) {
-      console.error("Verify OTP error:", error);
+      console.error(
+        "Verify OTP error:",
+        error,
+      );
 
       return {
         success: false,
-        message: "Unable to verify OTP.",
+        message:
+          "Unable to verify OTP.",
       };
     }
   };
@@ -399,11 +497,15 @@ export function AuthProvider({ children }) {
         data: result.data,
       };
     } catch (error) {
-      console.error("Reset password error:", error);
+      console.error(
+        "Reset password error:",
+        error,
+      );
 
       return {
         success: false,
-        message: "Unable to reset password.",
+        message:
+          "Unable to reset password.",
       };
     }
   };
@@ -413,7 +515,8 @@ export function AuthProvider({ children }) {
       if (!token || !user) {
         return {
           success: false,
-          message: "No authenticated user.",
+          message:
+            "No authenticated user.",
         };
       }
 
@@ -422,10 +525,13 @@ export function AuthProvider({ children }) {
         profileImage,
       } = updatedData || {};
 
-      const result = await updateProfileApi(token, {
-        name,
-        profileImage,
-      });
+      const result = await updateProfileApi(
+        token,
+        {
+          name,
+          profileImage,
+        },
+      );
 
       if (!result.success) {
         return {
@@ -441,22 +547,40 @@ export function AuthProvider({ children }) {
       if (!updatedUser) {
         return {
           success: false,
-          message: "Invalid response from server.",
+          message:
+            "Invalid response from server.",
         };
       }
 
-      setUser(updatedUser);
+      const normalizedUser = {
+        ...user,
+        ...updatedUser,
+
+        _id:
+          updatedUser._id ||
+          user._id,
+
+        id:
+          updatedUser.id ||
+          user.id,
+      };
+
+      setUser(normalizedUser);
 
       return {
         success: true,
-        user: updatedUser,
+        user: normalizedUser,
       };
     } catch (error) {
-      console.error("Update profile error:", error);
+      console.error(
+        "Update profile error:",
+        error,
+      );
 
       return {
         success: false,
-        message: "Unable to update profile.",
+        message:
+          "Unable to update profile.",
       };
     }
   };
@@ -469,7 +593,8 @@ export function AuthProvider({ children }) {
       if (!token || !user) {
         return {
           success: false,
-          message: "No authenticated user.",
+          message:
+            "No authenticated user.",
         };
       }
 
@@ -491,7 +616,8 @@ export function AuthProvider({ children }) {
       setToken(null);
       setUser(null);
 
-      const tokenRemoved = await clearStoredSession();
+      const tokenRemoved =
+        await clearStoredSession();
 
       return {
         success: true,
@@ -501,11 +627,15 @@ export function AuthProvider({ children }) {
           "Password changed successfully. Please log in again.",
       };
     } catch (error) {
-      console.error("Change password error:", error);
+      console.error(
+        "Change password error:",
+        error,
+      );
 
       return {
         success: false,
-        message: "Unable to change password.",
+        message:
+          "Unable to change password.",
       };
     }
   };
@@ -514,7 +644,18 @@ export function AuthProvider({ children }) {
     if (!token || !user) {
       return {
         success: false,
-        message: "No authenticated user.",
+        message:
+          "No authenticated user.",
+      };
+    }
+
+    const accountId = getAccountId(user);
+
+    if (!accountId) {
+      return {
+        success: false,
+        message:
+          "Account ID is missing. Unable to safely clear account-specific offline data.",
       };
     }
 
@@ -533,7 +674,8 @@ export function AuthProvider({ children }) {
       setToken(null);
       setUser(null);
 
-      const cleanup = await clearAccountLocalData();
+      const cleanup =
+        await clearAccountLocalData(accountId);
 
       if (!cleanup.success) {
         console.error(
@@ -558,7 +700,10 @@ export function AuthProvider({ children }) {
           "Account deleted successfully.",
       };
     } catch (error) {
-      console.error("Delete account error:", error);
+      console.error(
+        "Delete account error:",
+        error,
+      );
 
       return {
         success: false,
@@ -572,7 +717,8 @@ export function AuthProvider({ children }) {
     setToken(null);
     setUser(null);
 
-    const tokenRemoved = await clearStoredSession();
+    const tokenRemoved =
+      await clearStoredSession();
 
     if (!tokenRemoved) {
       return {

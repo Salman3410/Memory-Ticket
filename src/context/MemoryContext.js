@@ -22,22 +22,23 @@ import {
 } from "../api/memoryApi";
 import {
   generateClientMemoryId,
-  persistMemoryImages,
-  getPendingMemories,
-  getLocalMemories,
-  getPendingMemoryOperations,
-  addPendingMemoryOperation,
-  removePendingMemoryOperation,
-  clearPendingMemoryOperations,
-  addPendingMemory,
-  removePendingMemory,
-  getOfflineMemories,
-  upsertLocalMemory,
-  upsertLocalMemories,
-  removeLocalMemory,
-  clearLocalMemories,
-  reconcileLocalMemories,
+  persistMemoryImages as persistMemoryImagesForAccount,
+  getPendingMemories as getPendingMemoriesForAccount,
+  getLocalMemories as getLocalMemoriesForAccount,
+  getPendingMemoryOperations as getPendingMemoryOperationsForAccount,
+  addPendingMemoryOperation as addPendingMemoryOperationForAccount,
+  removePendingMemoryOperation as removePendingMemoryOperationForAccount,
+  clearPendingMemoryOperations as clearPendingMemoryOperationsForAccount,
+  addPendingMemory as addPendingMemoryForAccount,
+  removePendingMemory as removePendingMemoryForAccount,
+  getOfflineMemories as getOfflineMemoriesForAccount,
+  upsertLocalMemory as upsertLocalMemoryForAccount,
+  upsertLocalMemories as upsertLocalMemoriesForAccount,
+  removeLocalMemory as removeLocalMemoryForAccount,
+  clearLocalMemories as clearLocalMemoriesForAccount,
+  reconcileLocalMemories as reconcileLocalMemoriesForAccount,
 } from "../services/offlineMemoryService";
+
 import {
   normalizeTicketCustomization,
 } from "../utils/ticketCustomization";
@@ -87,7 +88,10 @@ const findMatchingMemory = (memoryMap, memory) => {
 };
 
 const getMemoryImageUris = (memory) => {
-  if (Array.isArray(memory?.images) && memory.images.length) {
+  if (
+    Array.isArray(memory?.images) &&
+    memory.images.length
+  ) {
     return memory.images
       .filter(
         (uri) =>
@@ -97,7 +101,10 @@ const getMemoryImageUris = (memory) => {
       .slice(0, 5);
   }
 
-  if (typeof memory?.image === "string" && memory.image) {
+  if (
+    typeof memory?.image === "string" &&
+    memory.image
+  ) {
     return [memory.image];
   }
 
@@ -107,21 +114,165 @@ const getMemoryImageUris = (memory) => {
 export function MemoryProvider({ children }) {
   const {
     token,
+    user,
     loading: authLoading,
   } = useAuth();
+
+  const rawAccountId =
+    user?._id ??
+    user?.id ??
+    null;
+
+  const accountId =
+    rawAccountId !== null &&
+    rawAccountId !== undefined
+      ? String(rawAccountId).trim() || null
+      : null;
 
   const [memories, setMemories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
 
-  const currentTokenRef = useRef(token);
-  currentTokenRef.current = token;
+  const accountStorage = useMemo(() => {
+    const requireAccountId = () => {
+      if (!accountId) {
+        throw new Error(
+          "A valid authenticated account ID is required for offline storage.",
+        );
+      }
+
+      return accountId;
+    };
+
+    return {
+      persistMemoryImages: (memory) =>
+        persistMemoryImagesForAccount(
+          requireAccountId(),
+          memory,
+        ),
+
+      getPendingMemories: () =>
+        getPendingMemoriesForAccount(
+          requireAccountId(),
+        ),
+
+      getLocalMemories: () =>
+        getLocalMemoriesForAccount(
+          requireAccountId(),
+        ),
+
+      getPendingMemoryOperations: () =>
+        getPendingMemoryOperationsForAccount(
+          requireAccountId(),
+        ),
+
+      addPendingMemoryOperation: (operation) =>
+        addPendingMemoryOperationForAccount(
+          requireAccountId(),
+          operation,
+        ),
+
+      removePendingMemoryOperation: (operationId) =>
+        removePendingMemoryOperationForAccount(
+          requireAccountId(),
+          operationId,
+        ),
+
+      clearPendingMemoryOperations: () =>
+        clearPendingMemoryOperationsForAccount(
+          requireAccountId(),
+        ),
+
+      addPendingMemory: (memory) =>
+        addPendingMemoryForAccount(
+          requireAccountId(),
+          memory,
+        ),
+
+      removePendingMemory: (clientMemoryId) =>
+        removePendingMemoryForAccount(
+          requireAccountId(),
+          clientMemoryId,
+        ),
+
+      getOfflineMemories: () =>
+        getOfflineMemoriesForAccount(
+          requireAccountId(),
+        ),
+
+      upsertLocalMemory: (memory) =>
+        upsertLocalMemoryForAccount(
+          requireAccountId(),
+          memory,
+        ),
+
+      upsertLocalMemories: (memoryList) =>
+        upsertLocalMemoriesForAccount(
+          requireAccountId(),
+          memoryList,
+        ),
+
+      removeLocalMemory: (
+        memoryId,
+        clientMemoryId = null,
+      ) =>
+        removeLocalMemoryForAccount(
+          requireAccountId(),
+          memoryId,
+          clientMemoryId,
+        ),
+
+      clearLocalMemories: () =>
+        clearLocalMemoriesForAccount(
+          requireAccountId(),
+        ),
+
+      reconcileLocalMemories: (options) =>
+        reconcileLocalMemoriesForAccount(
+          requireAccountId(),
+          options,
+        ),
+    };
+  }, [accountId]);
+
+  /* ============================================================
+     SESSION VALIDATION
+
+     Both token and account ID must match.
+
+     This prevents asynchronous work from an older account
+     from modifying the active account's React state.
+  ============================================================ */
+
+  const currentSessionRef = useRef({
+    token,
+    accountId,
+  });
+
+  currentSessionRef.current = {
+    token,
+    accountId,
+  };
 
   const isCurrentSession = useCallback(
-    (expectedToken) =>
-      currentTokenRef.current === expectedToken,
-    [],
+    (
+      expectedToken,
+      expectedAccountId = accountId,
+    ) =>
+      Boolean(
+        expectedToken &&
+          expectedAccountId,
+      ) &&
+      currentSessionRef.current.token ===
+        expectedToken &&
+      currentSessionRef.current.accountId ===
+        expectedAccountId,
+    [accountId],
   );
+
+  /* ============================================================
+     SYNC REFERENCES
+  ============================================================ */
 
   const syncPromiseRef = useRef(null);
   const syncRequestedRef = useRef(false);
@@ -130,28 +281,54 @@ export function MemoryProvider({ children }) {
   const preparingMemoryIdsRef = useRef(new Set());
   const cancelledMemoryIdsRef = useRef(new Set());
 
-  const previousTokenRef = useRef(token);
+  /* ============================================================
+     SESSION CHANGE HANDLING
+
+     Reset in-memory state whenever either the token or
+     authenticated account changes.
+
+     Account-specific AsyncStorage data is preserved.
+  ============================================================ */
+
+  const previousSessionRef = useRef({
+    token,
+    accountId,
+  });
 
   useEffect(() => {
-    if (previousTokenRef.current === token) {
+    const previousSession =
+      previousSessionRef.current;
+
+    if (
+      previousSession.token === token &&
+      previousSession.accountId === accountId
+    ) {
       return;
     }
-    previousTokenRef.current = token;
+
+    previousSessionRef.current = {
+      token,
+      accountId,
+    };
+
     syncRequestedRef.current = false;
     syncPromiseRef.current = null;
     refreshPromiseRef.current = null;
+
     preparingMemoryIdsRef.current.clear();
     cancelledMemoryIdsRef.current.clear();
+
     setMemories([]);
     setSyncing(false);
-    setLoading(Boolean(token));
-  }, [token]);
+    setLoading(Boolean(token && accountId));
+  }, [token, accountId]);
 
   const normalizeMemory = useCallback((memory) => {
     if (!memory) return null;
 
     const images =
-      Array.isArray(memory.images) && memory.images.length
+      Array.isArray(memory.images) &&
+      memory.images.length
         ? memory.images
         : memory.image
           ? [memory.image]
@@ -161,7 +338,10 @@ export function MemoryProvider({ children }) {
       ? [
           ...new Set(
             memory.tags
-              .filter((tag) => typeof tag === "string")
+              .filter(
+                (tag) =>
+                  typeof tag === "string",
+              )
               .map((tag) =>
                 tag
                   .trim()
@@ -213,11 +393,14 @@ export function MemoryProvider({ children }) {
         ...customization.ticketOptions,
       },
 
-      imagePublicIds: Array.isArray(memory.imagePublicIds)
+      imagePublicIds: Array.isArray(
+        memory.imagePublicIds,
+      )
         ? memory.imagePublicIds
         : [],
 
-      syncStatus: memory.syncStatus || "synced",
+      syncStatus:
+        memory.syncStatus || "synced",
     };
   }, []);
 
@@ -346,7 +529,11 @@ export function MemoryProvider({ children }) {
   );
 
   const loadLocalMemories = useCallback(async () => {
-    if (!token || !isCurrentSession(token)) {
+    if (
+      !token ||
+      !accountId ||
+      !isCurrentSession(token)
+    ) {
       return [];
     }
 
@@ -357,8 +544,8 @@ export function MemoryProvider({ children }) {
         offlineMemories,
         pendingOperations,
       ] = await Promise.all([
-        getOfflineMemories(),
-        getPendingMemoryOperations(),
+        accountStorage.getOfflineMemories(),
+        accountStorage.getPendingMemoryOperations(),
       ]);
 
       if (!isCurrentSession(token)) {
@@ -398,7 +585,8 @@ export function MemoryProvider({ children }) {
             result &&
             memory.localImages?.length
           ) {
-            result.images = memory.localImages;
+            result.images =
+              memory.localImages;
 
             result.image =
               memory.localImages[0] || null;
@@ -419,6 +607,7 @@ export function MemoryProvider({ children }) {
 
       logPerf("Load local memories", startedAt, {
         count: normalized.length,
+        accountId,
       });
 
       return normalized;
@@ -432,21 +621,36 @@ export function MemoryProvider({ children }) {
 
       return [];
     }
-  }, [token, normalizeMemory, isCurrentSession]);
+  }, [
+    token,
+    accountId,
+    accountStorage,
+    normalizeMemory,
+    isCurrentSession,
+  ]);
 
   const refreshServerMemories = useCallback(async () => {
-    if (!token || !isCurrentSession(token)) {
+    if (
+      !token ||
+      !accountId ||
+      !isCurrentSession(token)
+    ) {
       return false;
     }
 
-    const existingRefresh = refreshPromiseRef.current;
+    const existingRefresh =
+      refreshPromiseRef.current;
 
-    if (existingRefresh?.token === token) {
+    if (
+      existingRefresh?.token === token &&
+      existingRefresh?.accountId === accountId
+    ) {
       return existingRefresh.promise;
     }
 
     const refreshEntry = {
       token,
+      accountId,
       promise: null,
     };
 
@@ -472,6 +676,7 @@ export function MemoryProvider({ children }) {
             )
               ? result.data.memories.length
               : 0,
+            accountId,
           },
         );
 
@@ -479,7 +684,11 @@ export function MemoryProvider({ children }) {
           return false;
         }
 
-        if (!Array.isArray(result.data?.memories)) {
+        if (
+          !Array.isArray(
+            result.data?.memories,
+          )
+        ) {
           console.warn(
             "Cannot reconcile memories: server response did not contain a valid memory array.",
           );
@@ -495,9 +704,9 @@ export function MemoryProvider({ children }) {
           pendingMemories,
           pendingOperations,
         ] = await Promise.all([
-          getLocalMemories(),
-          getPendingMemories(),
-          getPendingMemoryOperations(),
+          accountStorage.getLocalMemories(),
+          accountStorage.getPendingMemories(),
+          accountStorage.getPendingMemoryOperations(),
         ]);
 
         if (!isCurrentSession(token)) {
@@ -588,7 +797,7 @@ export function MemoryProvider({ children }) {
 
               try {
                 const { localImages } =
-                  await persistMemoryImages({
+                  await accountStorage.persistMemoryImages({
                     ...memory,
 
                     clientMemoryId:
@@ -648,6 +857,7 @@ export function MemoryProvider({ children }) {
             memories: visibleServerMemories.length,
             images: totalServerImages,
             failedMemories: imageCacheFailures,
+            accountId,
           },
         );
 
@@ -814,12 +1024,13 @@ export function MemoryProvider({ children }) {
             local: localMemories.length,
             pending: visiblePendingMemories.length,
             merged: merged.length,
+            accountId,
           },
         );
 
         const storageStartedAt = perfNow();
 
-        await upsertLocalMemories(
+        await accountStorage.upsertLocalMemories(
           serverWithLocalImages.map((memory) => ({
             ...memory,
             syncStatus: "synced",
@@ -835,13 +1046,14 @@ export function MemoryProvider({ children }) {
           storageStartedAt,
           {
             count: serverWithLocalImages.length,
+            accountId,
           },
         );
 
         const reconcileStartedAt = perfNow();
 
         const reconciledLocalMemories =
-          await reconcileLocalMemories({
+          await accountStorage.reconcileLocalMemories({
             serverMemories: backendMemories,
             pendingMemories,
             pendingOperations,
@@ -856,6 +1068,7 @@ export function MemoryProvider({ children }) {
           reconcileStartedAt,
           {
             remaining: reconciledLocalMemories.length,
+            accountId,
           },
         );
 
@@ -873,6 +1086,7 @@ export function MemoryProvider({ children }) {
         logPerf(
           "Refresh server memories total",
           refreshStartedAt,
+          { accountId },
         );
       }
     })();
@@ -883,26 +1097,30 @@ export function MemoryProvider({ children }) {
     try {
       return await refreshPromise;
     } finally {
-      if (refreshPromiseRef.current === refreshEntry) {
+      if (
+        refreshPromiseRef.current === refreshEntry
+      ) {
         refreshPromiseRef.current = null;
       }
     }
   }, [
     token,
+    accountId,
+    accountStorage,
     normalizeMemory,
     mergeMemories,
     isCurrentSession,
   ]);
 
   const loadMemories = useCallback(async () => {
-    if (!isCurrentSession(token)) {
-      return;
-    }
-
-    if (!token) {
+    if (!token || !accountId) {
       setMemories([]);
       setLoading(false);
       setSyncing(false);
+      return;
+    }
+
+    if (!isCurrentSession(token)) {
       return;
     }
 
@@ -932,17 +1150,25 @@ export function MemoryProvider({ children }) {
       }
     } catch (error) {
       if (isCurrentSession(token)) {
-        console.error("Load memories error:", error);
+        console.error(
+          "Load memories error:",
+          error,
+        );
       }
     } finally {
       if (isCurrentSession(token)) {
         setLoading(false);
       }
 
-      logPerf("Load memories total", startedAt);
+      logPerf(
+        "Load memories total",
+        startedAt,
+        { accountId },
+      );
     }
   }, [
     token,
+    accountId,
     loadLocalMemories,
     refreshServerMemories,
     isCurrentSession,
@@ -952,10 +1178,22 @@ export function MemoryProvider({ children }) {
     async (pendingMemory) => {
       if (
         !token ||
+        !accountId ||
         !isCurrentSession(token) ||
         !pendingMemory ||
         pendingMemory.syncReady === false
       ) {
+        return null;
+      }
+
+      if (
+        pendingMemory.ownerAccountId &&
+        String(pendingMemory.ownerAccountId) !== accountId
+      ) {
+        console.error(
+          "Rejected pending memory belonging to another account.",
+        );
+
         return null;
       }
 
@@ -1071,13 +1309,17 @@ export function MemoryProvider({ children }) {
           return null;
         }
 
-        await upsertLocalMemory(syncedMemory);
+        await accountStorage.upsertLocalMemory(
+          syncedMemory,
+        );
 
         if (!isCurrentSession(token)) {
           return null;
         }
 
-        await removePendingMemory(clientMemoryId);
+        await accountStorage.removePendingMemory(
+          clientMemoryId,
+        );
 
         if (!isCurrentSession(token)) {
           return null;
@@ -1110,22 +1352,35 @@ export function MemoryProvider({ children }) {
         return syncedMemory;
       } catch (error) {
         if (isCurrentSession(token)) {
-          console.error("Sync memory error:", error);
+          console.error(
+            "Sync memory error:",
+            error,
+          );
         }
 
         return null;
       }
     },
-    [token, normalizeMemory, isCurrentSession],
+    [
+      token,
+      accountId,
+      accountStorage,
+      normalizeMemory,
+      isCurrentSession,
+    ],
   );
 
   const syncPendingMutations = useCallback(async () => {
-    if (!token || !isCurrentSession(token)) {
+    if (
+      !token ||
+      !accountId ||
+      !isCurrentSession(token)
+    ) {
       return;
     }
 
     const operations =
-      await getPendingMemoryOperations();
+      await accountStorage.getPendingMemoryOperations();
 
     if (
       !isCurrentSession(token) ||
@@ -1134,21 +1389,40 @@ export function MemoryProvider({ children }) {
       return;
     }
 
-    let localMemories = await getLocalMemories();
+    const accountOperations = operations.filter(
+      (operation) =>
+        !operation.ownerAccountId ||
+        String(operation.ownerAccountId) === accountId,
+    );
+
+    let localMemories =
+      await accountStorage.getLocalMemories();
 
     if (!isCurrentSession(token)) {
       return;
     }
 
-    let pendingCreates = await getPendingMemories();
+    let pendingCreates =
+      await accountStorage.getPendingMemories();
 
     if (!isCurrentSession(token)) {
       return;
     }
 
-    for (const operation of operations) {
+    for (const operation of accountOperations) {
       if (!isCurrentSession(token)) {
         return;
+      }
+
+      if (
+        operation.ownerAccountId &&
+        String(operation.ownerAccountId) !== accountId
+      ) {
+        console.error(
+          "Rejected queued mutation belonging to another account.",
+        );
+
+        continue;
       }
 
       const operationKeys = new Set(
@@ -1202,7 +1476,9 @@ export function MemoryProvider({ children }) {
             targetMemoryId,
             operation.payload || {},
           );
-        } else if (operation.type === "favorite") {
+        } else if (
+          operation.type === "favorite"
+        ) {
           result = await toggleFavoriteApi(
             token,
             targetMemoryId,
@@ -1229,14 +1505,15 @@ export function MemoryProvider({ children }) {
         if (!result?.success) {
           console.warn(
             `Memory ${operation.type} sync failed:`,
-            result?.message || "Unknown API error.",
+            result?.message ||
+              "Unknown API error.",
           );
 
           break;
         }
 
         if (operation.type === "delete") {
-          await removeLocalMemory(
+          await accountStorage.removeLocalMemory(
             targetMemoryId,
             operation.clientMemoryId || null,
           );
@@ -1363,7 +1640,9 @@ export function MemoryProvider({ children }) {
             return;
           }
 
-          await upsertLocalMemory(syncedMemory);
+          await accountStorage.upsertLocalMemory(
+            syncedMemory,
+          );
 
           if (!isCurrentSession(token)) {
             return;
@@ -1404,7 +1683,7 @@ export function MemoryProvider({ children }) {
           return;
         }
 
-        await removePendingMemoryOperation(
+        await accountStorage.removePendingMemoryOperation(
           operation.operationId,
         );
 
@@ -1412,13 +1691,15 @@ export function MemoryProvider({ children }) {
           return;
         }
 
-        localMemories = await getLocalMemories();
+        localMemories =
+          await accountStorage.getLocalMemories();
 
         if (!isCurrentSession(token)) {
           return;
         }
 
-        pendingCreates = await getPendingMemories();
+        pendingCreates =
+          await accountStorage.getPendingMemories();
 
         if (!isCurrentSession(token)) {
           return;
@@ -1434,10 +1715,20 @@ export function MemoryProvider({ children }) {
         break;
       }
     }
-  }, [token, normalizeMemory, isCurrentSession]);
+  }, [
+    token,
+    accountId,
+    accountStorage,
+    normalizeMemory,
+    isCurrentSession,
+  ]);
 
   const runSyncQueuePass = useCallback(async () => {
-    if (!token || !isCurrentSession(token)) {
+    if (
+      !token ||
+      !accountId ||
+      !isCurrentSession(token)
+    ) {
       return;
     }
 
@@ -1462,7 +1753,8 @@ export function MemoryProvider({ children }) {
       return;
     }
 
-    let pending = await getPendingMemories();
+    let pending =
+      await accountStorage.getPendingMemories();
 
     if (!isCurrentSession(token)) {
       return;
@@ -1471,6 +1763,17 @@ export function MemoryProvider({ children }) {
     for (const memory of pending) {
       if (!isCurrentSession(token)) {
         return;
+      }
+
+      if (
+        memory.ownerAccountId &&
+        String(memory.ownerAccountId) !== accountId
+      ) {
+        console.error(
+          "Rejected pending create belonging to another account.",
+        );
+
+        continue;
       }
 
       if (
@@ -1497,10 +1800,11 @@ export function MemoryProvider({ children }) {
 
       try {
         const { localImages } =
-          await persistMemoryImages({
+          await accountStorage.persistMemoryImages({
             ...memory,
             images: sourceImages,
-            clientMemoryId: memory.clientMemoryId,
+            clientMemoryId:
+              memory.clientMemoryId,
           });
 
         if (!isCurrentSession(token)) {
@@ -1515,13 +1819,17 @@ export function MemoryProvider({ children }) {
           syncStatus: "pending",
         };
 
-        await upsertLocalMemory(readyMemory);
+        await accountStorage.upsertLocalMemory(
+          readyMemory,
+        );
 
         if (!isCurrentSession(token)) {
           return;
         }
 
-        await addPendingMemory(readyMemory);
+        await accountStorage.addPendingMemory(
+          readyMemory,
+        );
 
         if (!isCurrentSession(token)) {
           return;
@@ -1561,7 +1869,8 @@ export function MemoryProvider({ children }) {
       return;
     }
 
-    pending = await getPendingMemories();
+    pending =
+      await accountStorage.getPendingMemories();
 
     if (!isCurrentSession(token)) {
       return;
@@ -1587,7 +1896,16 @@ export function MemoryProvider({ children }) {
         return;
       }
 
-      const synced = await syncMemory(pendingMemory);
+      if (
+        pendingMemory.ownerAccountId &&
+        String(pendingMemory.ownerAccountId) !== accountId
+      ) {
+        continue;
+      }
+
+      const synced = await syncMemory(
+        pendingMemory,
+      );
 
       if (!isCurrentSession(token)) {
         return;
@@ -1605,26 +1923,38 @@ export function MemoryProvider({ children }) {
     await syncPendingMutations();
   }, [
     token,
+    accountId,
+    accountStorage,
     syncMemory,
     syncPendingMutations,
     isCurrentSession,
   ]);
 
   const syncPendingMemories = useCallback(async () => {
-    if (!token || !isCurrentSession(token)) {
+    if (
+      !token ||
+      !accountId ||
+      !isCurrentSession(token)
+    ) {
       return;
     }
 
     const existingSync = syncPromiseRef.current;
 
-    if (existingSync?.token === token) {
+    if (
+      existingSync?.token === token &&
+      existingSync?.accountId === accountId
+    ) {
       syncRequestedRef.current = true;
+
       await existingSync.promise;
+
       return;
     }
 
     const syncEntry = {
       token,
+      accountId,
       promise: null,
     };
 
@@ -1674,6 +2004,7 @@ export function MemoryProvider({ children }) {
     }
   }, [
     token,
+    accountId,
     runSyncQueuePass,
     isCurrentSession,
   ]);
@@ -1682,18 +2013,33 @@ export function MemoryProvider({ children }) {
     if (authLoading) return;
 
     void loadMemories();
-  }, [authLoading, token, loadMemories]);
+  }, [
+    authLoading,
+    token,
+    accountId,
+    loadMemories,
+  ]);
 
   useEffect(() => {
-    if (authLoading || !token) {
+    if (
+      authLoading ||
+      !token ||
+      !accountId
+    ) {
       return undefined;
     }
 
     const listenerToken = token;
+    const listenerAccountId = accountId;
 
     const subscription = addNetworkListener(
       (networkInfo) => {
-        if (!isCurrentSession(listenerToken)) {
+        if (
+          !isCurrentSession(
+            listenerToken,
+            listenerAccountId,
+          )
+        ) {
           return;
         }
 
@@ -1704,7 +2050,12 @@ export function MemoryProvider({ children }) {
         void (async () => {
           await syncPendingMemories();
 
-          if (!isCurrentSession(listenerToken)) {
+          if (
+            !isCurrentSession(
+              listenerToken,
+              listenerAccountId,
+            )
+          ) {
             return;
           }
 
@@ -1721,6 +2072,7 @@ export function MemoryProvider({ children }) {
   }, [
     authLoading,
     token,
+    accountId,
     syncPendingMemories,
     refreshServerMemories,
     isCurrentSession,
@@ -1728,7 +2080,11 @@ export function MemoryProvider({ children }) {
 
   const addMemory = useCallback(
     async (memory) => {
-      if (!token || !isCurrentSession(token)) {
+      if (
+        !token ||
+        !accountId ||
+        !isCurrentSession(token)
+      ) {
         throw new Error(
           "You must be logged in to create a memory.",
         );
@@ -1755,7 +2111,10 @@ export function MemoryProvider({ children }) {
         const networkPromise =
           getNetworkInfo().catch((error) => {
             if (isCurrentSession(token)) {
-              console.warn("Network info error:", error);
+              console.warn(
+                "Network info error:",
+                error,
+              );
             }
 
             return null;
@@ -1783,7 +2142,9 @@ export function MemoryProvider({ children }) {
         ]);
 
         if (!isCurrentSession(token)) {
-          throw new Error("Your session has ended.");
+          throw new Error(
+            "Your session has ended.",
+          );
         }
 
         const customization =
@@ -1798,7 +2159,8 @@ export function MemoryProvider({ children }) {
               ? memory.location.trim()
               : "",
 
-          locationData: locationResult || null,
+          locationData:
+            locationResult || null,
 
           network:
             memory?.network ||
@@ -1830,7 +2192,9 @@ export function MemoryProvider({ children }) {
         }
 
         if (!isCurrentSession(token)) {
-          throw new Error("Your session has ended.");
+          throw new Error(
+            "Your session has ended.",
+          );
         }
 
         setMemories((current) => {
@@ -1849,16 +2213,24 @@ export function MemoryProvider({ children }) {
         );
 
         try {
-          await addPendingMemory(localMemoryData);
+          await accountStorage.addPendingMemory(
+            localMemoryData,
+          );
 
           if (!isCurrentSession(token)) {
-            throw new Error("Your session has ended.");
+            throw new Error(
+              "Your session has ended.",
+            );
           }
 
-          await upsertLocalMemory(localMemoryData);
+          await accountStorage.upsertLocalMemory(
+            localMemoryData,
+          );
 
           if (!isCurrentSession(token)) {
-            throw new Error("Your session has ended.");
+            throw new Error(
+              "Your session has ended.",
+            );
           }
         } catch (storageError) {
           preparingMemoryIdsRef.current.delete(
@@ -1868,11 +2240,6 @@ export function MemoryProvider({ children }) {
           throw storageError;
         }
 
-        /*
-         * Prepare images in the background. Every continuation
-         * verifies that the token still belongs to this session
-         * before writing local data or modifying React state.
-         */
         void (async () => {
           try {
             if (!isCurrentSession(token)) {
@@ -1880,7 +2247,7 @@ export function MemoryProvider({ children }) {
             }
 
             const { localImages } =
-              await persistMemoryImages({
+              await accountStorage.persistMemoryImages({
                 ...localMemoryData,
                 images: originalImages,
                 clientMemoryId,
@@ -1896,7 +2263,7 @@ export function MemoryProvider({ children }) {
             }
 
             const currentQueue =
-              await getPendingMemories();
+              await accountStorage.getPendingMemories();
 
             if (!isCurrentSession(token)) {
               return;
@@ -1920,13 +2287,17 @@ export function MemoryProvider({ children }) {
               syncStatus: "pending",
             };
 
-            await upsertLocalMemory(persistedMemory);
+            await accountStorage.upsertLocalMemory(
+              persistedMemory,
+            );
 
             if (!isCurrentSession(token)) {
               return;
             }
 
-            await addPendingMemory(persistedMemory);
+            await accountStorage.addPendingMemory(
+              persistedMemory,
+            );
 
             if (!isCurrentSession(token)) {
               return;
@@ -1938,8 +2309,7 @@ export function MemoryProvider({ children }) {
               }
 
               return current.map((item) =>
-                item.clientMemoryId ===
-                  clientMemoryId ||
+                item.clientMemoryId === clientMemoryId ||
                 item.id === clientMemoryId
                   ? {
                       ...item,
@@ -1970,8 +2340,7 @@ export function MemoryProvider({ children }) {
 
               setMemories((current) =>
                 current.map((item) =>
-                  item.clientMemoryId ===
-                    clientMemoryId ||
+                  item.clientMemoryId === clientMemoryId ||
                   item.id === clientMemoryId
                     ? {
                         ...item,
@@ -1996,7 +2365,10 @@ export function MemoryProvider({ children }) {
         return localMemory;
       } catch (error) {
         if (isCurrentSession(token)) {
-          console.error("Add memory error:", error);
+          console.error(
+            "Add memory error:",
+            error,
+          );
         }
 
         throw error;
@@ -2004,6 +2376,8 @@ export function MemoryProvider({ children }) {
     },
     [
       token,
+      accountId,
+      accountStorage,
       normalizeMemory,
       syncPendingMemories,
       isCurrentSession,
@@ -2012,12 +2386,20 @@ export function MemoryProvider({ children }) {
 
   const updateMemory = useCallback(
     async (memoryId, updatedData) => {
-      if (!token || !isCurrentSession(token)) {
-        throw new Error("You must be logged in.");
+      if (
+        !token ||
+        !accountId ||
+        !isCurrentSession(token)
+      ) {
+        throw new Error(
+          "You must be logged in.",
+        );
       }
 
       if (!memoryId) {
-        throw new Error("Memory ID is required.");
+        throw new Error(
+          "Memory ID is required.",
+        );
       }
 
       const existingMemory = memories.find(
@@ -2027,7 +2409,9 @@ export function MemoryProvider({ children }) {
       );
 
       if (!existingMemory) {
-        throw new Error("Memory not found.");
+        throw new Error(
+          "Memory not found.",
+        );
       }
 
       const customization =
@@ -2048,10 +2432,12 @@ export function MemoryProvider({ children }) {
       };
 
       const pendingCreates =
-        await getPendingMemories();
+        await accountStorage.getPendingMemories();
 
       if (!isCurrentSession(token)) {
-        throw new Error("Your session has ended.");
+        throw new Error(
+          "Your session has ended.",
+        );
       }
 
       const isPendingCreate = Boolean(
@@ -2091,19 +2477,27 @@ export function MemoryProvider({ children }) {
       }
 
       if (!isCurrentSession(token)) {
-        throw new Error("Your session has ended.");
+        throw new Error(
+          "Your session has ended.",
+        );
       }
 
-      await upsertLocalMemory(updatedMemory);
+      await accountStorage.upsertLocalMemory(
+        updatedMemory,
+      );
 
       if (!isCurrentSession(token)) {
-        throw new Error("Your session has ended.");
+        throw new Error(
+          "Your session has ended.",
+        );
       }
 
       if (isPendingCreate) {
-        await addPendingMemory(updatedMemory);
+        await accountStorage.addPendingMemory(
+          updatedMemory,
+        );
       } else {
-        await addPendingMemoryOperation({
+        await accountStorage.addPendingMemoryOperation({
           type: "update",
 
           memoryId:
@@ -2118,7 +2512,9 @@ export function MemoryProvider({ children }) {
       }
 
       if (!isCurrentSession(token)) {
-        throw new Error("Your session has ended.");
+        throw new Error(
+          "Your session has ended.",
+        );
       }
 
       setMemories((current) => {
@@ -2139,13 +2535,17 @@ export function MemoryProvider({ children }) {
       }
 
       if (!isCurrentSession(token)) {
-        throw new Error("Your session has ended.");
+        throw new Error(
+          "Your session has ended.",
+        );
       }
 
       return updatedMemory;
     },
     [
       token,
+      accountId,
+      accountStorage,
       memories,
       normalizeMemory,
       syncPendingMemories,
@@ -2155,12 +2555,20 @@ export function MemoryProvider({ children }) {
 
   const deleteMemory = useCallback(
     async (memoryId) => {
-      if (!token || !isCurrentSession(token)) {
-        throw new Error("You must be logged in.");
+      if (
+        !token ||
+        !accountId ||
+        !isCurrentSession(token)
+      ) {
+        throw new Error(
+          "You must be logged in.",
+        );
       }
 
       if (!memoryId) {
-        throw new Error("Memory ID is required.");
+        throw new Error(
+          "Memory ID is required.",
+        );
       }
 
       const existingMemory = memories.find(
@@ -2173,10 +2581,12 @@ export function MemoryProvider({ children }) {
         existingMemory?.clientMemoryId || null;
 
       const pendingCreates =
-        await getPendingMemories();
+        await accountStorage.getPendingMemories();
 
       if (!isCurrentSession(token)) {
-        throw new Error("Your session has ended.");
+        throw new Error(
+          "Your session has ended.",
+        );
       }
 
       const isPendingCreate = Boolean(
@@ -2190,9 +2600,13 @@ export function MemoryProvider({ children }) {
 
       const activeSync = syncPromiseRef.current;
 
+      const isCurrentAccountSync =
+        activeSync?.token === token &&
+        activeSync?.accountId === accountId;
+
       if (
         isPendingCreate &&
-        activeSync?.token !== token
+        !isCurrentAccountSync
       ) {
         if (
           preparingMemoryIdsRef.current.has(
@@ -2204,19 +2618,25 @@ export function MemoryProvider({ children }) {
           );
         }
 
-        await removePendingMemory(clientMemoryId);
+        await accountStorage.removePendingMemory(
+          clientMemoryId,
+        );
 
         if (!isCurrentSession(token)) {
-          throw new Error("Your session has ended.");
+          throw new Error(
+            "Your session has ended.",
+          );
         }
 
-        await removeLocalMemory(
+        await accountStorage.removeLocalMemory(
           existingMemory?.id || memoryId,
           clientMemoryId,
         );
 
         if (!isCurrentSession(token)) {
-          throw new Error("Your session has ended.");
+          throw new Error(
+            "Your session has ended.",
+          );
         }
 
         setMemories((current) => {
@@ -2236,7 +2656,7 @@ export function MemoryProvider({ children }) {
         return true;
       }
 
-      await addPendingMemoryOperation({
+      await accountStorage.addPendingMemoryOperation({
         type: "delete",
 
         memoryId:
@@ -2248,16 +2668,20 @@ export function MemoryProvider({ children }) {
       });
 
       if (!isCurrentSession(token)) {
-        throw new Error("Your session has ended.");
+        throw new Error(
+          "Your session has ended.",
+        );
       }
 
-      await removeLocalMemory(
+      await accountStorage.removeLocalMemory(
         existingMemory?.id || memoryId,
         clientMemoryId,
       );
 
       if (!isCurrentSession(token)) {
-        throw new Error("Your session has ended.");
+        throw new Error(
+          "Your session has ended.",
+        );
       }
 
       setMemories((current) => {
@@ -2281,13 +2705,17 @@ export function MemoryProvider({ children }) {
       await syncPendingMemories();
 
       if (!isCurrentSession(token)) {
-        throw new Error("Your session has ended.");
+        throw new Error(
+          "Your session has ended.",
+        );
       }
 
       return true;
     },
     [
       token,
+      accountId,
+      accountStorage,
       memories,
       syncPendingMemories,
       isCurrentSession,
@@ -2296,8 +2724,14 @@ export function MemoryProvider({ children }) {
 
   const toggleFavorite = useCallback(
     async (memoryId) => {
-      if (!token || !isCurrentSession(token)) {
-        throw new Error("You must be logged in.");
+      if (
+        !token ||
+        !accountId ||
+        !isCurrentSession(token)
+      ) {
+        throw new Error(
+          "You must be logged in.",
+        );
       }
 
       const existingMemory = memories.find(
@@ -2307,7 +2741,9 @@ export function MemoryProvider({ children }) {
       );
 
       if (!existingMemory) {
-        throw new Error("Memory not found.");
+        throw new Error(
+          "Memory not found.",
+        );
       }
 
       const nextFavorite =
@@ -2320,10 +2756,12 @@ export function MemoryProvider({ children }) {
       };
 
       const pendingCreates =
-        await getPendingMemories();
+        await accountStorage.getPendingMemories();
 
       if (!isCurrentSession(token)) {
-        throw new Error("Your session has ended.");
+        throw new Error(
+          "Your session has ended.",
+        );
       }
 
       const isPendingCreate = Boolean(
@@ -2342,16 +2780,24 @@ export function MemoryProvider({ children }) {
           syncReady: existingMemory.syncReady,
         };
 
-        await upsertLocalMemory(pendingMemory);
+        await accountStorage.upsertLocalMemory(
+          pendingMemory,
+        );
 
         if (!isCurrentSession(token)) {
-          throw new Error("Your session has ended.");
+          throw new Error(
+            "Your session has ended.",
+          );
         }
 
-        await addPendingMemory(pendingMemory);
+        await accountStorage.addPendingMemory(
+          pendingMemory,
+        );
 
         if (!isCurrentSession(token)) {
-          throw new Error("Your session has ended.");
+          throw new Error(
+            "Your session has ended.",
+          );
         }
 
         setMemories((current) => {
@@ -2376,13 +2822,17 @@ export function MemoryProvider({ children }) {
         syncStatus: "synced",
       };
 
-      await upsertLocalMemory(locallyUpdated);
+      await accountStorage.upsertLocalMemory(
+        locallyUpdated,
+      );
 
       if (!isCurrentSession(token)) {
-        throw new Error("Your session has ended.");
+        throw new Error(
+          "Your session has ended.",
+        );
       }
 
-      await addPendingMemoryOperation({
+      await accountStorage.addPendingMemoryOperation({
         type: "favorite",
 
         memoryId:
@@ -2396,7 +2846,9 @@ export function MemoryProvider({ children }) {
       });
 
       if (!isCurrentSession(token)) {
-        throw new Error("Your session has ended.");
+        throw new Error(
+          "Your session has ended.",
+        );
       }
 
       setMemories((current) => {
@@ -2415,13 +2867,17 @@ export function MemoryProvider({ children }) {
       await syncPendingMemories();
 
       if (!isCurrentSession(token)) {
-        throw new Error("Your session has ended.");
+        throw new Error(
+          "Your session has ended.",
+        );
       }
 
       return locallyUpdated;
     },
     [
       token,
+      accountId,
+      accountStorage,
       memories,
       syncPendingMemories,
       isCurrentSession,
@@ -2439,26 +2895,39 @@ export function MemoryProvider({ children }) {
   );
 
   const syncNow = useCallback(async () => {
-    if (!token || !isCurrentSession(token)) {
+    if (
+      !token ||
+      !accountId ||
+      !isCurrentSession(token)
+    ) {
       return;
     }
 
     await syncPendingMemories();
   }, [
     token,
+    accountId,
     syncPendingMemories,
     isCurrentSession,
   ]);
 
   const clearMemories = useCallback(async () => {
-    if (!token || !isCurrentSession(token)) {
-      throw new Error("You must be logged in.");
+    if (
+      !token ||
+      !accountId ||
+      !isCurrentSession(token)
+    ) {
+      throw new Error(
+        "You must be logged in.",
+      );
     }
 
     const result = await deleteAllMemoriesApi(token);
 
     if (!isCurrentSession(token)) {
-      throw new Error("Your session has ended.");
+      throw new Error(
+        "Your session has ended.",
+      );
     }
 
     if (!result.success) {
@@ -2468,34 +2937,47 @@ export function MemoryProvider({ children }) {
       );
     }
 
-    await clearLocalMemories();
+    await accountStorage.clearLocalMemories();
 
     if (!isCurrentSession(token)) {
-      throw new Error("Your session has ended.");
+      throw new Error(
+        "Your session has ended.",
+      );
     }
 
-    await clearPendingMemoryOperations();
+    await accountStorage.clearPendingMemoryOperations();
 
     if (!isCurrentSession(token)) {
-      throw new Error("Your session has ended.");
+      throw new Error(
+        "Your session has ended.",
+      );
     }
 
-    const pending = await getPendingMemories();
+    const pending =
+      await accountStorage.getPendingMemories();
 
     if (!isCurrentSession(token)) {
-      throw new Error("Your session has ended.");
+      throw new Error(
+        "Your session has ended.",
+      );
     }
 
     await Promise.all(
       pending
-        .filter((memory) => memory.clientMemoryId)
+        .filter(
+          (memory) => memory.clientMemoryId,
+        )
         .map((memory) =>
-          removePendingMemory(memory.clientMemoryId),
+          accountStorage.removePendingMemory(
+            memory.clientMemoryId,
+          ),
         ),
     );
 
     if (!isCurrentSession(token)) {
-      throw new Error("Your session has ended.");
+      throw new Error(
+        "Your session has ended.",
+      );
     }
 
     setMemories([]);
@@ -2505,7 +2987,12 @@ export function MemoryProvider({ children }) {
       deletedCount:
         result.data?.deletedCount || 0,
     };
-  }, [token, isCurrentSession]);
+  }, [
+    token,
+    accountId,
+    accountStorage,
+    isCurrentSession,
+  ]);
 
   const contextValue = useMemo(
     () => ({

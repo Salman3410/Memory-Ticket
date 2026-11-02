@@ -2,29 +2,21 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as FileSystem from "expo-file-system/legacy";
 import * as ImageManipulator from "expo-image-manipulator";
 
-const PENDING_MEMORIES_KEY = "@memory_ticket_pending_memories";
-const LOCAL_MEMORIES_KEY = "@memory_ticket_local_memories";
-const PENDING_MEMORY_OPERATIONS_KEY =
+const LEGACY_PENDING_MEMORIES_KEY = "@memory_ticket_pending_memories";
+const LEGACY_LOCAL_MEMORIES_KEY = "@memory_ticket_local_memories";
+const LEGACY_PENDING_OPERATIONS_KEY =
   "@memory_ticket_pending_memory_operations";
 
-const OFFLINE_IMAGES_DIRECTORY = FileSystem.documentDirectory
+const STORAGE_NAMESPACE = "@memento_account";
+
+const OFFLINE_IMAGES_ROOT = FileSystem.documentDirectory
   ? `${FileSystem.documentDirectory}memory-ticket-offline/`
   : null;
 
 const MAX_IMAGE_SIZE = 1600;
 const IMAGE_QUALITY = 0.8;
 
-const hashString = (value) => {
-  let hash = 2166136261;
-  const input = String(value);
-
-  for (let i = 0; i < input.length; i += 1) {
-    hash ^= input.charCodeAt(i);
-    hash = Math.imul(hash, 16777619);
-  }
-
-  return (hash >>> 0).toString(16);
-};
+const accountStates = new Map();
 
 const perfNow = () =>
   globalThis.performance?.now?.() ?? Date.now();
@@ -36,6 +28,99 @@ const logPerf = (label, startedAt, details = {}) => {
     durationMs: Number((perfNow() - startedAt).toFixed(1)),
     ...details,
   });
+};
+
+const hashString = (value) => {
+  let hash = 2166136261;
+  const input = String(value);
+
+  for (let index = 0; index < input.length; index += 1) {
+    hash ^= input.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return (hash >>> 0).toString(16);
+};
+
+const normalizeAccountId = (accountId) => {
+  if (
+    accountId === undefined ||
+    accountId === null ||
+    String(accountId).trim() === ""
+  ) {
+    throw new Error(
+      "A valid account ID is required for offline memory storage.",
+    );
+  }
+
+  return String(accountId).trim();
+};
+
+const getAccountStorageId = (accountId) =>
+  encodeURIComponent(normalizeAccountId(accountId));
+
+const getAccountStorageKeys = (accountId) => {
+  const storageId = getAccountStorageId(accountId);
+  const prefix = `${STORAGE_NAMESPACE}:${storageId}`;
+
+  return {
+    pendingMemories: `${prefix}:pending_memories`,
+    localMemories: `${prefix}:local_memories`,
+    pendingOperations: `${prefix}:pending_operations`,
+  };
+};
+
+const getAccountImagesDirectory = (accountId) => {
+  if (!OFFLINE_IMAGES_ROOT) return null;
+
+  return (
+    `${OFFLINE_IMAGES_ROOT}` +
+    `${getAccountStorageId(accountId)}/`
+  );
+};
+
+const createAccountState = (accountId) => ({
+  accountId: normalizeAccountId(accountId),
+
+  storageId: getAccountStorageId(accountId),
+
+  keys: getAccountStorageKeys(accountId),
+
+  imagesDirectory: getAccountImagesDirectory(accountId),
+
+  pendingMemoriesCache: null,
+  localMemoriesCache: null,
+  pendingOperationsCache: null,
+
+  pendingWritePromise: Promise.resolve(),
+  localWritePromise: Promise.resolve(),
+  pendingOperationsWritePromise: Promise.resolve(),
+
+  directoryPromise: null,
+
+  generation: 0,
+  clearing: false,
+  clearPromise: null,
+
+  activeOperations: new Set(),
+});
+
+const getAccountState = (accountId) => {
+  const normalizedAccountId =
+    normalizeAccountId(accountId);
+
+  const storageId =
+    getAccountStorageId(normalizedAccountId);
+
+  let state = accountStates.get(storageId);
+
+  if (!state) {
+    state = createAccountState(normalizedAccountId);
+
+    accountStates.set(storageId, state);
+  }
+
+  return state;
 };
 
 const getMemoryKeys = (memory) =>
@@ -51,128 +136,121 @@ const getMemoryKeys = (memory) =>
     ),
   ];
 
-let pendingMemoriesCache = null;
-let localMemoriesCache = null;
-let pendingMemoryOperationsCache = null;
+const assertRecordOwner = (
+  record,
+  accountId,
+  label,
+) => {
+  if (!record || typeof record !== "object") {
+    throw new Error(`${label} must be an object.`);
+  }
 
-let pendingMemoryOperationsWritePromise = Promise.resolve();
-let pendingWritePromise = Promise.resolve();
-let localWritePromise = Promise.resolve();
-let offlineDirectoryPromise = null;
+  if (
+    record.ownerAccountId &&
+    String(record.ownerAccountId) !== String(accountId)
+  ) {
+    throw new Error(
+      `${label} belongs to a different account. Storage operation rejected.`,
+    );
+  }
 
-/*
- * Account-deletion cleanup state.
- *
- * While cleanup is running:
- * - New tracked operations are rejected.
- * - Queued storage writes cannot write old data back.
- * - Existing tracked operations are allowed to finish or cancel.
- * - Cleanup deletes the persistent storage only after they settle.
- *
- * If cleanup fails, storage remains locked until cleanup succeeds.
- */
-let offlineMemoryDataGeneration = 0;
-let clearingOfflineMemoryData = false;
-let clearOfflineMemoryDataPromise = null;
+  return {
+    ...record,
+    ownerAccountId: String(accountId),
+  };
+};
 
-const activeOfflineOperations = new Set();
+const assertOperationActive = (
+  state,
+  generation,
+) => {
+  if (
+    state.clearing ||
+    generation !== state.generation
+  ) {
+    throw new Error(
+      "Offline memory operation cancelled because this account's storage is being cleared.",
+    );
+  }
+};
 
-const runTrackedOperation = (operation) => {
-  if (clearingOfflineMemoryData) {
+const runTrackedOperation = (
+  accountId,
+  operation,
+) => {
+  const state = getAccountState(accountId);
+
+  if (state.clearing) {
     return Promise.reject(
       new Error(
-        "Offline memory storage is being cleared.",
+        "This account's offline memory storage is being cleared.",
       ),
     );
   }
 
-  const generation = offlineMemoryDataGeneration;
+  const generation = state.generation;
 
   let trackedPromise;
 
   trackedPromise = (async () => {
-    if (
-      clearingOfflineMemoryData ||
-      generation !== offlineMemoryDataGeneration
-    ) {
-      throw new Error(
-        "Offline memory operation cancelled.",
-      );
-    }
+    assertOperationActive(state, generation);
 
-    return operation(generation);
+    return operation(state, generation);
   })();
 
-  activeOfflineOperations.add(trackedPromise);
+  state.activeOperations.add(trackedPromise);
 
   trackedPromise.then(
     () => {
-      activeOfflineOperations.delete(trackedPromise);
+      state.activeOperations.delete(trackedPromise);
     },
     () => {
-      activeOfflineOperations.delete(trackedPromise);
+      state.activeOperations.delete(trackedPromise);
     },
   );
 
   return trackedPromise;
 };
 
-const assertOperationActive = (generation) => {
-  if (
-    clearingOfflineMemoryData ||
-    generation !== offlineMemoryDataGeneration
-  ) {
-    throw new Error(
-      "Offline memory operation cancelled because storage is being cleared.",
-    );
-  }
-};
+const ensureOfflineDirectory = async (
+  state,
+  generation,
+) => {
+  assertOperationActive(state, generation);
 
-const ensureOfflineDirectory = async () => {
-  if (clearingOfflineMemoryData) {
-    throw new Error(
-      "Offline memory storage is being cleared.",
-    );
-  }
-
-  if (!OFFLINE_IMAGES_DIRECTORY) {
+  if (!state.imagesDirectory) {
     throw new Error(
       "The document directory is unavailable.",
     );
   }
 
-  if (!offlineDirectoryPromise) {
-    offlineDirectoryPromise = (async () => {
-      const directoryInfo = await FileSystem.getInfoAsync(
-        OFFLINE_IMAGES_DIRECTORY,
-      );
-
-      if (clearingOfflineMemoryData) {
-        throw new Error(
-          "Offline memory storage is being cleared.",
+  if (!state.directoryPromise) {
+    state.directoryPromise = (async () => {
+      const directoryInfo =
+        await FileSystem.getInfoAsync(
+          state.imagesDirectory,
         );
-      }
+
+      assertOperationActive(state, generation);
 
       if (!directoryInfo.exists) {
         await FileSystem.makeDirectoryAsync(
-          OFFLINE_IMAGES_DIRECTORY,
+          state.imagesDirectory,
           {
             intermediates: true,
           },
         );
       }
+
+      assertOperationActive(state, generation);
     })().catch((error) => {
-      offlineDirectoryPromise = null;
+      state.directoryPromise = null;
       throw error;
     });
   }
 
-  return offlineDirectoryPromise;
+  return state.directoryPromise;
 };
-
-/* ============================================================
-   IDS AND IMAGE COMPRESSION
-============================================================ */
 
 export const generateClientMemoryId = () =>
   `memory-${Date.now()}-${Math.random()
@@ -196,16 +274,17 @@ export const compressImage = async (uri) => {
 
     return result.uri;
   } catch (error) {
-    console.error("Image compression error:", error);
+    console.error(
+      "Image compression error:",
+      error,
+    );
+
     return uri;
   }
 };
 
-/* ============================================================
-   PERSIST IMAGE
-============================================================ */
-
 const persistImageInternal = async (
+  state,
   uri,
   clientMemoryId,
   index,
@@ -215,18 +294,44 @@ const persistImageInternal = async (
     throw new Error("Image URI is required.");
   }
 
-  assertOperationActive(generation);
+  assertOperationActive(state, generation);
 
-  await ensureOfflineDirectory();
+  await ensureOfflineDirectory(
+    state,
+    generation,
+  );
 
-  assertOperationActive(generation);
+  assertOperationActive(state, generation);
 
-  if (uri.startsWith(OFFLINE_IMAGES_DIRECTORY)) {
-    const localInfo = await FileSystem.getInfoAsync(uri);
+  const isInOfflineRoot = Boolean(
+    OFFLINE_IMAGES_ROOT &&
+      uri.startsWith(OFFLINE_IMAGES_ROOT),
+  );
 
-    assertOperationActive(generation);
+  const isInThisAccountDirectory = Boolean(
+    state.imagesDirectory &&
+      uri.startsWith(state.imagesDirectory),
+  );
 
-    if (localInfo.exists && (localInfo.size ?? 0) > 0) {
+  if (
+    isInOfflineRoot &&
+    !isInThisAccountDirectory
+  ) {
+    throw new Error(
+      "The image belongs to another account's offline storage.",
+    );
+  }
+
+  if (isInThisAccountDirectory) {
+    const localInfo =
+      await FileSystem.getInfoAsync(uri);
+
+    assertOperationActive(state, generation);
+
+    if (
+      localInfo.exists &&
+      (localInfo.size ?? 0) > 0
+    ) {
       return uri;
     }
 
@@ -240,14 +345,13 @@ const persistImageInternal = async (
   ).replace(/[^a-zA-Z0-9-_]/g, "_");
 
   const destination =
-    `${OFFLINE_IMAGES_DIRECTORY}` +
+    `${state.imagesDirectory}` +
     `${safeMemoryId}-${index}-${hashString(uri)}.jpg`;
 
-  const destinationInfo = await FileSystem.getInfoAsync(
-    destination,
-  );
+  const destinationInfo =
+    await FileSystem.getInfoAsync(destination);
 
-  assertOperationActive(generation);
+  assertOperationActive(state, generation);
 
   if (
     destinationInfo.exists &&
@@ -277,34 +381,33 @@ const persistImageInternal = async (
         `memento-download-${hashString(uri)}-${Date.now()}-` +
         `${Math.random().toString(36).slice(2, 8)}.jpg`;
 
-      const downloadResult = await FileSystem.downloadAsync(
-        uri,
-        downloadedTempUri,
-      );
+      const downloadResult =
+        await FileSystem.downloadAsync(
+          uri,
+          downloadedTempUri,
+        );
 
-      assertOperationActive(generation);
+      assertOperationActive(state, generation);
 
       sourceUri = downloadResult.uri;
     }
 
-    compressedUri = await compressImage(sourceUri);
+    compressedUri =
+      await compressImage(sourceUri);
 
-    assertOperationActive(generation);
-
-    assertOperationActive(generation);
+    assertOperationActive(state, generation);
 
     await FileSystem.copyAsync({
       from: compressedUri,
       to: destination,
     });
 
-    assertOperationActive(generation);
+    assertOperationActive(state, generation);
 
-    const savedInfo = await FileSystem.getInfoAsync(
-      destination,
-    );
+    const savedInfo =
+      await FileSystem.getInfoAsync(destination);
 
-    assertOperationActive(generation);
+    assertOperationActive(state, generation);
 
     if (
       !savedInfo.exists ||
@@ -318,9 +421,10 @@ const persistImageInternal = async (
     return destination;
   } catch (error) {
     try {
-      await FileSystem.deleteAsync(destination, {
-        idempotent: true,
-      });
+      await FileSystem.deleteAsync(
+        destination,
+        { idempotent: true },
+      );
     } catch {}
 
     throw error;
@@ -335,11 +439,8 @@ const persistImageInternal = async (
       compressedUri &&
       compressedUri !== sourceUri &&
       compressedUri !== uri &&
-      (
-        !OFFLINE_IMAGES_DIRECTORY ||
-        !compressedUri.startsWith(
-          OFFLINE_IMAGES_DIRECTORY,
-        )
+      !compressedUri.startsWith(
+        state.imagesDirectory,
       )
     ) {
       temporaryFiles.add(compressedUri);
@@ -347,37 +448,49 @@ const persistImageInternal = async (
 
     for (const temporaryUri of temporaryFiles) {
       try {
-        await FileSystem.deleteAsync(temporaryUri, {
-          idempotent: true,
-        });
+        await FileSystem.deleteAsync(
+          temporaryUri,
+          { idempotent: true },
+        );
       } catch {}
     }
   }
 };
 
 export const persistImage = (
+  accountId,
   uri,
   clientMemoryId,
   index,
 ) =>
-  runTrackedOperation((generation) =>
-    persistImageInternal(
-      uri,
-      clientMemoryId,
-      index,
-      generation,
-    ),
+  runTrackedOperation(
+    accountId,
+    (state, generation) =>
+      persistImageInternal(
+        state,
+        uri,
+        clientMemoryId,
+        index,
+        generation,
+      ),
   );
 
-/* ============================================================
-   PERSIST MEMORY IMAGES
-============================================================ */
-
 const persistMemoryImagesInternal = async (
+  state,
   memory,
   generation,
 ) => {
-  assertOperationActive(generation);
+  assertOperationActive(state, generation);
+
+  if (!memory || typeof memory !== "object") {
+    throw new Error("Memory data is required.");
+  }
+
+  assertRecordOwner(
+    memory,
+    state.accountId,
+    "Memory",
+  );
 
   const clientMemoryId = String(
     memory.clientMemoryId ||
@@ -387,7 +500,8 @@ const persistMemoryImagesInternal = async (
   );
 
   const images =
-    Array.isArray(memory.images) && memory.images.length
+    Array.isArray(memory.images) &&
+    memory.images.length
       ? memory.images
       : Array.isArray(memory.localImages) &&
           memory.localImages.length
@@ -397,24 +511,38 @@ const persistMemoryImagesInternal = async (
           : [];
 
   if (!images.length) {
-    throw new Error("At least one image is required.");
+    throw new Error(
+      "At least one image is required.",
+    );
   }
 
   const startedAt = perfNow();
+
   const limitedImages = images.slice(0, 5);
 
   const localImages = await Promise.all(
     limitedImages.map((uri, index) =>
-      persistImage(uri, clientMemoryId, index),
+      persistImageInternal(
+        state,
+        uri,
+        clientMemoryId,
+        index,
+        generation,
+      ),
     ),
   );
 
-  assertOperationActive(generation);
+  assertOperationActive(state, generation);
 
-  logPerf("Persist memory images", startedAt, {
-    imageCount: limitedImages.length,
-    memoryId: clientMemoryId,
-  });
+  logPerf(
+    "Persist memory images",
+    startedAt,
+    {
+      imageCount: limitedImages.length,
+      memoryId: clientMemoryId,
+      account: state.storageId,
+    },
+  );
 
   return {
     clientMemoryId,
@@ -422,54 +550,73 @@ const persistMemoryImagesInternal = async (
   };
 };
 
-export const persistMemoryImages = (memory) =>
-  runTrackedOperation((generation) =>
-    persistMemoryImagesInternal(memory, generation),
+export const persistMemoryImages = (
+  accountId,
+  memory,
+) =>
+  runTrackedOperation(
+    accountId,
+    (state, generation) =>
+      persistMemoryImagesInternal(
+        state,
+        memory,
+        generation,
+      ),
   );
 
-/* ============================================================
-   PENDING MEMORIES
-============================================================ */
+export const getPendingMemories = async (
+  accountId,
+) => {
+  const state = getAccountState(accountId);
 
-export const getPendingMemories = async () => {
-  if (clearingOfflineMemoryData) {
-    return [];
+  if (state.clearing) return [];
+
+  if (state.pendingMemoriesCache !== null) {
+    return state.pendingMemoriesCache;
   }
 
-  if (pendingMemoriesCache !== null) {
-    return pendingMemoriesCache;
-  }
-
-  const generation = offlineMemoryDataGeneration;
+  const generation = state.generation;
 
   try {
     const raw = await AsyncStorage.getItem(
-      PENDING_MEMORIES_KEY,
+      state.keys.pendingMemories,
     );
 
     if (
-      clearingOfflineMemoryData ||
-      generation !== offlineMemoryDataGeneration
+      state.clearing ||
+      generation !== state.generation
     ) {
       return [];
     }
 
     if (!raw) {
-      pendingMemoriesCache = [];
-      return pendingMemoriesCache;
+      state.pendingMemoriesCache = [];
+      return state.pendingMemoriesCache;
     }
 
     const parsed = JSON.parse(raw);
 
-    pendingMemoriesCache = Array.isArray(parsed)
+    const records = Array.isArray(parsed)
       ? parsed
       : [];
 
-    return pendingMemoriesCache;
+    state.pendingMemoriesCache = records
+      .filter(
+        (record) =>
+          !record?.ownerAccountId ||
+          String(record.ownerAccountId) ===
+            state.accountId,
+      )
+      .map((record) => ({
+        ...record,
+        ownerAccountId: state.accountId,
+      }));
+
+    return state.pendingMemoriesCache;
   } catch (error) {
     if (
-      clearingOfflineMemoryData ||
-      generation !== offlineMemoryDataGeneration
+      state.clearing ||
+      generation !== state.generation
     ) {
       return [];
     }
@@ -479,142 +626,197 @@ export const getPendingMemories = async () => {
       error,
     );
 
-    pendingMemoriesCache = [];
-    return pendingMemoriesCache;
+    state.pendingMemoriesCache = [];
+
+    return state.pendingMemoriesCache;
   }
 };
 
-const writePendingMemories = (memories) => {
-  if (clearingOfflineMemoryData) {
+const writePendingMemories = (
+  state,
+  memories,
+  generation,
+) => {
+  if (state.clearing) {
     return Promise.resolve([]);
   }
 
-  const generation = offlineMemoryDataGeneration;
-
-  pendingMemoriesCache = Array.isArray(memories)
-    ? memories
+  const snapshot = Array.isArray(memories)
+    ? memories.map((memory) =>
+        assertRecordOwner(
+          memory,
+          state.accountId,
+          "Pending memory",
+        ),
+      )
     : [];
 
-  pendingWritePromise = pendingWritePromise
-    .catch(() => {})
-    .then(() => {
-      if (
-        clearingOfflineMemoryData ||
-        generation !== offlineMemoryDataGeneration
-      ) {
-        return;
-      }
+  state.pendingMemoriesCache = snapshot;
 
-      return AsyncStorage.setItem(
-        PENDING_MEMORIES_KEY,
-        JSON.stringify(pendingMemoriesCache),
-      );
-    });
+  state.pendingWritePromise =
+    state.pendingWritePromise
+      .catch(() => {})
+      .then(() => {
+        if (
+          state.clearing ||
+          generation !== state.generation
+        ) {
+          return;
+        }
 
-  return pendingWritePromise.then(
-    () => pendingMemoriesCache,
+        return AsyncStorage.setItem(
+          state.keys.pendingMemories,
+          JSON.stringify(snapshot),
+        );
+      });
+
+  return state.pendingWritePromise.then(
+    () => state.pendingMemoriesCache,
   );
 };
 
-export const savePendingMemories = (memories) =>
-  runTrackedOperation(() =>
-    writePendingMemories(memories),
+export const savePendingMemories = (
+  accountId,
+  memories,
+) =>
+  runTrackedOperation(
+    accountId,
+    (state, generation) =>
+      writePendingMemories(
+        state,
+        memories,
+        generation,
+      ),
   );
 
-export const addPendingMemory = (memory) =>
-  runTrackedOperation(async () => {
-    const current = await getPendingMemories();
-
-    if (clearingOfflineMemoryData) {
-      throw new Error(
-        "Offline memory storage is being cleared.",
+export const addPendingMemory = (
+  accountId,
+  memory,
+) =>
+  runTrackedOperation(
+    accountId,
+    async (state, generation) => {
+      const ownedMemory = assertRecordOwner(
+        memory,
+        state.accountId,
+        "Pending memory",
       );
-    }
 
-    const index = current.findIndex(
-      (item) =>
-        item.clientMemoryId === memory.clientMemoryId,
-    );
+      const current = await getPendingMemories(
+        state.accountId,
+      );
 
-    let next;
+      assertOperationActive(state, generation);
 
-    if (index >= 0) {
-      next = current.slice();
+      const index = current.findIndex(
+        (item) =>
+          String(item.clientMemoryId || "") ===
+          String(ownedMemory.clientMemoryId || ""),
+      );
 
-      next[index] = {
-        ...next[index],
-        ...memory,
-      };
-    } else {
-      next = [memory, ...current];
-    }
+      let next;
 
-    return writePendingMemories(next);
-  });
+      if (index >= 0) {
+        next = current.slice();
+
+        next[index] = {
+          ...next[index],
+          ...ownedMemory,
+        };
+      } else {
+        next = [ownedMemory, ...current];
+      }
+
+      return writePendingMemories(
+        state,
+        next,
+        generation,
+      );
+    },
+  );
 
 export const removePendingMemory = (
+  accountId,
   clientMemoryId,
 ) =>
-  runTrackedOperation(async () => {
-    const current = await getPendingMemories();
-
-    if (clearingOfflineMemoryData) {
-      throw new Error(
-        "Offline memory storage is being cleared.",
+  runTrackedOperation(
+    accountId,
+    async (state, generation) => {
+      const current = await getPendingMemories(
+        state.accountId,
       );
-    }
 
-    return writePendingMemories(
-      current.filter(
-        (memory) =>
-          memory.clientMemoryId !== clientMemoryId,
-      ),
-    );
-  });
+      assertOperationActive(state, generation);
+
+      return writePendingMemories(
+        state,
+        current.filter(
+          (memory) =>
+            String(memory.clientMemoryId || "") !==
+            String(clientMemoryId || ""),
+        ),
+        generation,
+      );
+    },
+  );
 
 /* ============================================================
    LOCAL MEMORIES
 ============================================================ */
 
-export const getLocalMemories = async () => {
-  if (clearingOfflineMemoryData) {
-    return [];
+export const getLocalMemories = async (
+  accountId,
+) => {
+  const state = getAccountState(accountId);
+
+  if (state.clearing) return [];
+
+  if (state.localMemoriesCache !== null) {
+    return state.localMemoriesCache;
   }
 
-  if (localMemoriesCache !== null) {
-    return localMemoriesCache;
-  }
-
-  const generation = offlineMemoryDataGeneration;
+  const generation = state.generation;
 
   try {
     const raw = await AsyncStorage.getItem(
-      LOCAL_MEMORIES_KEY,
+      state.keys.localMemories,
     );
 
     if (
-      clearingOfflineMemoryData ||
-      generation !== offlineMemoryDataGeneration
+      state.clearing ||
+      generation !== state.generation
     ) {
       return [];
     }
 
     if (!raw) {
-      localMemoriesCache = [];
-      return localMemoriesCache;
+      state.localMemoriesCache = [];
+      return state.localMemoriesCache;
     }
 
     const parsed = JSON.parse(raw);
 
-    localMemoriesCache = Array.isArray(parsed)
+    const records = Array.isArray(parsed)
       ? parsed
       : [];
 
-    return localMemoriesCache;
+    state.localMemoriesCache = records
+      .filter(
+        (record) =>
+          !record?.ownerAccountId ||
+          String(record.ownerAccountId) ===
+            state.accountId,
+      )
+      .map((record) => ({
+        ...record,
+        ownerAccountId: state.accountId,
+      }));
+
+    return state.localMemoriesCache;
   } catch (error) {
     if (
-      clearingOfflineMemoryData ||
-      generation !== offlineMemoryDataGeneration
+      state.clearing ||
+      generation !== state.generation
     ) {
       return [];
     }
@@ -624,386 +826,525 @@ export const getLocalMemories = async () => {
       error,
     );
 
-    localMemoriesCache = [];
-    return localMemoriesCache;
+    state.localMemoriesCache = [];
+
+    return state.localMemoriesCache;
   }
 };
 
-const writeLocalMemories = (memories) => {
-  if (clearingOfflineMemoryData) {
+const writeLocalMemories = (
+  state,
+  memories,
+  generation,
+) => {
+  if (state.clearing) {
     return Promise.resolve([]);
   }
 
-  const generation = offlineMemoryDataGeneration;
-
-  localMemoriesCache = Array.isArray(memories)
-    ? memories
+  const snapshot = Array.isArray(memories)
+    ? memories.map((memory) =>
+        assertRecordOwner(
+          memory,
+          state.accountId,
+          "Local memory",
+        ),
+      )
     : [];
+
+  state.localMemoriesCache = snapshot;
 
   const writeStartedAt = perfNow();
 
-  localWritePromise = localWritePromise
-    .catch(() => {})
-    .then(() => {
-      if (
-        clearingOfflineMemoryData ||
-        generation !== offlineMemoryDataGeneration
-      ) {
-        return;
-      }
+  state.localWritePromise =
+    state.localWritePromise
+      .catch(() => {})
+      .then(() => {
+        if (
+          state.clearing ||
+          generation !== state.generation
+        ) {
+          return;
+        }
 
-      return AsyncStorage.setItem(
-        LOCAL_MEMORIES_KEY,
-        JSON.stringify(localMemoriesCache),
-      );
-    })
-    .then((result) => {
-      logPerf(
-        "AsyncStorage local memories write",
-        writeStartedAt,
-        {
-          count: localMemoriesCache.length,
-        },
-      );
+        return AsyncStorage.setItem(
+          state.keys.localMemories,
+          JSON.stringify(snapshot),
+        );
+      })
+      .then((result) => {
+        logPerf(
+          "AsyncStorage local memories write",
+          writeStartedAt,
+          {
+            count: snapshot.length,
+            account: state.storageId,
+          },
+        );
 
-      return result;
-    });
+        return result;
+      });
 
-  return localWritePromise.then(
-    () => localMemoriesCache,
+  return state.localWritePromise.then(
+    () => state.localMemoriesCache,
   );
 };
 
-export const saveLocalMemories = (memories) =>
-  runTrackedOperation(() =>
-    writeLocalMemories(memories),
+export const saveLocalMemories = (
+  accountId,
+  memories,
+) =>
+  runTrackedOperation(
+    accountId,
+    (state, generation) =>
+      writeLocalMemories(
+        state,
+        memories,
+        generation,
+      ),
   );
 
-const findLocalMemoryIndex = (memories, memory) => {
+const findLocalMemoryIndex = (
+  memories,
+  memory,
+) => {
   const keys = new Set(getMemoryKeys(memory));
 
   if (!keys.size) return -1;
 
   return memories.findIndex((item) =>
-    getMemoryKeys(item).some((key) => keys.has(key)),
+    getMemoryKeys(item).some((key) =>
+      keys.has(key),
+    ),
   );
 };
 
-export const upsertLocalMemory = (memory) =>
-  runTrackedOperation(async () => {
-    const current = await getLocalMemories();
-
-    if (clearingOfflineMemoryData) {
-      throw new Error(
-        "Offline memory storage is being cleared.",
-      );
-    }
-
-    const next = current.slice();
-    const index = findLocalMemoryIndex(next, memory);
-
-    if (index >= 0) {
-      next[index] = {
-        ...next[index],
-        ...memory,
-      };
-    } else {
-      next.unshift(memory);
-    }
-
-    return writeLocalMemories(next);
-  });
-
-export const upsertLocalMemories = (memories) =>
-  runTrackedOperation(async () => {
-    if (!Array.isArray(memories) || memories.length === 0) {
-      return getLocalMemories();
-    }
-
-    const startedAt = perfNow();
-    const current = await getLocalMemories();
-
-    if (clearingOfflineMemoryData) {
-      throw new Error(
-        "Offline memory storage is being cleared.",
-      );
-    }
-
-    const next = current.slice();
-
-    const existingIndex = new Map();
-
-    for (let index = 0; index < next.length; index += 1) {
-      for (const key of getMemoryKeys(next[index])) {
-        existingIndex.set(key, index);
-      }
-    }
-
-    const newRecords = [];
-    const newRecordIndex = new Map();
-
-    for (const memory of memories) {
-      const keys = getMemoryKeys(memory);
-
-      if (!keys.length) continue;
-
-      let matchedIndex;
-
-      for (const key of keys) {
-        if (existingIndex.has(key)) {
-          matchedIndex = existingIndex.get(key);
-          break;
-        }
-
-        if (newRecordIndex.has(key)) {
-          matchedIndex = newRecordIndex.get(key);
-          break;
-        }
-      }
-
-      if (matchedIndex !== undefined) {
-        if (matchedIndex < next.length) {
-          next[matchedIndex] = {
-            ...next[matchedIndex],
-            ...memory,
-          };
-
-          for (const key of keys) {
-            existingIndex.set(key, matchedIndex);
-          }
-        } else {
-          const newIndex = matchedIndex - next.length;
-
-          newRecords[newIndex] = {
-            ...newRecords[newIndex],
-            ...memory,
-          };
-
-          for (const key of keys) {
-            newRecordIndex.set(key, matchedIndex);
-          }
-        }
-
-        continue;
-      }
-
-      const newIndex = newRecords.length;
-      newRecords.push(memory);
-
-      for (const key of keys) {
-        newRecordIndex.set(key, next.length + newIndex);
-      }
-    }
-
-    const result = [...newRecords.reverse(), ...next];
-
-    logPerf("Build local memory upsert batch", startedAt, {
-      incoming: memories.length,
-      existing: current.length,
-      newRecords: newRecords.length,
-    });
-
-    return writeLocalMemories(result);
-  });
-
-export const reconcileLocalMemories = ({
-  serverMemories = [],
-  pendingMemories = [],
-  pendingOperations = [],
-} = {}) =>
-  runTrackedOperation(async () => {
-    if (!Array.isArray(serverMemories)) {
-      throw new Error(
-        "Cannot reconcile local memories without a complete server list.",
-      );
-    }
-
-    const startedAt = perfNow();
-
-    const serverKeys = new Set(
-      serverMemories.flatMap(getMemoryKeys),
-    );
-
-    const pendingCreateKeys = new Set(
-      pendingMemories.flatMap(getMemoryKeys),
-    );
-
-    const pendingDeleteKeys = new Set();
-    const pendingMutationKeys = new Set();
-
-    for (const operation of pendingOperations) {
-      const keys = [
-        operation.clientMemoryId,
-        operation.memoryId,
-      ]
-        .filter(Boolean)
-        .map(String);
-
-      const target =
-        operation.type === "delete"
-          ? pendingDeleteKeys
-          : pendingMutationKeys;
-
-      for (const key of keys) {
-        target.add(key);
-      }
-    }
-
-    const current = await getLocalMemories();
-
-    if (clearingOfflineMemoryData) {
-      throw new Error(
-        "Offline memory storage is being cleared.",
-      );
-    }
-
-    const retained = current.filter((memory) => {
-      const keys = getMemoryKeys(memory);
-
-      if (
-        keys.some((key) => pendingDeleteKeys.has(key))
-      ) {
-        return false;
-      }
-
-      if (keys.some((key) => serverKeys.has(key))) {
-        return true;
-      }
-
-      if (
-        keys.some((key) => pendingCreateKeys.has(key))
-      ) {
-        return true;
-      }
-
-      if (
-        keys.some((key) => pendingMutationKeys.has(key))
-      ) {
-        return true;
-      }
-
-      if (
-        memory.syncStatus === "pending" ||
-        memory.syncReady === false ||
-        memory.hasPendingChanges === true
-      ) {
-        return true;
-      }
-
-      return false;
-    });
-
-    await writeLocalMemories(retained);
-
-    logPerf("Reconcile local memories", startedAt, {
-      before: current.length,
-      after: retained.length,
-      removed: current.length - retained.length,
-    });
-
-    return retained;
-  });
-
-export const removeLocalMemory = (
-  memoryId,
-  clientMemoryId = null,
+export const upsertLocalMemory = (
+  accountId,
+  memory,
 ) =>
-  runTrackedOperation(async () => {
-    const current = await getLocalMemories();
-
-    if (clearingOfflineMemoryData) {
-      throw new Error(
-        "Offline memory storage is being cleared.",
+  runTrackedOperation(
+    accountId,
+    async (state, generation) => {
+      const ownedMemory = assertRecordOwner(
+        memory,
+        state.accountId,
+        "Local memory",
       );
-    }
 
-    const targetKeys = new Set(
-      [clientMemoryId, memoryId]
-        .filter(Boolean)
-        .map(String),
-    );
+      const current = await getLocalMemories(
+        state.accountId,
+      );
 
-    const next = current.filter(
-      (memory) =>
-        !getMemoryKeys(memory).some((key) =>
-          targetKeys.has(key),
+      assertOperationActive(state, generation);
+
+      const next = current.slice();
+
+      const index = findLocalMemoryIndex(
+        next,
+        ownedMemory,
+      );
+
+      if (index >= 0) {
+        next[index] = {
+          ...next[index],
+          ...ownedMemory,
+        };
+      } else {
+        next.unshift(ownedMemory);
+      }
+
+      return writeLocalMemories(
+        state,
+        next,
+        generation,
+      );
+    },
+  );
+
+export const upsertLocalMemories = (
+  accountId,
+  memories,
+) =>
+  runTrackedOperation(
+    accountId,
+    async (state, generation) => {
+      if (
+        !Array.isArray(memories) ||
+        memories.length === 0
+      ) {
+        return getLocalMemories(state.accountId);
+      }
+
+      const startedAt = perfNow();
+
+      const incoming = memories.map((memory) =>
+        assertRecordOwner(
+          memory,
+          state.accountId,
+          "Local memory",
         ),
-    );
-
-    return writeLocalMemories(next);
-  });
-
-export const removeLocalMemories = (memories) =>
-  runTrackedOperation(async () => {
-    if (!Array.isArray(memories)) {
-      return getLocalMemories();
-    }
-
-    const ids = new Set(
-      memories.flatMap((memory) => getMemoryKeys(memory)),
-    );
-
-    if (!ids.size) {
-      return getLocalMemories();
-    }
-
-    const current = await getLocalMemories();
-
-    if (clearingOfflineMemoryData) {
-      throw new Error(
-        "Offline memory storage is being cleared.",
       );
-    }
 
-    return writeLocalMemories(
-      current.filter(
-        (memory) =>
-          !getMemoryKeys(memory).some((key) =>
-            ids.has(key),
-          ),
-      ),
-    );
-  });
+      const current = await getLocalMemories(
+        state.accountId,
+      );
 
-export const clearLocalMemories = () =>
-  runTrackedOperation(() => {
-    localMemoriesCache = [];
+      assertOperationActive(state, generation);
 
-    const generation = offlineMemoryDataGeneration;
+      const next = current.slice();
 
-    localWritePromise = localWritePromise
-      .catch(() => {})
-      .then(() => {
-        if (
-          clearingOfflineMemoryData ||
-          generation !== offlineMemoryDataGeneration
-        ) {
-          return;
+      const existingIndex = new Map();
+
+      for (
+        let index = 0;
+        index < next.length;
+        index += 1
+      ) {
+        for (const key of getMemoryKeys(next[index])) {
+          existingIndex.set(key, index);
+        }
+      }
+
+      const newRecords = [];
+      const newRecordIndex = new Map();
+
+      for (const memory of incoming) {
+        const keys = getMemoryKeys(memory);
+
+        if (!keys.length) continue;
+
+        let matchedIndex;
+
+        for (const key of keys) {
+          if (existingIndex.has(key)) {
+            matchedIndex = existingIndex.get(key);
+            break;
+          }
+
+          if (newRecordIndex.has(key)) {
+            matchedIndex = newRecordIndex.get(key);
+            break;
+          }
         }
 
-        return AsyncStorage.removeItem(
-          LOCAL_MEMORIES_KEY,
+        if (matchedIndex !== undefined) {
+          if (matchedIndex < next.length) {
+            next[matchedIndex] = {
+              ...next[matchedIndex],
+              ...memory,
+            };
+
+            for (const key of keys) {
+              existingIndex.set(key, matchedIndex);
+            }
+          } else {
+            const newIndex =
+              matchedIndex - next.length;
+
+            newRecords[newIndex] = {
+              ...newRecords[newIndex],
+              ...memory,
+            };
+
+            for (const key of keys) {
+              newRecordIndex.set(key, matchedIndex);
+            }
+          }
+
+          continue;
+        }
+
+        const newIndex = newRecords.length;
+
+        newRecords.push(memory);
+
+        for (const key of keys) {
+          newRecordIndex.set(
+            key,
+            next.length + newIndex,
+          );
+        }
+      }
+
+      const result = [
+        ...newRecords.reverse(),
+        ...next,
+      ];
+
+      logPerf(
+        "Build local memory upsert batch",
+        startedAt,
+        {
+          incoming: incoming.length,
+          existing: current.length,
+          newRecords: newRecords.length,
+          account: state.storageId,
+        },
+      );
+
+      return writeLocalMemories(
+        state,
+        result,
+        generation,
+      );
+    },
+  );
+
+export const reconcileLocalMemories = (
+  accountId,
+  {
+    serverMemories = [],
+    pendingMemories = [],
+    pendingOperations = [],
+  } = {},
+) =>
+  runTrackedOperation(
+    accountId,
+    async (state, generation) => {
+      if (!Array.isArray(serverMemories)) {
+        throw new Error(
+          "Cannot reconcile local memories without a complete server list.",
+        );
+      }
+
+      const startedAt = perfNow();
+
+      const safePendingMemories =
+        pendingMemories.map((memory) =>
+          assertRecordOwner(
+            memory,
+            state.accountId,
+            "Pending memory",
+          ),
+        );
+
+      const safePendingOperations =
+        pendingOperations.map((operation) =>
+          assertRecordOwner(
+            operation,
+            state.accountId,
+            "Pending operation",
+          ),
+        );
+
+      const serverKeys = new Set(
+        serverMemories.flatMap(getMemoryKeys),
+      );
+
+      const pendingCreateKeys = new Set(
+        safePendingMemories.flatMap(getMemoryKeys),
+      );
+
+      const pendingDeleteKeys = new Set();
+      const pendingMutationKeys = new Set();
+
+      for (const operation of safePendingOperations) {
+        const keys = [
+          operation.clientMemoryId,
+          operation.memoryId,
+        ]
+          .filter(Boolean)
+          .map(String);
+
+        const target =
+          operation.type === "delete"
+            ? pendingDeleteKeys
+            : pendingMutationKeys;
+
+        for (const key of keys) {
+          target.add(key);
+        }
+      }
+
+      const current = await getLocalMemories(
+        state.accountId,
+      );
+
+      assertOperationActive(state, generation);
+
+      const retained = current.filter((memory) => {
+        const keys = getMemoryKeys(memory);
+
+        if (
+          keys.some((key) =>
+            pendingDeleteKeys.has(key),
+          )
+        ) {
+          return false;
+        }
+
+        if (
+          keys.some((key) =>
+            serverKeys.has(key),
+          )
+        ) {
+          return true;
+        }
+
+        if (
+          keys.some((key) =>
+            pendingCreateKeys.has(key),
+          )
+        ) {
+          return true;
+        }
+
+        if (
+          keys.some((key) =>
+            pendingMutationKeys.has(key),
+          )
+        ) {
+          return true;
+        }
+
+        return (
+          memory.syncStatus === "pending" ||
+          memory.syncReady === false ||
+          memory.hasPendingChanges === true
         );
       });
 
-    return localWritePromise;
-  });
+      await writeLocalMemories(
+        state,
+        retained,
+        generation,
+      );
 
-export const getOfflineMemories = async () => {
-  if (clearingOfflineMemoryData) {
-    return [];
-  }
+      logPerf(
+        "Reconcile local memories",
+        startedAt,
+        {
+          before: current.length,
+          after: retained.length,
+          removed: current.length - retained.length,
+          account: state.storageId,
+        },
+      );
 
-  const generation = offlineMemoryDataGeneration;
+      return retained;
+    },
+  );
+
+export const removeLocalMemory = (
+  accountId,
+  memoryId,
+  clientMemoryId = null,
+) =>
+  runTrackedOperation(
+    accountId,
+    async (state, generation) => {
+      const current = await getLocalMemories(
+        state.accountId,
+      );
+
+      assertOperationActive(state, generation);
+
+      const targetKeys = new Set(
+        [clientMemoryId, memoryId]
+          .filter(Boolean)
+          .map(String),
+      );
+
+      const next = current.filter(
+        (memory) =>
+          !getMemoryKeys(memory).some((key) =>
+            targetKeys.has(key),
+          ),
+      );
+
+      return writeLocalMemories(
+        state,
+        next,
+        generation,
+      );
+    },
+  );
+
+export const removeLocalMemories = (
+  accountId,
+  memories,
+) =>
+  runTrackedOperation(
+    accountId,
+    async (state, generation) => {
+      if (!Array.isArray(memories)) {
+        return getLocalMemories(state.accountId);
+      }
+
+      const ids = new Set(
+        memories.flatMap((memory) =>
+          getMemoryKeys(memory),
+        ),
+      );
+
+      if (!ids.size) {
+        return getLocalMemories(state.accountId);
+      }
+
+      const current = await getLocalMemories(
+        state.accountId,
+      );
+
+      assertOperationActive(state, generation);
+
+      return writeLocalMemories(
+        state,
+        current.filter(
+          (memory) =>
+            !getMemoryKeys(memory).some((key) =>
+              ids.has(key),
+            ),
+        ),
+        generation,
+      );
+    },
+  );
+
+export const clearLocalMemories = (
+  accountId,
+) =>
+  runTrackedOperation(
+    accountId,
+    (state, generation) => {
+      state.localMemoriesCache = [];
+
+      state.localWritePromise =
+        state.localWritePromise
+          .catch(() => {})
+          .then(() => {
+            if (
+              state.clearing ||
+              generation !== state.generation
+            ) {
+              return;
+            }
+
+            return AsyncStorage.removeItem(
+              state.keys.localMemories,
+            );
+          });
+
+      return state.localWritePromise;
+    },
+  );
+
+export const getOfflineMemories = async (
+  accountId,
+) => {
+  const state = getAccountState(accountId);
+
+  if (state.clearing) return [];
+
+  const generation = state.generation;
 
   const [local, pending] = await Promise.all([
-    getLocalMemories(),
-    getPendingMemories(),
+    getLocalMemories(state.accountId),
+    getPendingMemories(state.accountId),
   ]);
 
   if (
-    clearingOfflineMemoryData ||
-    generation !== offlineMemoryDataGeneration
+    state.clearing ||
+    generation !== state.generation
   ) {
     return [];
   }
@@ -1015,7 +1356,6 @@ export const getOfflineMemories = async () => {
   const unique = [];
   const seenKeys = new Set();
 
-  // Pending memories take priority over older local copies.
   for (const memory of [...pending, ...local]) {
     const keys = getMemoryKeys(memory);
 
@@ -1036,49 +1376,59 @@ export const getOfflineMemories = async () => {
   return unique;
 };
 
-/* ============================================================
-   PENDING MEMORY OPERATIONS
-============================================================ */
+export const getPendingMemoryOperations = async (
+  accountId,
+) => {
+  const state = getAccountState(accountId);
 
-export const getPendingMemoryOperations = async () => {
-  if (clearingOfflineMemoryData) {
-    return [];
+  if (state.clearing) return [];
+
+  if (state.pendingOperationsCache !== null) {
+    return state.pendingOperationsCache;
   }
 
-  if (pendingMemoryOperationsCache !== null) {
-    return pendingMemoryOperationsCache;
-  }
-
-  const generation = offlineMemoryDataGeneration;
+  const generation = state.generation;
 
   try {
     const raw = await AsyncStorage.getItem(
-      PENDING_MEMORY_OPERATIONS_KEY,
+      state.keys.pendingOperations,
     );
 
     if (
-      clearingOfflineMemoryData ||
-      generation !== offlineMemoryDataGeneration
+      state.clearing ||
+      generation !== state.generation
     ) {
       return [];
     }
 
     if (!raw) {
-      pendingMemoryOperationsCache = [];
-      return pendingMemoryOperationsCache;
+      state.pendingOperationsCache = [];
+      return state.pendingOperationsCache;
     }
 
     const parsed = JSON.parse(raw);
 
-    pendingMemoryOperationsCache = Array.isArray(parsed)
+    const records = Array.isArray(parsed)
       ? parsed
       : [];
 
-    return pendingMemoryOperationsCache;
+    state.pendingOperationsCache = records
+      .filter(
+        (operation) =>
+          !operation?.ownerAccountId ||
+          String(operation.ownerAccountId) ===
+            state.accountId,
+      )
+      .map((operation) => ({
+        ...operation,
+        ownerAccountId: state.accountId,
+      }));
+
+    return state.pendingOperationsCache;
   } catch (error) {
     if (
-      clearingOfflineMemoryData ||
-      generation !== offlineMemoryDataGeneration
+      state.clearing ||
+      generation !== state.generation
     ) {
       return [];
     }
@@ -1088,264 +1438,290 @@ export const getPendingMemoryOperations = async () => {
       error,
     );
 
-    pendingMemoryOperationsCache = [];
-    return pendingMemoryOperationsCache;
+    state.pendingOperationsCache = [];
+
+    return state.pendingOperationsCache;
   }
 };
 
-const writePendingMemoryOperations = (operations) => {
-  if (clearingOfflineMemoryData) {
+const writePendingMemoryOperations = (
+  state,
+  operations,
+  generation,
+) => {
+  if (state.clearing) {
     return Promise.resolve([]);
   }
 
-  const generation = offlineMemoryDataGeneration;
-
-  pendingMemoryOperationsCache = Array.isArray(operations)
-    ? operations
+  const snapshot = Array.isArray(operations)
+    ? operations.map((operation) =>
+        assertRecordOwner(
+          operation,
+          state.accountId,
+          "Pending operation",
+        ),
+      )
     : [];
 
-  pendingMemoryOperationsWritePromise =
-    pendingMemoryOperationsWritePromise
+  state.pendingOperationsCache = snapshot;
+
+  state.pendingOperationsWritePromise =
+    state.pendingOperationsWritePromise
       .catch(() => {})
       .then(() => {
         if (
-          clearingOfflineMemoryData ||
-          generation !== offlineMemoryDataGeneration
+          state.clearing ||
+          generation !== state.generation
         ) {
           return;
         }
 
         return AsyncStorage.setItem(
-          PENDING_MEMORY_OPERATIONS_KEY,
-          JSON.stringify(pendingMemoryOperationsCache),
+          state.keys.pendingOperations,
+          JSON.stringify(snapshot),
         );
       });
 
-  return pendingMemoryOperationsWritePromise.then(
-    () => pendingMemoryOperationsCache,
+  return state.pendingOperationsWritePromise.then(
+    () => state.pendingOperationsCache,
   );
 };
 
 const getOperationMemoryKey = (operation) =>
   String(
-    operation.clientMemoryId ||
-      operation.memoryId ||
+    operation?.clientMemoryId ||
+      operation?.memoryId ||
       "",
   );
 
 export const addPendingMemoryOperation = (
+  accountId,
   operation,
 ) =>
-  runTrackedOperation(async () => {
-    const allowedTypes = ["update", "favorite", "delete"];
-
-    if (
-      !operation?.type ||
-      !allowedTypes.includes(operation.type)
-    ) {
-      throw new Error(
-        "Unsupported pending memory operation.",
-      );
-    }
-
-    const targetKey = getOperationMemoryKey(operation);
-
-    if (!targetKey) {
-      throw new Error(
-        "A memory ID is required for a queued operation.",
-      );
-    }
-
-    const now = Date.now();
-
-    const normalized = {
-      ...operation,
-      operationId:
-        operation.operationId ||
-        `mutation-${now}-${Math.random()
-          .toString(36)
-          .slice(2, 10)}`,
-      createdAt: operation.createdAt || now,
-      updatedAt: now,
-    };
-
-    const current = await getPendingMemoryOperations();
-
-    if (clearingOfflineMemoryData) {
-      throw new Error(
-        "Offline memory storage is being cleared.",
-      );
-    }
-
-    let next = current.slice();
-
-    if (operation.type === "delete") {
-      next = next.filter(
-        (item) =>
-          getOperationMemoryKey(item) !== targetKey,
+  runTrackedOperation(
+    accountId,
+    async (state, generation) => {
+      const ownedOperation = assertRecordOwner(
+        operation,
+        state.accountId,
+        "Pending operation",
       );
 
-      next.push(normalized);
+      const allowedTypes = [
+        "update",
+        "favorite",
+        "delete",
+      ];
 
-      return writePendingMemoryOperations(next);
-    }
+      if (
+        !ownedOperation.type ||
+        !allowedTypes.includes(ownedOperation.type)
+      ) {
+        throw new Error(
+          "Unsupported pending memory operation.",
+        );
+      }
 
-    const existingIndex = next.findIndex(
-      (item) =>
-        getOperationMemoryKey(item) === targetKey &&
-        item.type === operation.type,
-    );
+      const targetKey =
+        getOperationMemoryKey(ownedOperation);
 
-    if (existingIndex >= 0) {
-      const existing = next[existingIndex];
+      if (!targetKey) {
+        throw new Error(
+          "A memory ID is required for a queued operation.",
+        );
+      }
 
-      next[existingIndex] = {
-        ...existing,
-        ...normalized,
-        operationId: normalized.operationId,
-        createdAt: now,
-        payload:
-          operation.type === "update"
-            ? {
-                ...(existing.payload || {}),
-                ...(operation.payload || {}),
-              }
-            : normalized.payload,
+      const now = Date.now();
+
+      const normalized = {
+        ...ownedOperation,
+
+        operationId:
+          ownedOperation.operationId ||
+          `mutation-${now}-${Math.random()
+            .toString(36)
+            .slice(2, 10)}`,
+
+        createdAt: ownedOperation.createdAt || now,
+        updatedAt: now,
+
+        ownerAccountId: state.accountId,
       };
-    } else {
-      next.push(normalized);
-    }
 
-    next.sort(
-      (a, b) =>
-        Number(a.createdAt || 0) -
-        Number(b.createdAt || 0),
-    );
+      const current =
+        await getPendingMemoryOperations(
+          state.accountId,
+        );
 
-    return writePendingMemoryOperations(next);
-  });
+      assertOperationActive(state, generation);
+
+      let next = current.slice();
+
+      if (normalized.type === "delete") {
+        next = next.filter(
+          (item) =>
+            getOperationMemoryKey(item) !== targetKey,
+        );
+
+        next.push(normalized);
+
+        return writePendingMemoryOperations(
+          state,
+          next,
+          generation,
+        );
+      }
+
+      const existingIndex = next.findIndex(
+        (item) =>
+          getOperationMemoryKey(item) === targetKey &&
+          item.type === normalized.type,
+      );
+
+      if (existingIndex >= 0) {
+        const existing = next[existingIndex];
+
+        next[existingIndex] = {
+          ...existing,
+          ...normalized,
+
+          operationId: normalized.operationId,
+          createdAt: now,
+
+          payload:
+            normalized.type === "update"
+              ? {
+                  ...(existing.payload || {}),
+                  ...(normalized.payload || {}),
+                }
+              : normalized.payload,
+        };
+      } else {
+        next.push(normalized);
+      }
+
+      next.sort(
+        (a, b) =>
+          Number(a.createdAt || 0) -
+          Number(b.createdAt || 0),
+      );
+
+      return writePendingMemoryOperations(
+        state,
+        next,
+        generation,
+      );
+    },
+  );
 
 export const removePendingMemoryOperation = (
+  accountId,
   operationId,
 ) =>
-  runTrackedOperation(async () => {
-    const current = await getPendingMemoryOperations();
+  runTrackedOperation(
+    accountId,
+    async (state, generation) => {
+      const current =
+        await getPendingMemoryOperations(
+          state.accountId,
+        );
 
-    if (clearingOfflineMemoryData) {
-      throw new Error(
-        "Offline memory storage is being cleared.",
+      assertOperationActive(state, generation);
+
+      return writePendingMemoryOperations(
+        state,
+        current.filter(
+          (operation) =>
+            operation.operationId !== operationId,
+        ),
+        generation,
       );
-    }
+    },
+  );
 
-    return writePendingMemoryOperations(
-      current.filter(
-        (operation) =>
-          operation.operationId !== operationId,
-      ),
-    );
-  });
+export const clearPendingMemoryOperations = (
+  accountId,
+) =>
+  runTrackedOperation(
+    accountId,
+    (state, generation) => {
+      state.pendingOperationsCache = [];
 
-export const clearPendingMemoryOperations = () =>
-  runTrackedOperation(() => {
-    pendingMemoryOperationsCache = [];
+      state.pendingOperationsWritePromise =
+        state.pendingOperationsWritePromise
+          .catch(() => {})
+          .then(() => {
+            if (
+              state.clearing ||
+              generation !== state.generation
+            ) {
+              return;
+            }
 
-    const generation = offlineMemoryDataGeneration;
+            return AsyncStorage.removeItem(
+              state.keys.pendingOperations,
+            );
+          });
 
-    pendingMemoryOperationsWritePromise =
-      pendingMemoryOperationsWritePromise
-        .catch(() => {})
-        .then(() => {
-          if (
-            clearingOfflineMemoryData ||
-            generation !== offlineMemoryDataGeneration
-          ) {
-            return;
-          }
+      return state.pendingOperationsWritePromise;
+    },
+  );
 
-          return AsyncStorage.removeItem(
-            PENDING_MEMORY_OPERATIONS_KEY,
-          );
-        });
+export const clearAllOfflineMemoryData = async (
+  accountId,
+) => {
+  const state = getAccountState(accountId);
 
-    return pendingMemoryOperationsWritePromise;
-  });
-
-/* ============================================================
-   CLEAR ALL OFFLINE MEMORY DATA
-============================================================ */
-
-/**
- * Used after successful account deletion.
- *
- * Clears:
- * - @memory_ticket_pending_memories
- * - @memory_ticket_local_memories
- * - @memory_ticket_pending_memory_operations
- * - In-memory service caches
- * - Persisted offline image directory
- *
- * It does not clear unrelated app settings or other AsyncStorage keys.
- */
-export const clearAllOfflineMemoryData = async () => {
-  if (clearOfflineMemoryDataPromise) {
-    return clearOfflineMemoryDataPromise;
+  if (state.clearPromise) {
+    return state.clearPromise;
   }
 
-  clearingOfflineMemoryData = true;
-  offlineMemoryDataGeneration += 1;
+  state.clearing = true;
+  state.generation += 1;
 
-  // Reset memory immediately so getters do not expose old records.
-  pendingMemoriesCache = [];
-  localMemoriesCache = [];
-  pendingMemoryOperationsCache = [];
+  state.pendingMemoriesCache = [];
+  state.localMemoriesCache = [];
+  state.pendingOperationsCache = [];
 
   const activeOperations = [
-    ...activeOfflineOperations,
+    ...state.activeOperations,
   ];
 
   const pendingWrites = [
-    pendingWritePromise,
-    localWritePromise,
-    pendingMemoryOperationsWritePromise,
+    state.pendingWritePromise,
+    state.localWritePromise,
+    state.pendingOperationsWritePromise,
   ];
 
-  const directorySetup = offlineDirectoryPromise;
+  const directorySetup = state.directoryPromise;
 
   let cleanupSucceeded = false;
 
   const cleanupPromise = (async () => {
-    /*
-     * No new tracked operation can start while clearing is true.
-     * Existing operations either finish or stop at their guards.
-     */
     await Promise.allSettled([
       ...activeOperations,
       ...pendingWrites,
       ...(directorySetup ? [directorySetup] : []),
     ]);
 
-    /*
-     * Await the current queue promises again in case an operation
-     * queued a write before cleanup began.
-     */
     await Promise.allSettled([
-      pendingWritePromise,
-      localWritePromise,
-      pendingMemoryOperationsWritePromise,
+      state.pendingWritePromise,
+      state.localWritePromise,
+      state.pendingOperationsWritePromise,
     ]);
 
     const cleanupTasks = [
       AsyncStorage.multiRemove([
-        PENDING_MEMORIES_KEY,
-        LOCAL_MEMORIES_KEY,
-        PENDING_MEMORY_OPERATIONS_KEY,
+        state.keys.pendingMemories,
+        state.keys.localMemories,
+        state.keys.pendingOperations,
       ]),
     ];
 
-    if (OFFLINE_IMAGES_DIRECTORY) {
+    if (state.imagesDirectory) {
       cleanupTasks.push(
         FileSystem.deleteAsync(
-          OFFLINE_IMAGES_DIRECTORY,
+          state.imagesDirectory,
           { idempotent: true },
         ),
       );
@@ -1356,29 +1732,31 @@ export const clearAllOfflineMemoryData = async () => {
     );
 
     const errors = results
-      .filter((result) => result.status === "rejected")
+      .filter(
+        (result) => result.status === "rejected",
+      )
       .map((result) => result.reason);
 
-    // Clear all module-level caches and reset queue references.
-    pendingMemoriesCache = [];
-    localMemoriesCache = [];
-    pendingMemoryOperationsCache = [];
+    state.pendingMemoriesCache = [];
+    state.localMemoriesCache = [];
+    state.pendingOperationsCache = [];
 
-    offlineDirectoryPromise = null;
+    state.directoryPromise = null;
 
-    pendingWritePromise = Promise.resolve();
-    localWritePromise = Promise.resolve();
-    pendingMemoryOperationsWritePromise =
+    state.pendingWritePromise = Promise.resolve();
+    state.localWritePromise = Promise.resolve();
+
+    state.pendingOperationsWritePromise =
       Promise.resolve();
 
     if (errors.length > 0) {
       console.error(
-        "Some offline memory data could not be cleared:",
+        "Some account-scoped offline memory data could not be cleared:",
         errors,
       );
 
       throw new Error(
-        "Unable to clear all offline memory data.",
+        "Unable to clear this account's offline memory data.",
       );
     }
 
@@ -1386,20 +1764,30 @@ export const clearAllOfflineMemoryData = async () => {
 
     return {
       success: true,
+      accountId: state.accountId,
     };
   })();
 
-  clearOfflineMemoryDataPromise = cleanupPromise;
+  state.clearPromise = cleanupPromise;
 
   try {
     return await cleanupPromise;
   } finally {
-    if (clearOfflineMemoryDataPromise === cleanupPromise) {
-      clearOfflineMemoryDataPromise = null;
+    if (state.clearPromise === cleanupPromise) {
+      state.clearPromise = null;
     }
 
     if (cleanupSucceeded) {
-      clearingOfflineMemoryData = false;
+      state.clearing = false;
+
+      accountStates.delete(state.storageId);
     }
   }
 };
+
+export const LEGACY_OFFLINE_STORAGE_KEYS =
+  Object.freeze({
+    pendingMemories: LEGACY_PENDING_MEMORIES_KEY,
+    localMemories: LEGACY_LOCAL_MEMORIES_KEY,
+    pendingOperations: LEGACY_PENDING_OPERATIONS_KEY,
+  });
