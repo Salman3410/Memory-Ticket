@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-
 import {
   View,
   Text,
@@ -11,16 +10,12 @@ import {
   Image,
   StatusBar,
 } from "react-native";
-
 import { useTheme } from "../../../context/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
-
 import styles from "./forgotPasswordStyles";
-
 import { useAuth } from "../../../hooks/useAuth";
 import { useAppAlert } from "../../../context/AlertContext";
 import { useMementoNotifications } from "../../../hooks/useMementoNotifications";
-
 import TactileButton from "../../../components/common/TactileButton";
 
 function ForgotPasswordScreen({ navigation }) {
@@ -71,10 +66,6 @@ function ForgotPasswordScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
 
-  // --------------------------------------------------
-  // RESEND COUNTDOWN
-  // --------------------------------------------------
-
   useEffect(() => {
     if (resendTimer <= 0) {
       return;
@@ -93,10 +84,6 @@ function ForgotPasswordScreen({ navigation }) {
 
     return () => clearInterval(timer);
   }, [resendTimer]);
-
-  // --------------------------------------------------
-  // SEND PASSWORD RESET OTP
-  // --------------------------------------------------
 
   const handleSendOtp = async () => {
     if (loading) {
@@ -150,10 +137,6 @@ function ForgotPasswordScreen({ navigation }) {
     }
   };
 
-  // --------------------------------------------------
-  // RESEND PASSWORD RESET OTP
-  // --------------------------------------------------
-
   const handleResendOtp = async () => {
     if (resendTimer > 0 || loading) {
       return;
@@ -192,10 +175,6 @@ function ForgotPasswordScreen({ navigation }) {
       setLoading(false);
     }
   };
-
-  // --------------------------------------------------
-  // VERIFY OTP
-  // --------------------------------------------------
 
   const handleVerifyOtp = async () => {
     if (loading) {
@@ -270,10 +249,6 @@ function ForgotPasswordScreen({ navigation }) {
       setLoading(false);
     }
   };
-
-  // --------------------------------------------------
-  // RESET PASSWORD
-  // --------------------------------------------------
 
   const handleResetPassword = async () => {
     if (loading) {
@@ -369,17 +344,9 @@ function ForgotPasswordScreen({ navigation }) {
     }
   };
 
-  // --------------------------------------------------
-  // NAVIGATION
-  // --------------------------------------------------
-
   const goToLogin = () => {
     navigation.navigate("AuthTabs");
   };
-
-  // --------------------------------------------------
-  // BRAND
-  // --------------------------------------------------
 
   const renderBrand = () => (
     <View style={styles.brandContainer}>
@@ -406,10 +373,6 @@ function ForgotPasswordScreen({ navigation }) {
     </View>
   );
 
-  // --------------------------------------------------
-  // INPUT WRAPPER
-  // --------------------------------------------------
-
   const renderInputWrapper = (iconName, inputElement) => (
     <View
       style={[
@@ -425,10 +388,6 @@ function ForgotPasswordScreen({ navigation }) {
       {inputElement}
     </View>
   );
-
-  // --------------------------------------------------
-  // PRIMARY BUTTON
-  // --------------------------------------------------
 
   const renderPrimaryButton = (label, iconName, onPress) => (
     <TactileButton
@@ -453,10 +412,6 @@ function ForgotPasswordScreen({ navigation }) {
       textStyle={styles.primaryButtonText}
     />
   );
-
-  // --------------------------------------------------
-  // EMAIL STEP
-  // --------------------------------------------------
 
   const renderEmailStep = () => (
     <>
@@ -502,10 +457,6 @@ function ForgotPasswordScreen({ navigation }) {
       </View>
     </>
   );
-
-  // --------------------------------------------------
-  // OTP STEP
-  // --------------------------------------------------
 
   const renderOtpStep = () => (
     <>
@@ -617,10 +568,6 @@ function ForgotPasswordScreen({ navigation }) {
     </>
   );
 
-  // --------------------------------------------------
-  // PASSWORD INPUT
-  // --------------------------------------------------
-
   const renderPasswordField = (
     label,
     placeholder,
@@ -671,10 +618,6 @@ function ForgotPasswordScreen({ navigation }) {
     </View>
   );
 
-  // --------------------------------------------------
-  // RESET PASSWORD STEP
-  // --------------------------------------------------
-
   const renderResetStep = () => (
     <>
       <View style={styles.headingContainer}>
@@ -717,16 +660,12 @@ function ForgotPasswordScreen({ navigation }) {
 
         {renderPrimaryButton(
           "RESET PASSWORD",
-          "checkmark-circle-outline",
+          // "checkmark-circle-outline",
           handleResetPassword
         )}
       </View>
     </>
   );
-
-  // --------------------------------------------------
-  // SUCCESS STEP
-  // --------------------------------------------------
 
   const renderSuccessStep = () => (
     <View style={styles.successContainer}>
@@ -759,10 +698,6 @@ function ForgotPasswordScreen({ navigation }) {
       )}
     </View>
   );
-
-  // --------------------------------------------------
-  // MAIN UI
-  // --------------------------------------------------
 
   return (
     <KeyboardAvoidingView

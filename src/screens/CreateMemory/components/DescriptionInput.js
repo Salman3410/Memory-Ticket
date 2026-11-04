@@ -63,6 +63,7 @@ function DescriptionInput({ description, setDescription, theme, isDark }) {
             backgroundColor: surfaceColor,
             color: textColor,
             borderColor,
+            fontStyle: "italic",
           },
         ]}
         value={description}

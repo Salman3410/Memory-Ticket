@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import {
   View,
@@ -7,12 +6,9 @@ import {
   TouchableOpacity,
   ScrollView,
 } from "react-native";
-
 import { Ionicons } from "@expo/vector-icons";
-
 import { getMemoryThumbnailUrl } from "../../utils/cloudinary";
 import { normalizeTicketCustomization } from "../../utils/ticketCustomization";
-
 import styles from "./memoryTicketStyles";
 
 const TICKET_DESIGNS = {
@@ -94,7 +90,7 @@ function MemoryTicket({
       : "UNKNOWN";
 
   const date = formatDate(
-    memory.createdAt || memory.date
+    memory.date || memory.createdAt
   );
 
   const time = memory.time || "";
@@ -438,6 +434,7 @@ function MemoryTicket({
                 styles.descriptionText,
                 {
                   color: colors.primary,
+                  fontStyle:"italic",
                 },
               ]}
               numberOfLines={3}
