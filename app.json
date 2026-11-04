@@ -84,7 +84,8 @@
         }
       ]
 ,
-      "expo-font"
+      "expo-font",
+      "./plugins/withUnityLevelPlayAndroid"
     ],
     "extra": {
       "eas": {
