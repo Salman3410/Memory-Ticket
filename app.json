@@ -1,3 +1,4 @@
+
 {
   "expo": {
     "name": "Memento",
@@ -39,12 +40,6 @@
     "plugins": [
       "expo-secure-store",
       [
-        "react-native-google-mobile-ads",
-        {
-          "androidAppId": "ca-app-pub-3404665145185739~3242147488"
-        }
-      ],
-      [
         "expo-image-picker",
         {
           "photosPermission": "Allow MemoryTicket to access your photos so you can create memories."
@@ -64,7 +59,6 @@
       "expo-asset",
       "expo-local-authentication",
       "expo-notifications",
-      
       [
         "react-native-android-widget",
         {
@@ -82,8 +76,7 @@
             }
           ]
         }
-      ]
-,
+      ],
       "expo-font",
       "./plugins/withUnityLevelPlayAndroid"
     ],
