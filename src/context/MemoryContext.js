@@ -51,12 +51,20 @@ import {
 
 export const MemoryContext = createContext(null);
 
+// --------------------------------------------------
+// NETWORK HELPERS
+// --------------------------------------------------
+
 const isNetworkOnline = (networkInfo) =>
   Boolean(
     networkInfo &&
       networkInfo.isConnected === true &&
       networkInfo.isInternetReachable !== false,
   );
+
+// --------------------------------------------------
+// PERFORMANCE HELPERS
+// --------------------------------------------------
 
 const perfNow = () =>
   globalThis.performance?.now?.() ?? Date.now();
@@ -69,6 +77,10 @@ const logPerf = (label, startedAt, details = {}) => {
     ...details,
   });
 };
+
+// --------------------------------------------------
+// MEMORY ID HELPERS
+// --------------------------------------------------
 
 const getMemoryKeys = (memory) =>
   [
@@ -92,6 +104,10 @@ const findMatchingMemory = (memoryMap, memory) => {
 
   return null;
 };
+
+// --------------------------------------------------
+// MEMORY IMAGE HELPERS
+// --------------------------------------------------
 
 const getMemoryImageUris = (memory) => {
   if (
@@ -117,6 +133,10 @@ const getMemoryImageUris = (memory) => {
   return [];
 };
 
+// --------------------------------------------------
+// MEMORY PROVIDER
+// --------------------------------------------------
+
 export function MemoryProvider({ children }) {
   const {
     token,
@@ -139,6 +159,20 @@ export function MemoryProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [loadedAccountId, setLoadedAccountId] = useState(null);
+
+  // --------------------------------------------------
+  // LATEST MEMORY REFERENCE
+  // --------------------------------------------------
+
+  // Keeps the latest memory list available to callbacks
+  // without waiting for another React render.
+  const memoriesRef = useRef(memories);
+
+  memoriesRef.current = memories;
+
+  // --------------------------------------------------
+  // ACCOUNT-SCOPED STORAGE
+  // --------------------------------------------------
 
   const accountStorage = useMemo(() => {
     const requireAccountId = () => {
@@ -242,6 +276,10 @@ export function MemoryProvider({ children }) {
     };
   }, [accountId]);
 
+  // --------------------------------------------------
+  // SESSION VALIDATION
+  // --------------------------------------------------
+
   const currentSessionRef = useRef({
     token,
     accountId,
@@ -268,6 +306,10 @@ export function MemoryProvider({ children }) {
     [accountId],
   );
 
+  // --------------------------------------------------
+  // ASYNC OPERATION REFERENCES
+  // --------------------------------------------------
+
   const syncPromiseRef = useRef(null);
   const syncRequestedRef = useRef(false);
   const refreshPromiseRef = useRef(null);
@@ -279,6 +321,10 @@ export function MemoryProvider({ children }) {
     token,
     accountId,
   });
+
+  // --------------------------------------------------
+  // HANDLE ACCOUNT CHANGES
+  // --------------------------------------------------
 
   useEffect(() => {
     const previousSession =
@@ -303,11 +349,19 @@ export function MemoryProvider({ children }) {
     preparingMemoryIdsRef.current.clear();
     cancelledMemoryIdsRef.current.clear();
 
+    // Clear the reference immediately so memories from
+    // the previous account cannot be opened.
+    memoriesRef.current = [];
+
     setMemories([]);
     setLoadedAccountId(null);
     setSyncing(false);
     setLoading(Boolean(token && accountId));
   }, [token, accountId]);
+
+  // --------------------------------------------------
+  // NORMALIZE MEMORY
+  // --------------------------------------------------
 
   const normalizeMemory = useCallback((memory) => {
     if (!memory) return null;
@@ -389,6 +443,10 @@ export function MemoryProvider({ children }) {
         memory.syncStatus || "synced",
     };
   }, []);
+
+  // --------------------------------------------------
+  // MERGE SERVER, LOCAL AND PENDING MEMORIES
+  // --------------------------------------------------
 
   const mergeMemories = useCallback(
     (
@@ -514,6 +572,10 @@ export function MemoryProvider({ children }) {
     [normalizeMemory],
   );
 
+  // --------------------------------------------------
+  // LOAD LOCAL MEMORIES
+  // --------------------------------------------------
+
   const loadLocalMemories = useCallback(async () => {
     if (
       !token ||
@@ -589,6 +651,7 @@ export function MemoryProvider({ children }) {
         return [];
       }
 
+      memoriesRef.current = normalized;
       setMemories(normalized);
 
       logPerf("Load local memories", startedAt, {
@@ -614,6 +677,10 @@ export function MemoryProvider({ children }) {
     normalizeMemory,
     isCurrentSession,
   ]);
+
+  // --------------------------------------------------
+  // REFRESH SERVER MEMORIES
+  // --------------------------------------------------
 
   const refreshServerMemories = useCallback(async () => {
     if (
@@ -1000,6 +1067,11 @@ export function MemoryProvider({ children }) {
           return false;
         }
 
+        // Important: update the ref immediately.
+        // ensureMemoryAvailable can now locate a memory
+        // as soon as this refresh promise resolves.
+        memoriesRef.current = merged;
+
         setMemories(merged);
 
         logPerf(
@@ -1098,12 +1170,19 @@ export function MemoryProvider({ children }) {
     isCurrentSession,
   ]);
 
+  // --------------------------------------------------
+  // LOAD MEMORIES
+  // --------------------------------------------------
+
   const loadMemories = useCallback(async () => {
     if (!token || !accountId) {
+      memoriesRef.current = [];
+
       setMemories([]);
       setLoadedAccountId(null);
       setLoading(false);
       setSyncing(false);
+
       return;
     }
 
@@ -1164,6 +1243,10 @@ export function MemoryProvider({ children }) {
     refreshServerMemories,
     isCurrentSession,
   ]);
+
+  // --------------------------------------------------
+  // SYNC SINGLE MEMORY
+  // --------------------------------------------------
 
   const syncMemory = useCallback(
     async (pendingMemory) => {
@@ -1328,16 +1411,19 @@ export function MemoryProvider({ children }) {
               memory.id === syncedMemory.id,
           );
 
-          if (index === -1) {
-            return [syncedMemory, ...current];
-          }
+          const next =
+            index === -1
+              ? [syncedMemory, ...current]
+              : current.map(
+                  (memory, currentIndex) =>
+                    currentIndex === index
+                      ? syncedMemory
+                      : memory,
+                );
 
-          return current.map(
-            (memory, currentIndex) =>
-              currentIndex === index
-                ? syncedMemory
-                : memory,
-          );
+          memoriesRef.current = next;
+
+          return next;
         });
 
         return syncedMemory;
@@ -1360,6 +1446,10 @@ export function MemoryProvider({ children }) {
       isCurrentSession,
     ],
   );
+
+  // --------------------------------------------------
+  // SYNC PENDING MUTATIONS
+  // --------------------------------------------------
 
   const syncPendingMutations = useCallback(async () => {
     if (
@@ -1518,12 +1608,16 @@ export function MemoryProvider({ children }) {
               return current;
             }
 
-            return current.filter(
+            const next = current.filter(
               (memory) =>
                 !getMemoryKeys(memory).some((key) =>
                   operationKeys.has(key),
                 ),
             );
+
+            memoriesRef.current = next;
+
+            return next;
           });
         } else {
           const serverMemory = result.data?.memory;
@@ -1657,16 +1751,19 @@ export function MemoryProvider({ children }) {
                 ),
             );
 
-            if (index === -1) {
-              return [syncedMemory, ...current];
-            }
+            const next =
+              index === -1
+                ? [syncedMemory, ...current]
+                : current.map(
+                    (memory, currentIndex) =>
+                      currentIndex === index
+                        ? syncedMemory
+                        : memory,
+                  );
 
-            return current.map(
-              (memory, currentIndex) =>
-                currentIndex === index
-                  ? syncedMemory
-                  : memory,
-            );
+            memoriesRef.current = next;
+
+            return next;
           });
         }
 
@@ -1713,6 +1810,10 @@ export function MemoryProvider({ children }) {
     normalizeMemory,
     isCurrentSession,
   ]);
+
+  // --------------------------------------------------
+  // RUN SYNC QUEUE PASS
+  // --------------------------------------------------
 
   const runSyncQueuePass = useCallback(async () => {
     if (
@@ -1831,7 +1932,7 @@ export function MemoryProvider({ children }) {
             return current;
           }
 
-          return current.map((item) =>
+          const next = current.map((item) =>
             item.clientMemoryId ===
               readyMemory.clientMemoryId ||
             item.id === readyMemory.clientMemoryId
@@ -1845,6 +1946,10 @@ export function MemoryProvider({ children }) {
                 }
               : item,
           );
+
+          memoriesRef.current = next;
+
+          return next;
         });
       } catch (error) {
         if (isCurrentSession(token)) {
@@ -1920,6 +2025,10 @@ export function MemoryProvider({ children }) {
     syncPendingMutations,
     isCurrentSession,
   ]);
+
+  // --------------------------------------------------
+  // SYNC PENDING MEMORIES
+  // --------------------------------------------------
 
   const syncPendingMemories = useCallback(async () => {
     if (
@@ -2000,6 +2109,10 @@ export function MemoryProvider({ children }) {
     isCurrentSession,
   ]);
 
+  // --------------------------------------------------
+  // INITIAL LOAD
+  // --------------------------------------------------
+
   useEffect(() => {
     if (authLoading) return;
 
@@ -2010,6 +2123,10 @@ export function MemoryProvider({ children }) {
     accountId,
     loadMemories,
   ]);
+
+  // --------------------------------------------------
+  // NETWORK LISTENER
+  // --------------------------------------------------
 
   useEffect(() => {
     if (
@@ -2068,6 +2185,10 @@ export function MemoryProvider({ children }) {
     refreshServerMemories,
     isCurrentSession,
   ]);
+
+  // --------------------------------------------------
+  // ADD MEMORY
+  // --------------------------------------------------
 
   const addMemory = useCallback(
     async (memory) => {
@@ -2189,14 +2310,14 @@ export function MemoryProvider({ children }) {
         }
 
         setMemories((current) => {
-          if (!isCurrentSession(token)) {
-            return current;
-          }
-
-          return [
+          const next = [
             localMemory,
             ...current,
           ];
+
+          memoriesRef.current = next;
+
+          return next;
         });
 
         preparingMemoryIdsRef.current.add(
@@ -2295,11 +2416,7 @@ export function MemoryProvider({ children }) {
             }
 
             setMemories((current) => {
-              if (!isCurrentSession(token)) {
-                return current;
-              }
-
-              return current.map((item) =>
+              const next = current.map((item) =>
                 item.clientMemoryId === clientMemoryId ||
                 item.id === clientMemoryId
                   ? {
@@ -2315,6 +2432,10 @@ export function MemoryProvider({ children }) {
                     }
                   : item,
               );
+
+              memoriesRef.current = next;
+
+              return next;
             });
 
             if (!isCurrentSession(token)) {
@@ -2329,8 +2450,8 @@ export function MemoryProvider({ children }) {
                 error,
               );
 
-              setMemories((current) =>
-                current.map((item) =>
+              setMemories((current) => {
+                const next = current.map((item) =>
                   item.clientMemoryId === clientMemoryId ||
                   item.id === clientMemoryId
                     ? {
@@ -2339,8 +2460,12 @@ export function MemoryProvider({ children }) {
                         syncStatus: "pending",
                       }
                     : item,
-                ),
-              );
+                );
+
+                memoriesRef.current = next;
+
+                return next;
+              });
             }
           } finally {
             preparingMemoryIdsRef.current.delete(
@@ -2375,6 +2500,10 @@ export function MemoryProvider({ children }) {
     ],
   );
 
+  // --------------------------------------------------
+  // UPDATE MEMORY
+  // --------------------------------------------------
+
   const updateMemory = useCallback(
     async (memoryId, updatedData) => {
       if (
@@ -2393,10 +2522,9 @@ export function MemoryProvider({ children }) {
         );
       }
 
-      const existingMemory = memories.find(
+      const existingMemory = memoriesRef.current.find(
         (memory) =>
-          memory.id === memoryId ||
-          memory.clientMemoryId === memoryId,
+          getMemoryKeys(memory).includes(String(memoryId)),
       );
 
       if (!existingMemory) {
@@ -2509,16 +2637,17 @@ export function MemoryProvider({ children }) {
       }
 
       setMemories((current) => {
-        if (!isCurrentSession(token)) {
-          return current;
-        }
-
-        return current.map((memory) =>
-          memory.id === memoryId ||
-          memory.clientMemoryId === memoryId
+        const next = current.map((memory) =>
+          getMemoryKeys(memory).some(
+            (key) => key === String(memoryId),
+          )
             ? updatedMemory
             : memory,
         );
+
+        memoriesRef.current = next;
+
+        return next;
       });
 
       if (!isPendingCreate) {
@@ -2537,12 +2666,15 @@ export function MemoryProvider({ children }) {
       token,
       accountId,
       accountStorage,
-      memories,
       normalizeMemory,
       syncPendingMemories,
       isCurrentSession,
     ],
   );
+
+  // --------------------------------------------------
+  // DELETE MEMORY
+  // --------------------------------------------------
 
   const deleteMemory = useCallback(
     async (memoryId) => {
@@ -2562,10 +2694,9 @@ export function MemoryProvider({ children }) {
         );
       }
 
-      const existingMemory = memories.find(
+      const existingMemory = memoriesRef.current.find(
         (memory) =>
-          memory.id === memoryId ||
-          memory.clientMemoryId === memoryId,
+          getMemoryKeys(memory).includes(String(memoryId)),
       );
 
       const clientMemoryId =
@@ -2631,17 +2762,17 @@ export function MemoryProvider({ children }) {
         }
 
         setMemories((current) => {
-          if (!isCurrentSession(token)) {
-            return current;
-          }
-
-          return current.filter(
+          const next = current.filter(
             (memory) =>
               memory.clientMemoryId !==
                 clientMemoryId &&
               memory.id !==
                 (existingMemory?.id || memoryId),
           );
+
+          memoriesRef.current = next;
+
+          return next;
         });
 
         return true;
@@ -2676,11 +2807,7 @@ export function MemoryProvider({ children }) {
       }
 
       setMemories((current) => {
-        if (!isCurrentSession(token)) {
-          return current;
-        }
-
-        return current.filter(
+        const next = current.filter(
           (memory) =>
             !getMemoryKeys(memory).some(
               (key) =>
@@ -2691,6 +2818,10 @@ export function MemoryProvider({ children }) {
                 ),
             ),
         );
+
+        memoriesRef.current = next;
+
+        return next;
       });
 
       await syncPendingMemories();
@@ -2707,11 +2838,14 @@ export function MemoryProvider({ children }) {
       token,
       accountId,
       accountStorage,
-      memories,
       syncPendingMemories,
       isCurrentSession,
     ],
   );
+
+  // --------------------------------------------------
+  // TOGGLE FAVORITE
+  // --------------------------------------------------
 
   const toggleFavorite = useCallback(
     async (memoryId) => {
@@ -2725,10 +2859,9 @@ export function MemoryProvider({ children }) {
         );
       }
 
-      const existingMemory = memories.find(
+      const existingMemory = memoriesRef.current.find(
         (memory) =>
-          memory.id === memoryId ||
-          memory.clientMemoryId === memoryId,
+          getMemoryKeys(memory).includes(String(memoryId)),
       );
 
       if (!existingMemory) {
@@ -2792,16 +2925,17 @@ export function MemoryProvider({ children }) {
         }
 
         setMemories((current) => {
-          if (!isCurrentSession(token)) {
-            return current;
-          }
-
-          return current.map((memory) =>
-            memory.id === memoryId ||
-            memory.clientMemoryId === memoryId
+          const next = current.map((memory) =>
+            getMemoryKeys(memory).some(
+              (key) => key === String(memoryId),
+            )
               ? pendingMemory
               : memory,
           );
+
+          memoriesRef.current = next;
+
+          return next;
         });
 
         return pendingMemory;
@@ -2843,16 +2977,17 @@ export function MemoryProvider({ children }) {
       }
 
       setMemories((current) => {
-        if (!isCurrentSession(token)) {
-          return current;
-        }
-
-        return current.map((memory) =>
-          memory.id === memoryId ||
-          memory.clientMemoryId === memoryId
+        const next = current.map((memory) =>
+          getMemoryKeys(memory).some(
+            (key) => key === String(memoryId),
+          )
             ? locallyUpdated
             : memory,
         );
+
+        memoriesRef.current = next;
+
+        return next;
       });
 
       await syncPendingMemories();
@@ -2869,21 +3004,122 @@ export function MemoryProvider({ children }) {
       token,
       accountId,
       accountStorage,
-      memories,
       syncPendingMemories,
       isCurrentSession,
     ],
   );
 
-  const getMemoryById = useCallback(
-    (memoryId) =>
-      memories.find(
-        (memory) =>
-          memory.id === memoryId ||
-          memory.clientMemoryId === memoryId,
-      ),
-    [memories],
+  // --------------------------------------------------
+  // GET MEMORY BY ID
+  // --------------------------------------------------
+
+  const getMemoryById = useCallback((memoryId) => {
+    const targetId = String(memoryId ?? "").trim();
+
+    if (!targetId) {
+      return null;
+    }
+
+    return (
+      memoriesRef.current.find((memory) =>
+        getMemoryKeys(memory).some(
+          (key) => key.trim() === targetId,
+        ),
+      ) || null
+    );
+  }, []);
+
+  // --------------------------------------------------
+  // ENSURE MEMORY IS AVAILABLE
+  // --------------------------------------------------
+
+  // Used by Ask Memento source-card navigation.
+  //
+  // 1. Check local and already-loaded memories.
+  // 2. If missing, fetch the authenticated user's memories.
+  // 3. Reconcile server and local data.
+  // 4. Check again before allowing navigation.
+  //
+  // No memory is fetched by arbitrary ID. The server
+  // response is restricted to the authenticated user.
+  const ensureMemoryAvailable = useCallback(
+    async (memoryId) => {
+      const targetId = String(
+        memoryId ?? "",
+      ).trim();
+
+      if (!targetId) {
+        return {
+          success: false,
+          reason: "invalid_id",
+          memory: null,
+        };
+      }
+
+      // First check the current local collection.
+      const existingMemory =
+        getMemoryById(targetId);
+
+      if (existingMemory) {
+        return {
+          success: true,
+          reason: null,
+          memory: existingMemory,
+          refreshed: false,
+        };
+      }
+
+      // Attempt to recover the missing memory from
+      // the authenticated user's server collection.
+      const refreshed =
+        await refreshServerMemories();
+
+      // Verify that the session did not change.
+      if (
+        !token ||
+        !accountId ||
+        !isCurrentSession(token)
+      ) {
+        return {
+          success: false,
+          reason: "session_changed",
+          memory: null,
+        };
+      }
+
+      // Check the ref immediately after refresh.
+      const recoveredMemory =
+        getMemoryById(targetId);
+
+      if (recoveredMemory) {
+        return {
+          success: true,
+          reason: null,
+          memory: recoveredMemory,
+          refreshed: true,
+        };
+      }
+
+      return {
+        success: false,
+        reason: refreshed
+          ? "not_found"
+          : "refresh_failed",
+        memory: null,
+      };
+    },
+    [
+      token,
+      accountId,
+      getMemoryById,
+      refreshServerMemories,
+      isCurrentSession,
+    ],
   );
+
+  // --------------------------------------------------
+  // SYNC NOW
+  // --------------------------------------------------
 
   const syncNow = useCallback(async () => {
     if (
@@ -2901,6 +3137,10 @@ export function MemoryProvider({ children }) {
     syncPendingMemories,
     isCurrentSession,
   ]);
+
+  // --------------------------------------------------
+  // CLEAR MEMORIES
+  // --------------------------------------------------
 
   const clearMemories = useCallback(async () => {
     if (
@@ -2971,6 +3211,8 @@ export function MemoryProvider({ children }) {
       );
     }
 
+    memoriesRef.current = [];
+
     setMemories([]);
 
     return {
@@ -2988,16 +3230,22 @@ export function MemoryProvider({ children }) {
   const contextValue = useMemo(
     () => ({
       accountId: loadedAccountId,
+
       memories,
       loading,
       syncing,
+
       addMemory,
       updateMemory,
       deleteMemory,
       toggleFavorite,
+
       getMemoryById,
+      ensureMemoryAvailable,
+
       loadMemories,
       refreshMemories: loadMemories,
+
       syncNow,
       clearMemories,
     }),
@@ -3006,11 +3254,15 @@ export function MemoryProvider({ children }) {
       memories,
       loading,
       syncing,
+
       addMemory,
       updateMemory,
       deleteMemory,
       toggleFavorite,
+
       getMemoryById,
+      ensureMemoryAvailable,
+
       loadMemories,
       syncNow,
       clearMemories,

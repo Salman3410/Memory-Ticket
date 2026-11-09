@@ -1,6 +1,9 @@
+
 import { useRef, useState } from "react";
+
 import {
   ActivityIndicator,
+  Alert,
   Image,
   Keyboard,
   KeyboardAvoidingView,
@@ -14,11 +17,17 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+
 import { Ionicons } from "@expo/vector-icons";
+
 import { askAssistant } from "../../api/assistantApi";
 import { useAuth } from "../../hooks/useAuth";
 import { useMemory } from "../../hooks/useMemory";
 import { useTheme } from "../../context/ThemeContext";
+
+// --------------------------------------------------
+// SUGGESTED PROMPTS
+// --------------------------------------------------
 
 const SUGGESTED_PROMPTS = [
   {
@@ -38,17 +47,40 @@ const SUGGESTED_PROMPTS = [
   },
 ];
 
+// --------------------------------------------------
+// HELPERS
+// --------------------------------------------------
+
 const createMessageId = () =>
   `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
+const getSourceMemoryId = (source) => {
+  const id =
+    source?.id ||
+    source?.memoryId ||
+    source?._id ||
+    "";
+
+  return String(id).trim();
+};
+
+// --------------------------------------------------
+// ASSISTANT SCREEN
+// --------------------------------------------------
+
 function AssistantScreen({ navigation }) {
   const { token } = useAuth();
+
   const { theme, isDark } = useTheme();
 
   const {
     getMemoryById,
-    refreshMemories,
+    ensureMemoryAvailable,
   } = useMemory();
+
+  // --------------------------------------------------
+  // THEME COLORS
+  // --------------------------------------------------
 
   const themeColors = theme?.colors || {};
 
@@ -87,47 +119,82 @@ function AssistantScreen({ navigation }) {
       themeColors.iconMuted || "#9290A2",
   };
 
+  // --------------------------------------------------
+  // REFS
+  // --------------------------------------------------
+
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
 
   const requestLockRef = useRef(false);
 
+  // Prevent multiple memory source navigation requests.
+  const openingMemoryLockRef = useRef(null);
+
+  // --------------------------------------------------
+  // STATE
+  // --------------------------------------------------
+
   const [input, setInput] = useState("");
+
   const [isSending, setIsSending] = useState(false);
+
+  const [openingMemoryId, setOpeningMemoryId] =
+    useState(null);
+
   const [messages, setMessages] = useState([
     {
       id: "welcome",
       role: "assistant",
+
       text:
         "Hello! I'm Ask Memento. ✨\n\n" +
         "I can help you explore the memories you've saved. " +
         "Ask me about a date, place, favorite moment, or your latest memories.",
+
       sources: [],
     },
   ]);
+
+  // --------------------------------------------------
+  // SEND MESSAGE
+  // --------------------------------------------------
 
   const handleSend = async (
     value = input,
     options = {},
   ) => {
     const question =
-      typeof value === "string" ? value.trim() : "";
+      typeof value === "string"
+        ? value.trim()
+        : "";
 
     const isRetry = options.isRetry === true;
 
-    if (!question || requestLockRef.current) {
+    if (
+      !question ||
+      requestLockRef.current
+    ) {
       return;
     }
+
+    // --------------------------------------------------
+    // AUTHENTICATION CHECK
+    // --------------------------------------------------
 
     if (!token) {
       setMessages((previous) => [
         ...previous,
         {
           id: createMessageId(),
+
           role: "assistant",
+
           text:
             "Your session is unavailable. Please sign in again.",
+
           sources: [],
+
           isError: true,
           retryable: false,
         },
@@ -140,14 +207,22 @@ function AssistantScreen({ navigation }) {
 
     setIsSending(true);
 
+    // --------------------------------------------------
+    // ADD USER MESSAGE
+    // --------------------------------------------------
+
     if (!isRetry) {
       Keyboard.dismiss();
+
       setInput("");
 
       const userMessage = {
         id: createMessageId(),
+
         role: "user",
+
         text: question,
+
         sources: [],
       };
 
@@ -157,8 +232,15 @@ function AssistantScreen({ navigation }) {
       ]);
     }
 
+    // --------------------------------------------------
+    // API REQUEST
+    // --------------------------------------------------
+
     try {
-      const result = await askAssistant(token, question);
+      const result = await askAssistant(
+        token,
+        question,
+      );
 
       if (!result?.success) {
         const error = new Error(
@@ -167,8 +249,10 @@ function AssistantScreen({ navigation }) {
         );
 
         error.status = result?.status || 0;
+
         error.retryable =
-          error.status === 0 || error.status >= 500;
+          error.status === 0 ||
+          error.status >= 500;
 
         throw error;
       }
@@ -190,25 +274,36 @@ function AssistantScreen({ navigation }) {
         throw error;
       }
 
+      // --------------------------------------------------
+      // ADD ASSISTANT RESPONSE
+      // --------------------------------------------------
+
       setMessages((previous) => [
         ...previous,
         {
           id: createMessageId(),
+
           role: "assistant",
+
           text: payload.answer,
+
           sources: Array.isArray(payload.sources)
             ? payload.sources
             : [],
+
           usedMemoryCount:
             payload.usedMemoryCount || 0,
         },
       ]);
     } catch (error) {
-      console.error("[Ask Memento] Request failed:", {
-        status: error?.status,
-        code: error?.code,
-        message: error?.message,
-      });
+      console.error(
+        "[Ask Memento] Request failed:",
+        {
+          status: error?.status,
+          code: error?.code,
+          message: error?.message,
+        },
+      );
 
       const retryable =
         typeof error?.retryable === "boolean"
@@ -220,6 +315,7 @@ function AssistantScreen({ navigation }) {
         ...previous,
         {
           id: createMessageId(),
+
           role: "assistant",
 
           text:
@@ -227,22 +323,28 @@ function AssistantScreen({ navigation }) {
             "Something went wrong. Please try again.",
 
           sources: [],
+
           isError: true,
 
           retryQuestion: question,
+
           retryable,
 
           errorCode: error?.code || null,
+
           status: error?.status || null,
         },
       ]);
     } finally {
-      // Always release the request lock.
       requestLockRef.current = false;
 
       setIsSending(false);
     }
   };
+
+  // --------------------------------------------------
+  // RETRY MESSAGE
+  // --------------------------------------------------
 
   const handleRetry = (message) => {
     if (
@@ -253,47 +355,178 @@ function AssistantScreen({ navigation }) {
       return;
     }
 
-    // Retry the original question without adding
-    // another duplicate user message.
     handleSend(message.retryQuestion, {
       isRetry: true,
     });
   };
 
+  // --------------------------------------------------
+  // OPEN MEMORY SOURCE
+  // --------------------------------------------------
+
   const handleOpenMemory = async (source) => {
-    if (!source?.id) {
+    const memoryId = getSourceMemoryId(source);
+
+    // --------------------------------------------------
+    // INVALID SOURCE
+    // --------------------------------------------------
+
+    if (!memoryId) {
+      Alert.alert(
+        "Memory Unavailable",
+
+        "This memory source does not contain a valid memory ID.",
+      );
+
       return;
     }
 
-    try {
-      const localMemory = getMemoryById(source.id);
+    // --------------------------------------------------
+    // PREVENT DUPLICATE NAVIGATION
+    // --------------------------------------------------
 
-      // Refresh if this memory isn't available locally.
-      if (!localMemory && refreshMemories) {
-        await refreshMemories();
+    if (openingMemoryLockRef.current !== null) {
+      return;
+    }
+
+    openingMemoryLockRef.current = memoryId;
+
+    setOpeningMemoryId(memoryId);
+
+    try {
+      // --------------------------------------------------
+      // 1. CHECK CURRENT MEMORY COLLECTION
+      // --------------------------------------------------
+
+      let memory = getMemoryById(memoryId);
+
+      // --------------------------------------------------
+      // 2. RECOVER IF MISSING LOCALLY
+      // --------------------------------------------------
+
+      if (!memory) {
+        if (
+          typeof ensureMemoryAvailable !== "function"
+        ) {
+          throw new Error(
+            "Memory recovery is not available. Please update MemoryContext.",
+          );
+        }
+
+        const result =
+          await ensureMemoryAvailable(memoryId);
+
+        if (
+          !result?.success ||
+          !result.memory
+        ) {
+          if (result?.reason === "invalid_id") {
+            Alert.alert(
+              "Invalid Memory",
+
+              "This source contains an invalid memory identifier.",
+            );
+          } else if (
+            result?.reason === "not_found"
+          ) {
+            Alert.alert(
+              "Memory Not Found",
+
+              "This memory is no longer available in your account. It may have been deleted.",
+            );
+          } else if (
+            result?.reason === "session_changed"
+          ) {
+            Alert.alert(
+              "Session Changed",
+
+              "Your account session has changed. Please try again.",
+            );
+          } else if (
+            result?.reason === "refresh_failed"
+          ) {
+            Alert.alert(
+              "Unable to Load Memory",
+
+              "Memento could not retrieve this memory. Check your internet connection and try again.",
+            );
+          } else {
+            Alert.alert(
+              "Memory Unavailable",
+
+              "This memory source could not be opened.",
+            );
+          }
+
+          return;
+        }
+
+        memory = result.memory;
       }
 
+      // --------------------------------------------------
+      // 3. RESOLVE CANONICAL MEMORY ID
+      // --------------------------------------------------
+
+      const resolvedMemoryId = String(
+        memory._id ||
+          memory.id ||
+          memory.clientMemoryId ||
+          "",
+      ).trim();
+
+      if (!resolvedMemoryId) {
+        Alert.alert(
+          "Memory Unavailable",
+
+          "The memory was found, but its identifier is missing.",
+        );
+
+        return;
+      }
+
+      // --------------------------------------------------
+      // 4. NAVIGATE TO MEMORY DETAILS
+      // --------------------------------------------------
+
       navigation.navigate("MemoryDetails", {
-        memoryId: source.id,
+        memoryId: resolvedMemoryId,
       });
     } catch (error) {
       console.error(
-        "Unable to open assistant memory source:",
-        error,
+        "[Ask Memento] Source navigation failed:",
+        {
+          memoryId,
+          message: error?.message,
+          error,
+        },
       );
 
-      navigation.navigate("MemoryDetails", {
-        memoryId: source.id,
-      });
+      Alert.alert(
+        "Unable to Open Memory",
+
+        error?.message ||
+          "Something went wrong while opening this memory. Please try again.",
+      );
+    } finally {
+      openingMemoryLockRef.current = null;
+
+      setOpeningMemoryId(null);
     }
   };
+
+  // --------------------------------------------------
+  // FORMAT SOURCE DATE
+  // --------------------------------------------------
 
   const formatDate = (date) => {
     if (!date) {
       return "Date unavailable";
     }
 
-    const parsed = new Date(`${date}T00:00:00`);
+    // Backend can return either an ISO timestamp
+    // or an ordinary date string.
+    const parsed = new Date(date);
 
     if (Number.isNaN(parsed.getTime())) {
       return String(date);
@@ -306,92 +539,148 @@ function AssistantScreen({ navigation }) {
     });
   };
 
-  const renderSource = (source, index) => (
-    <TouchableOpacity
-      key={`${source.id}-${index}`}
-      style={[
-        styles.sourceCard,
-        {
-          backgroundColor: colors.card,
-          borderColor: colors.border,
-        },
-      ]}
-      onPress={() => handleOpenMemory(source)}
-      activeOpacity={0.8}
-      accessibilityRole="button"
-      accessibilityLabel={`Open memory ${
-        source.title || "memory"
-      }`}
-    >
-      {source.thumbnail ? (
-        <Image
-          source={{ uri: source.thumbnail }}
-          style={styles.sourceImage}
-          resizeMode="cover"
-        />
-      ) : (
-        <View
-          style={[
-            styles.sourceImagePlaceholder,
-            {
-              backgroundColor: colors.background,
-            },
-          ]}
-        >
-          <Ionicons
-            name="ticket-outline"
-            size={25}
-            color={colors.primary}
+  // --------------------------------------------------
+  // RENDER MEMORY SOURCE CARD
+  // --------------------------------------------------
+
+  const renderSource = (source, index) => {
+    const sourceId = getSourceMemoryId(source);
+
+    const isOpening =
+      openingMemoryId !== null &&
+      openingMemoryId === sourceId;
+
+    const hasValidId = Boolean(sourceId);
+
+    return (
+      <TouchableOpacity
+        key={`${sourceId || "source"}-${index}`}
+        style={[
+          styles.sourceCard,
+          {
+            backgroundColor: colors.card,
+
+            borderColor: colors.border,
+
+            opacity:
+              openingMemoryId !== null
+                ? isOpening
+                  ? 0.75
+                  : 0.55
+                : 1,
+          },
+        ]}
+        onPress={() => handleOpenMemory(source)}
+        disabled={openingMemoryId !== null}
+        activeOpacity={0.8}
+        accessibilityRole="button"
+        accessibilityLabel={`Open memory ${
+          source.title || "memory"
+        }`}
+        accessibilityState={{
+          disabled:
+            openingMemoryId !== null ||
+            !hasValidId,
+
+          busy: isOpening,
+        }}
+      >
+        {/* SOURCE IMAGE */}
+
+        {source.thumbnail ? (
+          <Image
+            source={{
+              uri: source.thumbnail,
+            }}
+            style={styles.sourceImage}
+            resizeMode="cover"
           />
-        </View>
-      )}
+        ) : (
+          <View
+            style={[
+              styles.sourceImagePlaceholder,
+              {
+                backgroundColor: colors.background,
+              },
+            ]}
+          >
+            <Ionicons
+              name="ticket-outline"
+              size={25}
+              color={colors.primary}
+            />
+          </View>
+        )}
 
-      <View style={styles.sourceContent}>
-        <Text
-          style={[
-            styles.sourceTitle,
-            { color: colors.text },
-          ]}
-          numberOfLines={2}
-        >
-          {source.title || "Untitled memory"}
-        </Text>
+        {/* SOURCE INFORMATION */}
 
-        <Text
-          style={[
-            styles.sourceMeta,
-            { color: colors.secondary },
-          ]}
-          numberOfLines={1}
-        >
-          {formatDate(source.date)}
-          {source.location
-            ? ` · ${source.location}`
-            : ""}
-        </Text>
-
-        {!!source.tags?.length && (
+        <View style={styles.sourceContent}>
           <Text
             style={[
-              styles.sourceTags,
-              { color: colors.secondary },
+              styles.sourceTitle,
+              {
+                color: colors.text,
+              },
+            ]}
+            numberOfLines={2}
+          >
+            {source.title || "Untitled memory"}
+          </Text>
+
+          <Text
+            style={[
+              styles.sourceMeta,
+              {
+                color: colors.secondary,
+              },
             ]}
             numberOfLines={1}
           >
-            {source.tags
-              .map((tag) => `#${tag}`)
-              .join("  ")}
-          </Text>
-        )}
-      </View>
+            {formatDate(source.date)}
 
-      <Ionicons
-        name="chevron-forward"
-        size={19}
-        color={colors.secondary}
-      />
-    </TouchableOpacity>
-  );
+            {source.location
+              ? ` · ${source.location}`
+              : ""}
+          </Text>
+
+          {!!source.tags?.length && (
+            <Text
+              style={[
+                styles.sourceTags,
+                {
+                  color: colors.secondary,
+                },
+              ]}
+              numberOfLines={1}
+            >
+              {source.tags
+                .map((tag) => `#${tag}`)
+                .join("  ")}
+            </Text>
+          )}
+        </View>
+
+        {/* OPENING INDICATOR */}
+
+        {isOpening ? (
+          <ActivityIndicator
+            size="small"
+            color={colors.accent}
+          />
+        ) : (
+          <Ionicons
+            name="chevron-forward"
+            size={19}
+            color={colors.secondary}
+          />
+        )}
+      </TouchableOpacity>
+    );
+  };
+
+  // --------------------------------------------------
+  // RENDER CHAT MESSAGE
+  // --------------------------------------------------
 
   const renderMessage = (message) => {
     const isUser = message.role === "user";
@@ -401,11 +690,14 @@ function AssistantScreen({ navigation }) {
         key={message.id}
         style={[
           styles.messageRow,
+
           isUser
             ? styles.userMessageRow
             : styles.assistantMessageRow,
         ]}
       >
+        {/* ASSISTANT AVATAR */}
+
         {!isUser && (
           <View
             style={[
@@ -424,6 +716,8 @@ function AssistantScreen({ navigation }) {
         )}
 
         <View style={styles.messageBody}>
+          {/* MESSAGE BUBBLE */}
+
           <View
             style={[
               styles.messageBubble,
@@ -436,6 +730,7 @@ function AssistantScreen({ navigation }) {
                   ? colors.primary
                   : colors.border,
               },
+
               isUser && styles.userBubble,
             ]}
           >
@@ -461,7 +756,9 @@ function AssistantScreen({ navigation }) {
                 <Text
                   style={[
                     styles.sourcesHeading,
-                    { color: colors.secondary },
+                    {
+                      color: colors.secondary,
+                    },
                   ]}
                 >
                   MEMORIES FOUND · {message.sources.length}
@@ -510,6 +807,10 @@ function AssistantScreen({ navigation }) {
     );
   };
 
+  // --------------------------------------------------
+  // SCREEN
+  // --------------------------------------------------
+
   return (
     <SafeAreaView
       style={[
@@ -529,7 +830,9 @@ function AssistantScreen({ navigation }) {
       <KeyboardAvoidingView
         style={styles.container}
         behavior={
-          Platform.OS === "ios" ? "padding" : undefined
+          Platform.OS === "ios"
+            ? "padding"
+            : undefined
         }
       >
         {/* HEADER */}
@@ -564,7 +867,9 @@ function AssistantScreen({ navigation }) {
             <Text
               style={[
                 styles.headerTitle,
-                { color: colors.text },
+                {
+                  color: colors.text,
+                },
               ]}
             >
               Ask Memento
@@ -573,7 +878,9 @@ function AssistantScreen({ navigation }) {
             <Text
               style={[
                 styles.headerSubtitle,
-                { color: colors.secondary },
+                {
+                  color: colors.secondary,
+                },
               ]}
             >
               Explore your memories
@@ -647,7 +954,9 @@ function AssistantScreen({ navigation }) {
                 <Text
                   style={[
                     styles.loadingText,
-                    { color: colors.secondary },
+                    {
+                      color: colors.secondary,
+                    },
                   ]}
                 >
                   Looking through your memories...
@@ -663,7 +972,9 @@ function AssistantScreen({ navigation }) {
               <Text
                 style={[
                   styles.suggestionsTitle,
-                  { color: colors.secondary },
+                  {
+                    color: colors.secondary,
+                  },
                 ]}
               >
                 TRY ASKING
@@ -694,7 +1005,9 @@ function AssistantScreen({ navigation }) {
                   <Text
                     style={[
                       styles.suggestionText,
-                      { color: colors.text },
+                      {
+                        color: colors.text,
+                      },
                     ]}
                   >
                     {prompt.label}
@@ -710,10 +1023,14 @@ function AssistantScreen({ navigation }) {
             </View>
           )}
 
+          {/* DISCLAIMER */}
+
           <Text
             style={[
               styles.disclaimer,
-              { color: colors.secondary },
+              {
+                color: colors.secondary,
+              },
             ]}
           >
             Answers are generated from retrieved saved memories.
@@ -745,7 +1062,9 @@ function AssistantScreen({ navigation }) {
               ref={inputRef}
               style={[
                 styles.input,
-                { color: colors.text },
+                {
+                  color: colors.text,
+                },
               ]}
               value={input}
               onChangeText={setInput}
@@ -763,6 +1082,7 @@ function AssistantScreen({ navigation }) {
                 styles.sendButton,
                 {
                   backgroundColor: colors.accent,
+
                   opacity:
                     input.trim() && !isSending
                       ? 1
@@ -789,7 +1109,9 @@ function AssistantScreen({ navigation }) {
           <Text
             style={[
               styles.footerText,
-              { color: colors.secondary },
+              {
+                color: colors.secondary,
+              },
             ]}
           >
             Your memories stay in your Memento account.
@@ -801,6 +1123,10 @@ function AssistantScreen({ navigation }) {
 }
 
 export default AssistantScreen;
+
+// --------------------------------------------------
+// STYLES
+// --------------------------------------------------
 
 const styles = StyleSheet.create({
   safeArea: {
