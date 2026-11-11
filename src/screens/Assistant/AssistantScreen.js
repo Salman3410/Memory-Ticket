@@ -21,8 +21,6 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import {
   askAssistant,
-  askAssistantIncognito,
-  createAssistantConversation,
   deleteAssistantConversation,
   getAssistantConversations,
   getAssistantMessages,
@@ -174,11 +172,6 @@ function AssistantScreen({ navigation }) {
 
   const activeConversation = currentConversation;
 
-  const activeMode =
-    activeConversation?.mode === "incognito" ? "incognito" : "normal";
-
-  const isIncognito = activeMode === "incognito";
-
   const showCustomAlert = useCallback((options) => {
     setCustomAlert({
       visible: true,
@@ -243,7 +236,6 @@ function AssistantScreen({ navigation }) {
 
       try {
         const result = await getAssistantConversations(token, {
-          mode: "normal",
           status: "active",
           limit: 30,
         });
@@ -290,30 +282,11 @@ function AssistantScreen({ navigation }) {
   const requestCloseChat = useCallback(() => {
     if (isSending || customAlert.visible) return;
 
-    if (isIncognito) {
-      showCustomAlert({
-        type: "warning",
-        icon: "eye-off-outline",
-        title: "Quit incognito chat?",
-        message:
-          "Your temporary conversation is not saved. Quitting will permanently clear all messages from this session. Are you sure you want to quit?",
-        confirmText: "Quit chat",
-        cancelText: "Keep chatting",
-        showCancel: true,
-        showClose: true,
-        onConfirm: finishCurrentChat,
-      });
-
-      return;
-    }
-
     finishCurrentChat();
   }, [
-    isIncognito,
     customAlert.visible,
     finishCurrentChat,
     isSending,
-    showCustomAlert,
   ]);
 
   useEffect(() => {
@@ -330,7 +303,7 @@ function AssistantScreen({ navigation }) {
     return () => subscription.remove();
   }, [requestCloseChat, screen]);
 
-  const createNewConversation = async (mode = "normal") => {
+  const createNewConversation = () => {
     if (!token) {
       showCustomAlert({
         type: "warning",
@@ -347,61 +320,20 @@ function AssistantScreen({ navigation }) {
 
     creatingConversationRef.current = true;
 
-    try {
-      if (mode === "incognito") {
-        const temporaryConversation = {
-          id: `temporary-${createMessageId()}`,
-          mode: "incognito",
-          title: "Incognito chat",
-          ephemeral: true,
-        };
+    const draftConversation = {
+      id: `draft-${createMessageId()}`,
+      title: "New conversation",
+      draft: true,
+    };
 
-        activeConversationRef.current = temporaryConversation;
+    activeConversationRef.current = draftConversation;
 
-        setCurrentConversation(temporaryConversation);
-        setMessages([]);
-        setInput("");
-        setScreen("chat");
+    setCurrentConversation(draftConversation);
+    setMessages([]);
+    setInput("");
+    setScreen("chat");
 
-        return;
-      }
-
-      const result = await createAssistantConversation(token, {
-        mode: "normal",
-        title: "New conversation",
-      });
-
-      const conversation = result?.data?.conversation;
-      const conversationId = getConversationId(conversation);
-
-      if (!conversationId) {
-        throw new Error("The conversation could not be created.");
-      }
-
-      const normalizedConversation = {
-        ...conversation,
-        mode: "normal",
-      };
-
-      activeConversationRef.current = normalizedConversation;
-
-      setCurrentConversation(normalizedConversation);
-      setMessages([]);
-      setInput("");
-      setScreen("chat");
-    } catch (error) {
-      showCustomAlert({
-        type: "danger",
-        icon: "alert-circle-outline",
-        title: "Unable to start chat",
-        message:
-          sanitizeDisplayText(error?.message) ||
-          "Something went wrong. Please try again.",
-        confirmText: "Okay",
-      });
-    } finally {
-      creatingConversationRef.current = false;
-    }
+    creatingConversationRef.current = false;
   };
 
   const openConversation = async (conversation) => {
@@ -410,8 +342,7 @@ function AssistantScreen({ navigation }) {
     if (
       !conversationId ||
       !token ||
-      openingConversationRef.current ||
-      conversation?.mode === "incognito"
+      openingConversationRef.current
     ) {
       return;
     }
@@ -443,14 +374,9 @@ function AssistantScreen({ navigation }) {
         createdAt: record.createdAt,
       }));
 
-      const normalizedConversation = {
-        ...conversation,
-        mode: "normal",
-      };
+      activeConversationRef.current = conversation;
 
-      activeConversationRef.current = normalizedConversation;
-
-      setCurrentConversation(normalizedConversation);
+      setCurrentConversation(conversation);
       setMessages(loadedMessages);
       setInput("");
       setScreen("chat");
@@ -476,19 +402,17 @@ function AssistantScreen({ navigation }) {
 
     const conversation = activeConversationRef.current;
 
-    const mode =
-      conversation?.mode === "incognito" ? "incognito" : "normal";
+    const isDraftConversation =
+      conversation?.draft === true;
 
-    const isTemporaryChat =
-      mode === "incognito" && conversation?.ephemeral === true;
-
-    const conversationId = getConversationId(conversation);
+    const conversationId = isDraftConversation
+      ? ""
+      : getConversationId(conversation);
 
     if (
       !question ||
       requestLockRef.current ||
-      (mode === "normal" && !conversationId) ||
-      (mode === "incognito" && !isTemporaryChat)
+      (!conversationId && !isDraftConversation)
     ) {
       return;
     }
@@ -534,37 +458,14 @@ function AssistantScreen({ navigation }) {
       );
     }
 
-    const incognitoHistory = isTemporaryChat
-      ? messages
-          .filter(
-            (message) =>
-              message.id !== optimisticUserId &&
-              message.id !== options.retryMessageId &&
-              !message.pending &&
-              !message.isError &&
-              ["user", "assistant"].includes(message.role)
-          )
-          .map((message) => ({
-            role: message.role,
-            content:
-              typeof message.text === "string"
-                ? message.text.trim()
-                : "",
-          }))
-          .filter((message) => message.content)
-      : [];
-
     try {
-      const result = isTemporaryChat
-        ? await askAssistantIncognito(
-            token,
-            question,
-            incognitoHistory
-          )
-        : await askAssistant(token, question, {
-            conversationId,
-            mode: "normal",
-          });
+      const result = await askAssistant(
+        token,
+        question,
+        conversationId
+          ? { conversationId }
+          : {}
+      );
 
       const payload = result?.data;
       const safeAnswer = sanitizeDisplayText(payload?.answer);
@@ -581,13 +482,22 @@ function AssistantScreen({ navigation }) {
         );
       }
 
-      const userServerMessageId = isTemporaryChat
-        ? null
-        : payload.messages?.user?.id;
+      const resolvedConversationId =
+        getConversationId(payload?.conversation) ||
+        String(payload?.conversationId || "").trim() ||
+        conversationId;
 
-      const assistantServerMessageId = isTemporaryChat
-        ? null
-        : payload.messages?.assistant?.id;
+      if (!resolvedConversationId) {
+        throw new Error(
+          "Jako responded, but the conversation could not be identified. Please refresh your chat history."
+        );
+      }
+
+      const userServerMessageId =
+        payload.messages?.user?.id;
+
+      const assistantServerMessageId =
+        payload.messages?.assistant?.id;
 
       setMessages((previous) => {
         const next = previous.map((message) =>
@@ -607,42 +517,35 @@ function AssistantScreen({ navigation }) {
             role: "assistant",
             text: safeAnswer,
             sources: getCitationSources(payload.sources),
-            createdAt: isTemporaryChat
-              ? new Date().toISOString()
-              : payload.messages?.assistant?.createdAt ||
-                new Date().toISOString(),
+            createdAt:
+              payload.messages?.assistant?.createdAt ||
+              new Date().toISOString(),
           },
         ];
       });
 
-      if (!isTemporaryChat && payload.conversation) {
-        const updatedConversation = {
-          ...conversation,
-          ...payload.conversation,
-          _id: conversationId,
-          mode: "normal",
-        };
+      const updatedConversation = {
+        ...conversation,
+        ...(payload.conversation || {}),
+        _id: resolvedConversationId,
+        id: resolvedConversationId,
+        draft: false,
+      };
 
-        activeConversationRef.current = updatedConversation;
-        setCurrentConversation(updatedConversation);
-      }
+      activeConversationRef.current = updatedConversation;
+      setCurrentConversation(updatedConversation);
 
-      if (!isTemporaryChat) {
-        setConversations((previous) => {
-          const updated = {
-            ...conversation,
-            ...payload.conversation,
-            _id: conversationId,
-            mode: "normal",
-          };
+      setConversations((previous) => {
+        const withoutCurrent = previous.filter(
+          (item) =>
+            getConversationId(item) !== resolvedConversationId
+        );
 
-          const withoutCurrent = previous.filter(
-            (item) => getConversationId(item) !== conversationId
-          );
-
-          return [updated, ...withoutCurrent];
-        });
-      }
+        return [
+          updatedConversation,
+          ...withoutCurrent,
+        ];
+      });
     } catch (error) {
       setMessages((previous) => [
         ...previous,
@@ -1212,7 +1115,7 @@ function AssistantScreen({ navigation }) {
 
         <TouchableOpacity
           style={styles.welcomeButton}
-          onPress={() => createNewConversation("normal")}
+          onPress={createNewConversation}
           activeOpacity={0.85}
         >
           <Ionicons name="add" size={20} color={colors.primary} />
@@ -1301,7 +1204,7 @@ function AssistantScreen({ navigation }) {
           </Text>
 
           <Text style={[styles.stateText, { color: colors.secondary }]}>
-            Start a chat with Jako. Your regular conversations will appear here.
+            Start a chat with Jako. Your conversations will appear here.
           </Text>
         </View>
       ) : (
@@ -1326,7 +1229,7 @@ function AssistantScreen({ navigation }) {
         />
 
         <Text style={[styles.homeFooterText, { color: colors.muted }]}>
-          Your regular conversations are linked to your Memento account.
+          Your conversations are linked to your Memento account.
         </Text>
       </View>
     </ScrollView>
@@ -1340,9 +1243,7 @@ function AssistantScreen({ navigation }) {
           onPress={requestCloseChat}
           disabled={isSending}
           accessibilityRole="button"
-          accessibilityLabel={
-            isIncognito ? "Quit incognito chat" : "Back to Jako home"
-          }
+          accessibilityLabel="Back to Jako home"
         >
           <Ionicons name="arrow-back" size={21} color={colors.text} />
         </TouchableOpacity>
@@ -1352,9 +1253,7 @@ function AssistantScreen({ navigation }) {
             style={[styles.chatHeaderTitle, { color: colors.text }]}
             numberOfLines={1}
           >
-            {isIncognito
-              ? "Incognito chat"
-              : sanitizeDisplayText(activeConversation?.title) || "New chat"}
+            {sanitizeDisplayText(activeConversation?.title) || "New chat"}
           </Text>
 
           <View style={styles.chatHeaderSubtitleRow}>
@@ -1371,48 +1270,13 @@ function AssistantScreen({ navigation }) {
                 { color: colors.secondary },
               ]}
             >
-              {isIncognito ? "Temporary private session" : "Jako AI"}
+              Jako AI
             </Text>
           </View>
         </View>
 
-        {!isIncognito ? (
-          <TouchableOpacity
-            style={[styles.headerButton, { backgroundColor: colors.card }]}
-            onPress={() => createNewConversation("incognito")}
-            disabled={isSending || isLoadingMessages}
-            activeOpacity={0.8}
-            accessibilityRole="button"
-            accessibilityLabel="Start an incognito chat"
-          >
-            <Ionicons
-              name="eye-off-outline"
-              size={21}
-              color={colors.accent}
-            />
-          </TouchableOpacity>
-        ) : (
-          <View style={styles.headerButtonPlaceholder} />
-        )}
+        <View style={styles.headerButtonPlaceholder} />
       </View>
-
-      {isIncognito && (
-        <View
-          style={[
-            styles.chatPrivateBanner,
-            {
-              backgroundColor: colors.accent + "12",
-              borderBottomColor: colors.accent + "25",
-            },
-          ]}
-        >
-          <Ionicons name="eye-off-outline" size={16} color={colors.accent} />
-
-          <Text style={[styles.chatPrivateText, { color: colors.secondary }]}>
-            Temporary session. Your conversation is not saved to your account.
-          </Text>
-        </View>
-      )}
 
       <ScrollView
         ref={scrollRef}
@@ -1443,9 +1307,7 @@ function AssistantScreen({ navigation }) {
             </View>
 
             <Text style={[styles.chatWelcomeTitle, { color: colors.text }]}>
-              {isIncognito
-                ? "A private space to think"
-                : "How can I help you today?"}
+              How can I help you today?
             </Text>
 
             <Text
@@ -1454,9 +1316,7 @@ function AssistantScreen({ navigation }) {
                 { color: colors.secondary },
               ]}
             >
-              {isIncognito
-                ? "Chat freely. Your messages are temporary and will disappear when you quit."
-                : "Ask me about your saved memories, places, dates, or favorite moments."}
+              Ask me about your saved memories, places, dates, or favorite moments.
             </Text>
 
             <View style={styles.chatSuggestions}>
@@ -1582,9 +1442,7 @@ function AssistantScreen({ navigation }) {
         </View>
 
         <Text style={[styles.footerText, { color: colors.secondary }]}>
-          {isIncognito
-            ? "Temporary session · Nothing is saved"
-            : "Your conversation is saved to your Memento account."}
+          Your conversation is saved to your Memento account.
         </Text>
       </View>
     </>
@@ -1637,7 +1495,7 @@ function AssistantScreen({ navigation }) {
                   styles.headerButton,
                   { backgroundColor: colors.card },
                 ]}
-                onPress={() => createNewConversation("normal")}
+                onPress={createNewConversation}
                 activeOpacity={0.8}
                 accessibilityRole="button"
                 accessibilityLabel="Start a new chat"
@@ -2157,19 +2015,6 @@ const styles = StyleSheet.create({
   },
   chatHeaderSubtitle: {
     fontSize: 10,
-  },
-  chatPrivateBanner: {
-    minHeight: 37,
-    paddingHorizontal: 15,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 7,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  chatPrivateText: {
-    flex: 1,
-    fontSize: 10,
-    lineHeight: 15,
   },
   chatScroll: {
     flex: 1,

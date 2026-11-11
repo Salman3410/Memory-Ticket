@@ -1,11 +1,6 @@
 
 import { apiRequest } from "./apiClient";
 
-const SUPPORTED_MODES = new Set([
-  "normal",
-  "incognito",
-]);
-
 function createApiError(result, fallbackMessage) {
   const data = result?.data || {};
 
@@ -48,45 +43,6 @@ function validateToken(token) {
 
     throw error;
   }
-}
-
-function normalizeMode(mode = "normal") {
-  const normalized = String(mode)
-    .trim()
-    .toLowerCase();
-
-  if (!SUPPORTED_MODES.has(normalized)) {
-    const error = new Error(
-      "Invalid conversation mode."
-    );
-
-    error.status = 400;
-    error.retryable = false;
-
-    throw error;
-  }
-
-  return normalized;
-}
-
-function normalizeIncognitoHistory(history) {
-  if (!Array.isArray(history)) {
-    return [];
-  }
-
-  return history
-    .filter(
-      (message) =>
-        message &&
-        ["user", "assistant"].includes(message.role) &&
-        typeof message.content === "string" &&
-        message.content.trim()
-    )
-    .slice(-10)
-    .map((message) => ({
-      role: message.role,
-      content: message.content.trim().slice(0, 3000),
-    }));
 }
 
 function buildQuery(params = {}) {
@@ -170,12 +126,6 @@ export async function askAssistant(
     body.conversationId = conversationId;
   }
 
-  if (options.mode) {
-    body.mode = normalizeMode(options.mode);
-  } else if (!conversationId) {
-    body.mode = "normal";
-  }
-
   return assistantRequest(
     token,
     "/assistant/chat",
@@ -186,45 +136,10 @@ export async function askAssistant(
   );
 }
 
-export async function askAssistantIncognito(
-  token,
-  question,
-  conversationHistory = []
-) {
-  validateToken(token);
-
-  if (
-    typeof question !== "string" ||
-    !question.trim()
-  ) {
-    const error = new Error("Please enter a question.");
-    error.status = 400;
-    error.retryable = false;
-    throw error;
-  }
-
-  return assistantRequest(
-    token,
-    "/assistant/incognito-chat",
-    {
-      method: "POST",
-      body: {
-        question: question.trim(),
-        conversationHistory:
-          normalizeIncognitoHistory(conversationHistory),
-      },
-    }
-  );
-}
-
 export async function createAssistantConversation(
   token,
   options = {}
 ) {
-  const mode = normalizeMode(
-    options.mode || "normal"
-  );
-
   const title =
     typeof options.title === "string"
       ? options.title.trim()
@@ -247,7 +162,6 @@ export async function createAssistantConversation(
       method: "POST",
       body: {
         title: title || "New conversation",
-        mode,
       },
     }
   );
@@ -257,17 +171,7 @@ export async function getAssistantConversations(
   token,
   options = {}
 ) {
-  const mode = options.mode || "normal";
-
-  if (!["normal", "incognito", "all"].includes(mode)) {
-    const error = new Error("Invalid conversation mode.");
-    error.status = 400;
-    error.retryable = false;
-    throw error;
-  }
-
   const query = buildQuery({
-    mode,
     status: options.status || "active",
     limit: options.limit || 20,
     before: options.before,
