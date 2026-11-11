@@ -1,13 +1,14 @@
 
-import { useRef, useState } from "react";
-
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
+  BackHandler,
   Image,
   Keyboard,
   KeyboardAvoidingView,
+  Modal,
   Platform,
+  RefreshControl,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -17,17 +18,20 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-
 import { Ionicons } from "@expo/vector-icons";
-
-import { askAssistant } from "../../api/assistantApi";
+import {
+  askAssistant,
+  askAssistantIncognito,
+  createAssistantConversation,
+  deleteAssistantConversation,
+  getAssistantConversations,
+  getAssistantMessages,
+  updateAssistantConversation,
+} from "../../api/assistantApi";
 import { useAuth } from "../../hooks/useAuth";
 import { useMemory } from "../../hooks/useMemory";
 import { useTheme } from "../../context/ThemeContext";
-
-// --------------------------------------------------
-// SUGGESTED PROMPTS
-// --------------------------------------------------
+import CustomAlert from "../../components/common/CustomAlert";
 
 const SUGGESTED_PROMPTS = [
   {
@@ -47,304 +51,622 @@ const SUGGESTED_PROMPTS = [
   },
 ];
 
-// --------------------------------------------------
-// HELPERS
-// --------------------------------------------------
-
 const createMessageId = () =>
   `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
-const getSourceMemoryId = (source) => {
-  const id =
-    source?.id ||
-    source?.memoryId ||
-    source?._id ||
-    "";
+const getConversationId = (conversation) =>
+  String(conversation?._id || conversation?.id || "").trim();
 
-  return String(id).trim();
+const getSourceMemoryId = (source) => {
+  const value = source?.id || source?.memoryId || source?._id || "";
+  return String(value).trim();
 };
 
-// --------------------------------------------------
-// ASSISTANT SCREEN
-// --------------------------------------------------
+const OBJECT_ID_PATTERN = /(^|[^a-z0-9])[a-f\d]{24}(?![a-z0-9])/gi;
+const UUID_PATTERN = /\b[a-f\d]{8}-(?:[a-f\d]{4}-){3}[a-f\d]{12}\b/gi;
+
+const LABELLED_ID_PATTERN =
+  /\b(?:mongodb\s*)?(?:object[\s_-]*id|memory[\s_-]*id|source[\s_-]*id|record[\s_-]*id|internal[\s_-]*(?:database[\s_-]*)?id|database[\s_-]*id|id(?:entifier)?(?:[\s_-]*number)?)\s*(?:(?:is|=|:|#)\s*)?[\[({]?\s*["'`]?(?=[a-z0-9_-]*\d)[a-z0-9_-]{6,}["'`]?[)\]}]?/giu;
+
+const sanitizeDisplayText = (value) => {
+  if (typeof value !== "string") return "";
+
+  return value
+    .replace(LABELLED_ID_PATTERN, "")
+    .replace(OBJECT_ID_PATTERN, "$1")
+    .replace(UUID_PATTERN, "")
+    .replace(/\(\s*\)|\[\s*\]|\{\s*\}/g, "")
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/\s+([,.;!?])/g, "$1")
+    .replace(/([([{])\s+/g, "$1")
+    .replace(/\s+([)\]}])/g, "$1")
+    .trim();
+};
+
+const getCitationSources = (citations) => {
+  if (!Array.isArray(citations)) return [];
+
+  return citations.map((citation) => ({
+    id: getSourceMemoryId(citation),
+    title: sanitizeDisplayText(citation?.title) || "Untitled memory",
+    date: citation?.date || null,
+    location: sanitizeDisplayText(citation?.location),
+    tags: Array.isArray(citation?.tags) ? citation.tags : [],
+    thumbnail: citation?.thumbnail || null,
+  }));
+};
+
+const getConversationTimestamp = (conversation) => {
+  const value =
+    conversation?.lastMessageAt ||
+    conversation?.updatedAt ||
+    conversation?.createdAt;
+
+  if (!value) return "";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) return "";
+
+  return date.toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "short",
+  });
+};
 
 function AssistantScreen({ navigation }) {
   const { token } = useAuth();
-
   const { theme, isDark } = useTheme();
-
-  const {
-    getMemoryById,
-    ensureMemoryAvailable,
-  } = useMemory();
-
-  // --------------------------------------------------
-  // THEME COLORS
-  // --------------------------------------------------
+  const { getMemoryById, ensureMemoryAvailable } = useMemory();
 
   const themeColors = theme?.colors || {};
 
   const colors = {
-    background:
-      themeColors.background || "#F1F0F6",
-
-    surface:
-      themeColors.surface || "#FFFFFF",
-
-    card:
-      themeColors.card ||
-      themeColors.surface ||
-      "#FFFFFF",
-
-    text:
-      themeColors.text ||
-      (isDark ? "#F7F5FC" : "#24243A"),
-
+    background: themeColors.background || "#F1F0F6",
+    surface: themeColors.surface || "#FFFFFF",
+    card: themeColors.card || themeColors.surface || "#FFFFFF",
+    text: themeColors.text || (isDark ? "#F7F5FC" : "#24243A"),
     secondary:
       themeColors.textSecondary ||
       themeColors.textMuted ||
       (isDark ? "#B9B5C8" : "#747386"),
-
-    primary:
-      themeColors.primary || "#34345C",
-
-    accent:
-      themeColors.accent || "#E76F51",
-
-    border:
-      themeColors.border ||
-      (isDark ? "#39364D" : "#E1DFE9"),
-
-    muted:
-      themeColors.iconMuted || "#9290A2",
+    primary: themeColors.primary || "#34345C",
+    accent: themeColors.accent || "#E76F51",
+    border: themeColors.border || (isDark ? "#39364D" : "#E1DFE9"),
+    muted: themeColors.iconMuted || "#9290A2",
   };
 
-  // --------------------------------------------------
-  // REFS
-  // --------------------------------------------------
-
   const scrollRef = useRef(null);
-  const inputRef = useRef(null);
-
   const requestLockRef = useRef(false);
-
-  // Prevent multiple memory source navigation requests.
+  const creatingConversationRef = useRef(false);
+  const openingConversationRef = useRef(false);
   const openingMemoryLockRef = useRef(null);
+  const activeConversationRef = useRef(null);
 
-  // --------------------------------------------------
-  // STATE
-  // --------------------------------------------------
+  const [screen, setScreen] = useState("home");
+  const [conversations, setConversations] = useState([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+  const [isRefreshingHistory, setIsRefreshingHistory] = useState(false);
+  const [historyError, setHistoryError] = useState("");
 
+  const [currentConversation, setCurrentConversation] = useState(null);
+  const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
 
   const [isSending, setIsSending] = useState(false);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+  const [openingMemoryId, setOpeningMemoryId] = useState(null);
 
-  const [openingMemoryId, setOpeningMemoryId] =
-    useState(null);
+  const [renameVisible, setRenameVisible] = useState(false);
+  const [conversationToRename, setConversationToRename] = useState(null);
+  const [renameTitle, setRenameTitle] = useState("");
+  const [isRenaming, setIsRenaming] = useState(false);
 
-  const [messages, setMessages] = useState([
-    {
-      id: "welcome",
-      role: "assistant",
+  const [conversationOptionsVisible, setConversationOptionsVisible] =
+    useState(false);
+  const [conversationToManage, setConversationToManage] = useState(null);
 
-      text:
-        "Hello! I'm Ask Memento. ✨\n\n" +
-        "I can help you explore the memories you've saved. " +
-        "Ask me about a date, place, favorite moment, or your latest memories.",
+  const [deletingConversationId, setDeletingConversationId] = useState(null);
 
-      sources: [],
+  const [customAlert, setCustomAlert] = useState({
+    visible: false,
+  });
+
+  const activeConversation = currentConversation;
+
+  const activeMode =
+    activeConversation?.mode === "incognito" ? "incognito" : "normal";
+
+  const isIncognito = activeMode === "incognito";
+
+  const showCustomAlert = useCallback((options) => {
+    setCustomAlert({
+      visible: true,
+      type: "info",
+      icon: "information-circle-outline",
+      title: "Notice",
+      message: "",
+      confirmText: "Okay",
+      cancelText: "Cancel",
+      showCancel: false,
+      showClose: true,
+      onConfirm: null,
+      onCancel: null,
+      ...options,
+    });
+  }, []);
+
+  const dismissCustomAlert = useCallback(() => {
+    setCustomAlert((previous) => ({
+      ...previous,
+      visible: false,
+    }));
+  }, []);
+
+  const handleCustomAlertConfirm = () => {
+    const action = customAlert.onConfirm;
+
+    dismissCustomAlert();
+
+    if (typeof action === "function") {
+      action();
+    }
+  };
+
+  const handleCustomAlertCancel = () => {
+    const action = customAlert.onCancel;
+
+    dismissCustomAlert();
+
+    if (typeof action === "function") {
+      action();
+    }
+  };
+
+  const loadConversations = useCallback(
+    async (refreshing = false) => {
+      if (!token) {
+        setConversations([]);
+        setIsLoadingHistory(false);
+        setIsRefreshingHistory(false);
+        setHistoryError("Please sign in again to view your conversations.");
+        return;
+      }
+
+      if (refreshing) {
+        setIsRefreshingHistory(true);
+      } else {
+        setIsLoadingHistory(true);
+      }
+
+      setHistoryError("");
+
+      try {
+        const result = await getAssistantConversations(token, {
+          mode: "normal",
+          status: "active",
+          limit: 30,
+        });
+
+        const items = Array.isArray(result?.data?.conversations)
+          ? result.data.conversations
+          : [];
+
+        setConversations(
+          items.filter(
+            (conversation) => conversation?.mode !== "incognito"
+          )
+        );
+      } catch (error) {
+        setHistoryError(
+          sanitizeDisplayText(error?.message) ||
+            "Unable to load your conversations. Please try again."
+        );
+      } finally {
+        setIsLoadingHistory(false);
+        setIsRefreshingHistory(false);
+      }
     },
+    [token]
+  );
+
+  useEffect(() => {
+    loadConversations();
+  }, [loadConversations]);
+
+  const finishCurrentChat = useCallback(async () => {
+    Keyboard.dismiss();
+
+    activeConversationRef.current = null;
+
+    setCurrentConversation(null);
+    setMessages([]);
+    setInput("");
+    setScreen("home");
+
+    await loadConversations(true);
+  }, [loadConversations]);
+
+  const requestCloseChat = useCallback(() => {
+    if (isSending || customAlert.visible) return;
+
+    if (isIncognito) {
+      showCustomAlert({
+        type: "warning",
+        icon: "eye-off-outline",
+        title: "Quit incognito chat?",
+        message:
+          "Your temporary conversation is not saved. Quitting will permanently clear all messages from this session. Are you sure you want to quit?",
+        confirmText: "Quit chat",
+        cancelText: "Keep chatting",
+        showCancel: true,
+        showClose: true,
+        onConfirm: finishCurrentChat,
+      });
+
+      return;
+    }
+
+    finishCurrentChat();
+  }, [
+    isIncognito,
+    customAlert.visible,
+    finishCurrentChat,
+    isSending,
+    showCustomAlert,
   ]);
 
-  // --------------------------------------------------
-  // SEND MESSAGE
-  // --------------------------------------------------
+  useEffect(() => {
+    if (screen !== "chat") return undefined;
 
-  const handleSend = async (
-    value = input,
-    options = {},
-  ) => {
-    const question =
-      typeof value === "string"
-        ? value.trim()
-        : "";
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      () => {
+        requestCloseChat();
+        return true;
+      }
+    );
 
-    const isRetry = options.isRetry === true;
+    return () => subscription.remove();
+  }, [requestCloseChat, screen]);
+
+  const createNewConversation = async (mode = "normal") => {
+    if (!token) {
+      showCustomAlert({
+        type: "warning",
+        icon: "lock-closed-outline",
+        title: "Sign in required",
+        message: "Please sign in to use Jako AI.",
+        confirmText: "Okay",
+      });
+
+      return;
+    }
+
+    if (requestLockRef.current || creatingConversationRef.current) return;
+
+    creatingConversationRef.current = true;
+
+    try {
+      if (mode === "incognito") {
+        const temporaryConversation = {
+          id: `temporary-${createMessageId()}`,
+          mode: "incognito",
+          title: "Incognito chat",
+          ephemeral: true,
+        };
+
+        activeConversationRef.current = temporaryConversation;
+
+        setCurrentConversation(temporaryConversation);
+        setMessages([]);
+        setInput("");
+        setScreen("chat");
+
+        return;
+      }
+
+      const result = await createAssistantConversation(token, {
+        mode: "normal",
+        title: "New conversation",
+      });
+
+      const conversation = result?.data?.conversation;
+      const conversationId = getConversationId(conversation);
+
+      if (!conversationId) {
+        throw new Error("The conversation could not be created.");
+      }
+
+      const normalizedConversation = {
+        ...conversation,
+        mode: "normal",
+      };
+
+      activeConversationRef.current = normalizedConversation;
+
+      setCurrentConversation(normalizedConversation);
+      setMessages([]);
+      setInput("");
+      setScreen("chat");
+    } catch (error) {
+      showCustomAlert({
+        type: "danger",
+        icon: "alert-circle-outline",
+        title: "Unable to start chat",
+        message:
+          sanitizeDisplayText(error?.message) ||
+          "Something went wrong. Please try again.",
+        confirmText: "Okay",
+      });
+    } finally {
+      creatingConversationRef.current = false;
+    }
+  };
+
+  const openConversation = async (conversation) => {
+    const conversationId = getConversationId(conversation);
 
     if (
-      !question ||
-      requestLockRef.current
+      !conversationId ||
+      !token ||
+      openingConversationRef.current ||
+      conversation?.mode === "incognito"
     ) {
       return;
     }
 
-    // --------------------------------------------------
-    // AUTHENTICATION CHECK
-    // --------------------------------------------------
+    openingConversationRef.current = true;
+    setIsLoadingMessages(true);
+    setHistoryError("");
+
+    try {
+      const result = await getAssistantMessages(token, conversationId, {
+        limit: 50,
+      });
+
+      const records = Array.isArray(result?.data?.messages)
+        ? result.data.messages
+        : [];
+
+      const loadedMessages = records.map((record) => ({
+        id: String(record._id || record.id || createMessageId()),
+        role: record.role,
+        text:
+          record.role === "assistant"
+            ? sanitizeDisplayText(record.content)
+            : record.content || "",
+        sources:
+          record.role === "assistant"
+            ? getCitationSources(record.citations)
+            : [],
+        createdAt: record.createdAt,
+      }));
+
+      const normalizedConversation = {
+        ...conversation,
+        mode: "normal",
+      };
+
+      activeConversationRef.current = normalizedConversation;
+
+      setCurrentConversation(normalizedConversation);
+      setMessages(loadedMessages);
+      setInput("");
+      setScreen("chat");
+    } catch (error) {
+      showCustomAlert({
+        type: "danger",
+        icon: "alert-circle-outline",
+        title: "Unable to open conversation",
+        message:
+          sanitizeDisplayText(error?.message) ||
+          "Your conversation could not be loaded. Please try again.",
+        confirmText: "Okay",
+      });
+    } finally {
+      openingConversationRef.current = false;
+      setIsLoadingMessages(false);
+    }
+  };
+
+  const handleSend = async (value = input, options = {}) => {
+    const question = typeof value === "string" ? value.trim() : "";
+    const isRetry = options.isRetry === true;
+
+    const conversation = activeConversationRef.current;
+
+    const mode =
+      conversation?.mode === "incognito" ? "incognito" : "normal";
+
+    const isTemporaryChat =
+      mode === "incognito" && conversation?.ephemeral === true;
+
+    const conversationId = getConversationId(conversation);
+
+    if (
+      !question ||
+      requestLockRef.current ||
+      (mode === "normal" && !conversationId) ||
+      (mode === "incognito" && !isTemporaryChat)
+    ) {
+      return;
+    }
 
     if (!token) {
-      setMessages((previous) => [
-        ...previous,
-        {
-          id: createMessageId(),
-
-          role: "assistant",
-
-          text:
-            "Your session is unavailable. Please sign in again.",
-
-          sources: [],
-
-          isError: true,
-          retryable: false,
-        },
-      ]);
+      showCustomAlert({
+        type: "warning",
+        icon: "lock-closed-outline",
+        title: "Session unavailable",
+        message: "Please sign in again to continue chatting with Jako.",
+        confirmText: "Okay",
+      });
 
       return;
     }
 
     requestLockRef.current = true;
-
     setIsSending(true);
 
-    // --------------------------------------------------
-    // ADD USER MESSAGE
-    // --------------------------------------------------
+    let optimisticUserId = options.userMessageId;
 
     if (!isRetry) {
       Keyboard.dismiss();
-
       setInput("");
 
-      const userMessage = {
-        id: createMessageId(),
-
-        role: "user",
-
-        text: question,
-
-        sources: [],
-      };
+      optimisticUserId = createMessageId();
 
       setMessages((previous) => [
         ...previous,
-        userMessage,
+        {
+          id: optimisticUserId,
+          role: "user",
+          text: question,
+          sources: [],
+          pending: true,
+        },
       ]);
+    } else if (options.retryMessageId) {
+      setMessages((previous) =>
+        previous.filter(
+          (message) => message.id !== options.retryMessageId
+        )
+      );
     }
 
-    // --------------------------------------------------
-    // API REQUEST
-    // --------------------------------------------------
+    const incognitoHistory = isTemporaryChat
+      ? messages
+          .filter(
+            (message) =>
+              message.id !== optimisticUserId &&
+              message.id !== options.retryMessageId &&
+              !message.pending &&
+              !message.isError &&
+              ["user", "assistant"].includes(message.role)
+          )
+          .map((message) => ({
+            role: message.role,
+            content:
+              typeof message.text === "string"
+                ? message.text.trim()
+                : "",
+          }))
+          .filter((message) => message.content)
+      : [];
 
     try {
-      const result = await askAssistant(
-        token,
-        question,
-      );
+      const result = isTemporaryChat
+        ? await askAssistantIncognito(
+            token,
+            question,
+            incognitoHistory
+          )
+        : await askAssistant(token, question, {
+            conversationId,
+            mode: "normal",
+          });
 
-      if (!result?.success) {
-        const error = new Error(
-          result?.message ||
-            "Unable to contact Ask Memento.",
-        );
-
-        error.status = result?.status || 0;
-
-        error.retryable =
-          error.status === 0 ||
-          error.status >= 500;
-
-        throw error;
-      }
-
-      const payload = result.data;
+      const payload = result?.data;
+      const safeAnswer = sanitizeDisplayText(payload?.answer);
 
       if (
+        !result?.success ||
         !payload?.success ||
         typeof payload.answer !== "string" ||
-        !payload.answer.trim()
+        !safeAnswer
       ) {
-        const error = new Error(
-          payload?.message ||
-            "The assistant returned an invalid response.",
+        throw new Error(
+          sanitizeDisplayText(payload?.message || result?.message) ||
+            "Jako could not generate a response. Please try again."
         );
-
-        error.retryable = false;
-
-        throw error;
       }
 
-      // --------------------------------------------------
-      // ADD ASSISTANT RESPONSE
-      // --------------------------------------------------
+      const userServerMessageId = isTemporaryChat
+        ? null
+        : payload.messages?.user?.id;
 
-      setMessages((previous) => [
-        ...previous,
-        {
-          id: createMessageId(),
+      const assistantServerMessageId = isTemporaryChat
+        ? null
+        : payload.messages?.assistant?.id;
 
-          role: "assistant",
+      setMessages((previous) => {
+        const next = previous.map((message) =>
+          message.id === optimisticUserId
+            ? {
+                ...message,
+                id: userServerMessageId || message.id,
+                pending: false,
+              }
+            : message
+        );
 
-          text: payload.answer,
+        return [
+          ...next,
+          {
+            id: assistantServerMessageId || createMessageId(),
+            role: "assistant",
+            text: safeAnswer,
+            sources: getCitationSources(payload.sources),
+            createdAt: isTemporaryChat
+              ? new Date().toISOString()
+              : payload.messages?.assistant?.createdAt ||
+                new Date().toISOString(),
+          },
+        ];
+      });
 
-          sources: Array.isArray(payload.sources)
-            ? payload.sources
-            : [],
+      if (!isTemporaryChat && payload.conversation) {
+        const updatedConversation = {
+          ...conversation,
+          ...payload.conversation,
+          _id: conversationId,
+          mode: "normal",
+        };
 
-          usedMemoryCount:
-            payload.usedMemoryCount || 0,
-        },
-      ]);
+        activeConversationRef.current = updatedConversation;
+        setCurrentConversation(updatedConversation);
+      }
+
+      if (!isTemporaryChat) {
+        setConversations((previous) => {
+          const updated = {
+            ...conversation,
+            ...payload.conversation,
+            _id: conversationId,
+            mode: "normal",
+          };
+
+          const withoutCurrent = previous.filter(
+            (item) => getConversationId(item) !== conversationId
+          );
+
+          return [updated, ...withoutCurrent];
+        });
+      }
     } catch (error) {
-      console.error(
-        "[Ask Memento] Request failed:",
-        {
-          status: error?.status,
-          code: error?.code,
-          message: error?.message,
-        },
-      );
-
-      const retryable =
-        typeof error?.retryable === "boolean"
-          ? error.retryable
-          : error?.status === 0 ||
-            error?.status >= 500;
-
       setMessages((previous) => [
         ...previous,
         {
           id: createMessageId(),
-
           role: "assistant",
-
           text:
-            error?.message ||
+            sanitizeDisplayText(error?.message) ||
             "Something went wrong. Please try again.",
-
           sources: [],
-
           isError: true,
-
           retryQuestion: question,
-
-          retryable,
-
-          errorCode: error?.code || null,
-
-          status: error?.status || null,
+          retryUserMessageId: optimisticUserId,
+          retryable:
+            typeof error?.retryable === "boolean"
+              ? error.retryable
+              : error?.status === 0 || error?.status >= 500,
         },
       ]);
     } finally {
       requestLockRef.current = false;
-
       setIsSending(false);
     }
   };
-
-  // --------------------------------------------------
-  // RETRY MESSAGE
-  // --------------------------------------------------
 
   const handleRetry = (message) => {
     if (
@@ -357,106 +679,205 @@ function AssistantScreen({ navigation }) {
 
     handleSend(message.retryQuestion, {
       isRetry: true,
+      userMessageId: message.retryUserMessageId,
+      retryMessageId: message.id,
     });
   };
 
-  // --------------------------------------------------
-  // OPEN MEMORY SOURCE
-  // --------------------------------------------------
+  const openConversationOptions = (conversation) => {
+    setConversationToManage(conversation);
+    setConversationOptionsVisible(true);
+  };
+
+  const handleRenameSelectedConversation = () => {
+    if (!conversationToManage) return;
+
+    const title =
+      sanitizeDisplayText(conversationToManage.title) ||
+      "New conversation";
+
+    setConversationToRename(conversationToManage);
+    setRenameTitle(title);
+
+    setConversationOptionsVisible(false);
+    setConversationToManage(null);
+
+    setRenameVisible(true);
+  };
+
+  const handleDeleteSelectedConversation = () => {
+    if (!conversationToManage) return;
+
+    const conversation = conversationToManage;
+
+    setConversationOptionsVisible(false);
+    setConversationToManage(null);
+
+    confirmDeleteConversation(conversation);
+  };
+
+  const saveConversationRename = async () => {
+    const conversationId = getConversationId(conversationToRename);
+    const nextTitle = sanitizeDisplayText(renameTitle).trim();
+
+    if (!conversationId || !nextTitle || !token || isRenaming) return;
+
+    setIsRenaming(true);
+
+    try {
+      await updateAssistantConversation(token, conversationId, {
+        title: nextTitle,
+      });
+
+      setConversations((previous) =>
+        previous.map((conversation) =>
+          getConversationId(conversation) === conversationId
+            ? { ...conversation, title: nextTitle }
+            : conversation
+        )
+      );
+
+      if (
+        getConversationId(activeConversationRef.current) === conversationId
+      ) {
+        const updatedConversation = {
+          ...activeConversationRef.current,
+          title: nextTitle,
+        };
+
+        activeConversationRef.current = updatedConversation;
+        setCurrentConversation(updatedConversation);
+      }
+
+      setRenameVisible(false);
+      setConversationToRename(null);
+      setRenameTitle("");
+    } catch (error) {
+      showCustomAlert({
+        type: "danger",
+        icon: "alert-circle-outline",
+        title: "Unable to rename chat",
+        message:
+          sanitizeDisplayText(error?.message) ||
+          "The conversation name could not be updated. Please try again.",
+        confirmText: "Okay",
+      });
+    } finally {
+      setIsRenaming(false);
+    }
+  };
+
+  const confirmDeleteConversation = (conversation) => {
+    const conversationId = getConversationId(conversation);
+
+    if (!conversationId) return;
+
+    const title =
+      sanitizeDisplayText(conversation?.title) || "this conversation";
+
+    showCustomAlert({
+      type: "danger",
+      icon: "trash-outline",
+      title: "Delete conversation?",
+      message: `Are you sure you want to permanently delete "${title}"? This cannot be undone.`,
+      confirmText: "Delete",
+      cancelText: "Keep chat",
+      showCancel: true,
+      showClose: true,
+      onConfirm: () => deleteConversation(conversationId),
+    });
+  };
+
+  const deleteConversation = async (conversationId) => {
+    if (!token || deletingConversationId) return;
+
+    setDeletingConversationId(conversationId);
+
+    try {
+      await deleteAssistantConversation(token, conversationId);
+
+      setConversations((previous) =>
+        previous.filter(
+          (conversation) =>
+            getConversationId(conversation) !== conversationId
+        )
+      );
+
+      if (
+        getConversationId(activeConversationRef.current) === conversationId
+      ) {
+        activeConversationRef.current = null;
+
+        setCurrentConversation(null);
+        setMessages([]);
+        setInput("");
+        setScreen("home");
+      }
+    } catch (error) {
+      showCustomAlert({
+        type: "danger",
+        icon: "alert-circle-outline",
+        title: "Unable to delete chat",
+        message:
+          sanitizeDisplayText(error?.message) ||
+          "The conversation could not be deleted. Please try again.",
+        confirmText: "Okay",
+      });
+    } finally {
+      setDeletingConversationId(null);
+    }
+  };
 
   const handleOpenMemory = async (source) => {
     const memoryId = getSourceMemoryId(source);
 
-    // --------------------------------------------------
-    // INVALID SOURCE
-    // --------------------------------------------------
-
     if (!memoryId) {
-      Alert.alert(
-        "Memory Unavailable",
-
-        "This memory source does not contain a valid memory ID.",
-      );
+      showCustomAlert({
+        type: "warning",
+        icon: "alert-circle-outline",
+        title: "Memory unavailable",
+        message:
+          "This memory source is unavailable. Please try another memory.",
+        confirmText: "Okay",
+      });
 
       return;
     }
 
-    // --------------------------------------------------
-    // PREVENT DUPLICATE NAVIGATION
-    // --------------------------------------------------
-
-    if (openingMemoryLockRef.current !== null) {
-      return;
-    }
+    if (openingMemoryLockRef.current !== null) return;
 
     openingMemoryLockRef.current = memoryId;
-
     setOpeningMemoryId(memoryId);
 
     try {
-      // --------------------------------------------------
-      // 1. CHECK CURRENT MEMORY COLLECTION
-      // --------------------------------------------------
-
       let memory = getMemoryById(memoryId);
 
-      // --------------------------------------------------
-      // 2. RECOVER IF MISSING LOCALLY
-      // --------------------------------------------------
-
       if (!memory) {
-        if (
-          typeof ensureMemoryAvailable !== "function"
-        ) {
-          throw new Error(
-            "Memory recovery is not available. Please update MemoryContext.",
-          );
+        if (typeof ensureMemoryAvailable !== "function") {
+          throw new Error("Memory recovery is unavailable.");
         }
 
-        const result =
-          await ensureMemoryAvailable(memoryId);
+        const result = await ensureMemoryAvailable(memoryId);
 
-        if (
-          !result?.success ||
-          !result.memory
-        ) {
-          if (result?.reason === "invalid_id") {
-            Alert.alert(
-              "Invalid Memory",
-
-              "This source contains an invalid memory identifier.",
-            );
-          } else if (
-            result?.reason === "not_found"
-          ) {
-            Alert.alert(
-              "Memory Not Found",
-
-              "This memory is no longer available in your account. It may have been deleted.",
-            );
-          } else if (
-            result?.reason === "session_changed"
-          ) {
-            Alert.alert(
-              "Session Changed",
-
+        if (!result?.success || !result.memory) {
+          const messagesByReason = {
+            invalid_id: "This memory source is unavailable.",
+            not_found: "This memory is no longer available in your account.",
+            session_changed:
               "Your account session has changed. Please try again.",
-            );
-          } else if (
-            result?.reason === "refresh_failed"
-          ) {
-            Alert.alert(
-              "Unable to Load Memory",
+            refresh_failed:
+              "Memento could not retrieve this memory. Check your connection and try again.",
+          };
 
-              "Memento could not retrieve this memory. Check your internet connection and try again.",
-            );
-          } else {
-            Alert.alert(
-              "Memory Unavailable",
-
+          showCustomAlert({
+            type: "warning",
+            icon: "alert-circle-outline",
+            title: "Memory unavailable",
+            message:
+              messagesByReason[result?.reason] ||
               "This memory source could not be opened.",
-            );
-          }
+            confirmText: "Okay",
+          });
 
           return;
         }
@@ -464,72 +885,44 @@ function AssistantScreen({ navigation }) {
         memory = result.memory;
       }
 
-      // --------------------------------------------------
-      // 3. RESOLVE CANONICAL MEMORY ID
-      // --------------------------------------------------
-
       const resolvedMemoryId = String(
-        memory._id ||
-          memory.id ||
-          memory.clientMemoryId ||
-          "",
+        memory._id || memory.id || memory.clientMemoryId || ""
       ).trim();
 
       if (!resolvedMemoryId) {
-        Alert.alert(
-          "Memory Unavailable",
-
-          "The memory was found, but its identifier is missing.",
-        );
-
-        return;
+        throw new Error("This memory could not be opened.");
       }
-
-      // --------------------------------------------------
-      // 4. NAVIGATE TO MEMORY DETAILS
-      // --------------------------------------------------
 
       navigation.navigate("MemoryDetails", {
         memoryId: resolvedMemoryId,
       });
     } catch (error) {
       console.error(
-        "[Ask Memento] Source navigation failed:",
-        {
-          memoryId,
-          message: error?.message,
-          error,
-        },
+        "[Jako AI] Source navigation failed.",
+        sanitizeDisplayText(error?.message)
       );
 
-      Alert.alert(
-        "Unable to Open Memory",
-
-        error?.message ||
+      showCustomAlert({
+        type: "danger",
+        icon: "alert-circle-outline",
+        title: "Unable to open memory",
+        message:
           "Something went wrong while opening this memory. Please try again.",
-      );
+        confirmText: "Okay",
+      });
     } finally {
       openingMemoryLockRef.current = null;
-
       setOpeningMemoryId(null);
     }
   };
 
-  // --------------------------------------------------
-  // FORMAT SOURCE DATE
-  // --------------------------------------------------
-
   const formatDate = (date) => {
-    if (!date) {
-      return "Date unavailable";
-    }
+    if (!date) return "Date unavailable";
 
-    // Backend can return either an ISO timestamp
-    // or an ordinary date string.
     const parsed = new Date(date);
 
     if (Number.isNaN(parsed.getTime())) {
-      return String(date);
+      return sanitizeDisplayText(String(date));
     }
 
     return parsed.toLocaleDateString(undefined, {
@@ -539,18 +932,18 @@ function AssistantScreen({ navigation }) {
     });
   };
 
-  // --------------------------------------------------
-  // RENDER MEMORY SOURCE CARD
-  // --------------------------------------------------
-
   const renderSource = (source, index) => {
     const sourceId = getSourceMemoryId(source);
+    const isOpening = openingMemoryId === sourceId;
 
-    const isOpening =
-      openingMemoryId !== null &&
-      openingMemoryId === sourceId;
+    const sourceTitle =
+      sanitizeDisplayText(source.title) || "Untitled memory";
 
-    const hasValidId = Boolean(sourceId);
+    const sourceTags = Array.isArray(source.tags)
+      ? source.tags
+          .map((tag) => sanitizeDisplayText(String(tag)))
+          .filter(Boolean)
+      : [];
 
     return (
       <TouchableOpacity
@@ -559,39 +952,19 @@ function AssistantScreen({ navigation }) {
           styles.sourceCard,
           {
             backgroundColor: colors.card,
-
             borderColor: colors.border,
-
-            opacity:
-              openingMemoryId !== null
-                ? isOpening
-                  ? 0.75
-                  : 0.55
-                : 1,
+            opacity: openingMemoryId !== null && !isOpening ? 0.55 : 1,
           },
         ]}
         onPress={() => handleOpenMemory(source)}
-        disabled={openingMemoryId !== null}
+        disabled={openingMemoryId !== null || !sourceId}
         activeOpacity={0.8}
         accessibilityRole="button"
-        accessibilityLabel={`Open memory ${
-          source.title || "memory"
-        }`}
-        accessibilityState={{
-          disabled:
-            openingMemoryId !== null ||
-            !hasValidId,
-
-          busy: isOpening,
-        }}
+        accessibilityLabel={`Open memory ${sourceTitle}`}
       >
-        {/* SOURCE IMAGE */}
-
         {source.thumbnail ? (
           <Image
-            source={{
-              uri: source.thumbnail,
-            }}
+            source={{ uri: source.thumbnail }}
             style={styles.sourceImage}
             resizeMode="cover"
           />
@@ -599,88 +972,57 @@ function AssistantScreen({ navigation }) {
           <View
             style={[
               styles.sourceImagePlaceholder,
-              {
-                backgroundColor: colors.background,
-              },
+              { backgroundColor: colors.background },
             ]}
           >
             <Ionicons
               name="ticket-outline"
-              size={25}
+              size={24}
               color={colors.primary}
             />
           </View>
         )}
 
-        {/* SOURCE INFORMATION */}
-
         <View style={styles.sourceContent}>
           <Text
-            style={[
-              styles.sourceTitle,
-              {
-                color: colors.text,
-              },
-            ]}
+            style={[styles.sourceTitle, { color: colors.text }]}
             numberOfLines={2}
           >
-            {source.title || "Untitled memory"}
+            {sourceTitle}
           </Text>
 
           <Text
-            style={[
-              styles.sourceMeta,
-              {
-                color: colors.secondary,
-              },
-            ]}
+            style={[styles.sourceMeta, { color: colors.secondary }]}
             numberOfLines={1}
           >
             {formatDate(source.date)}
-
             {source.location
-              ? ` · ${source.location}`
+              ? ` · ${sanitizeDisplayText(source.location)}`
               : ""}
           </Text>
 
-          {!!source.tags?.length && (
+          {sourceTags.length > 0 && (
             <Text
-              style={[
-                styles.sourceTags,
-                {
-                  color: colors.secondary,
-                },
-              ]}
+              style={[styles.sourceTags, { color: colors.secondary }]}
               numberOfLines={1}
             >
-              {source.tags
-                .map((tag) => `#${tag}`)
-                .join("  ")}
+              {sourceTags.map((tag) => `#${tag}`).join("  ")}
             </Text>
           )}
         </View>
 
-        {/* OPENING INDICATOR */}
-
         {isOpening ? (
-          <ActivityIndicator
-            size="small"
-            color={colors.accent}
-          />
+          <ActivityIndicator size="small" color={colors.accent} />
         ) : (
           <Ionicons
             name="chevron-forward"
-            size={19}
+            size={18}
             color={colors.secondary}
           />
         )}
       </TouchableOpacity>
     );
   };
-
-  // --------------------------------------------------
-  // RENDER CHAT MESSAGE
-  // --------------------------------------------------
 
   const renderMessage = (message) => {
     const isUser = message.role === "user";
@@ -690,707 +1032,1453 @@ function AssistantScreen({ navigation }) {
         key={message.id}
         style={[
           styles.messageRow,
-
-          isUser
-            ? styles.userMessageRow
-            : styles.assistantMessageRow,
+          isUser ? styles.userMessageRow : styles.assistantMessageRow,
         ]}
       >
-        {/* ASSISTANT AVATAR */}
-
         {!isUser && (
           <View
             style={[
               styles.assistantAvatar,
-              {
-                backgroundColor: colors.primary,
-              },
+              { backgroundColor: colors.primary },
             ]}
           >
-            <Ionicons
-              name="sparkles"
-              size={17}
-              color="#FFFFFF"
-            />
+            <Ionicons name="sparkles" size={16} color="#FFFFFF" />
           </View>
         )}
 
         <View style={styles.messageBody}>
-          {/* MESSAGE BUBBLE */}
-
           <View
             style={[
               styles.messageBubble,
               {
-                backgroundColor: isUser
-                  ? colors.primary
-                  : colors.card,
-
-                borderColor: isUser
-                  ? colors.primary
-                  : colors.border,
+                backgroundColor: isUser ? colors.primary : colors.card,
+                borderColor: isUser ? colors.primary : colors.border,
+                opacity: message.pending ? 0.7 : 1,
               },
-
               isUser && styles.userBubble,
             ]}
           >
             <Text
               style={[
                 styles.messageText,
-                {
-                  color: isUser
-                    ? "#FFFFFF"
-                    : colors.text,
-                },
+                { color: isUser ? "#FFFFFF" : colors.text },
               ]}
             >
-              {message.text}
+              {isUser ? message.text : sanitizeDisplayText(message.text)}
             </Text>
           </View>
 
-          {/* MEMORY SOURCES */}
-
-          {!isUser &&
-            message.sources?.length > 0 && (
-              <View style={styles.sourcesContainer}>
-                <Text
-                  style={[
-                    styles.sourcesHeading,
-                    {
-                      color: colors.secondary,
-                    },
-                  ]}
-                >
-                  MEMORIES FOUND · {message.sources.length}
-                </Text>
-
-                {message.sources.map(renderSource)}
-              </View>
-            )}
-
-          {/* RETRY ACTION */}
-
-          {message.isError &&
-            message.retryable === true && (
-              <TouchableOpacity
+          {!isUser && message.sources?.length > 0 && (
+            <View style={styles.sourcesContainer}>
+              <Text
                 style={[
-                  styles.retryButton,
-                  {
-                    opacity: isSending ? 0.45 : 1,
-                  },
+                  styles.sourcesHeading,
+                  { color: colors.secondary },
                 ]}
-                onPress={() => handleRetry(message)}
-                disabled={isSending}
-                activeOpacity={0.7}
-                accessibilityRole="button"
-                accessibilityLabel="Retry failed question"
               >
-                <Ionicons
-                  name="refresh-outline"
-                  size={15}
-                  color={colors.accent}
-                />
+                MEMORIES FOUND · {message.sources.length}
+              </Text>
 
-                <Text
-                  style={{
-                    color: colors.accent,
-                    fontSize: 12,
-                    fontWeight: "700",
-                  }}
-                >
-                  Try again
-                </Text>
-              </TouchableOpacity>
-            )}
+              {message.sources.map(renderSource)}
+            </View>
+          )}
+
+          {message.isError && message.retryable && (
+            <TouchableOpacity
+              style={styles.retryButton}
+              onPress={() => handleRetry(message)}
+              disabled={isSending}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name="refresh-outline"
+                size={15}
+                color={colors.accent}
+              />
+              <Text style={[styles.retryText, { color: colors.accent }]}>
+                Try again
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     );
   };
 
-  // --------------------------------------------------
-  // SCREEN
-  // --------------------------------------------------
+  const renderConversation = (conversation, index) => {
+    const conversationId = getConversationId(conversation);
 
-  return (
-    <SafeAreaView
-      style={[
-        styles.safeArea,
-        {
-          backgroundColor: colors.background,
-        },
-      ]}
-    >
-      <StatusBar
-        barStyle={
-          isDark ? "light-content" : "dark-content"
-        }
-        backgroundColor={colors.background}
-      />
+    const title =
+      sanitizeDisplayText(conversation.title) || "New conversation";
 
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={
-          Platform.OS === "ios"
-            ? "padding"
-            : undefined
-        }
+    const isDeleting = deletingConversationId === conversationId;
+
+    const timestamp = getConversationTimestamp(conversation);
+
+    return (
+      <View
+        key={conversationId || index}
+        style={[styles.historyItem, { borderBottomColor: colors.border }]}
       >
-        {/* HEADER */}
-
-        <View
-          style={[
-            styles.header,
-            {
-              borderBottomColor: colors.border,
-            },
-          ]}
+        <TouchableOpacity
+          style={styles.historyOpenArea}
+          onPress={() => openConversation(conversation)}
+          disabled={isLoadingMessages || isDeleting}
+          activeOpacity={0.75}
+          accessibilityRole="button"
+          accessibilityLabel={`Open conversation ${title}`}
         >
-          <TouchableOpacity
-            style={[
-              styles.headerButton,
-              {
-                backgroundColor: colors.card,
-              },
-            ]}
-            onPress={() => navigation.goBack()}
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-          >
-            <Ionicons
-              name="arrow-back"
-              size={21}
-              color={colors.text}
-            />
-          </TouchableOpacity>
-
-          <View style={styles.headerTitleContainer}>
-            <Text
-              style={[
-                styles.headerTitle,
-                {
-                  color: colors.text,
-                },
-              ]}
-            >
-              Ask Memento
-            </Text>
-
-            <Text
-              style={[
-                styles.headerSubtitle,
-                {
-                  color: colors.secondary,
-                },
-              ]}
-            >
-              Explore your memories
-            </Text>
-          </View>
-
           <View
             style={[
-              styles.headerAvatar,
-              {
-                backgroundColor: colors.primary,
-              },
+              styles.historyIcon,
+              { backgroundColor: colors.primary + "14" },
             ]}
           >
             <Ionicons
-              name="sparkles"
-              size={21}
-              color="#FFFFFF"
+              name="chatbubble-outline"
+              size={19}
+              color={colors.primary}
             />
           </View>
+
+          <View style={styles.historyTextContainer}>
+            <Text
+              style={[styles.historyTitle, { color: colors.text }]}
+              numberOfLines={1}
+            >
+              {title}
+            </Text>
+
+            <Text style={[styles.historyMeta, { color: colors.secondary }]}>
+              {Number(conversation.messageCount) || 0} messages
+              {timestamp ? ` · ${timestamp}` : ""}
+            </Text>
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.conversationOptionsButton}
+          onPress={() => openConversationOptions(conversation)}
+          disabled={isDeleting || isRenaming}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel={`Manage conversation ${title}`}
+        >
+          {isDeleting ? (
+            <ActivityIndicator size="small" color={colors.accent} />
+          ) : (
+            <Ionicons
+              name="ellipsis-vertical"
+              size={19}
+              color={colors.secondary}
+            />
+          )}
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  const renderHome = () => (
+    <ScrollView
+      style={styles.homeScroll}
+      contentContainerStyle={styles.homeContent}
+      refreshControl={
+        <RefreshControl
+          refreshing={isRefreshingHistory}
+          onRefresh={() => loadConversations(true)}
+          tintColor={colors.accent}
+        />
+      }
+      keyboardShouldPersistTaps="handled"
+    >
+      <View style={[styles.welcomeCard, { backgroundColor: colors.primary }]}>
+        <View style={styles.welcomeGlow} />
+
+        <View style={styles.welcomeIcon}>
+          <Ionicons name="sparkles" size={25} color="#FFFFFF" />
         </View>
 
-        {/* CHAT */}
+        <Text style={styles.welcomeEyebrow}>
+          YOUR PERSONAL AI ASSISTANT
+        </Text>
 
-        <ScrollView
-          ref={scrollRef}
-          style={styles.chatScroll}
-          contentContainerStyle={styles.chatContent}
-          keyboardShouldPersistTaps="handled"
-          onContentSizeChange={() =>
-            scrollRef.current?.scrollToEnd({
-              animated: true,
-            })
-          }
+        <Text style={styles.welcomeTitle}>
+          What’s on your mind?
+        </Text>
+
+        <Text style={styles.welcomeDescription}>
+          Ask Jako about your saved memories or continue a previous conversation.
+        </Text>
+
+        <TouchableOpacity
+          style={styles.welcomeButton}
+          onPress={() => createNewConversation("normal")}
+          activeOpacity={0.85}
         >
-          {messages.map(renderMessage)}
+          <Ionicons name="add" size={20} color={colors.primary} />
 
-          {/* LOADING */}
-
-          {isSending && (
-            <View style={styles.loadingRow}>
-              <View
-                style={[
-                  styles.assistantAvatar,
-                  {
-                    backgroundColor: colors.primary,
-                  },
-                ]}
-              >
-                <Ionicons
-                  name="sparkles"
-                  size={17}
-                  color="#FFFFFF"
-                />
-              </View>
-
-              <View
-                style={[
-                  styles.loadingBubble,
-                  {
-                    backgroundColor: colors.card,
-                    borderColor: colors.border,
-                  },
-                ]}
-              >
-                <ActivityIndicator
-                  size="small"
-                  color={colors.accent}
-                />
-
-                <Text
-                  style={[
-                    styles.loadingText,
-                    {
-                      color: colors.secondary,
-                    },
-                  ]}
-                >
-                  Looking through your memories...
-                </Text>
-              </View>
-            </View>
-          )}
-
-          {/* SUGGESTED PROMPTS */}
-
-          {messages.length === 1 && !isSending && (
-            <View style={styles.suggestionsContainer}>
-              <Text
-                style={[
-                  styles.suggestionsTitle,
-                  {
-                    color: colors.secondary,
-                  },
-                ]}
-              >
-                TRY ASKING
-              </Text>
-
-              {SUGGESTED_PROMPTS.map((prompt) => (
-                <TouchableOpacity
-                  key={prompt.label}
-                  style={[
-                    styles.suggestionButton,
-                    {
-                      backgroundColor: colors.card,
-                      borderColor: colors.border,
-                    },
-                  ]}
-                  onPress={() =>
-                    handleSend(prompt.question)
-                  }
-                  activeOpacity={0.8}
-                  disabled={isSending}
-                >
-                  <Ionicons
-                    name={prompt.icon}
-                    size={19}
-                    color={colors.accent}
-                  />
-
-                  <Text
-                    style={[
-                      styles.suggestionText,
-                      {
-                        color: colors.text,
-                      },
-                    ]}
-                  >
-                    {prompt.label}
-                  </Text>
-
-                  <Ionicons
-                    name="arrow-up-circle-outline"
-                    size={20}
-                    color={colors.secondary}
-                  />
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-
-          {/* DISCLAIMER */}
-
-          <Text
-            style={[
-              styles.disclaimer,
-              {
-                color: colors.secondary,
-              },
-            ]}
-          >
-            Answers are generated from retrieved saved memories.
-            Check the linked tickets for the original details.
+          <Text style={[styles.welcomeButtonText, { color: colors.primary }]}>
+            Start a new chat
           </Text>
-        </ScrollView>
+        </TouchableOpacity>
+      </View>
 
-        {/* MESSAGE COMPOSER */}
+      <View style={styles.historyHeader}>
+        <View>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
+            Your chats
+          </Text>
 
-        <View
-          style={[
-            styles.composerContainer,
-            {
-              backgroundColor: colors.background,
-              borderTopColor: colors.border,
-            },
-          ]}
+          <Text style={[styles.sectionSubtitle, { color: colors.secondary }]}>
+            Continue where you left off
+          </Text>
+        </View>
+
+        <TouchableOpacity
+          onPress={() => loadConversations(true)}
+          disabled={isLoadingHistory || isRefreshingHistory}
+          style={styles.refreshButton}
+          accessibilityRole="button"
+          accessibilityLabel="Refresh chat history"
         >
+          <Ionicons
+            name="refresh-outline"
+            size={19}
+            color={colors.secondary}
+          />
+        </TouchableOpacity>
+      </View>
+
+      {isLoadingHistory ? (
+        <View style={styles.historyState}>
+          <ActivityIndicator size="small" color={colors.accent} />
+
+          <Text style={[styles.stateText, { color: colors.secondary }]}>
+            Loading chats...
+          </Text>
+        </View>
+      ) : historyError ? (
+        <View style={styles.historyState}>
+          <Ionicons
+            name="cloud-offline-outline"
+            size={25}
+            color={colors.secondary}
+          />
+
+          <Text style={[styles.stateText, { color: colors.secondary }]}>
+            {historyError}
+          </Text>
+
+          <TouchableOpacity
+            style={[styles.stateButton, { borderColor: colors.border }]}
+            onPress={() => loadConversations(true)}
+          >
+            <Text style={[styles.stateButtonText, { color: colors.text }]}>
+              Try again
+            </Text>
+          </TouchableOpacity>
+        </View>
+      ) : conversations.length === 0 ? (
+        <View style={styles.historyState}>
           <View
             style={[
-              styles.composer,
+              styles.emptyHistoryIcon,
               {
                 backgroundColor: colors.card,
                 borderColor: colors.border,
               },
             ]}
           >
-            <TextInput
-              ref={inputRef}
-              style={[
-                styles.input,
-                {
-                  color: colors.text,
-                },
-              ]}
-              value={input}
-              onChangeText={setInput}
-              placeholder="Ask about your memories..."
-              placeholderTextColor={colors.secondary}
-              multiline
-              maxLength={1000}
-              editable={!isSending}
-              returnKeyType="default"
-              accessibilityLabel="Ask Memento a question"
+            <Ionicons
+              name="chatbubble-ellipses-outline"
+              size={25}
+              color={colors.secondary}
             />
-
-            <TouchableOpacity
-              style={[
-                styles.sendButton,
-                {
-                  backgroundColor: colors.accent,
-
-                  opacity:
-                    input.trim() && !isSending
-                      ? 1
-                      : 0.45,
-                },
-              ]}
-              onPress={() => handleSend()}
-              disabled={
-                !input.trim() ||
-                isSending
-              }
-              activeOpacity={0.8}
-              accessibilityRole="button"
-              accessibilityLabel="Send question"
-            >
-              <Ionicons
-                name="arrow-up"
-                size={22}
-                color="#FFFFFF"
-              />
-            </TouchableOpacity>
           </View>
 
+          <Text style={[styles.emptyHistoryTitle, { color: colors.text }]}>
+            No conversations yet
+          </Text>
+
+          <Text style={[styles.stateText, { color: colors.secondary }]}>
+            Start a chat with Jako. Your regular conversations will appear here.
+          </Text>
+        </View>
+      ) : (
+        <View
+          style={[
+            styles.historyList,
+            {
+              backgroundColor: colors.card,
+              borderColor: colors.border,
+            },
+          ]}
+        >
+          {conversations.map(renderConversation)}
+        </View>
+      )}
+
+      <View style={styles.homeFooter}>
+        <Ionicons
+          name="lock-closed-outline"
+          size={13}
+          color={colors.muted}
+        />
+
+        <Text style={[styles.homeFooterText, { color: colors.muted }]}>
+          Your regular conversations are linked to your Memento account.
+        </Text>
+      </View>
+    </ScrollView>
+  );
+
+  const renderChat = () => (
+    <>
+      <View style={[styles.chatHeader, { borderBottomColor: colors.border }]}>
+        <TouchableOpacity
+          style={[styles.headerButton, { backgroundColor: colors.card }]}
+          onPress={requestCloseChat}
+          disabled={isSending}
+          accessibilityRole="button"
+          accessibilityLabel={
+            isIncognito ? "Quit incognito chat" : "Back to Jako home"
+          }
+        >
+          <Ionicons name="arrow-back" size={21} color={colors.text} />
+        </TouchableOpacity>
+
+        <View style={styles.chatHeaderText}>
           <Text
+            style={[styles.chatHeaderTitle, { color: colors.text }]}
+            numberOfLines={1}
+          >
+            {isIncognito
+              ? "Incognito chat"
+              : sanitizeDisplayText(activeConversation?.title) || "New chat"}
+          </Text>
+
+          <View style={styles.chatHeaderSubtitleRow}>
+            <View
+              style={[
+                styles.onlineDot,
+                { backgroundColor: colors.accent },
+              ]}
+            />
+
+            <Text
+              style={[
+                styles.chatHeaderSubtitle,
+                { color: colors.secondary },
+              ]}
+            >
+              {isIncognito ? "Temporary private session" : "Jako AI"}
+            </Text>
+          </View>
+        </View>
+
+        {!isIncognito ? (
+          <TouchableOpacity
+            style={[styles.headerButton, { backgroundColor: colors.card }]}
+            onPress={() => createNewConversation("incognito")}
+            disabled={isSending || isLoadingMessages}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel="Start an incognito chat"
+          >
+            <Ionicons
+              name="eye-off-outline"
+              size={21}
+              color={colors.accent}
+            />
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.headerButtonPlaceholder} />
+        )}
+      </View>
+
+      {isIncognito && (
+        <View
+          style={[
+            styles.chatPrivateBanner,
+            {
+              backgroundColor: colors.accent + "12",
+              borderBottomColor: colors.accent + "25",
+            },
+          ]}
+        >
+          <Ionicons name="eye-off-outline" size={16} color={colors.accent} />
+
+          <Text style={[styles.chatPrivateText, { color: colors.secondary }]}>
+            Temporary session. Your conversation is not saved to your account.
+          </Text>
+        </View>
+      )}
+
+      <ScrollView
+        ref={scrollRef}
+        style={styles.chatScroll}
+        contentContainerStyle={styles.chatContent}
+        keyboardShouldPersistTaps="handled"
+        onContentSizeChange={() =>
+          scrollRef.current?.scrollToEnd({ animated: true })
+        }
+      >
+        {isLoadingMessages ? (
+          <View style={styles.historyState}>
+            <ActivityIndicator size="small" color={colors.accent} />
+
+            <Text style={[styles.stateText, { color: colors.secondary }]}>
+              Loading conversation...
+            </Text>
+          </View>
+        ) : messages.length === 0 ? (
+          <View style={styles.chatWelcome}>
+            <View
+              style={[
+                styles.chatWelcomeAvatar,
+                { backgroundColor: colors.primary },
+              ]}
+            >
+              <Ionicons name="sparkles" size={27} color="#FFFFFF" />
+            </View>
+
+            <Text style={[styles.chatWelcomeTitle, { color: colors.text }]}>
+              {isIncognito
+                ? "A private space to think"
+                : "How can I help you today?"}
+            </Text>
+
+            <Text
+              style={[
+                styles.chatWelcomeDescription,
+                { color: colors.secondary },
+              ]}
+            >
+              {isIncognito
+                ? "Chat freely. Your messages are temporary and will disappear when you quit."
+                : "Ask me about your saved memories, places, dates, or favorite moments."}
+            </Text>
+
+            <View style={styles.chatSuggestions}>
+              {SUGGESTED_PROMPTS.map((prompt) => (
+                <TouchableOpacity
+                  key={prompt.label}
+                  style={[
+                    styles.chatSuggestion,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: colors.border,
+                    },
+                  ]}
+                  onPress={() => handleSend(prompt.question)}
+                  disabled={isSending}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons
+                    name={prompt.icon}
+                    size={17}
+                    color={colors.accent}
+                  />
+
+                  <Text
+                    style={[
+                      styles.chatSuggestionText,
+                      { color: colors.text },
+                    ]}
+                  >
+                    {prompt.label}
+                  </Text>
+
+                  <Ionicons
+                    name="arrow-up"
+                    size={16}
+                    color={colors.secondary}
+                  />
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        ) : (
+          messages.map(renderMessage)
+        )}
+
+        {isSending && (
+          <View style={styles.loadingRow}>
+            <View
+              style={[
+                styles.assistantAvatar,
+                { backgroundColor: colors.primary },
+              ]}
+            >
+              <Ionicons name="sparkles" size={16} color="#FFFFFF" />
+            </View>
+
+            <View
+              style={[
+                styles.loadingBubble,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.border,
+                },
+              ]}
+            >
+              <ActivityIndicator size="small" color={colors.accent} />
+
+              <Text style={[styles.loadingText, { color: colors.secondary }]}>
+                Jako is thinking...
+              </Text>
+            </View>
+          </View>
+        )}
+      </ScrollView>
+
+      <View
+        style={[
+          styles.composerContainer,
+          {
+            backgroundColor: colors.background,
+            borderTopColor: colors.border,
+          },
+        ]}
+      >
+        <View
+          style={[
+            styles.composer,
+            {
+              backgroundColor: colors.card,
+              borderColor: colors.border,
+            },
+          ]}
+        >
+          <TextInput
+            style={[styles.input, { color: colors.text }]}
+            value={input}
+            onChangeText={setInput}
+            placeholder="Message Jako..."
+            placeholderTextColor={colors.secondary}
+            multiline
+            maxLength={1000}
+            editable={!isSending && !isLoadingMessages}
+            returnKeyType="default"
+            accessibilityLabel="Message Jako AI"
+          />
+
+          <TouchableOpacity
             style={[
-              styles.footerText,
+              styles.sendButton,
               {
-                color: colors.secondary,
+                backgroundColor: colors.accent,
+                opacity: input.trim() && !isSending ? 1 : 0.45,
+              },
+            ]}
+            onPress={() => handleSend()}
+            disabled={!input.trim() || isSending || isLoadingMessages}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel="Send message"
+          >
+            <Ionicons name="arrow-up" size={22} color="#FFFFFF" />
+          </TouchableOpacity>
+        </View>
+
+        <Text style={[styles.footerText, { color: colors.secondary }]}>
+          {isIncognito
+            ? "Temporary session · Nothing is saved"
+            : "Your conversation is saved to your Memento account."}
+        </Text>
+      </View>
+    </>
+  );
+
+  return (
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: colors.background }]}
+    >
+      <StatusBar
+        barStyle={isDark ? "light-content" : "dark-content"}
+        backgroundColor={colors.background}
+      />
+
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        {screen === "home" ? (
+          <>
+            <View
+              style={[
+                styles.homeHeader,
+                { borderBottomColor: colors.border },
+              ]}
+            >
+              <View
+                style={[
+                  styles.brandIcon,
+                  { backgroundColor: colors.primary },
+                ]}
+              >
+                <Ionicons name="sparkles" size={21} color="#FFFFFF" />
+              </View>
+
+              <View style={styles.brandTextContainer}>
+                <Text style={[styles.brandTitle, { color: colors.text }]}>
+                  Jako AI
+                </Text>
+
+                <Text
+                  style={[styles.brandSubtitle, { color: colors.secondary }]}
+                >
+                  Your Memento assistant
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                style={[
+                  styles.headerButton,
+                  { backgroundColor: colors.card },
+                ]}
+                onPress={() => createNewConversation("normal")}
+                activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel="Start a new chat"
+              >
+                <Ionicons
+                  name="create-outline"
+                  size={21}
+                  color={colors.text}
+                />
+              </TouchableOpacity>
+            </View>
+
+            {renderHome()}
+          </>
+        ) : (
+          renderChat()
+        )}
+      </KeyboardAvoidingView>
+
+      <Modal
+        visible={conversationOptionsVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          setConversationOptionsVisible(false);
+          setConversationToManage(null);
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View
+            style={[
+              styles.optionsModal,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
               },
             ]}
           >
-            Your memories stay in your Memento account.
-          </Text>
+            <Text style={[styles.optionsModalTitle, { color: colors.text }]}>
+              Manage conversation
+            </Text>
+
+            <Text
+              style={[
+                styles.optionsModalDescription,
+                { color: colors.secondary },
+              ]}
+              numberOfLines={2}
+            >
+              {sanitizeDisplayText(conversationToManage?.title) ||
+                "New conversation"}
+            </Text>
+
+            <TouchableOpacity
+              style={[
+                styles.optionsAction,
+                { borderColor: colors.border },
+              ]}
+              onPress={handleRenameSelectedConversation}
+              activeOpacity={0.75}
+            >
+              <View
+                style={[
+                  styles.optionsActionIcon,
+                  { backgroundColor: colors.primary + "14" },
+                ]}
+              >
+                <Ionicons
+                  name="create-outline"
+                  size={19}
+                  color={colors.primary}
+                />
+              </View>
+
+              <Text style={[styles.optionsActionText, { color: colors.text }]}>
+                Rename conversation
+              </Text>
+
+              <Ionicons
+                name="chevron-forward"
+                size={17}
+                color={colors.secondary}
+              />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.optionsAction,
+                { borderColor: colors.border },
+              ]}
+              onPress={handleDeleteSelectedConversation}
+              activeOpacity={0.75}
+            >
+              <View
+                style={[
+                  styles.optionsActionIcon,
+                  { backgroundColor: "#D9534F14" },
+                ]}
+              >
+                <Ionicons
+                  name="trash-outline"
+                  size={19}
+                  color="#D9534F"
+                />
+              </View>
+
+              <Text
+                style={[
+                  styles.optionsActionText,
+                  { color: colors.danger || "#D9534F" },
+                ]}
+              >
+                Delete conversation
+              </Text>
+
+              <Ionicons
+                name="chevron-forward"
+                size={17}
+                color={colors.secondary}
+              />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.optionsCloseButton,
+                { backgroundColor: colors.background },
+              ]}
+              onPress={() => {
+                setConversationOptionsVisible(false);
+                setConversationToManage(null);
+              }}
+              activeOpacity={0.75}
+            >
+              <Text
+                style={[
+                  styles.optionsCloseText,
+                  { color: colors.secondary },
+                ]}
+              >
+                Cancel
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </KeyboardAvoidingView>
+      </Modal>
+
+      <Modal
+        visible={renameVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          if (!isRenaming) {
+            setRenameVisible(false);
+            setConversationToRename(null);
+            setRenameTitle("");
+          }
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View
+            style={[
+              styles.renameModal,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            <Text style={[styles.renameModalTitle, { color: colors.text }]}>
+              Rename conversation
+            </Text>
+
+            <Text
+              style={[
+                styles.renameModalDescription,
+                { color: colors.secondary },
+              ]}
+            >
+              Choose a name that helps you find this chat later.
+            </Text>
+
+            <TextInput
+              style={[
+                styles.renameInput,
+                {
+                  color: colors.text,
+                  borderColor: colors.border,
+                  backgroundColor: colors.background,
+                },
+              ]}
+              value={renameTitle}
+              onChangeText={setRenameTitle}
+              placeholder="Conversation name"
+              placeholderTextColor={colors.secondary}
+              maxLength={80}
+              autoFocus
+              selectTextOnFocus
+              editable={!isRenaming}
+              returnKeyType="done"
+              onSubmitEditing={saveConversationRename}
+            />
+
+            <View style={styles.renameActions}>
+              <TouchableOpacity
+                style={[
+                  styles.renameCancelButton,
+                  { borderColor: colors.border },
+                ]}
+                onPress={() => {
+                  if (isRenaming) return;
+
+                  setRenameVisible(false);
+                  setConversationToRename(null);
+                  setRenameTitle("");
+                }}
+                disabled={isRenaming}
+              >
+                <Text
+                  style={[styles.renameCancelText, { color: colors.text }]}
+                >
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.renameSaveButton,
+                  {
+                    backgroundColor: colors.primary,
+                    opacity: renameTitle.trim() && !isRenaming ? 1 : 0.5,
+                  },
+                ]}
+                onPress={saveConversationRename}
+                disabled={!renameTitle.trim() || isRenaming}
+              >
+                {isRenaming ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.renameSaveText}>Save name</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <CustomAlert
+        visible={customAlert.visible}
+        type={customAlert.type}
+        icon={customAlert.icon}
+        title={customAlert.title}
+        message={customAlert.message}
+        confirmText={customAlert.confirmText}
+        cancelText={customAlert.cancelText}
+        showCancel={customAlert.showCancel}
+        showClose={customAlert.showClose}
+        onConfirm={handleCustomAlertConfirm}
+        onCancel={handleCustomAlertCancel}
+        onClose={dismissCustomAlert}
+      />
     </SafeAreaView>
   );
 }
 
 export default AssistantScreen;
 
-// --------------------------------------------------
-// STYLES
-// --------------------------------------------------
-
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
-
   container: {
     flex: 1,
   },
-
-  header: {
+  homeHeader: {
     minHeight: 72,
     paddingHorizontal: 18,
     paddingVertical: 12,
     flexDirection: "row",
     alignItems: "center",
     borderBottomWidth: StyleSheet.hairlineWidth,
-    gap: 12,
-    marginTop: 22,
+    gap: 11,
+    marginTop: 24,
   },
-
-  headerButton: {
-    width: 42,
-    height: 42,
+  brandIcon: {
+    width: 43,
+    height: 43,
     borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
   },
-
-  headerTitleContainer: {
+  brandTextContainer: {
     flex: 1,
   },
-
-  headerTitle: {
+  brandTitle: {
     fontSize: 19,
     fontWeight: "800",
   },
-
-  headerSubtitle: {
-    fontSize: 12,
+  brandSubtitle: {
+    fontSize: 11,
     marginTop: 3,
   },
-
-  headerAvatar: {
-    width: 40,
-    height: 40,
+  headerButton: {
+    width: 42,
+    height: 42,
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
   },
-
-  chatScroll: {
+  headerButtonPlaceholder: {
+    width: 42,
+    height: 42,
+  },
+  homeScroll: {
     flex: 1,
   },
-
-  chatContent: {
-    paddingHorizontal: 16,
-    paddingTop: 20,
-    paddingBottom: 22,
+  homeContent: {
+    paddingHorizontal: 17,
+    paddingTop: 19,
+    paddingBottom: 30,
   },
-
-  messageRow: {
+  welcomeCard: {
+    overflow: "hidden",
+    borderRadius: 25,
+    padding: 21,
+    minHeight: 244,
+  },
+  welcomeGlow: {
+    position: "absolute",
+    width: 190,
+    height: 190,
+    borderRadius: 95,
+    backgroundColor: "rgba(255,255,255,0.07)",
+    right: -65,
+    top: -65,
+  },
+  welcomeIcon: {
+    width: 47,
+    height: 47,
+    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.16)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 18,
+  },
+  welcomeEyebrow: {
+    color: "rgba(255,255,255,0.72)",
+    fontSize: 9,
+    fontWeight: "800",
+    letterSpacing: 1.5,
+  },
+  welcomeTitle: {
+    color: "#FFFFFF",
+    fontSize: 24,
+    fontWeight: "800",
+    marginTop: 8,
+  },
+  welcomeDescription: {
+    color: "rgba(255,255,255,0.78)",
+    fontSize: 12,
+    lineHeight: 19,
+    marginTop: 8,
+    maxWidth: 290,
+  },
+  welcomeButton: {
+    alignSelf: "flex-start",
+    backgroundColor: "#FFFFFF",
+    minHeight: 43,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    marginTop: 19,
     flexDirection: "row",
-    marginBottom: 20,
-    gap: 9,
-    alignItems: "flex-start",
+    alignItems: "center",
+    gap: 7,
   },
-
-  assistantMessageRow: {
-    justifyContent: "flex-start",
+  welcomeButtonText: {
+    fontSize: 12,
+    fontWeight: "800",
   },
-
-  userMessageRow: {
-    justifyContent: "flex-end",
+  historyHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 27,
+    marginBottom: 13,
   },
-
-  assistantAvatar: {
-    width: 32,
-    height: 32,
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "800",
+  },
+  sectionSubtitle: {
+    fontSize: 11,
+    marginTop: 4,
+  },
+  refreshButton: {
+    width: 36,
+    height: 36,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
   },
-
+  historyList: {
+    borderWidth: 1,
+    borderRadius: 17,
+    paddingHorizontal: 12,
+  },
+  historyItem: {
+    minHeight: 69,
+    flexDirection: "row",
+    alignItems: "center",
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    gap: 5,
+    paddingVertical: 8,
+  },
+  historyOpenArea: {
+    minHeight: 52,
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 11,
+  },
+  historyIcon: {
+    width: 39,
+    height: 39,
+    borderRadius: 13,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  historyTextContainer: {
+    flex: 1,
+    gap: 5,
+  },
+  historyTitle: {
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  historyMeta: {
+    fontSize: 10,
+  },
+  conversationOptionsButton: {
+    width: 38,
+    height: 42,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  historyState: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 31,
+    paddingHorizontal: 20,
+    gap: 10,
+  },
+  stateText: {
+    fontSize: 11,
+    lineHeight: 17,
+    textAlign: "center",
+  },
+  stateButton: {
+    borderWidth: 1,
+    borderRadius: 11,
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    marginTop: 3,
+  },
+  stateButtonText: {
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  emptyHistoryIcon: {
+    width: 54,
+    height: 54,
+    borderRadius: 18,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 3,
+  },
+  emptyHistoryTitle: {
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  homeFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    marginTop: 22,
+  },
+  homeFooterText: {
+    fontSize: 9,
+  },
+  chatHeader: {
+    minHeight: 68,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    gap: 11,
+  },
+  chatHeaderText: {
+    flex: 1,
+  },
+  chatHeaderTitle: {
+    fontSize: 15,
+    fontWeight: "800",
+  },
+  chatHeaderSubtitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 4,
+  },
+  onlineDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  chatHeaderSubtitle: {
+    fontSize: 10,
+  },
+  chatPrivateBanner: {
+    minHeight: 37,
+    paddingHorizontal: 15,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  chatPrivateText: {
+    flex: 1,
+    fontSize: 10,
+    lineHeight: 15,
+  },
+  chatScroll: {
+    flex: 1,
+  },
+  chatContent: {
+    paddingHorizontal: 16,
+    paddingTop: 18,
+    paddingBottom: 22,
+    flexGrow: 1,
+  },
+  chatWelcome: {
+    alignItems: "center",
+    paddingTop: 38,
+    paddingBottom: 25,
+  },
+  chatWelcomeAvatar: {
+    width: 57,
+    height: 57,
+    borderRadius: 19,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 17,
+  },
+  chatWelcomeTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    textAlign: "center",
+  },
+  chatWelcomeDescription: {
+    fontSize: 12,
+    lineHeight: 19,
+    textAlign: "center",
+    maxWidth: 290,
+    marginTop: 8,
+  },
+  chatSuggestions: {
+    width: "100%",
+    gap: 8,
+    marginTop: 24,
+  },
+  chatSuggestion: {
+    minHeight: 46,
+    borderWidth: 1,
+    borderRadius: 13,
+    paddingHorizontal: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 9,
+  },
+  chatSuggestionText: {
+    flex: 1,
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  messageRow: {
+    flexDirection: "row",
+    marginBottom: 18,
+    gap: 9,
+    alignItems: "flex-start",
+  },
+  assistantMessageRow: {
+    justifyContent: "flex-start",
+  },
+  userMessageRow: {
+    justifyContent: "flex-end",
+  },
+  assistantAvatar: {
+    width: 31,
+    height: 31,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   messageBody: {
     maxWidth: "88%",
     flexShrink: 1,
   },
-
   messageBubble: {
-    borderRadius: 18,
+    borderRadius: 17,
     borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingHorizontal: 13,
+    paddingVertical: 11,
   },
-
   userBubble: {
     borderBottomRightRadius: 5,
   },
-
   messageText: {
     fontSize: 14,
     lineHeight: 21,
   },
-
   sourcesContainer: {
-    marginTop: 13,
-    gap: 9,
+    marginTop: 12,
+    gap: 8,
   },
-
   sourcesHeading: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: "800",
     letterSpacing: 1,
     marginBottom: 2,
   },
-
   sourceCard: {
     flexDirection: "row",
     alignItems: "center",
     padding: 9,
-    borderRadius: 15,
+    borderRadius: 14,
     borderWidth: 1,
-    gap: 10,
+    gap: 9,
   },
-
   sourceImage: {
-    width: 58,
-    height: 58,
-    borderRadius: 10,
+    width: 54,
+    height: 54,
+    borderRadius: 9,
     backgroundColor: "#E4E2ED",
   },
-
   sourceImagePlaceholder: {
-    width: 58,
-    height: 58,
-    borderRadius: 10,
+    width: 54,
+    height: 54,
+    borderRadius: 9,
     alignItems: "center",
     justifyContent: "center",
   },
-
   sourceContent: {
     flex: 1,
     gap: 4,
   },
-
   sourceTitle: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "700",
   },
-
   sourceMeta: {
-    fontSize: 11,
-  },
-
-  sourceTags: {
     fontSize: 10,
   },
-
+  sourceTags: {
+    fontSize: 9,
+  },
   loadingRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 9,
-    marginBottom: 20,
+    marginBottom: 18,
   },
-
   loadingBubble: {
     flexDirection: "row",
     alignItems: "center",
     gap: 9,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderWidth: 1,
-    borderRadius: 16,
-  },
-
-  loadingText: {
-    fontSize: 12,
-  },
-
-  suggestionsContainer: {
-    marginTop: 8,
-    marginLeft: 41,
-    gap: 9,
-  },
-
-  suggestionsTitle: {
-    fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 1,
-    marginBottom: 2,
-  },
-
-  suggestionButton: {
-    minHeight: 49,
     paddingHorizontal: 13,
-    borderRadius: 14,
+    paddingVertical: 11,
     borderWidth: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
+    borderRadius: 15,
   },
-
-  suggestionText: {
-    flex: 1,
-    fontSize: 12,
-    fontWeight: "600",
+  loadingText: {
+    fontSize: 11,
   },
-
-  disclaimer: {
-    fontSize: 10,
-    lineHeight: 15,
-    textAlign: "center",
-    marginTop: 25,
-    marginBottom: 4,
-    paddingHorizontal: 15,
-  },
-
   composerContainer: {
-    paddingHorizontal: 15,
-    paddingTop: 12,
-    paddingBottom: Platform.OS === "ios" ? 8 : 12,
+    paddingHorizontal: 14,
+    paddingTop: 10,
+    paddingBottom: Platform.OS === "ios" ? 8 : 11,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
-
   composer: {
     flexDirection: "row",
     alignItems: "flex-end",
     borderWidth: 1,
-    borderRadius: 20,
-    paddingLeft: 14,
+    borderRadius: 19,
+    paddingLeft: 13,
     paddingRight: 7,
     paddingVertical: 7,
     gap: 8,
   },
-
   input: {
     flex: 1,
-    minHeight: 41,
+    minHeight: 40,
     maxHeight: 110,
-    paddingTop: 10,
-    paddingBottom: 8,
+    paddingTop: 9,
+    paddingBottom: 7,
     fontSize: 14,
     lineHeight: 20,
   },
-
   sendButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
+    width: 39,
+    height: 39,
+    borderRadius: 13,
     alignItems: "center",
     justifyContent: "center",
   },
-
   footerText: {
-    fontSize: 10,
+    fontSize: 9,
     textAlign: "center",
     marginTop: 7,
   },
-
   retryButton: {
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
     marginTop: 7,
+  },
+  retryText: {
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.48)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 22,
+  },
+  optionsModal: {
+    width: "100%",
+    maxWidth: 380,
+    borderRadius: 21,
+    borderWidth: 1,
+    padding: 20,
+  },
+  optionsModalTitle: {
+    fontSize: 17,
+    fontWeight: "800",
+  },
+  optionsModalDescription: {
+    fontSize: 11,
+    marginTop: 5,
+    marginBottom: 17,
+  },
+  optionsAction: {
+    minHeight: 55,
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: 13,
+    paddingHorizontal: 11,
+    marginBottom: 9,
+    gap: 10,
+  },
+  optionsActionIcon: {
+    width: 35,
+    height: 35,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  optionsActionText: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  optionsCloseButton: {
+    height: 42,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 5,
+  },
+  optionsCloseText: {
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  renameModal: {
+    width: "100%",
+    maxWidth: 420,
+    borderRadius: 21,
+    borderWidth: 1,
+    padding: 20,
+  },
+  renameModalTitle: {
+    fontSize: 17,
+    fontWeight: "800",
+  },
+  renameModalDescription: {
+    fontSize: 11,
+    lineHeight: 17,
+    marginTop: 6,
+  },
+  renameInput: {
+    minHeight: 46,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    marginTop: 18,
+    fontSize: 13,
+  },
+  renameActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 9,
+    marginTop: 17,
+  },
+  renameCancelButton: {
+    minHeight: 41,
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 15,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  renameCancelText: {
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  renameSaveButton: {
+    minWidth: 91,
+    minHeight: 41,
+    borderRadius: 12,
+    paddingHorizontal: 15,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  renameSaveText: {
+    color: "#FFFFFF",
+    fontSize: 11,
+    fontWeight: "800",
   },
 });
