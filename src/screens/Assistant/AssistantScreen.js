@@ -1994,6 +1994,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderBottomWidth: StyleSheet.hairlineWidth,
     gap: 11,
+    marginTop:24
   },
   chatHeaderText: {
     flex: 1,
