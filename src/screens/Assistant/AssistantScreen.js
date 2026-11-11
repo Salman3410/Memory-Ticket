@@ -5,7 +5,6 @@ import {
   BackHandler,
   Image,
   Keyboard,
-  KeyboardAvoidingView,
   Modal,
   Platform,
   RefreshControl,
@@ -19,6 +18,7 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { KeyboardStickyView } from "react-native-keyboard-controller";
 import {
   askAssistant,
   deleteAssistantConversation,
@@ -1392,59 +1392,66 @@ function AssistantScreen({ navigation }) {
         )}
       </ScrollView>
 
-      <View
-        style={[
-          styles.composerContainer,
-          {
-            backgroundColor: colors.background,
-            borderTopColor: colors.border,
-          },
-        ]}
+      <KeyboardStickyView
+        offset={{
+          closed: 0,
+          opened: 0,
+        }}
       >
         <View
           style={[
-            styles.composer,
+            styles.composerContainer,
             {
-              backgroundColor: colors.card,
-              borderColor: colors.border,
+              backgroundColor: colors.background,
+              borderTopColor: colors.border,
             },
           ]}
         >
-          <TextInput
-            style={[styles.input, { color: colors.text }]}
-            value={input}
-            onChangeText={setInput}
-            placeholder="Message Jako..."
-            placeholderTextColor={colors.secondary}
-            multiline
-            maxLength={1000}
-            editable={!isSending && !isLoadingMessages}
-            returnKeyType="default"
-            accessibilityLabel="Message Jako AI"
-          />
-
-          <TouchableOpacity
+          <View
             style={[
-              styles.sendButton,
+              styles.composer,
               {
-                backgroundColor: colors.accent,
-                opacity: input.trim() && !isSending ? 1 : 0.45,
+                backgroundColor: colors.card,
+                borderColor: colors.border,
               },
             ]}
-            onPress={() => handleSend()}
-            disabled={!input.trim() || isSending || isLoadingMessages}
-            activeOpacity={0.8}
-            accessibilityRole="button"
-            accessibilityLabel="Send message"
           >
-            <Ionicons name="arrow-up" size={22} color="#FFFFFF" />
-          </TouchableOpacity>
-        </View>
+            <TextInput
+              style={[styles.input, { color: colors.text }]}
+              value={input}
+              onChangeText={setInput}
+              placeholder="Message Jako..."
+              placeholderTextColor={colors.secondary}
+              multiline
+              maxLength={1000}
+              editable={!isSending && !isLoadingMessages}
+              returnKeyType="default"
+              accessibilityLabel="Message Jako AI"
+            />
 
-        <Text style={[styles.footerText, { color: colors.secondary }]}>
-          Your conversation is saved to your Memento account.
-        </Text>
-      </View>
+            <TouchableOpacity
+              style={[
+                styles.sendButton,
+                {
+                  backgroundColor: colors.accent,
+                  opacity: input.trim() && !isSending ? 1 : 0.45,
+                },
+              ]}
+              onPress={() => handleSend()}
+              disabled={!input.trim() || isSending || isLoadingMessages}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel="Send message"
+            >
+              <Ionicons name="arrow-up" size={22} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+
+          <Text style={[styles.footerText, { color: colors.secondary }]}>
+            Your conversation is saved to your Memento account.
+          </Text>
+        </View>
+      </KeyboardStickyView>
     </>
   );
 
@@ -1457,10 +1464,7 @@ function AssistantScreen({ navigation }) {
         backgroundColor={colors.background}
       />
 
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
+      <View style={styles.container}>
         {screen === "home" ? (
           <>
             <View
@@ -1513,7 +1517,7 @@ function AssistantScreen({ navigation }) {
         ) : (
           renderChat()
         )}
-      </KeyboardAvoidingView>
+      </View>
 
       <Modal
         visible={conversationOptionsVisible}
@@ -1994,7 +1998,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderBottomWidth: StyleSheet.hairlineWidth,
     gap: 11,
-    marginTop:24
+    marginTop: 24,
   },
   chatHeaderText: {
     flex: 1,
