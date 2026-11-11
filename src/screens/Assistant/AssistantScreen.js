@@ -29,6 +29,7 @@ import {
 import { useAuth } from "../../hooks/useAuth";
 import { useMemory } from "../../hooks/useMemory";
 import { useTheme } from "../../context/ThemeContext";
+import useMementoNotifications from "../../hooks/useMementoNotifications";
 import CustomAlert from "../../components/common/CustomAlert";
 
 const SUGGESTED_PROMPTS = [
@@ -116,6 +117,7 @@ function AssistantScreen({ navigation }) {
   const { token } = useAuth();
   const { theme, isDark } = useTheme();
   const { getMemoryById, ensureMemoryAvailable } = useMemory();
+  const { notify } = useMementoNotifications();
 
   const themeColors = theme?.colors || {};
 
@@ -140,6 +142,7 @@ function AssistantScreen({ navigation }) {
   const openingConversationRef = useRef(false);
   const openingMemoryLockRef = useRef(null);
   const activeConversationRef = useRef(null);
+  const lastShownNotificationRef = useRef(null);
 
   const [screen, setScreen] = useState("home");
   const [conversations, setConversations] = useState([]);
@@ -166,11 +169,38 @@ function AssistantScreen({ navigation }) {
 
   const [deletingConversationId, setDeletingConversationId] = useState(null);
 
+  const [pendingNotification, setPendingNotification] = useState(null);
+
   const [customAlert, setCustomAlert] = useState({
     visible: false,
   });
 
   const activeConversation = currentConversation;
+
+  const queueNotification = useCallback((event, message) => {
+    setPendingNotification({
+      id: createMessageId(),
+      event,
+      message,
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!pendingNotification) return;
+
+    if (lastShownNotificationRef.current === pendingNotification.id) {
+      setPendingNotification(null);
+      return;
+    }
+
+    lastShownNotificationRef.current = pendingNotification.id;
+
+    notify(pendingNotification.event, {
+      message: pendingNotification.message,
+    });
+
+    setPendingNotification(null);
+  }, [pendingNotification, notify]);
 
   const showCustomAlert = useCallback((options) => {
     setCustomAlert({
@@ -619,11 +649,28 @@ function AssistantScreen({ navigation }) {
     confirmDeleteConversation(conversation);
   };
 
+  const closeRenameModal = () => {
+    if (isRenaming) return;
+
+    setRenameVisible(false);
+    setConversationToRename(null);
+    setRenameTitle("");
+  };
+
   const saveConversationRename = async () => {
     const conversationId = getConversationId(conversationToRename);
     const nextTitle = sanitizeDisplayText(renameTitle).trim();
 
+    const previousTitle =
+      sanitizeDisplayText(conversationToRename?.title) ||
+      "New conversation";
+
     if (!conversationId || !nextTitle || !token || isRenaming) return;
+
+    if (nextTitle === previousTitle) {
+      closeRenameModal();
+      return;
+    }
 
     setIsRenaming(true);
 
@@ -631,6 +678,11 @@ function AssistantScreen({ navigation }) {
       await updateAssistantConversation(token, conversationId, {
         title: nextTitle,
       });
+
+      const updatedConversation = {
+        ...conversationToRename,
+        title: nextTitle,
+      };
 
       setConversations((previous) =>
         previous.map((conversation) =>
@@ -643,18 +695,22 @@ function AssistantScreen({ navigation }) {
       if (
         getConversationId(activeConversationRef.current) === conversationId
       ) {
-        const updatedConversation = {
+        activeConversationRef.current = {
           ...activeConversationRef.current,
           title: nextTitle,
         };
 
-        activeConversationRef.current = updatedConversation;
         setCurrentConversation(updatedConversation);
       }
 
       setRenameVisible(false);
       setConversationToRename(null);
       setRenameTitle("");
+
+      queueNotification(
+        "conversationRenamed",
+        `"${nextTitle}" has been renamed successfully.`
+      );
     } catch (error) {
       showCustomAlert({
         type: "danger",
@@ -687,11 +743,11 @@ function AssistantScreen({ navigation }) {
       cancelText: "Keep chat",
       showCancel: true,
       showClose: true,
-      onConfirm: () => deleteConversation(conversationId),
+      onConfirm: () => deleteConversation(conversationId, title),
     });
   };
 
-  const deleteConversation = async (conversationId) => {
+  const deleteConversation = async (conversationId, conversationTitle) => {
     if (!token || deletingConversationId) return;
 
     setDeletingConversationId(conversationId);
@@ -716,6 +772,11 @@ function AssistantScreen({ navigation }) {
         setInput("");
         setScreen("home");
       }
+
+      queueNotification(
+        "conversationDeleted",
+        `"${conversationTitle || "Your conversation"}" has been deleted successfully.`
+      );
     } catch (error) {
       showCustomAlert({
         type: "danger",
@@ -1650,13 +1711,7 @@ function AssistantScreen({ navigation }) {
         visible={renameVisible}
         transparent
         animationType="fade"
-        onRequestClose={() => {
-          if (!isRenaming) {
-            setRenameVisible(false);
-            setConversationToRename(null);
-            setRenameTitle("");
-          }
-        }}
+        onRequestClose={closeRenameModal}
       >
         <View style={styles.modalOverlay}>
           <View
@@ -1708,13 +1763,7 @@ function AssistantScreen({ navigation }) {
                   styles.renameCancelButton,
                   { borderColor: colors.border },
                 ]}
-                onPress={() => {
-                  if (isRenaming) return;
-
-                  setRenameVisible(false);
-                  setConversationToRename(null);
-                  setRenameTitle("");
-                }}
+                onPress={closeRenameModal}
                 disabled={isRenaming}
               >
                 <Text

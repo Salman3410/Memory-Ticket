@@ -1,11 +1,36 @@
+
 import { useCallback } from "react";
 import { useAnimatedNotification } from "../context/AnimatedNotificationContext";
 
 const NOTIFICATION_PRESETS = {
+  memoryCreated: {
+    type: "success",
+    title: "Memory Saved!",
+    message: "Your moment is safe.",
+  },
+
+  memoryUpdated: {
+    type: "success",
+    title: "Memory Updated",
+    message: "Your memory changes have been saved.",
+  },
+
+  memoryRenamed: {
+    type: "success",
+    title: "Memory Renamed",
+    message: "Your memory title has been updated successfully.",
+  },
+
   memoryDeleted: {
     type: "success",
     title: "Memory Deleted",
-    message: "Your memory has been deleted.",
+    message: "Your memory has been permanently deleted.",
+  },
+
+  memoryStorageCleared: {
+    type: "success",
+    title: "Memory Storage Cleared",
+    message: "Your memory storage has been cleared.",
   },
 
   collectionCreated: {
@@ -20,10 +45,52 @@ const NOTIFICATION_PRESETS = {
     message: "The collection has been deleted.",
   },
 
+  collectionUpdated: {
+    type: "success",
+    title: "Collection Updated",
+    message: "Your collection changes have been saved.",
+  },
+
   memoryAddedToCollection: {
     type: "success",
     title: "Memory Added",
     message: "Your memory was added to the collection.",
+  },
+
+  memoryRemovedFromCollection: {
+    type: "success",
+    title: "Memory Removed",
+    message: "The memory has been removed from this collection.",
+  },
+
+  favoriteAdded: {
+    type: "success",
+    title: "Added to Favorites",
+    message: "Your memory has been added to favorites.",
+  },
+
+  favoriteRemoved: {
+    type: "info",
+    title: "Removed from Favorites",
+    message: "Your memory has been removed from favorites.",
+  },
+
+  memoryTicketUpdated: {
+    type: "success",
+    title: "Memory Ticket Updated",
+    message: "Your ticket changes have been saved.",
+  },
+
+  conversationRenamed: {
+    type: "success",
+    title: "Chat Renamed",
+    message: "Your conversation has been renamed successfully.",
+  },
+
+  conversationDeleted: {
+    type: "success",
+    title: "Chat Deleted",
+    message: "Your conversation has been deleted successfully.",
   },
 
   loggedIn: {
@@ -42,6 +109,18 @@ const NOTIFICATION_PRESETS = {
     type: "success",
     title: "Account Created",
     message: "Welcome to Memento. Your journey begins here.",
+  },
+
+  accountDeleted: {
+    type: "success",
+    title: "Account Deleted",
+    message: "Your Memento account has been deleted.",
+  },
+
+  profileUpdated: {
+    type: "success",
+    title: "Profile Updated",
+    message: "Your profile changes have been saved.",
   },
 
   passwordResetRequested: {
@@ -63,18 +142,6 @@ const NOTIFICATION_PRESETS = {
     message: "Your new password has been saved.",
   },
 
-  accountDeleted: {
-    type: "success",
-    title: "Account Deleted",
-    message: "Your Memento account has been deleted.",
-  },
-
-  memoryStorageCleared: {
-    type: "success",
-    title: "Memory Storage Cleared",
-    message: "Your memory storage has been cleared.",
-  },
-
   notificationsEnabled: {
     type: "success",
     title: "Notifications Enabled",
@@ -85,36 +152,6 @@ const NOTIFICATION_PRESETS = {
     type: "info",
     title: "Notifications Disabled",
     message: "Memento reminders have been turned off.",
-  },
-
-  profileUpdated: {
-    type: "success",
-    title: "Profile Updated",
-    message: "Your profile changes have been saved.",
-  },
-
-  collectionUpdated: {
-    type: "success",
-    title: "Collection Updated",
-    message: "Your collection changes have been saved.",
-  },
-
-  memoryTicketUpdated: {
-    type: "success",
-    title: "Memory Ticket Updated",
-    message: "Your ticket changes have been saved.",
-  },
-
-  memoryCreated: {
-    type: "success",
-    title: "Memory Saved!",
-    message: "Your moment is safe.",
-  },
-
-  memoryUpdated: {
-    type: "success",
-    title: "Memory Updated",
-    message: "Your memory changes have been saved.",
   },
 
   themeChanged: {
@@ -137,26 +174,8 @@ const NOTIFICATION_PRESETS = {
 
   signupOtpSent: {
     type: "success",
-    itle: "Verification Code Sent",
+    title: "Verification Code Sent",
     message: "Check your email for your 6-digit verification code.",
-  },
-
-  memoryRemovedFromCollection: {
-    type: "success",
-    title: "Memory Removed",
-    message: "The memory has been removed from this collection.",
-  },
-
-  favoriteAdded: {
-    type: "success",
-    title: "Added to Favorites",
-    message: "Your memory has been added to favorites.",
-  },
-
-  favoriteRemoved: {
-    type: "info",
-    title: "Removed from Favorites",
-    message: "Your memory has been removed from favorites.",
   },
 };
 
