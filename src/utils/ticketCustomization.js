@@ -1,3 +1,4 @@
+
 export const DEFAULT_TICKET_CUSTOMIZATION = {
   ticketStyle: "classic",
   ticketAccent: "coral",
@@ -16,6 +17,7 @@ export const TICKET_STYLE_OPTIONS = [
     id: "classic",
     label: "Classic",
     description: "The original Memento ticket",
+    available: true,
   },
   {
     id: "minimal",
@@ -33,11 +35,13 @@ export const TICKET_STYLE_OPTIONS = [
     id: "red-pattern",
     label: "Red Pattern",
     description: "A playful pattern for your memories",
+    available: true,
   },
   {
     id: "red-lines",
     label: "Red Lines",
     description: "Flowing lines with a bold red finish",
+    available: true,
   },
 ];
 
@@ -68,8 +72,11 @@ export const TICKET_ACCENT_OPTIONS = [
   },
 ];
 
+// Only designs with implemented backgrounds are valid.
 const VALID_STYLES = new Set(
-  TICKET_STYLE_OPTIONS.map((item) => item.id)
+  TICKET_STYLE_OPTIONS
+    .filter((item) => item.available)
+    .map((item) => item.id)
 );
 
 const VALID_ACCENTS = new Map(
@@ -149,36 +156,6 @@ export const getTicketTheme = (customization = {}) => {
       backgroundColor: "#E92F1F",
       imagePlaceholderColor: "#D92A1D",
       borderColor: "#F5C842",
-    };
-  }
-
-  if (normalized.ticketStyle === "minimal") {
-    return {
-      accentColor: accent.color,
-
-      textColor:
-        accent.id === "yellow"
-          ? "#725900"
-          : accent.color,
-
-      backgroundColor: "#FFFFFF",
-      imagePlaceholderColor: "#F1F0F6",
-      borderColor: "#D9D8E2",
-    };
-  }
-
-  if (normalized.ticketStyle === "vintage") {
-    return {
-      accentColor: accent.color,
-
-      textColor:
-        accent.id === "yellow"
-          ? "#745D20"
-          : accent.color,
-
-      backgroundColor: "#F3E7CF",
-      imagePlaceholderColor: "#E4D2AD",
-      borderColor: "#C5A978",
     };
   }
 

@@ -19,9 +19,21 @@ function MemoryTicketList({
   const borderColor = colors.border || (isDark ? "#38384C" : "#D9D8E2");
   const favoriteScale = useRef(new Animated.Value(1)).current;
 
-  const handlePress = useCallback(() => {
-    onMemoryPress(memory.id || memory.clientMemoryId);
-  }, [memory.id, memory.clientMemoryId, onMemoryPress]);
+const handlePress = useCallback(() => {
+  const memoryId =
+    memory?.id ||
+    memory?._id ||
+    memory?.clientMemoryId;
+
+  if (memoryId) {
+    onMemoryPress(String(memoryId));
+  }
+}, [
+  memory?.id,
+  memory?._id,
+  memory?.clientMemoryId,
+  onMemoryPress,
+]);
 
   const handleFavorite = useCallback(() => {
     // Reset in case the user taps quickly.
