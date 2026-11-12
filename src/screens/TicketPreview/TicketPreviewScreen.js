@@ -8,12 +8,10 @@ import {
   StatusBar,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-
 import { useMemory } from "../../hooks/useMemory";
 import { useAppAlert } from "../../context/AlertContext";
 import { useTheme } from "../../context/ThemeContext";
 import { useMementoNotifications } from "../../hooks/useMementoNotifications";
-
 import MemoryTicket from "../../components/MemoryTicket/MemoryTicket";
 import TicketCustomizationSheet from "../../components/TicketCustomization/TicketCustomizationSheet";
 import { normalizeTicketCustomization } from "../../utils/ticketCustomization";

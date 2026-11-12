@@ -11,6 +11,7 @@ import { getMemoryThumbnailUrl } from "../../utils/cloudinary";
 import { normalizeTicketCustomization } from "../../utils/ticketCustomization";
 import styles from "./memoryTicketStyles";
 
+
 const TICKET_DESIGNS = {
   classic: {
     background: require("../../../assets/tickets/classic.png"),
@@ -22,7 +23,34 @@ const TICKET_DESIGNS = {
       border: "rgba(255,255,255,0.55)",
     },
   },
+
+  "red-pattern": {
+    background: require(
+      "../../../assets/tickets/sticker/red-sticker.png"
+    ),
+
+    colors: {
+      primary: "#FFF4E8",
+      secondary: "#FFE3A1",
+      muted: "rgba(255,244,232,0.85)",
+      border: "rgba(255,244,232,0.7)",
+    },
+  },
+
+  "red-lines": {
+    background: require(
+      "../../../assets/tickets/pattern/red-line.png"
+    ),
+
+    colors: {
+      primary: "#FFF4E8",
+      secondary: "#FFE178",
+      muted: "rgba(255,244,232,0.85)",
+      border: "rgba(255,244,232,0.7)",
+    },
+  },
 };
+
 
 const formatDate = (value) => {
   if (!value) {
@@ -70,7 +98,7 @@ function MemoryTicket({
 
   const selectedTemplate =
     ticketTemplate ||
-    memory.ticketTemplate ||
+    customization.ticketStyle ||
     "classic";
 
   const ticketDesign =

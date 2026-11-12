@@ -1,18 +1,52 @@
+
 import { useMemo, useCallback } from "react";
+
 import {
   Modal,
   View,
   Text,
+  Image,
   ScrollView,
   TouchableOpacity,
 } from "react-native";
+
 import { Ionicons } from "@expo/vector-icons";
+
 import { useTheme } from "../../context/ThemeContext";
+
 import TactileButton from "../../components/common/TactileButton";
+
 import {
   normalizeTicketCustomization,
 } from "../../utils/ticketCustomization";
+
 import styles from "./ticketCustomizationStyles";
+
+// AVAILABLE TICKET DESIGNS
+const TICKET_STYLE_OPTIONS = [
+  {
+    id: "classic",
+    label: "Classic",
+    description: "The original Memento ticket",
+    preview: require("../../../assets/tickets/classic.png"),
+  },
+  {
+    id: "red-pattern",
+    label: "Red Pattern",
+    description: "A playful pattern for your memories",
+    preview: require(
+      "../../../assets/tickets/sticker/red-sticker.png"
+    ),
+  },
+  {
+    id: "red-lines",
+    label: "Red Lines",
+    description: "Flowing lines with a bold red finish",
+    preview: require(
+      "../../../assets/tickets/pattern/red-line.png"
+    ),
+  },
+];
 
 function TicketCustomizationSheet({
   visible,
@@ -24,16 +58,21 @@ function TicketCustomizationSheet({
   title = "Customize Ticket",
 }) {
   const { isDark, theme } = useTheme();
+
   const colors = theme?.colors || {};
 
+  // THEME COLORS
   const surfaceColor =
-    colors.surface || (isDark ? "#211F30" : "#FFFFFF");
+    colors.surface ||
+    (isDark ? "#211F30" : "#FFFFFF");
 
   const surfaceSecondaryColor =
-    colors.surfaceSecondary || (isDark ? "#292740" : "#F1F0F6");
+    colors.surfaceSecondary ||
+    (isDark ? "#292740" : "#F1F0F6");
 
   const textColor =
-    colors.text || (isDark ? "#F7F5FC" : "#242424");
+    colors.text ||
+    (isDark ? "#F7F5FC" : "#242424");
 
   const secondaryTextColor =
     colors.textSecondary ||
@@ -41,18 +80,23 @@ function TicketCustomizationSheet({
     (isDark ? "#C4C0D0" : "#707080");
 
   const borderColor =
-    colors.border || (isDark ? "#39364D" : "#D9D8E2");
+    colors.border ||
+    (isDark ? "#39364D" : "#D9D8E2");
 
-  const dividerColor = colors.divider || borderColor;
+  const dividerColor =
+    colors.divider || borderColor;
 
   const primaryColor =
-    colors.primary || (isDark ? "#C8C2FF" : "#34345C");
+    colors.primary ||
+    (isDark ? "#C8C2FF" : "#34345C");
 
-  const accentColor = colors.accent || "#E76F51";
+  const accentColor =
+    colors.accent || "#E76F51";
 
+  // NORMALIZE CUSTOMIZATION
   const customization = useMemo(
     () => normalizeTicketCustomization(value),
-    [value],
+    [value]
   );
 
   const actionLabel = saving
@@ -61,6 +105,14 @@ function TicketCustomizationSheet({
       ? "SAVE CHANGES"
       : "DONE";
 
+  // CHECK CURRENT STYLE
+  const selectedStyleId = TICKET_STYLE_OPTIONS.some(
+    (item) => item.id === customization.ticketStyle
+  )
+    ? customization.ticketStyle
+    : "classic";
+
+  // UPDATE CUSTOMIZATION
   const updateCustomization = useCallback(
     (changes) => {
       if (typeof onChange !== "function") {
@@ -72,9 +124,24 @@ function TicketCustomizationSheet({
         ...changes,
       });
     },
-    [customization, onChange],
+    [customization, onChange]
   );
 
+  // SELECT TICKET DESIGN
+  const selectTicketStyle = useCallback(
+    (styleId) => {
+      if (saving) {
+        return;
+      }
+
+      updateCustomization({
+        ticketStyle: styleId,
+      });
+    },
+    [saving, updateCustomization]
+  );
+
+  // TOGGLE TICKET OPTIONS
   const toggleOption = useCallback(
     (key) => {
       updateCustomization({
@@ -84,9 +151,10 @@ function TicketCustomizationSheet({
         },
       });
     },
-    [customization, updateCustomization],
+    [customization, updateCustomization]
   );
 
+  // HANDLE DONE / SAVE
   const handleAction = useCallback(() => {
     if (saving) {
       return;
@@ -100,14 +168,18 @@ function TicketCustomizationSheet({
     onClose?.();
   }, [saving, onSave, onClose]);
 
+  // HANDLE CLOSE
   const handleClose = useCallback(() => {
     if (!saving) {
       onClose?.();
     }
   }, [saving, onClose]);
 
+  // RENDER VISIBILITY TOGGLE
   const renderToggle = (label, key) => {
-    const enabled = Boolean(customization.ticketOptions?.[key]);
+    const enabled = Boolean(
+      customization.ticketOptions?.[key]
+    );
 
     return (
       <TouchableOpacity
@@ -134,7 +206,9 @@ function TicketCustomizationSheet({
           <Text
             style={[
               styles.optionLabel,
-              { color: textColor },
+              {
+                color: textColor,
+              },
             ]}
           >
             {label}
@@ -143,7 +217,9 @@ function TicketCustomizationSheet({
           <Text
             style={[
               styles.optionState,
-              { color: secondaryTextColor },
+              {
+                color: secondaryTextColor,
+              },
             ]}
           >
             {enabled ? "VISIBLE" : "HIDDEN"}
@@ -151,10 +227,129 @@ function TicketCustomizationSheet({
         </View>
 
         <Ionicons
-          name={enabled ? "checkmark-circle" : "ellipse-outline"}
+          name={
+            enabled
+              ? "checkmark-circle"
+              : "ellipse-outline"
+          }
           size={24}
-          color={enabled ? primaryColor : secondaryTextColor}
+          color={
+            enabled
+              ? primaryColor
+              : secondaryTextColor
+          }
         />
+      </TouchableOpacity>
+    );
+  };
+
+  // RENDER TICKET STYLE CARD
+  const renderStyleCard = (styleOption) => {
+    const selected =
+      selectedStyleId === styleOption.id;
+
+    return (
+      <TouchableOpacity
+        key={styleOption.id}
+        onPress={() =>
+          selectTicketStyle(styleOption.id)
+        }
+        activeOpacity={0.8}
+        disabled={saving}
+        accessibilityRole="radio"
+        accessibilityLabel={styleOption.label}
+        accessibilityState={{
+          checked: selected,
+          disabled: saving,
+        }}
+        style={{
+          width: "48%",
+          marginBottom: 13,
+          padding: 9,
+          borderRadius: 14,
+          borderWidth: selected ? 2 : 1,
+          borderColor: selected
+            ? primaryColor
+            : borderColor,
+          backgroundColor: surfaceSecondaryColor,
+          overflow: "hidden",
+        }}
+      >
+        {/* TICKET IMAGE PREVIEW */}
+        <View
+          style={{
+            width: "100%",
+            height: 155,
+            borderRadius: 9,
+            overflow: "hidden",
+            backgroundColor: surfaceColor,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Image
+            source={styleOption.preview}
+            resizeMode="contain"
+            style={{
+              width: "100%",
+              height: "100%",
+            }}
+          />
+        </View>
+
+        {/* TICKET NAME AND DESCRIPTION */}
+        <View
+          style={{
+            marginTop: 11,
+            paddingRight: 19,
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 12,
+              fontWeight: "900",
+              color: textColor,
+            }}
+            numberOfLines={1}
+          >
+            {styleOption.label}
+          </Text>
+
+          <Text
+            style={{
+              fontSize: 9,
+              lineHeight: 14,
+              marginTop: 4,
+              color: secondaryTextColor,
+            }}
+            numberOfLines={2}
+          >
+            {styleOption.description}
+          </Text>
+        </View>
+
+        {/* SELECTED INDICATOR */}
+        {selected && (
+          <View
+            style={{
+              position: "absolute",
+              top: 15,
+              right: 15,
+              width: 24,
+              height: 24,
+              borderRadius: 12,
+              backgroundColor: primaryColor,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Ionicons
+              name="checkmark"
+              size={15}
+              color="#FFFFFF"
+            />
+          </View>
+        )}
       </TouchableOpacity>
     );
   };
@@ -197,7 +392,9 @@ function TicketCustomizationSheet({
               <Text
                 style={[
                   styles.eyebrow,
-                  { color: accentColor },
+                  {
+                    color: accentColor,
+                  },
                 ]}
               >
                 MEMENTO
@@ -206,7 +403,9 @@ function TicketCustomizationSheet({
               <Text
                 style={[
                   styles.title,
-                  { color: textColor },
+                  {
+                    color: textColor,
+                  },
                 ]}
               >
                 {title}
@@ -235,217 +434,103 @@ function TicketCustomizationSheet({
             </TouchableOpacity>
           </View>
 
+          {/* SCROLLABLE CONTENT */}
           <ScrollView
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={[
               styles.scrollContent,
-              { backgroundColor: surfaceColor },
+              {
+                backgroundColor: surfaceColor,
+              },
             ]}
           >
-            {/*
-            <Text
-              style={[
-                styles.sectionLabel,
-                { color: secondaryTextColor },
-              ]}
+            {/* TICKET STYLE SECTION */}
+            <View
+              style={{
+                marginBottom: 7,
+              }}
             >
-              TICKET STYLE
-            </Text>
+              <Text
+                style={[
+                  styles.sectionLabel,
+                  {
+                    color: secondaryTextColor,
+                  },
+                ]}
+              >
+                TICKET STYLE
+              </Text>
 
-            <View style={styles.styleGrid}>
-              {TICKET_STYLE_OPTIONS.map((styleOption) => {
-                const selected =
-                  customization.ticketStyle === styleOption.id;
-
-                return (
-                  <TouchableOpacity
-                    key={styleOption.id}
-                    style={[
-                      styles.styleCard,
-                      selected && styles.styleCardActive,
-                      {
-                        backgroundColor: surfaceSecondaryColor,
-                        borderColor: selected
-                          ? primaryColor
-                          : borderColor,
-                      },
-                    ]}
-                    onPress={() =>
-                      updateCustomization({
-                        ticketStyle: styleOption.id,
-                      })
-                    }
-                    activeOpacity={0.8}
-                    disabled={saving}
-                  >
-                    <View
-                      style={[
-                        styles.stylePreview,
-                        styleOption.id === "classic" &&
-                          styles.classicPreview,
-                        styleOption.id === "minimal" &&
-                          styles.minimalPreview,
-                        styleOption.id === "vintage" &&
-                          styles.vintagePreview,
-                        {
-                          backgroundColor: isDark
-                            ? "#302D43"
-                            : "#FFFFFF",
-                          borderColor,
-                        },
-                      ]}
-                    >
-                      <View
-                        style={[
-                          styles.previewLine,
-                          { backgroundColor: primaryColor },
-                        ]}
-                      />
-
-                      <View
-                        style={[
-                          styles.previewBlock,
-                          { backgroundColor: accentColor },
-                        ]}
-                      />
-
-                      <View
-                        style={[
-                          styles.previewBlockSmall,
-                          {
-                            backgroundColor: isDark
-                              ? "#625E79"
-                              : "#D9D8E2",
-                          },
-                        ]}
-                      />
-                    </View>
-
-                    <View style={styles.styleCardText}>
-                      <Text
-                        style={[
-                          styles.styleCardTitle,
-                          { color: textColor },
-                        ]}
-                      >
-                        {styleOption.label}
-                      </Text>
-
-                      <Text
-                        style={[
-                          styles.styleCardDescription,
-                          { color: secondaryTextColor },
-                        ]}
-                      >
-                        {styleOption.description}
-                      </Text>
-                    </View>
-
-                    {selected && (
-                      <View
-                        style={[
-                          styles.selectedBadge,
-                          { backgroundColor: primaryColor },
-                        ]}
-                      >
-                        <Ionicons
-                          name="checkmark"
-                          size={13}
-                          color="#FFFFFF"
-                        />
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
+              <Text
+                style={{
+                  fontSize: 10,
+                  color: secondaryTextColor,
+                  marginTop: -3,
+                  marginBottom: 14,
+                }}
+              >
+                Choose a design for your memory ticket.
+              </Text>
             </View>
-            */}
 
-            {/*
-            <Text
-              style={[
-                styles.sectionLabel,
-                styles.accentSectionLabel,
-                { color: secondaryTextColor },
-              ]}
+            {/* DESIGN GRID */}
+            <View
+              style={{
+                flexDirection: "row",
+                flexWrap: "wrap",
+                justifyContent: "space-between",
+              }}
             >
-              ACCENT COLOR
-            </Text>
-
-            <View style={styles.accentRow}>
-              {TICKET_ACCENT_OPTIONS.map((accent) => {
-                const selected =
-                  customization.ticketAccent === accent.id;
-
-                return (
-                  <TouchableOpacity
-                    key={accent.id}
-                    style={styles.accentItem}
-                    onPress={() =>
-                      updateCustomization({
-                        ticketAccent: accent.id,
-                      })
-                    }
-                    activeOpacity={0.75}
-                    disabled={saving}
-                  >
-                    <View
-                      style={[
-                        styles.accentCircle,
-                        {
-                          backgroundColor: accent.color,
-                          borderColor: selected
-                            ? primaryColor
-                            : borderColor,
-                        },
-                        selected && styles.accentCircleActive,
-                      ]}
-                    >
-                      {selected && (
-                        <Ionicons
-                          name="checkmark"
-                          size={16}
-                          color="#FFFFFF"
-                        />
-                      )}
-                    </View>
-
-                    <Text
-                      style={[
-                        styles.accentLabel,
-                        {
-                          color: selected
-                            ? textColor
-                            : secondaryTextColor,
-                        },
-                      ]}
-                    >
-                      {accent.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
+              {TICKET_STYLE_OPTIONS.map(
+                renderStyleCard
+              )}
             </View>
-            */}
+
+            {/* DIVIDER */}
+            <View
+              style={{
+                height: 1,
+                backgroundColor: dividerColor,
+                marginTop: 3,
+                marginBottom: 18,
+              }}
+            />
 
             {/* SHOW ON TICKET */}
             <Text
               style={[
                 styles.sectionLabel,
                 styles.contentSectionLabel,
-                { color: secondaryTextColor },
+                {
+                  color: secondaryTextColor,
+                },
               ]}
             >
               SHOW ON TICKET
             </Text>
 
-            {renderToggle("Location", "showLocation")}
-            {renderToggle("Date", "showDate")}
-            {renderToggle("Description", "showDescription")}
-            {renderToggle("Ticket Number", "showTicketNumber")}
+            {renderToggle(
+              "Location",
+              "showLocation"
+            )}
 
-            {/* TACTILE ACTION BUTTON */}
+            {renderToggle(
+              "Date",
+              "showDate"
+            )}
+
+            {renderToggle(
+              "Description",
+              "showDescription"
+            )}
+
+            {renderToggle(
+              "Ticket Number",
+              "showTicketNumber"
+            )}
+
+            {/* DONE BUTTON */}
             <View style={styles.doneButtonContainer}>
               <TactileButton
                 title={actionLabel}

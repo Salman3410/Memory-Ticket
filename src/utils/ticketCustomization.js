@@ -1,6 +1,7 @@
 export const DEFAULT_TICKET_CUSTOMIZATION = {
   ticketStyle: "classic",
   ticketAccent: "coral",
+
   ticketOptions: {
     showLocation: true,
     showDate: true,
@@ -20,11 +21,23 @@ export const TICKET_STYLE_OPTIONS = [
     id: "minimal",
     label: "Minimal",
     description: "Clean and simple",
+    available: false,
   },
   {
     id: "vintage",
     label: "Vintage",
     description: "Warm archival style",
+    available: false,
+  },
+  {
+    id: "red-pattern",
+    label: "Red Pattern",
+    description: "A playful pattern for your memories",
+  },
+  {
+    id: "red-lines",
+    label: "Red Lines",
+    description: "Flowing lines with a bold red finish",
   },
 ];
 
@@ -55,15 +68,23 @@ export const TICKET_ACCENT_OPTIONS = [
   },
 ];
 
-const VALID_STYLES = new Set(TICKET_STYLE_OPTIONS.map((item) => item.id));
+const VALID_STYLES = new Set(
+  TICKET_STYLE_OPTIONS.map((item) => item.id)
+);
 
 const VALID_ACCENTS = new Map(
-  TICKET_ACCENT_OPTIONS.map((item) => [item.id, item]),
+  TICKET_ACCENT_OPTIONS.map((item) => [
+    item.id,
+    item,
+  ])
 );
 
 export const normalizeTicketCustomization = (value = {}) => {
-  const ticketStyle = VALID_STYLES.has(value?.ticketStyle)
-    ? value.ticketStyle
+  const requestedStyle =
+    value?.ticketStyle ?? value?.ticketTemplate;
+
+  const ticketStyle = VALID_STYLES.has(requestedStyle)
+    ? requestedStyle
     : DEFAULT_TICKET_CUSTOMIZATION.ticketStyle;
 
   const ticketAccent = VALID_ACCENTS.has(value?.ticketAccent)
@@ -80,11 +101,17 @@ export const normalizeTicketCustomization = (value = {}) => {
   return {
     ticketStyle,
     ticketAccent,
+
     ticketOptions: {
       showLocation:
-        typeof options.showLocation === "boolean" ? options.showLocation : true,
+        typeof options.showLocation === "boolean"
+          ? options.showLocation
+          : true,
 
-      showDate: typeof options.showDate === "boolean" ? options.showDate : true,
+      showDate:
+        typeof options.showDate === "boolean"
+          ? options.showDate
+          : true,
 
       showDescription:
         typeof options.showDescription === "boolean"
@@ -105,21 +132,37 @@ export const normalizeTicketCustomization = (value = {}) => {
 };
 
 export const getTicketTheme = (customization = {}) => {
-  const normalized = normalizeTicketCustomization(customization);
+  const normalized =
+    normalizeTicketCustomization(customization);
 
   const accent =
-    VALID_ACCENTS.get(normalized.ticketAccent) || TICKET_ACCENT_OPTIONS[0];
+    VALID_ACCENTS.get(normalized.ticketAccent) ||
+    TICKET_ACCENT_OPTIONS[0];
+
+  if (
+    normalized.ticketStyle === "red-pattern" ||
+    normalized.ticketStyle === "red-lines"
+  ) {
+    return {
+      accentColor: "#F5C842",
+      textColor: "#FFF4E8",
+      backgroundColor: "#E92F1F",
+      imagePlaceholderColor: "#D92A1D",
+      borderColor: "#F5C842",
+    };
+  }
 
   if (normalized.ticketStyle === "minimal") {
     return {
       accentColor: accent.color,
 
-      textColor: accent.id === "yellow" ? "#725900" : accent.color,
+      textColor:
+        accent.id === "yellow"
+          ? "#725900"
+          : accent.color,
 
       backgroundColor: "#FFFFFF",
-
       imagePlaceholderColor: "#F1F0F6",
-
       borderColor: "#D9D8E2",
     };
   }
@@ -128,25 +171,22 @@ export const getTicketTheme = (customization = {}) => {
     return {
       accentColor: accent.color,
 
-      textColor: accent.id === "yellow" ? "#745D20" : accent.color,
+      textColor:
+        accent.id === "yellow"
+          ? "#745D20"
+          : accent.color,
 
       backgroundColor: "#F3E7CF",
-
       imagePlaceholderColor: "#E4D2AD",
-
       borderColor: "#C5A978",
     };
   }
 
   return {
     accentColor: accent.color,
-
     textColor: accent.color,
-
     backgroundColor: "#F7B900",
-
     imagePlaceholderColor: "#EAAE00",
-
     borderColor: "transparent",
   };
 };
