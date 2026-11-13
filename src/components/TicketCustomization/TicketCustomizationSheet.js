@@ -32,7 +32,7 @@ const TICKET_STYLE_OPTIONS = [
   },
   {
     id: "red-pattern",
-    label: "Red Pattern",
+    label: "Classic Pattern",
     description: "A playful pattern for your memories",
     preview: require(
       "../../../assets/tickets/sticker/red-sticker.png"
@@ -40,7 +40,7 @@ const TICKET_STYLE_OPTIONS = [
   },
   {
     id: "red-lines",
-    label: "Red Lines",
+    label: "Classic Lines",
     description: "Flowing lines with a bold red finish",
     preview: require(
       "../../../assets/tickets/pattern/red-line.png"
