@@ -108,7 +108,7 @@ function HomeHeader({ navigation }) {
               fontWeight: "800",
             }}
           >
-            Ask AI
+            Jako AI
           </Text>
         </TouchableOpacity>
 
